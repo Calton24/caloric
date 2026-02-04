@@ -43,3 +43,14 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Firebase configs (production secrets NOT committed)
+# Keep dev configs for local development
+ios/GoogleService-Info-prod.plist
+ios/GoogleService-Info-staging.plist
+android/app/google-services-prod.json
+android/app/google-services-staging.json
+
+# Generated Firebase files (created by build hook)
+ios/GoogleService-Info.plist
+android/app/google-services.json
