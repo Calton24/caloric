@@ -12,53 +12,47 @@ export default function HomeScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>🚗 Cara</Text>
-          <Text style={styles.subtitle}>Your Car Companion App</Text>
+          <Text style={styles.title}>� Mobile Core</Text>
+          <Text style={styles.subtitle}>Component Library</Text>
         </View>
 
-        {/* Placeholder Card */}
+        {/* Welcome Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Welcome to Cara</Text>
+          <Text style={styles.cardTitle}>Welcome</Text>
           <Text style={styles.cardText}>
-            This will be the home page for your car app. Features coming soon:
+            This is a reusable component library built with Expo and React Native.
+            Explore the Playground tab to see all available components.
           </Text>
-          <View style={styles.featureList}>
-            <Text style={styles.featureItem}>• Vehicle Dashboard</Text>
-            <Text style={styles.featureItem}>• Maintenance Tracking</Text>
-            <Text style={styles.featureItem}>• Fuel Log</Text>
-            <Text style={styles.featureItem}>• Trip History</Text>
-            <Text style={styles.featureItem}>• Service Reminders</Text>
-          </View>
         </View>
 
-        {/* Quick Stats Placeholder */}
+        {/* Quick Stats */}
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
-            <Text style={styles.statEmoji}>⛽</Text>
-            <Text style={styles.statValue}>--</Text>
-            <Text style={styles.statLabel}>Fuel Level</Text>
+            <Text style={styles.statEmoji}>🎨</Text>
+            <Text style={styles.statValue}>14</Text>
+            <Text style={styles.statLabel}>Components</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statEmoji}>🛣️</Text>
-            <Text style={styles.statValue}>--</Text>
-            <Text style={styles.statLabel}>Miles</Text>
+            <Text style={styles.statEmoji}>⚡</Text>
+            <Text style={styles.statValue}>Swift UI</Text>
+            <Text style={styles.statLabel}>Inspired</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statEmoji}>🔧</Text>
-            <Text style={styles.statValue}>--</Text>
-            <Text style={styles.statLabel}>Next Service</Text>
+            <Text style={styles.statEmoji}>📦</Text>
+            <Text style={styles.statValue}>@expo/ui</Text>
+            <Text style={styles.statLabel}>Powered</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statEmoji}>💰</Text>
-            <Text style={styles.statValue}>--</Text>
-            <Text style={styles.statLabel}>This Month</Text>
+            <Text style={styles.statEmoji}>🚀</Text>
+            <Text style={styles.statValue}>Ready</Text>
+            <Text style={styles.statLabel}>For Use</Text>
           </View>
         </View>
 
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            Check out the Playground tab for Expo UI demos →
+            Check out the Playground tab to explore components →
           </Text>
         </View>
       </ScrollView>
@@ -114,15 +108,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#666",
     lineHeight: 22,
-    marginBottom: 16,
-  },
-  featureList: {
-    gap: 8,
-  },
-  featureItem: {
-    fontSize: 15,
-    color: "#333",
-    lineHeight: 24,
   },
   statsGrid: {
     flexDirection: "row",
@@ -148,9 +133,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#007AFF",
+    textAlign: "center",
   },
   statLabel: {
     fontSize: 12,
