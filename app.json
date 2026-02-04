@@ -1,15 +1,16 @@
 {
   "expo": {
-    "name": "cara",
-    "slug": "cara",
+    "name": "mobile-core",
+    "slug": "mobile-core",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "cara",
+    "scheme": "mobile-core",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.calton24.mobilecore"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +20,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.calton24.mobilecore"
     },
     "web": {
       "output": "static",
