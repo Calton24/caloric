@@ -119,10 +119,10 @@ export function ExampleStaticFeatureFlags() {
     // Show vision UI
   }
 
-  // Check if paywall is enabled
-  if (config.features.paywall) {
-    console.log("Paywall is enabled");
-    // Show subscription UI
+  // Check if billing (including paywall UI) is enabled
+  if (config.features.billing) {
+    console.log("Billing system is enabled");
+    // Show subscription UI / paywall
   }
 
   // Conditionally render based on features

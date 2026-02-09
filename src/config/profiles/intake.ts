@@ -35,21 +35,33 @@ export const intakeConfig: AppProfileConfig = {
     },
   },
 
+  billing: {
+    provider: "superwall" as const,
+    superwall: {
+      apiKey: "pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", // Replace with your Superwall API key
+      triggers: {
+        premium: "premium_paywall",
+        pro: "pro_subscription",
+        foodScanning: "food_scan_limit",
+      } satisfies Record<string, string>,
+    },
+  },
+
   features: {
     vision: true, // Vision AI enabled for food scanning
     water: true,
     habit: false, // Not needed for intake
-    paywall: true,
     analytics: true,
     notifications: true,
     firebaseAnalytics: true, // Enable Firebase Analytics
     crashReporting: true, // Enable Crashlytics
     performanceMonitoring: true, // Enable Performance Monitoring
+    billing: true, // Enable billing system (includes paywall UI)
   },
 
   app: {
     name: "Intake",
-    slug: "intake-app",
+    slug: "intake-mobile",
     bundleIdentifier: "com.yourcompany.intake",
     androidPackage: "com.yourcompany.intake",
     version: "1.0.0",
@@ -82,11 +94,11 @@ export const intakeConfig: AppProfileConfig = {
         },
       },
       features: {
-        paywall: false, // Disable paywall in dev
         analytics: false,
         firebaseAnalytics: true, // Keep Firebase Analytics in dev
         crashReporting: true, // Keep crash reporting
         performanceMonitoring: false, // Disable perf monitoring in dev
+        billing: false, // Disable billing in dev (use test mode in staging)
       },
       app: {
         name: "Intake Dev",

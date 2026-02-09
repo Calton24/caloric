@@ -1,0 +1,173 @@
+/**
+ * Superwall Billing Provider
+ * Wrapper around Superwall SDK for mobile paywalls
+ *
+ * NOTE: This is a wrapper/adapter only. We test our logic, not Superwall SDK internals.
+ */
+
+import type { SuperwallConfig } from "../../config/types";
+import type { BillingProvider, Entitlement, SubscriptionTier } from "./types";
+
+/**
+ * Superwall Provider Implementation
+ *
+ * This wraps the Superwall SDK and maps their entitlement model to ours.
+ * For testing: Mock the Superwall SDK, test our adapter logic only.
+ */
+export class SuperwallProvider implements BillingProvider {
+  private config: SuperwallConfig;
+  private initialized = false;
+  private entitlementCallbacks: ((entitlement: Entitlement) => void)[] = [];
+
+  constructor(config: SuperwallConfig) {
+    this.config = config;
+  }
+
+  async initialize(): Promise<void> {
+    if (this.initialized) {
+      console.log("[Superwall] Already initialized");
+      return;
+    }
+
+    try {
+      // TODO: Initialize Superwall SDK
+      // import Superwall from '@superwall/react-native-superwall';
+      // await Superwall.configure(this.config.apiKey);
+
+      console.log(
+        "[Superwall] Initialized with API key:",
+        this.config.apiKey.substring(0, 10) + "..."
+      );
+
+      // TODO: Set up entitlement change listener
+      // Superwall.shared.delegate.subscriptionStatusDidChange = (status) => {
+      //   this.notifyEntitlementChange();
+      // };
+
+      this.initialized = true;
+    } catch (error) {
+      console.error("[Superwall] Initialization failed:", error);
+      throw error;
+    }
+  }
+
+  async getEntitlements(): Promise<Entitlement> {
+    if (!this.initialized) {
+      throw new Error("[Superwall] Must call initialize() first");
+    }
+
+    try {
+      // TODO: Get entitlements from Superwall SDK
+      // const status = await Superwall.shared.getSubscriptionStatus();
+
+      // For now, return mock data
+      // In production, map Superwall's status to our Entitlement model
+      const mockEntitlement: Entitlement = {
+        isPro: false,
+        tier: "free",
+        expiresAt: null,
+        isActive: false,
+      };
+
+      return mockEntitlement;
+    } catch (error) {
+      console.error("[Superwall] Failed to get entitlements:", error);
+      throw error;
+    }
+  }
+
+  async presentPaywall(trigger?: string): Promise<void> {
+    if (!this.initialized) {
+      throw new Error("[Superwall] Must call initialize() first");
+    }
+
+    try {
+      const paywallTrigger = trigger || this.getDefaultTrigger();
+      console.log(
+        "[Superwall] Presenting paywall with trigger:",
+        paywallTrigger
+      );
+
+      // TODO: Present paywall with Superwall SDK
+      // await Superwall.shared.present(paywallTrigger);
+    } catch (error) {
+      console.error("[Superwall] Failed to present paywall:", error);
+      throw error;
+    }
+  }
+
+  onEntitlementsChanged(callback: (entitlement: Entitlement) => void): void {
+    this.entitlementCallbacks.push(callback);
+  }
+
+  async restorePurchases(): Promise<void> {
+    if (!this.initialized) {
+      throw new Error("[Superwall] Must call initialize() first");
+    }
+
+    try {
+      console.log("[Superwall] Restoring purchases...");
+
+      // TODO: Restore purchases with Superwall SDK
+      // await Superwall.shared.restorePurchases();
+
+      // Notify listeners of potential entitlement change
+      await this.notifyEntitlementChange();
+    } catch (error) {
+      console.error("[Superwall] Failed to restore purchases:", error);
+      throw error;
+    }
+  }
+
+  getProviderName(): string {
+    return "superwall";
+  }
+
+  /**
+   * Get default trigger from config
+   */
+  private getDefaultTrigger(): string {
+    const triggers = this.config.triggers;
+    return triggers?.premium || triggers?.pro || "default_paywall";
+  }
+
+  /**
+   * Notify all listeners of entitlement change
+   */
+  private async notifyEntitlementChange(): Promise<void> {
+    try {
+      const entitlement = await this.getEntitlements();
+      this.entitlementCallbacks.forEach((callback) => callback(entitlement));
+    } catch (error) {
+      console.error("[Superwall] Failed to notify entitlement change:", error);
+    }
+  }
+
+  /**
+   * Map Superwall subscription status to our tier model
+   * This is where we adapt Superwall's model to our unified interface
+   */
+  private mapToTier(superwallStatus: any): SubscriptionTier {
+    // TODO: Implement proper mapping based on Superwall's API
+    // This will depend on how you configure products in Superwall
+
+    if (!superwallStatus?.isActive) {
+      return "free";
+    }
+
+    // Map based on product identifier
+    const productId = superwallStatus.productId?.toLowerCase() || "";
+
+    if (productId.includes("enterprise")) {
+      return "enterprise";
+    }
+    if (productId.includes("team")) {
+      return "team";
+    }
+    if (productId.includes("pro")) {
+      return "pro";
+    }
+
+    return "free";
+  }
+}

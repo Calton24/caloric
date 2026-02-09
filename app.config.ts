@@ -15,18 +15,16 @@ const getConfig = (): any => {
   const appEnv =
     process.env.EXPO_PUBLIC_APP_ENV || process.env.APP_ENV || "dev";
 
-  console.log(`\n🔧 Building app config for: ${appProfile} (${appEnv})\n`);
-
-  // Import profiles (require needed for build-time execution)
+  // Import profiles (plain JS file for Node.js compatibility at build time)
   // eslint-disable-next-line
-  const { APP_PROFILES } = require("./src/config/profiles");
+  const { APP_PROFILES } = require("./src/config/app-profiles.js");
   const profileConfig = APP_PROFILES[appProfile];
 
   if (!profileConfig) {
     throw new Error(
       `❌ Unknown app profile: ${appProfile}\n` +
         `Available profiles: ${Object.keys(APP_PROFILES).join(", ")}\n` +
-        `Set EXPO_PUBLIC_APP_PROFILE in your .env or eas.json`,
+        `Set EXPO_PUBLIC_APP_PROFILE in your .env or eas.json`
     );
   }
 

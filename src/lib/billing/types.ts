@@ -1,0 +1,101 @@
+/**
+ * Billing Types
+ * Unified entitlement model across all billing providers
+ */
+
+/**
+ * Subscription tier
+ */
+export type SubscriptionTier = "free" | "pro" | "team" | "enterprise";
+
+/**
+ * Entitlement status
+ * Represents what the user has access to
+ */
+export interface Entitlement {
+  /** Whether user has any pro features */
+  isPro: boolean;
+  /** Current subscription tier */
+  tier: SubscriptionTier;
+  /** Active until (null if free/expired) */
+  expiresAt: Date | null;
+  /** Whether subscription is currently active */
+  isActive: boolean;
+  /** Product identifier if subscribed */
+  productId?: string;
+}
+
+/**
+ * Billing Provider Interface
+ * All providers must implement this interface
+ */
+export interface BillingProvider {
+  /**
+   * Initialize the billing provider
+   * Must be called before any other methods
+   */
+  initialize(): Promise<void>;
+
+  /**
+   * Get current user entitlements
+   * Returns user's access level and subscription status
+   */
+  getEntitlements(): Promise<Entitlement>;
+
+  /**
+   * Present paywall to user
+   * @param trigger - Paywall trigger identifier
+   */
+  presentPaywall(trigger?: string): Promise<void>;
+
+  /**
+   * Register callback for entitlement changes
+   * Called when user purchases, restores, or subscription expires
+   */
+  onEntitlementsChanged(callback: (entitlement: Entitlement) => void): void;
+
+  /**
+   * Restore purchases (iOS) or sync with backend
+   */
+  restorePurchases(): Promise<void>;
+
+  /**
+   * Get provider name for debugging
+   */
+  getProviderName(): string;
+}
+
+/**
+ * No-op billing provider
+ * Used when billing is disabled
+ */
+export class NoBillingProvider implements BillingProvider {
+  async initialize(): Promise<void> {
+    console.log("[Billing] No-op provider initialized (billing disabled)");
+  }
+
+  async getEntitlements(): Promise<Entitlement> {
+    return {
+      isPro: false,
+      tier: "free",
+      expiresAt: null,
+      isActive: false,
+    };
+  }
+
+  async presentPaywall(_trigger?: string): Promise<void> {
+    console.warn("[Billing] Paywall disabled (billing not enabled)");
+  }
+
+  onEntitlementsChanged(_callback: (entitlement: Entitlement) => void): void {
+    // No-op
+  }
+
+  async restorePurchases(): Promise<void> {
+    console.warn("[Billing] Restore disabled (billing not enabled)");
+  }
+
+  getProviderName(): string {
+    return "none";
+  }
+}

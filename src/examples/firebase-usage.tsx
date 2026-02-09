@@ -153,21 +153,21 @@ export function ErrorHandlingExample() {
 // ============================================
 // Note: Install react-error-boundary: npm install react-error-boundary
 
-function ErrorFallback({ error }: { error: Error }) {
-  return (
-    <View>
-      <Text>Something went wrong</Text>
-      <Text>{error.message}</Text>
-    </View>
-  );
-}
-
 export function ErrorBoundaryExample() {
   // Example using react-error-boundary (if installed)
   // Uncomment when you add the package
 
   /*
   import { ErrorBoundary } from 'react-error-boundary';
+  
+  function ErrorFallback({ error }: { error: Error }) {
+    return (
+      <View>
+        <Text>Something went wrong</Text>
+        <Text>{error.message}</Text>
+      </View>
+    );
+  }
   
   return (
     <ErrorBoundary

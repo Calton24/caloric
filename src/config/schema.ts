@@ -17,8 +17,8 @@ export const SupabaseConfigSchema = z.object({
   url: z
     .string()
     .url("Supabase URL must be a valid URL")
-    .refine((url) => url.includes("supabase.co"), {
-      message: "Supabase URL must be a valid Supabase project URL",
+    .refine((url) => url.startsWith("https://"), {
+      message: "Supabase URL must use HTTPS for security",
     }),
   anonKey: z
     .string()
@@ -53,16 +53,83 @@ export const FirebaseConfigSchema = z.object({
   }),
 });
 
+export const SuperwallConfigSchema = z.object({
+  apiKey: z.string().min(1, "Superwall API key is required"),
+  triggers: z
+    .record(z.string(), z.string())
+    .optional()
+    .describe("Paywall trigger IDs"),
+});
+
+export const StripeConfigSchema = z.object({
+  publishableKey: z
+    .string()
+    .min(1, "Stripe publishable key is required")
+    .refine((key) => key.startsWith("pk_"), {
+      message: "Stripe publishable key must start with 'pk_'",
+    })
+    .refine((key) => !key.includes("sk_") && !key.includes("rk_"), {
+      message:
+        "SECURITY ERROR: Stripe secret key detected in client config. Use publishable key only!",
+    }),
+  mode: z.enum(["checkout", "payment_sheet"], {
+    message: "Stripe mode must be 'checkout' or 'payment_sheet'",
+  }),
+  priceIds: z
+    .record(z.string(), z.string())
+    .refine((obj) => Object.keys(obj).length > 0, {
+      message: "At least one price ID required",
+    }),
+  defaultPriceId: z.string().optional(),
+  successUrl: z.string().url("Success URL must be a valid deep link"),
+  cancelUrl: z.string().url("Cancel URL must be a valid deep link"),
+});
+
+export const BillingProviderSchema = z.enum(["superwall", "stripe"], {
+  message: "Billing provider must be 'superwall' or 'stripe'",
+});
+
+export const BillingConfigSchema = z
+  .object({
+    provider: BillingProviderSchema,
+    superwall: SuperwallConfigSchema.optional(),
+    stripe: StripeConfigSchema.optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.provider === "superwall") {
+        return !!data.superwall;
+      }
+      if (data.provider === "stripe") {
+        return !!data.stripe;
+      }
+      return true;
+    },
+    {
+      message:
+        "Billing config must include provider-specific configuration (superwall or stripe)",
+    }
+  );
+
+// Partial billing config for environment overrides (without refinement)
+export const PartialBillingConfigSchema = z
+  .object({
+    provider: BillingProviderSchema.optional(),
+    superwall: SuperwallConfigSchema.optional(),
+    stripe: StripeConfigSchema.optional(),
+  })
+  .optional();
+
 export const FeatureFlagsSchema = z.object({
   vision: z.boolean(),
   water: z.boolean(),
   habit: z.boolean(),
-  paywall: z.boolean(),
   analytics: z.boolean(),
   notifications: z.boolean(),
   firebaseAnalytics: z.boolean(),
   crashReporting: z.boolean(),
   performanceMonitoring: z.boolean(),
+  billing: z.boolean(),
 });
 
 export const AppMetadataSchema = z.object({
@@ -88,6 +155,7 @@ export const AppMetadataSchema = z.object({
 export const EnvironmentOverridesSchema = z.object({
   supabase: SupabaseConfigSchema.partial().optional(),
   firebase: FirebaseConfigSchema.partial().optional(),
+  billing: PartialBillingConfigSchema,
   features: FeatureFlagsSchema.partial().optional(),
   app: AppMetadataSchema.partial().optional(),
 });
@@ -95,6 +163,7 @@ export const EnvironmentOverridesSchema = z.object({
 export const AppProfileConfigSchema = z.object({
   supabase: SupabaseConfigSchema,
   firebase: FirebaseConfigSchema.optional(),
+  billing: BillingConfigSchema.optional(),
   features: FeatureFlagsSchema,
   app: AppMetadataSchema,
   environments: z
@@ -111,6 +180,7 @@ export const AppConfigSchema = z.object({
   environment: AppEnvironmentSchema,
   supabase: SupabaseConfigSchema,
   firebase: FirebaseConfigSchema.optional(),
+  billing: BillingConfigSchema.optional(),
   features: FeatureFlagsSchema,
   app: AppMetadataSchema,
 });
@@ -121,7 +191,7 @@ export const AppConfigSchema = z.object({
 export function validateConfig<T>(
   schema: z.ZodSchema<T>,
   data: unknown,
-  context: string,
+  context: string
 ): T {
   const result = schema.safeParse(data);
 
@@ -132,7 +202,7 @@ export function validateConfig<T>(
 
     throw new Error(
       `❌ Config Validation Error in ${context}:\n${errors}\n\n` +
-        `Check your config files and environment variables.`,
+        `Check your config files and environment variables.`
     );
   }
 

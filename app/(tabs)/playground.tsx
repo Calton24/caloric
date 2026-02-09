@@ -8,7 +8,6 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BottomSheetSection } from "@/components/playground/BottomSheetSection";
 import { ButtonsSection } from "@/components/playground/ButtonsSection";
@@ -26,8 +25,6 @@ import { SwitchSection } from "@/components/playground/SwitchSection";
 import { TextFieldSection } from "@/components/playground/TextFieldSection";
 
 export default function PlaygroundScreen() {
-  const insets = useSafeAreaInsets();
-
   const handleSearch = () => {
     console.log("Search button pressed!");
   };

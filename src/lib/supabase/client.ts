@@ -60,6 +60,14 @@ export async function resetSupabaseClient(): Promise<void> {
 }
 
 /**
+ * Reset Supabase client for testing (synchronous)
+ * @internal
+ */
+export function __resetSupabaseClient(): void {
+  supabaseClient = null;
+}
+
+/**
  * Check if user is authenticated
  */
 export async function isAuthenticated(): Promise<boolean> {
@@ -94,6 +102,9 @@ export async function getCurrentUser() {
 
 // Re-export Supabase types for convenience
 export type {
-    AuthError, Session, SupabaseClient, User
+    AuthError,
+    Session,
+    SupabaseClient,
+    User
 } from "@supabase/supabase-js";
 

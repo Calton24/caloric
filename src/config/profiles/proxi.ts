@@ -35,21 +35,37 @@ export const proxiConfig: AppProfileConfig = {
     },
   },
 
+  billing: {
+    provider: "stripe" as const,
+    stripe: {
+      publishableKey: "pk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", // Replace with your Stripe publishable key
+      mode: "checkout" as const,
+      priceIds: {
+        monthly: "price_monthly_xxxxxxxxxxxxxx",
+        yearly: "price_yearly_xxxxxxxxxxxxxx",
+        premium: "price_premium_xxxxxxxxxxxxxx",
+      },
+      defaultPriceId: "price_monthly_xxxxxxxxxxxxxx",
+      successUrl: "proxi://checkout/success",
+      cancelUrl: "proxi://checkout/cancel",
+    },
+  },
+
   features: {
     vision: false, // No vision features in proxi
     water: false,
     habit: true, // Social habits/streaks
-    paywall: true,
     analytics: true,
     notifications: true, // Critical for proximity alerts
     firebaseAnalytics: true, // Enable Firebase Analytics
     crashReporting: true, // Enable Crashlytics
     performanceMonitoring: false, // Proxi doesn't need performance monitoring
+    billing: true, // Enable billing system (includes paywall UI)
   },
 
   app: {
     name: "Proxi",
-    slug: "proxi-app",
+    slug: "proxi-mobile",
     bundleIdentifier: "com.yourcompany.proxi",
     androidPackage: "com.yourcompany.proxi",
     version: "1.0.0",
@@ -82,10 +98,10 @@ export const proxiConfig: AppProfileConfig = {
         },
       },
       features: {
-        paywall: false,
         analytics: false,
         firebaseAnalytics: true,
         crashReporting: true,
+        billing: false, // Disable billing in dev
       },
       app: {
         name: "Proxi Dev",

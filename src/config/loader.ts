@@ -22,23 +22,30 @@ import {
 /**
  * Parse environment variables from Expo
  * All client-side env vars must be prefixed with EXPO_PUBLIC_
+ *
+ * Only allows unprefixed access in test/node environments to prevent
+ * accidentally reading secrets in production builds.
  */
 function getEnvVar(key: string, defaultValue?: string): string {
   // Try EXPO_PUBLIC_ prefixed version first
   const value =
-    Constants.expoConfig?.extra?.[key] ||
-    process.env[`EXPO_PUBLIC_${key}`] ||
-    process.env[key] ||
-    defaultValue;
+    Constants.expoConfig?.extra?.[key] || process.env[`EXPO_PUBLIC_${key}`];
 
-  if (!value) {
+  // Allow unprefixed fallback ONLY in test/node environments
+  const isTestEnv =
+    process.env.NODE_ENV === "test" || process.env.JEST_WORKER_ID !== undefined;
+  const finalValue =
+    value || (isTestEnv ? process.env[key] : undefined) || defaultValue;
+
+  if (!finalValue) {
     throw new Error(
       `❌ Missing required environment variable: ${key}\n` +
-        `Make sure to set EXPO_PUBLIC_${key} in your .env or eas.json`,
+        `Make sure to set EXPO_PUBLIC_${key} in your .env or eas.json\n` +
+        `(Unprefixed env vars are only allowed in test environments)`
     );
   }
 
-  return value;
+  return finalValue;
 }
 
 /**
@@ -46,12 +53,14 @@ function getEnvVar(key: string, defaultValue?: string): string {
  */
 function getOptionalEnvVar(
   key: string,
-  defaultValue?: string,
+  defaultValue?: string
 ): string | undefined {
+  const isTestEnv =
+    process.env.NODE_ENV === "test" || process.env.JEST_WORKER_ID !== undefined;
   return (
     Constants.expoConfig?.extra?.[key] ||
     process.env[`EXPO_PUBLIC_${key}`] ||
-    process.env[key] ||
+    (isTestEnv ? process.env[key] : undefined) ||
     defaultValue
   );
 }
@@ -77,7 +86,7 @@ function loadAppEnvironment(): AppEnvironment {
  */
 function mergeConfigWithEnvironment(
   baseConfig: AppProfileConfig,
-  environment: AppEnvironment,
+  environment: AppEnvironment
 ): Omit<AppConfig, "profile" | "environment"> {
   const envOverrides = baseConfig.environments?.[environment];
 
@@ -86,6 +95,18 @@ function mergeConfigWithEnvironment(
       ...baseConfig.supabase,
       ...envOverrides?.supabase,
     },
+    firebase: baseConfig.firebase
+      ? {
+          ...baseConfig.firebase,
+          ...envOverrides?.firebase,
+        }
+      : undefined,
+    billing: baseConfig.billing
+      ? {
+          ...baseConfig.billing,
+          ...envOverrides?.billing,
+        }
+      : undefined,
     features: {
       ...baseConfig.features,
       ...envOverrides?.features,
@@ -108,7 +129,7 @@ export function loadAppConfig(): AppConfig {
     const environment = loadAppEnvironment();
 
     console.log(
-      `📱 Loading config for profile: ${profile}, environment: ${environment}`,
+      `📱 Loading config for profile: ${profile}, environment: ${environment}`
     );
 
     // 2. Get base profile config
@@ -117,7 +138,7 @@ export function loadAppConfig(): AppConfig {
       throw new Error(
         `❌ Unknown app profile: ${profile}\n` +
           `Available profiles: ${Object.keys(APP_PROFILES).join(", ")}\n` +
-          `Add your profile to src/config/profiles/`,
+          `Add your profile to src/config/profiles/`
       );
     }
 
@@ -125,13 +146,13 @@ export function loadAppConfig(): AppConfig {
     const validatedProfileConfig = validateConfig(
       AppProfileConfigSchema,
       profileConfig,
-      `Profile: ${profile}`,
-    );
+      `Profile: ${profile}`
+    ) as any; // Type assertion to bypass strict checking while Zod validates at runtime
 
     // 4. Merge with environment overrides
     const mergedConfig = mergeConfigWithEnvironment(
-      validatedProfileConfig,
-      environment,
+      validatedProfileConfig as any,
+      environment
     );
 
     // 5. Build final config
@@ -139,13 +160,13 @@ export function loadAppConfig(): AppConfig {
       profile,
       environment,
       ...mergedConfig,
-    };
+    } as any; // Type assertion while Zod validates at runtime
 
     // 6. Final validation
     const validatedConfig = validateConfig(
       AppConfigSchema,
       finalConfig,
-      "Final Config",
+      "Final Config"
     );
 
     console.log(`✅ Config loaded successfully:`);
@@ -156,10 +177,10 @@ export function loadAppConfig(): AppConfig {
       Object.entries(validatedConfig.features)
         .filter(([, v]) => v)
         .map(([k]) => k)
-        .join(", "),
+        .join(", ")
     );
 
-    return validatedConfig;
+    return validatedConfig as AppConfig;
   } catch (error) {
     if (error instanceof Error) {
       console.error(error.message);

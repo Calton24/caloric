@@ -53,6 +53,39 @@ export interface FirebaseConfig {
   };
 }
 
+export type BillingProvider = "superwall" | "stripe";
+
+export interface SuperwallConfig {
+  /** Superwall API key (safe for client) */
+  apiKey: string;
+  /** Paywall triggers (optional) - map trigger names to IDs */
+  triggers?: Record<string, string>;
+}
+
+export interface StripeConfig {
+  /** Stripe publishable key (safe for client) */
+  publishableKey: string;
+  /** Stripe checkout mode */
+  mode: "checkout" | "payment_sheet";
+  /** Price IDs mapped to product tiers */
+  priceIds: Record<string, string>;
+  /** Default price ID to use if no trigger specified */
+  defaultPriceId?: string;
+  /** Success URL for checkout redirect (app deep link) */
+  successUrl: string;
+  /** Cancel URL for checkout redirect (app deep link) */
+  cancelUrl: string;
+}
+
+export interface BillingConfig {
+  /** Billing provider selection */
+  provider: BillingProvider;
+  /** Superwall configuration (required if provider is "superwall") */
+  superwall?: SuperwallConfig;
+  /** Stripe configuration (required if provider is "stripe") */
+  stripe?: StripeConfig;
+}
+
 export interface FeatureFlags {
   /** Vision AI features */
   vision: boolean;
@@ -60,8 +93,6 @@ export interface FeatureFlags {
   water: boolean;
   /** Habit tracking */
   habit: boolean;
-  /** Paywall / subscriptions */
-  paywall: boolean;
   /** Analytics (Supabase / custom) */
   analytics: boolean;
   /** Push notifications */
@@ -72,6 +103,8 @@ export interface FeatureFlags {
   crashReporting: boolean;
   /** Firebase Performance Monitoring */
   performanceMonitoring: boolean;
+  /** Billing / subscription system (includes paywall UI) */
+  billing: boolean;
 }
 
 export interface AppMetadata {
@@ -94,6 +127,8 @@ export interface EnvironmentOverrides {
   supabase?: Partial<SupabaseConfig>;
   /** Per-environment Firebase configs (optional) */
   firebase?: Partial<FirebaseConfig>;
+  /** Per-environment billing configs (optional) */
+  billing?: Partial<BillingConfig>;
   /** Per-environment feature flag overrides (optional) */
   features?: Partial<FeatureFlags>;
   /** Per-environment app metadata overrides (optional) */
@@ -109,6 +144,8 @@ export interface AppConfig {
   supabase: SupabaseConfig;
   /** Firebase configuration (optional) */
   firebase?: FirebaseConfig;
+  /** Billing configuration (optional) */
+  billing?: BillingConfig;
   /** Feature flags */
   features: FeatureFlags;
   /** App metadata */
@@ -120,6 +157,8 @@ export interface AppProfileConfig {
   supabase: SupabaseConfig;
   /** Base Firebase config (optional) */
   firebase?: FirebaseConfig;
+  /** Base billing config (optional) */
+  billing?: BillingConfig;
   /** Base feature flags */
   features: FeatureFlags;
   /** App metadata */
