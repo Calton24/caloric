@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassCard } from "../../src/ui/glass/GlassCard";
 import { TButton } from "../../src/ui/primitives/TButton";
@@ -45,17 +45,37 @@ export default function AuthScreen() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
       edges={["top"]}
     >
-      {/* Gradient Teardrop */}
-      <LinearGradient
-        colors={[
-          `${theme.colors.primary}40`,
-          `${theme.colors.primary}20`,
-          `${theme.colors.primary}00`,
-        ]}
-        style={styles.gradientTeardrop}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-      />
+      {/* Gradient Hue Teardrop */}
+      <View style={styles.gradientTeardrop}>
+        <Svg height="100%" width="100%" style={StyleSheet.absoluteFill}>
+          <Defs>
+            <RadialGradient id={`grad-${theme.mode}`} cx="50%" cy="0%" r="100%">
+              <Stop
+                offset="0%"
+                stopColor={theme.colors.primary}
+                stopOpacity={theme.mode === "light" ? 0.6 : 0.5}
+              />
+              <Stop
+                offset="40%"
+                stopColor={theme.colors.primary}
+                stopOpacity={theme.mode === "light" ? 0.35 : 0.25}
+              />
+              <Stop
+                offset="100%"
+                stopColor={theme.colors.primary}
+                stopOpacity={0}
+              />
+            </RadialGradient>
+          </Defs>
+          <Ellipse
+            cx="50%"
+            cy="0"
+            rx="60%"
+            ry="400"
+            fill={`url(#grad-${theme.mode})`}
+          />
+        </Svg>
+      </View>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -217,17 +237,15 @@ const styles = StyleSheet.create({
   gradientTeardrop: {
     position: "absolute",
     top: 0,
-    left: "20%",
-    right: "20%",
+    left: 0,
+    right: 0,
     height: 400,
-    borderBottomLeftRadius: 200,
-    borderBottomRightRadius: 200,
     zIndex: 0,
   },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingBottom: 120,
     zIndex: 1,
   },
   content: {
