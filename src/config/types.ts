@@ -5,7 +5,7 @@
 
 export type AppEnvironment = "dev" | "staging" | "prod";
 
-export type AppProfile = "intake" | "proxi"; // Add new app profiles here
+export type AppProfile = "intake" | "default"; // Add new app profiles here
 
 export interface SupabaseConfig {
   /** Supabase project URL */

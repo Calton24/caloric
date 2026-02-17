@@ -3,8 +3,8 @@
  * Tests profile selection, environment overrides, validation, and security
  */
 
+import { getAppConfig, resetConfigCache } from "../src/config";
 import type { AppConfig } from "../src/config/types";
-import { resetConfigCache, getAppConfig } from "../src/config";
 
 describe("Config System", () => {
   beforeEach(() => {
@@ -20,21 +20,21 @@ describe("Config System", () => {
 
       const config = getAppConfig();
 
-      expect(config.app.name).toBe("Intake");
-      expect(config.app.slug).toBe("intake-mobile");
-      expect(config.app.bundleIdentifier).toContain("intake");
+      expect(config.app.name).toBe("Mobile Core");
+      expect(config.app.slug).toBe("mobile-core");
+      expect(config.app.bundleIdentifier).toContain("mobilecore");
     });
 
-    it("should load proxi profile when EXPO_PUBLIC_APP_PROFILE=proxi", () => {
-      process.env.EXPO_PUBLIC_APP_PROFILE = "proxi";
+    it("should load default profile when EXPO_PUBLIC_APP_PROFILE=default", () => {
+      process.env.EXPO_PUBLIC_APP_PROFILE = "default";
       process.env.EXPO_PUBLIC_APP_ENV = "prod";
       process.env.APP_ENV = "prod";
 
       const config = getAppConfig();
 
-      expect(config.app.name).toBe("Proxi");
-      expect(config.app.slug).toBe("proxi-mobile");
-      expect(config.app.bundleIdentifier).toContain("proxi");
+      expect(config.app.name).toBe("Mobile Core");
+      expect(config.app.slug).toBe("mobile-core");
+      expect(config.app.bundleIdentifier).toContain("mobilecore");
     });
 
     it("should throw error for unknown profile", () => {
@@ -50,7 +50,7 @@ describe("Config System", () => {
 
       const config = getAppConfig();
 
-      expect(config.app.name).toBe("Intake");
+      expect(config.app.name).toBe("Mobile Core");
     });
   });
 
@@ -146,9 +146,9 @@ describe("Config System", () => {
       expect(config.billing?.superwall?.apiKey).toBeDefined();
     });
 
-    it("should use Stripe for proxi profile", () => {
+    it("should use Stripe for default profile", () => {
       resetConfigCache();
-      process.env.EXPO_PUBLIC_APP_PROFILE = "proxi";
+      process.env.EXPO_PUBLIC_APP_PROFILE = "default";
       process.env.EXPO_PUBLIC_APP_ENV = "prod";
       process.env.APP_ENV = "prod";
 
@@ -238,7 +238,7 @@ describe("Config System", () => {
 
       // Still returns intake because cached
       expect(config1).toBe(config2);
-      expect(config2.app.name).toBe("Intake Dev");
+      expect(config2.app.name).toBe("Mobile Core");
     });
 
     it("should reload config after cache clear", () => {
@@ -247,12 +247,12 @@ describe("Config System", () => {
 
       resetConfigCache();
 
-      process.env.EXPO_PUBLIC_APP_PROFILE = "proxi";
+      process.env.EXPO_PUBLIC_APP_PROFILE = "default";
       const config2 = getAppConfig();
 
       expect(config1).not.toBe(config2);
-      expect(config1.app.name).toBe("Intake Dev");
-      expect(config2.app.name).toBe("Proxi Dev");
+      expect(config1.app.name).toBe("Mobile Core");
+      expect(config2.app.name).toBe("Mobile Core");
     });
   });
 

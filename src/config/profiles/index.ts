@@ -4,14 +4,15 @@
  */
 
 import { AppProfile, AppProfileConfig } from "../types";
+import { defaultConfig } from "./default";
 import { intakeConfig } from "./intake";
-import { proxiConfig } from "./proxi";
 
 export const APP_PROFILES: Record<AppProfile, AppProfileConfig> = {
   intake: intakeConfig,
-  proxi: proxiConfig,
+  default: defaultConfig,
   // Add new profiles here:
   // newapp: newAppConfig,
 };
 
-export { intakeConfig, proxiConfig };
+export { defaultConfig, intakeConfig };
+

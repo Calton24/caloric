@@ -113,9 +113,9 @@ export const intakeConfig: AppProfileConfig = {
         anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", // Staging anon key
       },
       app: {
-        name: "Intake Staging",
-        bundleIdentifier: "com.yourcompany.intake.staging",
-        androidPackage: "com.yourcompany.intake.staging",
+        name: "Mobile Core Staging",
+        bundleIdentifier: "com.yourcompany.mobilecore.staging",
+        androidPackage: "com.yourcompany.mobilecore.staging",
       },
     },
     prod: {

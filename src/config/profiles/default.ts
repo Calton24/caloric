@@ -1,14 +1,13 @@
 /**
- * Proxi App Configuration
- * Social proximity and connection app
+ * Mobile Core Default Configuration
  */
 
 import { AppProfileConfig } from "../types";
 
-export const proxiConfig: AppProfileConfig = {
+export const defaultConfig: AppProfileConfig = {
   // Base configuration (production)
   supabase: {
-    url: "https://your-proxi-project.supabase.co",
+    url: "https://your-mobile-core-project.supabase.co",
     anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", // Replace with actual anon key
   },
 
@@ -17,21 +16,21 @@ export const proxiConfig: AppProfileConfig = {
       googleAppId: "1:987654321:ios:xyz789012345",
       gcmSenderId: "987654321",
       apiKey: "AIzaSyYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY",
-      projectId: "proxi-prod",
-      storageBucket: "proxi-prod.appspot.com",
+      projectId: "mobile-core-prod",
+      storageBucket: "mobile-core-prod.appspot.com",
       clientId:
         "987654321-yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy.apps.googleusercontent.com",
-      bundleId: "com.yourcompany.proxi",
+      bundleId: "com.yourcompany.mobilecore",
     },
     android: {
       googleAppId: "1:987654321:android:xyz789012345",
       apiKey: "AIzaSyYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY",
-      projectId: "proxi-prod",
-      storageBucket: "proxi-prod.appspot.com",
+      projectId: "mobile-core-prod",
+      storageBucket: "mobile-core-prod.appspot.com",
       gcmSenderId: "987654321",
       clientId:
         "987654321-yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy.apps.googleusercontent.com",
-      packageName: "com.yourcompany.proxi",
+      packageName: "com.yourcompany.mobilecore",
     },
   },
 
@@ -46,17 +45,17 @@ export const proxiConfig: AppProfileConfig = {
         premium: "price_premium_xxxxxxxxxxxxxx",
       },
       defaultPriceId: "price_monthly_xxxxxxxxxxxxxx",
-      successUrl: "proxi://checkout/success",
-      cancelUrl: "proxi://checkout/cancel",
+      successUrl: "mobilecore://checkout/success",
+      cancelUrl: "mobilecore://checkout/cancel",
     },
   },
 
   features: {
-    vision: false, // No vision features in proxi
+    vision: false,
     water: false,
-    habit: true, // Social habits/streaks
+    habit: true,
     analytics: true,
-    notifications: true, // Critical for proximity alerts
+    notifications: true,
     firebaseAnalytics: false, // Firebase not installed in mobile-core
     crashReporting: false, // Firebase not installed in mobile-core
     performanceMonitoring: false, // Firebase not installed in mobile-core
@@ -69,29 +68,29 @@ export const proxiConfig: AppProfileConfig = {
     bundleIdentifier: "com.yourcompany.mobilecore",
     androidPackage: "com.yourcompany.mobilecore",
     version: "1.0.0",
-    scheme: "proxi",
+    scheme: "mobilecore",
   },
 
   // Environment-specific overrides
   environments: {
     dev: {
       supabase: {
-        url: "https://your-proxi-dev-project.supabase.co",
+        url: "https://your-mobile-core-dev-project.supabase.co",
         anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", // Dev anon key
       },
       firebase: {
         ios: {
-          projectId: "proxi-dev",
-          storageBucket: "proxi-dev.appspot.com",
-          bundleId: "com.yourcompany.proxi.dev",
+          projectId: "mobile-core-dev",
+          storageBucket: "mobile-core-dev.appspot.com",
+          bundleId: "com.yourcompany.mobilecore.dev",
           googleAppId: "1:987654321:ios:dev789012",
           gcmSenderId: "987654321",
           apiKey: "AIzaSyYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY",
         },
         android: {
-          projectId: "proxi-dev",
-          storageBucket: "proxi-dev.appspot.com",
-          packageName: "com.yourcompany.proxi.dev",
+          projectId: "mobile-core-dev",
+          storageBucket: "mobile-core-dev.appspot.com",
+          packageName: "com.yourcompany.mobilecore.dev",
           googleAppId: "1:987654321:android:dev789012",
           apiKey: "AIzaSyYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY",
           gcmSenderId: "987654321",
@@ -112,7 +111,7 @@ export const proxiConfig: AppProfileConfig = {
     },
     staging: {
       supabase: {
-        url: "https://your-proxi-staging-project.supabase.co",
+        url: "https://your-mobile-core-staging-project.supabase.co",
         anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", // Staging anon key
       },
       app: {

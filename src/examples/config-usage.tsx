@@ -223,8 +223,8 @@ export function ExampleProfileLogic() {
     case "intake":
       return <IntakeHomePage />;
 
-    case "proxi":
-      return <ProxiHomePage />;
+    case "default":
+      return <DefaultHomePage />;
 
     default:
       return <DefaultHomePage />;
@@ -308,6 +308,5 @@ const VisionAIButton: any = null;
 const WaterTracker: any = null;
 const HabitTracker: any = null;
 const IntakeHomePage: any = null;
-const ProxiHomePage: any = null;
 const DefaultHomePage: any = null;
 const React: any = null;

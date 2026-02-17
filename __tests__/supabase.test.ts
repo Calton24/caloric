@@ -42,7 +42,7 @@ describe("Supabase Client", () => {
     });
 
     it("should work with different profiles", () => {
-      process.env.EXPO_PUBLIC_APP_PROFILE = "proxi";
+      process.env.EXPO_PUBLIC_APP_PROFILE = "default";
       resetConfigCache();
       __resetSupabaseClient();
 

@@ -153,7 +153,7 @@ describe("Billing System", () => {
       expect(provider.getProviderName()).toBe("superwall");
     });
 
-    it("should return StripeProvider for proxi profile", () => {
+    it("should return StripeProvider for default profile", () => {
       mockGetAppConfig.mockReturnValue({
         features: { billing: true },
         billing: {
@@ -164,7 +164,6 @@ describe("Billing System", () => {
             priceIds: { monthly: "price_123", yearly: "price_456" },
             successUrl: "test://success",
             cancelUrl: "test://cancel",
-            
           },
         },
       } as any);
@@ -314,7 +313,6 @@ describe("Billing System", () => {
             priceIds: { monthly: "price_123", yearly: "price_456" },
             successUrl: "test://success",
             cancelUrl: "test://cancel",
-            
           },
         },
       } as any);
@@ -425,7 +423,6 @@ describe("Billing System", () => {
             priceIds: { monthly: "price_123", yearly: "price_456" },
             successUrl: "test://success",
             cancelUrl: "test://cancel",
-            
           },
         },
       } as any);

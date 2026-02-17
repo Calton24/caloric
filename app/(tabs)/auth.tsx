@@ -4,6 +4,7 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -49,6 +50,18 @@ export default function AuthScreen() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
       edges={["top"]}
     >
+      {/* Gradient Teardrop */}
+      <LinearGradient
+        colors={[
+          `${theme.colors.primary}40`,
+          `${theme.colors.primary}20`,
+          `${theme.colors.primary}00`,
+        ]}
+        style={styles.gradientTeardrop}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+      />
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -206,10 +219,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  gradientTeardrop: {
+    position: "absolute",
+    top: 0,
+    left: "20%",
+    right: "20%",
+    height: 400,
+    borderBottomLeftRadius: 200,
+    borderBottomRightRadius: 200,
+    zIndex: 0,
+  },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 20,
     paddingBottom: 40,
+    zIndex: 1,
   },
   content: {
     flex: 1,
