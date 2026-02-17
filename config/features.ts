@@ -7,7 +7,7 @@ export const FeatureFlags = {
    * Show the Playground tab for testing components
    * Set to false in production builds
    */
-  SHOW_PLAYGROUND: false,
+  SHOW_PLAYGROUND: true,
 } as const;
 
 export type FeatureFlag = keyof typeof FeatureFlags;

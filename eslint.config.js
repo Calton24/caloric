@@ -11,4 +11,20 @@ module.exports = defineConfig([
       'supabase/functions/**/*',
     ],
   },
+  {
+    rules: {
+      // Allow optional Firebase dependencies (they're dynamically imported with fallbacks)
+      'import/no-unresolved': [
+        'error',
+        {
+          ignore: [
+            '@react-native-firebase/app',
+            '@react-native-firebase/analytics',
+            '@react-native-firebase/crashlytics',
+            '@react-native-firebase/perf',
+          ],
+        },
+      ],
+    },
+  },
 ]);

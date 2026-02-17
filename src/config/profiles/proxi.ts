@@ -57,9 +57,9 @@ export const proxiConfig: AppProfileConfig = {
     habit: true, // Social habits/streaks
     analytics: true,
     notifications: true, // Critical for proximity alerts
-    firebaseAnalytics: true, // Enable Firebase Analytics
-    crashReporting: true, // Enable Crashlytics
-    performanceMonitoring: false, // Proxi doesn't need performance monitoring
+    firebaseAnalytics: false, // Firebase not installed in mobile-core
+    crashReporting: false, // Firebase not installed in mobile-core
+    performanceMonitoring: false, // Firebase not installed in mobile-core
     billing: true, // Enable billing system (includes paywall UI)
   },
 

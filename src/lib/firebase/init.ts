@@ -43,21 +43,20 @@ export async function initializeFirebase(): Promise<boolean> {
   // Check if Firebase config exists
   if (!config.firebase) {
     console.warn(
-      "[Firebase] Features enabled but no Firebase config found in profile",
+      "[Firebase] Features enabled but no Firebase config found in profile"
     );
     isInitialized = true;
     return false;
   }
 
   try {
-    // Dynamically import Firebase packages (only if installed)
     const firebaseModule = await import("@react-native-firebase/app").catch(
-      () => null,
+      () => null
     );
 
     if (!firebaseModule) {
       throw new Error(
-        "@react-native-firebase/app not installed. Run: npm install @react-native-firebase/app",
+        "@react-native-firebase/app not installed. Run: npm install @react-native-firebase/app"
       );
     }
 
@@ -79,7 +78,7 @@ export async function initializeFirebase(): Promise<boolean> {
         console.log("[Firebase] Analytics enabled");
       } else {
         console.warn(
-          "[Firebase] Analytics enabled but @react-native-firebase/analytics not installed",
+          "[Firebase] Analytics enabled but @react-native-firebase/analytics not installed"
         );
       }
     }
@@ -95,7 +94,7 @@ export async function initializeFirebase(): Promise<boolean> {
         console.log("[Firebase] Crashlytics enabled");
       } else {
         console.warn(
-          "[Firebase] Crash reporting enabled but @react-native-firebase/crashlytics not installed",
+          "[Firebase] Crash reporting enabled but @react-native-firebase/crashlytics not installed"
         );
       }
     }
@@ -103,7 +102,7 @@ export async function initializeFirebase(): Promise<boolean> {
     // Initialize Performance Monitoring if enabled
     if (config.features.performanceMonitoring) {
       const perfModule = await import("@react-native-firebase/perf").catch(
-        () => null,
+        () => null
       );
 
       if (perfModule) {
@@ -112,7 +111,7 @@ export async function initializeFirebase(): Promise<boolean> {
         console.log("[Firebase] Performance Monitoring enabled");
       } else {
         console.warn(
-          "[Firebase] Performance monitoring enabled but @react-native-firebase/perf not installed",
+          "[Firebase] Performance monitoring enabled but @react-native-firebase/perf not installed"
         );
       }
     }
@@ -156,7 +155,7 @@ export function getCrashlytics() {
 export function getPerformance() {
   if (!perf) {
     console.warn(
-      "[Firebase] Performance Monitoring not initialized or disabled",
+      "[Firebase] Performance Monitoring not initialized or disabled"
     );
   }
   return perf;

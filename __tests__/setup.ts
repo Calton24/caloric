@@ -3,6 +3,9 @@
  * Runs after test environment is set up but before tests run
  */
 
+// Define __DEV__ for tests
+(global as any).__DEV__ = true;
+
 // Mock console methods to reduce noise in tests
 global.console = {
   ...console,

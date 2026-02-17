@@ -21,9 +21,18 @@
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
 
+  // Exclude node_modules from TypeScript diagnostics
+  "typescript.validate.enable": true,
+  "typescript.exclude": ["**/node_modules/**", "**/bower_components/**"],
+
   // Exclude Deno files from TypeScript analysis
   "files.exclude": {
     "**/supabase/functions/**/*.ts": false
+  },
+
+  // Don't show diagnostics for node_modules
+  "files.watcherExclude": {
+    "**/node_modules/**": true
   },
 
   // Associate Deno files correctly

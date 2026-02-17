@@ -9,20 +9,20 @@
 const APP_PROFILES = {
   intake: {
     app: {
-      name: "Intake",
-      slug: "intake-mobile",
-      bundleIdentifier: "com.yourcompany.intake",
-      androidPackage: "com.yourcompany.intake",
+      name: "Mobile Core",
+      slug: "mobile-core",
+      bundleIdentifier: "com.calton24.mobilecore",
+      androidPackage: "com.calton24.mobilecore",
       version: "1.0.0",
       scheme: "intake",
     },
     environments: {
       dev: {
         app: {
-          name: "Intake Dev",
-          slug: "intake-app-dev",
-          bundleIdentifier: "com.yourcompany.intake.dev",
-          androidPackage: "com.yourcompany.intake.dev",
+          name: "Mobile Core",
+          slug: "mobile-core-dev",
+          bundleIdentifier: "com.calton24.mobilecore.dev",
+          androidPackage: "com.calton24.mobilecore.dev",
         },
       },
       staging: {

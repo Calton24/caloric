@@ -53,19 +53,19 @@ export const intakeConfig: AppProfileConfig = {
     habit: false, // Not needed for intake
     analytics: true,
     notifications: true,
-    firebaseAnalytics: true, // Enable Firebase Analytics
-    crashReporting: true, // Enable Crashlytics
-    performanceMonitoring: true, // Enable Performance Monitoring
+    firebaseAnalytics: false, // Firebase not installed in mobile-core
+    crashReporting: false, // Firebase not installed in mobile-core
+    performanceMonitoring: false, // Firebase not installed in mobile-core
     billing: true, // Enable billing system (includes paywall UI)
   },
 
   app: {
-    name: "Intake",
-    slug: "intake-mobile",
-    bundleIdentifier: "com.yourcompany.intake",
-    androidPackage: "com.yourcompany.intake",
+    name: "Mobile Core",
+    slug: "mobile-core",
+    bundleIdentifier: "com.calton24.mobilecore",
+    androidPackage: "com.calton24.mobilecore",
     version: "1.0.0",
-    scheme: "intake",
+    scheme: "mobile-core",
   },
 
   // Environment-specific overrides
@@ -101,10 +101,10 @@ export const intakeConfig: AppProfileConfig = {
         billing: false, // Disable billing in dev (use test mode in staging)
       },
       app: {
-        name: "Intake Dev",
-        slug: "intake-app-dev",
-        bundleIdentifier: "com.yourcompany.intake.dev",
-        androidPackage: "com.yourcompany.intake.dev",
+        name: "Mobile Core",
+        slug: "mobile-core-dev",
+        bundleIdentifier: "com.calton24.mobilecore.dev",
+        androidPackage: "com.calton24.mobilecore.dev",
       },
     },
     staging: {
