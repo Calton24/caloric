@@ -1,8 +1,3 @@
-/**
- * Auth Screen
- * Login and authentication interface
- */
-
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
