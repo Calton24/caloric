@@ -3,14 +3,14 @@
  * Home screen shown after successful authentication
  */
 
-import React from 'react';
-import { Screen } from '../../../ui/layout/Screen';
-import { GlassCard } from '../../../ui/glass/GlassCard';
-import { TText } from '../../../ui/primitives/TText';
-import { TButton } from '../../../ui/primitives/TButton';
-import { TSpacer } from '../../../ui/primitives/TSpacer';
-import { useAuth } from '../useAuth';
-import { useTheme } from '../../../theme/useTheme';
+import React from "react";
+import { useTheme } from "../../../theme/useTheme";
+import { GlassCard } from "../../../ui/glass/GlassCard";
+import { Screen } from "../../../ui/layout/Screen";
+import { TButton } from "../../../ui/primitives/TButton";
+import { TSpacer } from "../../../ui/primitives/TSpacer";
+import { TText } from "../../../ui/primitives/TText";
+import { useAuth } from "../useAuth";
 
 export function SignedInHomeScreen() {
   const { user, signOut } = useAuth();
@@ -23,11 +23,11 @@ export function SignedInHomeScreen() {
   return (
     <Screen>
       <TSpacer size="xxl" />
-      
+
       <TText
         variant="heading"
         style={{
-          textAlign: 'center',
+          textAlign: "center",
           color: theme.colors.text,
         }}
       >
@@ -44,7 +44,7 @@ export function SignedInHomeScreen() {
             marginBottom: theme.spacing.sm,
           }}
         >
-          You're signed in
+          You&apos;re signed in
         </TText>
 
         <TText
@@ -70,7 +70,7 @@ export function SignedInHomeScreen() {
           color="secondary"
           style={{
             fontSize: theme.typography.fontSize.sm,
-            textAlign: 'center',
+            textAlign: "center",
           }}
         >
           This is a demo authenticated screen. In a real app, you would show

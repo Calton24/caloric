@@ -156,12 +156,7 @@ export function showActionSheet(
 ) {
   if (!canOpenModal()) return;
 
-  const {
-    title,
-    message,
-    options: actionOptions,
-    cancelText = "Cancel",
-  } = options;
+  const { title, message, options: actionOptions } = options;
 
   const handleOptionPress = (onPress: () => void) => {
     sheet.close();

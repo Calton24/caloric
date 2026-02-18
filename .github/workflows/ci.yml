@@ -53,11 +53,11 @@ jobs:
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
         if: always()
+        continue-on-error: true
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info
           fail_ci_if_error: false
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   e2e-tests-ios:
     name: E2E Tests (iOS)
@@ -81,6 +81,13 @@ jobs:
         with:
           ruby-version: "3.2"
           bundler-cache: true
+
+      - name: Prebuild iOS directory
+        run: npx expo prebuild --platform ios --clean
+        env:
+          EXPO_PUBLIC_APP_PROFILE: default
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
 
       - name: Cache CocoaPods
         uses: actions/cache@v4
