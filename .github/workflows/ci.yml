@@ -80,7 +80,11 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.2"
-          bundler-cache: true
+
+      - name: Install CocoaPods
+        run: |
+          sudo gem install cocoapods -v 1.15.2
+          pod --version
 
       - name: Prebuild iOS directory
         run: npx expo prebuild --platform ios --clean
@@ -89,16 +93,21 @@ jobs:
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
 
-      - name: Fix RCT-Folly dependency for Sentry
+      - name: Fix Podfile for CocoaPods specs
         run: |
           cd ios
-          # RCT-Folly is needed by RNSentry but not available when using prebuilt React Native
-          # Insert explicit RCT-Folly pod declaration after use_expo_modules
-          if grep -q "use_expo_modules!" Podfile; then
-            # Use a simpler approach: append the pod declaration to the target section
+          # Ensure CocoaPods CDN source is at the top (required for modern RN dependencies like fast_float)
+          if ! grep -q "source 'https://cdn.cocoapods.org/'" Podfile; then
+            echo "source 'https://cdn.cocoapods.org/'" | cat - Podfile > Podfile.tmp
+            mv Podfile.tmp Podfile
+          fi
+          # Add explicit RCT-Folly pod declaration for Sentry compatibility
+          if grep -q "use_expo_modules!" Podfile && ! grep -q "pod 'RCT-Folly'" Podfile; then
             awk '/use_expo_modules!/ {print; print "  pod '\''RCT-Folly'\'', :podspec => '\''../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec'\''"; next} {print}' Podfile > Podfile.tmp
             mv Podfile.tmp Podfile
           fi
+          echo "--- Podfile (first 30 lines) ---"
+          head -30 Podfile
 
       - name: Cache CocoaPods
         uses: actions/cache@v4
@@ -111,6 +120,7 @@ jobs:
       - name: Install CocoaPods dependencies
         run: |
           cd ios
+          pod repo update
           pod install --repo-update
         env:
           COCOAPODS_DISABLE_STATS: true
