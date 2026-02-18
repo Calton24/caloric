@@ -84,6 +84,8 @@ Pod installation complete! There are 42 dependencies from the Podfile...
 - [ ] CocoaPods installed successfully
 - [ ] No conflicting pod versions
 
+> **⚠️ Important:** Do not routinely run `npx expo prebuild --clean`. It regenerates the ios directory and can wipe Podfile third-party podspec overrides. If you run it, reapply the overrides before running `pod install`.
+
 ---
 
 ## Phase 1: Installation & Boot
