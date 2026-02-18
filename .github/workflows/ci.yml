@@ -89,6 +89,14 @@ jobs:
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
 
+      - name: Fix Podfile for RCT-Folly
+        run: |
+          cd ios
+          # Ensure CDN source is at the top of Podfile
+          if ! grep -q "source 'https://cdn.cocoapods.org/'" Podfile; then
+            echo "source 'https://cdn.cocoapods.org/'" | cat - Podfile > temp && mv temp Podfile
+          fi
+
       - name: Cache CocoaPods
         uses: actions/cache@v4
         with:
