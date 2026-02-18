@@ -89,12 +89,15 @@ jobs:
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
 
-      - name: Fix Podfile for RCT-Folly
+      - name: Fix RCT-Folly dependency for Sentry
         run: |
           cd ios
-          # Ensure CDN source is at the top of Podfile
-          if ! grep -q "source 'https://cdn.cocoapods.org/'" Podfile; then
-            echo "source 'https://cdn.cocoapods.org/'" | cat - Podfile > temp && mv temp Podfile
+          # RCT-Folly is needed by RNSentry but not available when using prebuilt React Native
+          # Insert explicit RCT-Folly pod declaration after use_expo_modules
+          if grep -q "use_expo_modules!" Podfile; then
+            # Use a simpler approach: append the pod declaration to the target section
+            awk '/use_expo_modules!/ {print; print "  pod '\''RCT-Folly'\'', :podspec => '\''../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec'\''"; next} {print}' Podfile > Podfile.tmp
+            mv Podfile.tmp Podfile
           fi
 
       - name: Cache CocoaPods
