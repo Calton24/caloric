@@ -69,7 +69,7 @@ function getOptionalEnvVar(
  * Load app profile from environment
  */
 function loadAppProfile(): AppProfile {
-  const profile = getEnvVar("APP_PROFILE", "intake"); // Default to intake for development
+  const profile = getEnvVar("APP_PROFILE", "default"); // Default to default profile
   return validateConfig(AppProfileSchema, profile, "APP_PROFILE");
 }
 

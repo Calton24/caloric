@@ -8,8 +8,12 @@ import { AppProfileConfig } from "../types";
 export const intakeConfig: AppProfileConfig = {
   // Base configuration (production)
   supabase: {
-    url: "https://your-intake-project.supabase.co",
-    anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", // Replace with actual anon key
+    url:
+      process.env.EXPO_PUBLIC_SUPABASE_URL ||
+      "https://your-intake-project.supabase.co",
+    anonKey:
+      process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", // Replace with actual anon key
   },
 
   firebase: {
@@ -71,10 +75,7 @@ export const intakeConfig: AppProfileConfig = {
   // Environment-specific overrides
   environments: {
     dev: {
-      supabase: {
-        url: "https://your-intake-dev-project.supabase.co",
-        anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", // Dev anon key
-      },
+      // Supabase config comes from env vars (base config)
       firebase: {
         ios: {
           projectId: "intake-dev",
@@ -108,10 +109,7 @@ export const intakeConfig: AppProfileConfig = {
       },
     },
     staging: {
-      supabase: {
-        url: "https://your-intake-staging-project.supabase.co",
-        anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", // Staging anon key
-      },
+      // Supabase config comes from env vars (base config)
       app: {
         name: "Mobile Core Staging",
         bundleIdentifier: "com.yourcompany.mobilecore.staging",

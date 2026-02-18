@@ -1,8 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
+import { useAuth } from "../../src/features/auth/useAuth";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassCard } from "../../src/ui/glass/GlassCard";
 import { TButton } from "../../src/ui/primitives/TButton";
@@ -12,33 +13,104 @@ import { TText } from "../../src/ui/primitives/TText";
 
 export default function AuthScreen() {
   const { theme } = useTheme();
+  const { signIn, signUp, user, signOut } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    console.log("Login attempt:", { email, password });
-    // TODO: Implement actual authentication
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert("Error", "Please enter email and password");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await signIn(email, password);
+      if (error) {
+        Alert.alert("Sign In Failed", error.message);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSignUpSubmit = () => {
-    console.log("Sign up attempt:", { email, password, confirmPassword });
-    // TODO: Implement actual sign up
+  const handleSignUpSubmit = async () => {
+    if (!email || !password) {
+      Alert.alert("Error", "Please enter email and password");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert("Error", "Passwords do not match");
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert("Error", "Password must be at least 6 characters");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await signUp(email, password);
+      if (error) {
+        Alert.alert("Sign Up Failed", error.message);
+      } else {
+        Alert.alert(
+          "Success",
+          "Account created! Check your email to verify your account."
+        );
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const toggleAuthMode = () => {
     setIsSignUp(!isSignUp);
-    // Clear form fields when switching
     setEmail("");
     setPassword("");
     setConfirmPassword("");
   };
 
   const handleForgotPassword = () => {
-    console.log("Forgot password redirect");
-    // TODO: Navigate to forgot password flow
+    Alert.alert(
+      "Forgot Password",
+      "Password reset would be sent to your email"
+    );
   };
+
+  const handleSignOut = async () => {
+    setLoading(true);
+    try {
+      await signOut();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // If user is signed in, show signed in state
+  if (user) {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+        edges={["top"]}
+      >
+        <View style={styles.signedInContainer}>
+          <TText variant="heading">Signed In</TText>
+          <TSpacer size="md" />
+          <TText color="secondary">{user.email}</TText>
+          <TSpacer size="xl" />
+          <TButton onPress={handleSignOut} loading={loading} disabled={loading}>
+            Sign Out
+          </TButton>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView
@@ -164,7 +236,11 @@ export default function AuthScreen() {
             {isSignUp && <TSpacer size="lg" />}
 
             {/* Submit Button */}
-            <TButton onPress={isSignUp ? handleSignUpSubmit : handleLogin}>
+            <TButton
+              onPress={isSignUp ? handleSignUpSubmit : handleLogin}
+              loading={loading}
+              disabled={loading}
+            >
               {isSignUp ? "Create Account" : "Sign In"}
             </TButton>
 
@@ -233,6 +309,12 @@ export default function AuthScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  signedInContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
   },
   gradientTeardrop: {
     position: "absolute",

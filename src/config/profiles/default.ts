@@ -7,8 +7,12 @@ import { AppProfileConfig } from "../types";
 export const defaultConfig: AppProfileConfig = {
   // Base configuration (production)
   supabase: {
-    url: "https://your-mobile-core-project.supabase.co",
-    anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", // Replace with actual anon key
+    url:
+      process.env.EXPO_PUBLIC_SUPABASE_URL ||
+      "https://your-mobile-core-project.supabase.co",
+    anonKey:
+      process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", // Replace with actual anon key
   },
 
   firebase: {
@@ -74,10 +78,7 @@ export const defaultConfig: AppProfileConfig = {
   // Environment-specific overrides
   environments: {
     dev: {
-      supabase: {
-        url: "https://your-mobile-core-dev-project.supabase.co",
-        anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", // Dev anon key
-      },
+      // Supabase config comes from env vars (base config)
       firebase: {
         ios: {
           projectId: "mobile-core-dev",

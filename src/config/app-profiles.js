@@ -7,6 +7,35 @@
  */
 
 const APP_PROFILES = {
+  default: {
+    app: {
+      name: "Mobile Core",
+      slug: "mobile-core",
+      bundleIdentifier: "com.calton24.mobilecore",
+      androidPackage: "com.calton24.mobilecore",
+      version: "1.0.0",
+      scheme: "mobilecore",
+    },
+    environments: {
+      dev: {
+        app: {
+          name: "Mobile Core Dev",
+          slug: "mobile-core-dev",
+          bundleIdentifier: "com.calton24.mobilecore.dev",
+          androidPackage: "com.calton24.mobilecore.dev",
+        },
+      },
+      staging: {
+        app: {
+          name: "Mobile Core Staging",
+          bundleIdentifier: "com.calton24.mobilecore.staging",
+          androidPackage: "com.calton24.mobilecore.staging",
+        },
+      },
+      prod: {},
+    },
+  },
+
   intake: {
     app: {
       name: "Mobile Core",

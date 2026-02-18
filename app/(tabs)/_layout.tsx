@@ -10,6 +10,14 @@ export default function TabLayout() {
         <Label>Home</Label>
       </NativeTabs.Trigger>
 
+      {/* Notes: Validation harness - dev only */}
+      {__DEV__ && (
+        <NativeTabs.Trigger name="notes">
+          <Icon sf={"note.text"} />
+          <Label>Notes</Label>
+        </NativeTabs.Trigger>
+      )}
+
       <NativeTabs.Trigger name="auth">
         <Icon sf={"person.circle.fill"} />
         <Label>Auth</Label>
