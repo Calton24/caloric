@@ -120,8 +120,27 @@ jobs:
             mv Podfile.tmp Podfile
           fi
 
-          echo "--- Modified Podfile (first 40 lines) ---"
-          head -40 Podfile
+          # Add post_install hardening to fix deployment targets and exclude legacy architectures
+          if ! grep -q "EXCLUDED_ARCHS\[sdk=iphoneos\*\]" Podfile; then
+            awk '/post_install do \|installer\|/ {
+              print;
+              print "    # Harden build settings to prevent legacy architecture issues with modern Xcode";
+              print "    installer.pods_project.targets.each do |target|";
+              print "      target.build_configurations.each do |config|";
+              print "        config.build_settings['\''EXCLUDED_ARCHS[sdk=iphoneos*]'\'' ] = '\''armv7 armv7s'\''";
+              print "        config.build_settings['\''EXCLUDED_ARCHS[sdk=iphonesimulator*]'\'' ] = '\''i386'\''";
+              print "        config.build_settings['\''IPHONEOS_DEPLOYMENT_TARGET'\'' ] = '\''13.0'\''";
+              print "      end";
+              print "    end";
+              print "";
+              next
+            }
+            {print}' Podfile > Podfile.tmp
+            mv Podfile.tmp Podfile
+          fi
+
+          echo "--- Modified Podfile (first 60 lines) ---"
+          head -60 Podfile
 
       - name: Cache CocoaPods
         uses: actions/cache@v4

@@ -13,14 +13,14 @@ module.exports = {
     "ios.debug": {
       type: "ios.app",
       build:
-        "xcodebuild -workspace ios/MobileCoreDev.xcworkspace -scheme MobileCoreDev -configuration Debug -sdk iphonesimulator -arch x86_64 -derivedDataPath ios/build",
+        "xcodebuild -workspace ios/MobileCoreDev.xcworkspace -scheme MobileCoreDev -configuration Debug -sdk iphonesimulator -derivedDataPath ios/build",
       binaryPath:
         "ios/build/Build/Products/Debug-iphonesimulator/MobileCoreDev.app",
     },
     "ios.release": {
       type: "ios.app",
       build:
-        "xcodebuild -workspace ios/MobileCoreDev.xcworkspace -scheme MobileCoreDev -configuration Release -sdk iphonesimulator -arch x86_64 -derivedDataPath ios/build",
+        "xcodebuild -workspace ios/MobileCoreDev.xcworkspace -scheme MobileCoreDev -configuration Release -sdk iphonesimulator -derivedDataPath ios/build",
       binaryPath:
         "ios/build/Build/Products/Release-iphonesimulator/MobileCoreDev.app",
     },
