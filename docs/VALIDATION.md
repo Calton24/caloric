@@ -45,6 +45,7 @@ cd mobile-core
 ```
 
 **Expected Output:**
+
 ```
 Cloning into 'mobile-core'...
 remote: Enumerating objects: ...
@@ -59,6 +60,7 @@ npm install
 ```
 
 **Expected Output:**
+
 ```
 added 1234 packages in 45s
 ```
@@ -74,6 +76,7 @@ cd ..
 ```
 
 **Expected Output:**
+
 ```
 Pod installation complete! There are 42 dependencies from the Podfile...
 ```
@@ -92,6 +95,7 @@ npm start
 ```
 
 **Expected Output:**
+
 ```
 Starting project at /path/to/mobile-core
 Metro waiting on ...
@@ -105,21 +109,25 @@ Metro waiting on ...
 ### Step 2: Build Development Client (First Time Only)
 
 **iOS:**
+
 ```bash
 npx expo run:ios
 ```
 
 **Android:**
+
 ```bash
 npx expo run:android
 ```
 
 **Expected Outcome:**
+
 - [ ] App builds successfully
 - [ ] App opens on simulator/emulator
 - [ ] No fatal crashes on launch
 
 **Expected Screens:**
+
 - [ ] Home tab visible
 - [ ] Auth tab visible
 - [ ] Playground tab visible (if `SHOW_PLAYGROUND` enabled)
@@ -195,6 +203,7 @@ EXPO_PUBLIC_APP_ENV=dev
 5. Click "Run"
 
 **Expected Output:**
+
 ```
 Success. No rows returned
 ```
@@ -214,6 +223,7 @@ npm start -- --clear
 ```
 
 **Expected Log Output:**
+
 ```
 📱 Loading config for profile: default, environment: dev
 ✅ Config loaded successfully:
@@ -237,6 +247,7 @@ npm start -- --clear
 2. Observe default theme
 
 **Expected:**
+
 - [ ] Light mode active by default
 - [ ] White/light gray backgrounds
 - [ ] Black/dark gray text
@@ -248,6 +259,7 @@ npm start -- --clear
 3. Tap dark mode toggle
 
 **Expected:**
+
 - [ ] App transitions to dark mode immediately
 - [ ] Black/dark backgrounds
 - [ ] White/light text
@@ -262,6 +274,7 @@ npm start -- --clear
 4. Select different color (e.g., red, green, blue)
 
 **Expected:**
+
 - [ ] Color picker opens
 - [ ] Selected color preview updates
 - [ ] Hue value displays (0-360°)
@@ -276,6 +289,7 @@ npm start -- --clear
 4. Reopen app
 
 **Expected:**
+
 - [ ] Dark mode persists
 - [ ] Brand hue (cyan) persists
 - [ ] No flash of default theme
@@ -290,6 +304,7 @@ npm start -- --clear
 2. Scroll to find glass card examples
 
 **Expected:**
+
 - [ ] Cards have semi-transparent background
 - [ ] Blur effect visible (content behind card blurs)
 - [ ] Border visible (subtle, matches theme)
@@ -301,6 +316,7 @@ npm start -- --clear
 2. Observe glass components
 
 **Expected:**
+
 - [ ] Semi-transparent white background
 - [ ] "extraLight" blur tint
 - [ ] Subtle shadow/border
@@ -311,6 +327,7 @@ npm start -- --clear
 2. Observe glass components
 
 **Expected:**
+
 - [ ] Semi-transparent black background
 - [ ] "dark" blur tint
 - [ ] Visible against dark backgrounds
@@ -326,6 +343,7 @@ npm start -- --clear
 3. Tap "Open Bottom Sheet" button
 
 **Expected:**
+
 - [ ] Bottom sheet animates up from bottom
 - [ ] Glass background (blurred, semi-transparent)
 - [ ] Backdrop dims the background
@@ -338,6 +356,7 @@ npm start -- --clear
 2. Drag handle downward
 
 **Expected:**
+
 - [ ] Sheet snaps to defined positions (e.g., 50%, 90%)
 - [ ] Smooth animation between snap points
 - [ ] No getting stuck between positions
@@ -348,6 +367,7 @@ npm start -- --clear
 2. Tap dark area outside sheet
 
 **Expected:**
+
 - [ ] Sheet closes
 - [ ] Smooth animation down
 - [ ] Backdrop fades out
@@ -358,6 +378,7 @@ npm start -- --clear
 2. Swipe down on handle or content
 
 **Expected:**
+
 - [ ] Sheet follows finger
 - [ ] Releases and closes when swiped far enough
 - [ ] Snaps back if not swiped far enough
@@ -368,6 +389,7 @@ npm start -- --clear
 2. Observe background at different snap points
 
 **Expected:**
+
 - [ ] Glass background consistent at all snap points
 - [ ] No flashing or flickering
 - [ ] Blur intensity remains constant
@@ -383,6 +405,7 @@ npm start -- --clear
 2. Observe initial state
 
 **Expected:**
+
 - [ ] Sign up / Sign in toggle visible
 - [ ] Email and password input fields
 - [ ] Submit button
@@ -396,6 +419,7 @@ npm start -- --clear
 5. Tap "Create Account"
 
 **Expected:**
+
 - [ ] Loading indicator appears
 - [ ] Alert: "Success - Check your email to verify" (if confirmation enabled)
 - [ ] OR: User immediately signed in (if confirmation disabled)
@@ -408,6 +432,7 @@ npm start -- --clear
 3. Find your test user
 
 **Expected:**
+
 - [ ] User exists in table
 - [ ] Email matches
 - [ ] Created timestamp recent
@@ -417,6 +442,7 @@ npm start -- --clear
 1. In Auth tab, tap "Sign Out" button
 
 **Expected:**
+
 - [ ] Returns to sign in form
 - [ ] User email no longer displayed
 - [ ] Session cleared
@@ -427,6 +453,7 @@ npm start -- --clear
 2. Tap "Sign In"
 
 **Expected:**
+
 - [ ] Loading indicator appears
 - [ ] User email displayed
 - [ ] "Sign Out" buttonvisible
@@ -439,6 +466,7 @@ npm start -- --clear
 3. Navigate to Auth tab
 
 **Expected:**
+
 - [ ] User still signed in
 - [ ] Email displayed
 - [ ] No need to re-enter credentials
@@ -448,6 +476,7 @@ npm start -- --clear
 ## Phase 7: Notes Feature Validation
 
 **⚠️ Prerequisites:**
+
 - Supabase configured
 - Notes table migration run
 - User signed in
@@ -457,10 +486,12 @@ npm start -- --clear
 1. Tap "Notes" tab at bottom
 
 **Expected:**
+
 - [ ] Notes tab visible in dev mode
 - [ ] Screen loads (may show "No notes" initially)
 
 **If Notes tab not visible:**
+
 - Check you're in dev mode (`__DEV__` = true)
 - Production builds exclude this tab
 
@@ -469,6 +500,7 @@ npm start -- --clear
 1. If not signed in, navigate to Notes tab
 
 **Expected:**
+
 - [ ] Prompted to sign in OR empty state shown
 - [ ] Cannot create notes without auth
 
@@ -476,6 +508,7 @@ npm start -- --clear
 3. Return to Notes tab
 
 **Expected:**
+
 - [ ] "Create Note" button visible
 - [ ] Feed area visible
 
@@ -485,6 +518,7 @@ npm start -- --clear
 2. Bottom sheet opens
 
 **Expected:**
+
 - [ ] Bottom sheet with glass background
 - [ ] Text input field
 - [ ] "Save" button
@@ -493,6 +527,7 @@ npm start -- --clear
 4. Tap "Save"
 
 **Expected:**
+
 - [ ] Loading indicator on button
 - [ ] Sheet closes
 - [ ] Note appears in feed immediately
@@ -503,6 +538,7 @@ npm start -- --clear
 1. Create 2-3 more notes with different content
 
 **Expected:**
+
 - [ ] Each note appears immediately after creation
 - [ ] Notes ordered newest first
 - [ ] Glass card styling for each note
@@ -514,6 +550,7 @@ npm start -- --clear
 3. Navigate to Notes tab
 
 **Expected:**
+
 - [ ] All created notes still visible
 - [ ] Correct order (newest first)
 - [ ] Timestamps updated (e.g., "2 minutes ago")
@@ -524,6 +561,7 @@ npm start -- --clear
 2. Pull down to trigger refresh
 
 **Expected:**
+
 - [ ] Loading spinner appears
 - [ ] Notes reload
 - [ ] No duplicates
@@ -534,6 +572,7 @@ npm start -- --clear
 2. Navigate to: Table Editor → notes
 
 **Expected:**
+
 - [ ] All notes visible in table
 - [ ] `user_id` matches your user ID
 - [ ] `created_at` timestamps accurate
@@ -546,11 +585,13 @@ npm start -- --clear
 4. Create note on Device 1
 
 **Expected:**
+
 - [ ] Note appears on Device 1 immediately
 - [ ] Note appears on Device 2 within 1-2 seconds
 - [ ] Realtime broadcast working
 
 **If realtime doesn't work:**
+
 - Check both devices are signed in as same user
 - Verify internet connection
 - Check Supabase Dashboard → Realtime → Inspector for channel activity
@@ -565,6 +606,7 @@ npm start -- --clear
 2. Check terminal output for logs
 
 **Expected Log:**
+
 ```
 Analytics tracked: notes_screen_viewed { user_id: "..." }
 ```
@@ -573,6 +615,7 @@ Analytics tracked: notes_screen_viewed { user_id: "..." }
 4. Check terminal output
 
 **Expected Log:**
+
 ```
 Analytics tracked: note_created { content_length: 13 }
 ```
@@ -586,11 +629,12 @@ Analytics tracked: note_created { content_length: 13 }
 2. Check terminal output
 
 **Expected Log:**
+
 ```
 [NotesScreen] Failed to create note: Network request failed
 ```
 
-- [  ] Errors logged to console
+- [ ] Errors logged to console
 - [ ] Context included in logs
 
 ### Step 3: Verify Feature Flags
@@ -601,6 +645,7 @@ Analytics tracked: note_created { content_length: 13 }
 4. Save and reload app
 
 **Expected:**
+
 - [ ] "Create Note" button disappears
 - [ ] Feature flag system working
 
@@ -613,6 +658,7 @@ Analytics tracked: note_created { content_length: 13 }
 3. Navigate to Notes tab
 
 **Expected:**
+
 - [ ] Error boundary catches error
 - [ ] Fallback UI shown
 - [ ] Error logged
@@ -627,17 +673,20 @@ Analytics tracked: note_created { content_length: 13 }
 ### "Network request failed"
 
 **Symptoms:**
+
 - Auth sign up fails
 - Notes don't load
 - Realtime doesn't work
 
 **Diagnosis:**
+
 1. Check `.env` has correct Supabase URL and anon key
 2. Verify credentials in Supabase Dashboard → Settings → API
 3. Ensure no extra spaces in `.env`
 4. Check internet connection
 
 **Fix:**
+
 ```bash
 # Update .env with correct credentials
 # Then restart server
@@ -647,14 +696,17 @@ npm start -- --clear
 ### "Unknown app profile: default"
 
 **Symptoms:**
+
 - App won't start
 - Error in terminal about unknown profile
 
 **Diagnosis:**
+
 1. Check `src/config/app-profiles.js` includes "default"
 2. Verify `EXPO_PUBLIC_APP_PROFILE` matches a registered profile
 
 **Fix:**
+
 ```bash
 # Ensure .env has:
 EXPO_PUBLIC_APP_PROFILE=default
@@ -666,14 +718,17 @@ npm start -- --clear
 ### Bottom Sheet Won't Open
 
 **Symptoms:**
+
 - Tap button, nothing happens
 - Sheet flickers/crashes
 
 **Diagnosis:**
+
 1. Check `babel.config.js` has Reanimated plugin as **last plugin**
 2. Verify `GestureHandlerRootView` at app root
 
 **Fix:**
+
 ```bash
 # Clear cache
 npm start -- --clear
@@ -685,14 +740,17 @@ npx expo run:ios  # or: npx expo run:android
 ### Theme Doesn't Update
 
 **Symptoms:**
+
 - Change brand hue, some components don't update
 - Hardcoded colors visible
 
 **Diagnosis:**
+
 1. Check component uses `theme.colors.*` not hardcoded strings
 2. Verify `useTheme()` hook is called
 
 **Fix:**
+
 ```tsx
 // ❌ BAD
 <Text style={{ color: "#000" }}>
@@ -705,25 +763,29 @@ const { theme } = useTheme();
 ### ColorPicker Crashes (Android)
 
 **Symptoms:**
+
 - App crashes when opening color picker
 - "Module not found" error
 
 **Diagnosis:**
+
 - `@expo/ui` ColorPicker is iOS-only (uses SwiftUI)
 
 **Fix:**
+
 - Use on iOS only
 - Or implement custom color picker for Android
 
 ### Notes Tab Not Visible
 
 **Symptoms:**
+
 - Can't find Notes tab
 
-**Diagnosis:**1. Notes tab is dev-only (gated by `__DEV__`)
-2. Check you're running in development mode
+**Diagnosis:**1. Notes tab is dev-only (gated by `__DEV__`) 2. Check you're running in development mode
 
 **Fix:**
+
 - Notes tab intentionally hidden in production builds
 - Run `npm start` (not production build)
 
@@ -734,6 +796,7 @@ const { theme } = useTheme();
 If all checkboxes are marked, your Mobile Core installation is fully validated! 🎉
 
 **Next Steps:**
+
 - Read [ARCHITECTURE.md](./ARCHITECTURE.md) for deep dive
 - Build your own features using Mobile Core infrastructure
 - Create additional app profiles in `src/config/profiles/`
@@ -743,16 +806,19 @@ If all checkboxes are marked, your Mobile Core installation is fully validated! 
 ## Quick Reference
 
 **Start Dev Server:**
+
 ```bash
 npm start
 ```
 
 **Clear Cache:**
+
 ```bash
 npm start -- --clear
 ```
 
 **Rebuild Dev Client:**
+
 ```bash
 npx expo run:ios
 # or
@@ -760,16 +826,19 @@ npx expo run:android
 ```
 
 **Run Tests:**
+
 ```bash
 npm test
 ```
 
 **Type Check:**
+
 ```bash
 npm run typecheck
 ```
 
 **Full Validation:**
+
 ```bash
 npm run validate  # lint + test + typecheck
 ```

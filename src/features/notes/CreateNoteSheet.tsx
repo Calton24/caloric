@@ -67,6 +67,7 @@ export function CreateNoteSheet({
 
   return (
     <View
+      testID="create-note-sheet"
       style={[
         styles.container,
         {
@@ -85,6 +86,7 @@ export function CreateNoteSheet({
       </TText>
 
       <TInput
+        testID="note-content-input"
         placeholder="What's on your mind?"
         value={content}
         onChangeText={setContent}
@@ -101,6 +103,7 @@ export function CreateNoteSheet({
 
       <View style={styles.buttonRow}>
         <TButton
+          testID="create-note-cancel"
           variant="ghost"
           onPress={onClose}
           disabled={loading}
@@ -109,6 +112,7 @@ export function CreateNoteSheet({
           Cancel
         </TButton>
         <TButton
+          testID="create-note-submit"
           variant="primary"
           onPress={handleSave}
           loading={loading}

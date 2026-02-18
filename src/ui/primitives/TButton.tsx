@@ -22,6 +22,7 @@ export interface TButtonProps {
   disabled?: boolean;
   loading?: boolean;
   style?: StyleProp<ViewStyle>;
+  testID?: string;
 }
 
 export function TButton({
@@ -32,6 +33,7 @@ export function TButton({
   disabled = false,
   loading = false,
   style,
+  testID,
 }: TButtonProps) {
   const { theme } = useTheme();
 
@@ -70,6 +72,7 @@ export function TButton({
 
   return (
     <Pressable
+      testID={testID}
       onPress={onPress}
       disabled={isDisabled}
       style={({ pressed }) => [

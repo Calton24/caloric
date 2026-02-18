@@ -65,7 +65,7 @@ describe("Config System", () => {
     });
 
     it("should apply staging environment overrides", () => {
-      process.env.EXPO_PUBLIC_APP_PROFILE = "intake";
+      process.env.EXPO_PUBLIC_APP_PROFILE = "default";
       process.env.EXPO_PUBLIC_APP_ENV = "staging";
 
       const config = getAppConfig();

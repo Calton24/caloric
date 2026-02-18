@@ -76,7 +76,9 @@ export interface XClient {
 
 // 2. Provide default implementation
 class DefaultXClient implements XClient {
-  async someMethod() { /* ... */ }
+  async someMethod() {
+    /* ... */
+  }
 }
 
 // 3. Create swappable singleton
@@ -97,15 +99,18 @@ export const xClient: XClient = {
 **Location:** `src/analytics/`
 
 **Interface:** `AnalyticsClient`
+
 - `track(event, properties)`
 - `identify(userId, traits)`
 - `screen(name, properties)`
 
 **Implementations:**
+
 - `NoopAnalyticsClient` - Default (does nothing)
 - `PostHogClient` - PostHog adapter (ready to use)
 
 **Usage:**
+
 ```typescript
 import { analytics } from "@/src/analytics/analytics";
 
@@ -113,6 +118,7 @@ analytics.track("button_clicked", { button_id: "submit" });
 ```
 
 **Swap Implementation:**
+
 ```typescript
 import { setAnalyticsClient, PostHogClient } from "@/src/analytics";
 
@@ -124,16 +130,19 @@ setAnalyticsClient(new PostHogClient("your-api-key"));
 **Location:** `src/logging/`
 
 **Interface:** `Logger`
+
 - `log(message, context)`
 - `error(message, context)`
 - `warn(message, context)`
 - `info(message, context)`
 
 **Implementations:**
+
 - `ConsoleLogger` - Default (console.log/error/warn)
 - Custom loggers (Sentry, LogRocket, etc.) - bring your own
 
 **Usage:**
+
 ```typescript
 import { logger } from "@/src/logging/logger";
 
@@ -144,6 +153,7 @@ logger.error("[MyComponent] Failed to load data", {
 ```
 
 **ErrorBoundary:**
+
 ```tsx
 import { ErrorBoundary } from "@/src/logging/ErrorBoundary";
 
@@ -161,15 +171,18 @@ export function MyScreen() {
 **Location:** `src/flags/`
 
 **Interface:** `FeatureFlagClient`
+
 - `isEnabled(flag, defaultValue)`
 - `getFlags()`
 - `refresh()`
 
 **Implementations:**
+
 - `NoopFlagClient` - Default (uses defaults)
 - `RemoteConfigClient` - Fetches from Supabase (optional)
 
 **Usage:**
+
 ```typescript
 import { flags } from "@/src/flags/flags";
 
@@ -185,6 +198,7 @@ if (canCreateNotes) {
 **Location:** `src/features/auth/`
 
 **Interface:** `AuthClient`
+
 - `signIn(email, password)`
 - `signUp(email, password)`
 - `signOut()`
@@ -192,10 +206,12 @@ if (canCreateNotes) {
 - `onAuthStateChange(callback)`
 
 **Implementations:**
+
 - **`SupabaseAuthClient`** - Production (uses real Supabase)
 - `MockAuthClient` - Testing (in-memory fake auth)
 
 **Usage:**
+
 ```tsx
 import { useAuth } from "@/src/features/auth/useAuth";
 
@@ -216,6 +232,7 @@ function MyComponent() {
 ```
 
 **Swap to Mock (for testing):**
+
 ```typescript
 import { setAuthClient, MockAuthClient } from "@/src/features/auth/authClient";
 
@@ -235,7 +252,7 @@ setAuthClient(new MockAuthClient());
 ```tsx
 function MyComponent() {
   const supabase = getSupabaseClient();
-  
+
   const handleCreate = async () => {
     const { data } = await supabase.from("notes").insert({ content });
     // ...
@@ -254,7 +271,7 @@ export async function createNote(content: string, userId: string) {
     .insert({ content, user_id: userId })
     .select()
     .single();
-    
+
   if (error) throw new Error(error.message);
   return data;
 }
@@ -277,6 +294,7 @@ function NotesScreen() {
 ```
 
 **Benefits:**
+
 - Centralized error handling
 - Easier testing (mock service, not Supabase)
 - Analytics/logging at service boundary
@@ -292,6 +310,7 @@ Mobile Core uses **Supabase Broadcast Channels** for realtime updates.
 ### Pattern: Broadcast (NOT Postgres Changes)
 
 **Why Broadcast > Postgres Changes:**
+
 - Faster (no DB roundtrip)
 - More control over what's sent
 - Works for non-DB updates (e.g., typing indicators)
@@ -305,9 +324,9 @@ let channel: RealtimeChannel | null = null;
 
 export function subscribeToNotes(onInsert: (note: Note) => void): void {
   const supabase = getSupabaseClient();
-  
-  channel = supabase.channel("notes");  // Create channel
-  
+
+  channel = supabase.channel("notes"); // Create channel
+
   channel
     .on("broadcast", { event: "note_inserted" }, ({ payload }) => {
       onInsert(payload as Note);
@@ -330,12 +349,12 @@ export async function unsubscribeFromNotes(): Promise<void> {
 function NotesScreen() {
   useEffect(() => {
     if (!userId) return;
-    
+
     // Subscribe
     subscribeToNotes((newNote) => {
-      setNotes(prev => [newNote, ...prev]);
+      setNotes((prev) => [newNote, ...prev]);
     });
-    
+
     // Cleanup on unmount
     return () => {
       unsubscribeFromNotes();
@@ -349,16 +368,16 @@ function NotesScreen() {
 ```typescript
 export async function createNote(content: string, userId: string) {
   const supabase = getSupabaseClient();
-  
+
   // Insert into DB
   const { data, error } = await supabase
     .from("notes")
     .insert({ content, user_id: userId })
     .select()
     .single();
-    
+
   if (error) throw new Error(error.message);
-  
+
   // Broadcast to all subscribers
   const channel = supabase.channel("notes");
   await channel.send({
@@ -366,12 +385,13 @@ export async function createNote(content: string, userId: string) {
     event: "note_inserted",
     payload: data,
   });
-  
+
   return data;
 }
 ```
 
 **Flow:**
+
 1. User creates note
 2. Service inserts to DB (with RLS)
 3. Service broadcasts to channel
@@ -417,19 +437,21 @@ UI rerenders (signed in state)
 **Storage:** AsyncStorage (React Native key-value store)
 
 **Configuration:**
+
 ```typescript
 // src/lib/supabase/client.ts
 createClient(url, anonKey, {
   auth: {
-    storage: AsyncStorage,          // Persist session
-    autoRefreshToken: true,          // Refresh before expiry
-    persistSession: true,            // Save to storage
-    detectSessionInUrl: false,       // Mobile app (no URL params)
+    storage: AsyncStorage, // Persist session
+    autoRefreshToken: true, // Refresh before expiry
+    persistSession: true, // Save to storage
+    detectSessionInUrl: false, // Mobile app (no URL params)
   },
 });
 ```
 
 **Flow:**
+
 1. User signs in → Session saved to AsyncStorage
 2. App closes
 3. App reopens → Supabase loads session from AsyncStorage
@@ -457,6 +479,7 @@ CREATE POLICY "Users can insert their own notes"
 ```
 
 **How it works:**
+
 1. User signs in → Supabase issues JWT with `sub` (user ID)
 2. Client sends JWT with every request (via Authorization header)
 3. Supabase validates JWT
@@ -488,12 +511,14 @@ setBrandHue() updates hue → regenerates palette → rerenders all components
 ### Zero Hardcoded Colors Rule
 
 **❌ NEVER:**
+
 ```tsx
 <Text style={{ color: "#000000" }}>  // Hardcoded!
 <View style={{ backgroundColor: "white" }}>  // Hardcoded!
 ```
 
 **✅ ALWAYS:**
+
 ```tsx
 const { theme } = useTheme();
 <Text style={{ color: theme.colors.textPrimary }}>
@@ -504,27 +529,30 @@ const { theme } = useTheme();
 
 ```typescript
 // theme/colors.ts
-export function generatePalette(brandHue: number, mode: ColorMode): ThemeTokens {
-  const base = oklch(brandHue);  // Generate from hue
-  
+export function generatePalette(
+  brandHue: number,
+  mode: ColorMode
+): ThemeTokens {
+  const base = oklch(brandHue); // Generate from hue
+
   return {
     // Primary from brandHue
     primary: base,
     primaryHover: lighten(base, 0.1),
-    
+
     // Semantic colors adapt to mode
     background: mode === "light" ? "#FFFFFF" : "#000000",
     textPrimary: mode === "light" ? "#000000" : "#FFFFFF",
-    
+
     // Glass colors (semi-transparent)
-    glassBackground: mode === "light" 
-      ? "rgba(255,255,255,0.7)" 
-      : "rgba(0,0,0,0.7)",
+    glassBackground:
+      mode === "light" ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.7)",
   };
 }
 ```
 
 **When brandHue changes:**
+
 1. `setBrandHue(210)` called
 2. Theme provider regenerates palette
 3. All components using `useTheme()` rerender
@@ -577,6 +605,7 @@ const renderBackground = useCallback(
 ```
 
 **Key Features:**
+
 - BlurView from expo-blur
 - Adapts to light/dark mode
 - Rounded top corners
@@ -588,10 +617,10 @@ const renderBackground = useCallback(
 const [modalKey, setModalKey] = useState(0);
 
 const open = (content, options) => {
-  setModalKey(prev => prev + 1);  // Force remount
+  setModalKey((prev) => prev + 1); // Force remount
   setContent(content);
   setSnapPoints(options?.snapPoints || ["50%"]);
-  
+
   setTimeout(() => {
     bottomSheetRef.current?.present();
   }, 100);
@@ -599,6 +628,7 @@ const open = (content, options) => {
 ```
 
 **Why remount:**
+
 - `@gorhom/bottom-sheet` caches snap points on mount
 - Changing snap points without remount can cause stuck positions
 - Force remount ensures fresh snap point calculation
@@ -630,10 +660,10 @@ Supabase/Firebase/Billing initialized with config values
 ```typescript
 // 1. Load profile
 const profile = process.env.EXPO_PUBLIC_APP_PROFILE || "default";
-const profileConfig = APP_PROFILES[profile];  // intake, proxi, default
+const profileConfig = APP_PROFILES[profile]; // intake, proxi, default
 
 // 2. Load environment
-const env = process.env.EXPO_PUBLIC_APP_ENV || "dev";  // dev, staging, prod
+const env = process.env.EXPO_PUBLIC_APP_ENV || "dev"; // dev, staging, prod
 const envOverrides = profileConfig.environments?.[env] || {};
 
 // 3. Deep merge
@@ -665,22 +695,22 @@ export const intakeConfig: AppProfileConfig = {
     url: process.env.EXPO_PUBLIC_SUPABASE_URL || "https://fallback.supabase.co",
     anonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "fallback",
   },
-  
+
   features: {
-    vision: true,   // Enable vision AI
-    water: true,    // Enable water tracking
-    habit: false,   // Disable habits
+    vision: true, // Enable vision AI
+    water: true, // Enable water tracking
+    habit: false, // Disable habits
   },
-  
+
   app: {
     name: "Intake",
     bundleIdentifier: "com.yourcompany.intake",
   },
-  
+
   environments: {
     dev: {
       features: {
-        billing: false,  // Disable billing in dev
+        billing: false, // Disable billing in dev
       },
       app: {
         name: "Intake Dev",
@@ -692,12 +722,13 @@ export const intakeConfig: AppProfileConfig = {
 ```
 
 **Usage:**
+
 ```typescript
 import { getAppConfig } from "@/src/config";
 
 const config = getAppConfig();
-console.log(config.app.name);  // "Intake Dev" (in dev env)
-console.log(config.features.vision);  // true
+console.log(config.app.name); // "Intake Dev" (in dev env)
+console.log(config.features.vision); // true
 ```
 
 ---
@@ -723,6 +754,7 @@ src/features/notes/
 ```
 
 **Public API:**
+
 ```typescript
 // src/features/notes/index.ts
 export { NotesScreen } from "./NotesScreen";
@@ -746,6 +778,7 @@ src/ui/
 ```
 
 **Rules:**
+
 - Primitives depend on theme only
 - Composed components use primitives
 - Dev components gated by `__DEV__`
@@ -759,7 +792,7 @@ src/ui/
 1. **Swappable Abstractions** - Analytics, logger, flags, auth
 2. **Service Layer** - Never call Supabase directly from UI
 3. **Provider Nesting** - Correct order for gestures, theme, auth
-4. **Zero Hardcoded Values** - Use theme.colors.*, theme.spacing.*, etc.
+4. **Zero Hardcoded Values** - Use theme.colors._, theme.spacing._, etc.
 5. **Realtime via Broadcast** - Faster than postgres changes
 6. **Config-Driven** - Multi-app support via profiles
 7. **Dev-Only Features** - Gate validation harnesses with `__DEV__`

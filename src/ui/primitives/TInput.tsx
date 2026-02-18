@@ -21,13 +21,14 @@ export interface TInputProps extends TextInputProps {
 }
 
 export const TInput = forwardRef<TextInput, TInputProps>(
-  ({ error, containerStyle, style, ...props }, ref) => {
+  ({ error, containerStyle, style, testID, ...props }, ref) => {
     const { theme } = useTheme();
 
     return (
       <View style={containerStyle}>
         <TextInput
           ref={ref}
+          testID={testID}
           style={[
             styles.input,
             {

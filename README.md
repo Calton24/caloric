@@ -11,6 +11,9 @@ Mobile Core is a reusable foundation that combines essential infrastructure patt
 - 📱 **Bottom sheets** with glass backgrounds
 - ⚡ **Real-time** subscriptions via Supabase broadcast
 - 🔧 **Multi-app configuration** system
+- 🚨 **Production error tracking** with Sentry integration
+- 🧪 **E2E testing** with Detox framework
+- ⚙️ **CI/CD pipeline** with GitHub Actions
 
 ---
 
@@ -24,6 +27,8 @@ Mobile Core is a reusable foundation that combines essential infrastructure patt
 - [Configuration System](#configuration-system)
 - [Theme Provider Usage](#theme-provider-usage)
 - [Bottom Sheets API](#bottom-sheets-api)
+- [Production Error Tracking (Sentry)](#production-error-tracking-sentry)
+- [Testing](#testing)
 - [Notes Validation Harness](#notes-validation-harness)
 - [Common Issues](#common-issues)
 - [Documentation](#documentation)
@@ -36,10 +41,13 @@ Mobile Core is a reusable foundation that combines essential infrastructure patt
 
 - ✅ **Swappable Auth** - Production Supabase auth + mock for testing
 - ✅ **Swappable Analytics** - Interface-based with PostHog adapter ready
-- ✅ **Swappable Logger** - Console logger default, extensible
+- ✅ **Swappable Logger** - Console logger default, **Sentry in production**
 - ✅ **Feature Flags** - Runtime flags with remote config support
 - ✅ **Error Boundary** - React error boundary with logger integration
 - ✅ **Multi-app Config** - Single codebase, multiple apps via env vars
+- ✅ **Production Monitoring** - Sentry error tracking with breadcrumbs
+- ✅ **E2E Testing** - Detox framework with iOS simulator support
+- ✅ **CI/CD Pipeline** - GitHub Actions with comprehensive validation
 
 ### UI Components
 
@@ -83,11 +91,14 @@ cd ios && pod install && cd ..
 1. Create `.env` in project root:
 
 ```dotenv
-# Supabase Configuration
+# Supabase Configuration (Required)
 EXPO_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...your-actual-key
 
-# App Configuration (optional)
+# Sentry (Optional - Production Error Tracking)
+EXPO_PUBLIC_SENTRY_DSN=https://your-key@o123456.ingest.sentry.io/123456
+
+# App Configuration (Optional)
 EXPO_PUBLIC_APP_PROFILE=default
 EXPO_PUBLIC_APP_ENV=dev
 ```
@@ -144,6 +155,8 @@ mobile-core/
 │   ├── logging/                  # Logger abstraction (swappable)
 │   │   ├── logger.types.ts       # Interface + console logger
 │   │   ├── logger.ts             # Singleton pattern
+│   │   ├── sentryLogger.ts       # Sentry logger implementation
+│   │   ├── sentryLogger.test.ts  # Sentry tests (16 tests)
 │   │   └── ErrorBoundary.tsx     # React error boundary
 │   │
 │   ├── flags/                    # Feature flags (swappable)
@@ -201,6 +214,13 @@ mobile-core/
 ├── supabase/migrations/          # Database schema
 │   └── 20260217000000_create_notes_table.sql
 │
+├── e2e/                          # End-to-end tests
+│   ├── app.e2e.ts                # E2E test suite (15 tests)
+│   └── jest.config.js            # E2E Jest config
+│
+├── .github/workflows/            # CI/CD
+│   └── ci.yml                    # GitHub Actions pipeline
+│
 ├── docs/                         # Documentation
 │   ├── ARCHITECTURE.md           # Architecture deep dive
 │   ├── VALIDATION.md             # Validation checklist
@@ -209,6 +229,7 @@ mobile-core/
 │
 ├── .env                          # Local env vars (gitignored)
 ├── .env.example                  # Template
+├── .detoxrc.js                   # Detox E2E config
 └── babel.config.js               # Reanimated plugin
 ```
 
@@ -219,14 +240,18 @@ mobile-core/
 ### Required Environment Variables
 
 ```dotenv
-# Supabase (required)
+# Supabase (Required)
 EXPO_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
 
-# App Profile (optional, defaults to "default")
+# Sentry (Optional - Production Error Tracking)
+# Get from: https://sentry.io/settings/projects/your-project/keys/
+EXPO_PUBLIC_SENTRY_DSN=https://your-key@o123456.ingest.sentry.io/123456
+
+# App Profile (Optional, defaults to "default")
 EXPO_PUBLIC_APP_PROFILE=default
 
-# Environment (optional, defaults to "dev")
+# Environment (Optional, defaults to "dev")
 EXPO_PUBLIC_APP_ENV=dev
 ```
 
@@ -238,7 +263,13 @@ EXPO_PUBLIC_APP_ENV=dev
    - Settings → API
    - Copy "Project URL" and "Anon/Public key"
 
-2. **Never use Service Role key** - it bypasses RLS and should only be used server-side
+2. **Sentry (Optional - Production Error Tracking):**
+   - Go to https://sentry.io
+   - Create a project (React Native platform)
+   - Settings → Projects → [Your Project] → Client Keys (DSN)
+   - Copy the DSN URL
+
+3. **Never use Service Role key** - it bypasses RLS and should only be used server-side
 
 ---
 
@@ -421,6 +452,126 @@ function MyComponent() {
 
 ---
 
+## Production Error Tracking (Sentry)
+
+**Optional integration** - Add Sentry DSN to enable production error tracking.
+
+### Setup
+
+1. **Create a Sentry project:**
+   - Go to https://sentry.io
+   - Create account/organization
+   - New Project → React Native platform
+
+2. **Add DSN to environment:**
+
+   ```dotenv
+   EXPO_PUBLIC_SENTRY_DSN=https://your-key@o123456.ingest.sentry.io/123456
+   ```
+
+3. **Rebuild your app:**
+   ```bash
+   npx expo start -c
+   ```
+
+### How It Works
+
+- **Dev mode:** Uses `ConsoleLogger` (no Sentry)
+- **Production mode:** Uses `SentryLogger` (if DSN provided)
+- **Graceful fallback:** Falls back to console if Sentry fails
+- **Breadcrumbs:** `log()` and `warn()` create breadcrumbs
+- **Exceptions:** `error()` captures exceptions with stack traces
+
+### Usage
+
+No code changes needed! The logger abstraction handles everything:
+
+```tsx
+import { getLogger } from "@/src/logging/logger";
+
+const logger = getLogger();
+logger.log("User viewed profile", { userId: 123 });
+logger.warn("API slow response", { duration: 2500 });
+logger.error("Failed to load data", new Error("Network timeout"));
+```
+
+**Architecture:**
+
+- Logger interface remains swappable
+- No direct Sentry imports in feature code
+- Production/dev separation via `__DEV__` flag
+- See [src/logging/sentryLogger.ts](src/logging/sentryLogger.ts) for implementation
+
+---
+
+## Testing
+
+### Unit Tests (143 tests)
+
+```bash
+npm test                    # Run all tests
+npm run test:watch          # Watch mode
+npm run test:coverage       # Coverage report
+```
+
+**Test Coverage:**
+
+- Auth abstraction (Supabase + Mock)
+- Analytics abstraction
+- Logger abstraction (Console + Sentry)
+- Config system
+- Theme system
+- Feature flags
+- Notes feature (dev-only)
+
+**Files:**
+
+- `__tests__/` - Test suites
+- `__mocks__/` - Jest mocks
+- `jest.config.js` - Jest configuration
+- `src/logging/sentryLogger.test.ts` - 16 Sentry tests
+
+### E2E Tests (15 tests)
+
+```bash
+npm run e2e:build           # Build iOS app for testing
+npm run e2e:test            # Run Detox tests
+npm run e2e                 # Build + test
+```
+
+**Test Coverage:**
+
+- App launch and initialization
+- Authentication flow (sign up, sign in, sign out)
+- Notes feature (create, list, realtime)
+- Navigation (tab switching)
+- Form validation
+
+**Requirements:**
+
+- macOS with Xcode
+- iOS Simulator (iPhone 15 Pro)
+- Configured via `.detoxrc.js`
+
+**Files:**
+
+- `e2e/app.e2e.ts` - E2E test suite
+- `e2e/jest.config.js` - Detox Jest config
+- `.detoxrc.js` - Detox configuration
+
+**CI/CD Integration:**
+GitHub Actions runs all tests on push:
+
+- ✅ Lint + TypeScript check
+- ✅ Unit tests (143 tests)
+- ✅ E2E tests (macOS runner with iOS simulator)
+- ✅ Build validation
+- ✅ Unused exports check
+
+See [.github/workflows/ci.yml](.github/workflows/ci.yml) for full pipeline.
+
+---
+
 ## Notes Validation Harness
 
 **Purpose:** Validates Mobile Core infrastructure under real pressure.
@@ -550,9 +701,12 @@ npm run ios            # Build and run iOS
 npm run android        # Build and run Android
 npm run lint           # Run ESLint
 npm run format         # Format with Prettier
-npm test               # Run Jest tests
+npm test               # Run Jest tests (143 tests)
 npm run test:watch     # Jest watch mode
 npm run test:coverage  # Coverage report
+npm run e2e:build      # Build iOS app for E2E tests
+npm run e2e:test       # Run Detox E2E tests (15 tests)
+npm run e2e            # Build + test E2E
 npm run typecheck      # TypeScript check
 npm run validate       # Full validation (lint + test + typecheck)
 ```
@@ -567,7 +721,9 @@ npm run validate       # Full validation (lint + test + typecheck)
 - **Auth:** Supabase Auth (email/password, social, magic links)
 - **UI:** Custom glass components, @gorhom/bottom-sheet, expo-blur
 - **Theming:** Dynamic color generation, AsyncStorage persistence
-- **Testing:** Jest, React Native Testing Library
+- **Testing:** Jest (143 unit tests), Detox (15 E2E tests)
+- **Monitoring:** Sentry error tracking (production)
+- **CI/CD:** GitHub Actions (lint, test, E2E, build validation)
 - **TypeScript:** Strict mode, Zod validation
 - **Build:** EAS Build (cloud builds)
 

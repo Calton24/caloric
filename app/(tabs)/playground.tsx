@@ -30,7 +30,7 @@ export default function PlaygroundScreen() {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <View testID="playground-screen" style={{ flex: 1 }}>
       <Host style={{ flex: 1 }}>
         <Form>
           <ButtonsSection />

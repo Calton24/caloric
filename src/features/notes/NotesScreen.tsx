@@ -1,6 +1,6 @@
 /**
  * NotesScreen - VALIDATION HARNESS (Dev Only)
- * 
+ *
  * This feature validates Mobile Core infrastructure under real pressure:
  * - Auth: Requires authenticated user
  * - Database: CRUD operations with Supabase
@@ -11,7 +11,7 @@
  * - ErrorBoundary: Crash protection
  * - Bottom Sheets: Modal interaction
  * - Theme: Dynamic styling
- * 
+ *
  * Gated to __DEV__ mode only (see app/(tabs)/_layout.tsx)
  * Never ships in production builds.
  */
@@ -233,6 +233,7 @@ function NotesScreenContent() {
 
   return (
     <View
+      testID="notes-screen"
       style={[
         styles.container,
         {
@@ -260,13 +261,18 @@ function NotesScreenContent() {
         </TText>
         <TSpacer size="md" />
         {canCreateNotes && (
-          <TButton variant="primary" onPress={handleCreateNote}>
+          <TButton
+            testID="create-note-button"
+            variant="primary"
+            onPress={handleCreateNote}
+          >
             Create Note
           </TButton>
         )}
       </View>
 
       <FlatList
+        testID="notes-list"
         data={notes}
         renderItem={renderNote}
         keyExtractor={(item) => item.id}

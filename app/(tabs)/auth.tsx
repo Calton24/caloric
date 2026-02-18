@@ -96,6 +96,7 @@ export default function AuthScreen() {
   if (user) {
     return (
       <SafeAreaView
+        testID="auth-screen"
         style={[styles.container, { backgroundColor: theme.colors.background }]}
         edges={["top"]}
       >
@@ -104,7 +105,12 @@ export default function AuthScreen() {
           <TSpacer size="md" />
           <TText color="secondary">{user.email}</TText>
           <TSpacer size="xl" />
-          <TButton onPress={handleSignOut} loading={loading} disabled={loading}>
+          <TButton
+            testID="sign-out-button"
+            onPress={handleSignOut}
+            loading={loading}
+            disabled={loading}
+          >
             Sign Out
           </TButton>
         </View>
@@ -114,6 +120,7 @@ export default function AuthScreen() {
 
   return (
     <SafeAreaView
+      testID="auth-screen"
       style={[styles.container, { backgroundColor: theme.colors.background }]}
       edges={["top"]}
     >
@@ -178,6 +185,7 @@ export default function AuthScreen() {
             </TText>
             <TSpacer size="xs" />
             <TInput
+              testID="email-input"
               placeholder="Enter your email"
               value={email}
               onChangeText={setEmail}
@@ -194,6 +202,7 @@ export default function AuthScreen() {
             </TText>
             <TSpacer size="xs" />
             <TInput
+              testID="password-input"
               placeholder="Enter your password"
               value={password}
               onChangeText={setPassword}
@@ -211,6 +220,7 @@ export default function AuthScreen() {
                 </TText>
                 <TSpacer size="xs" />
                 <TInput
+                  testID="confirm-password-input"
                   placeholder="Confirm your password"
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -237,6 +247,7 @@ export default function AuthScreen() {
 
             {/* Submit Button */}
             <TButton
+              testID="submit-button"
               onPress={isSignUp ? handleSignUpSubmit : handleLogin}
               loading={loading}
               disabled={loading}
@@ -253,7 +264,11 @@ export default function AuthScreen() {
                   ? "Already have an account? "
                   : "Don't have an account? "}
               </TText>
-              <TButton onPress={toggleAuthMode} variant="ghost">
+              <TButton
+                testID="toggle-auth-mode"
+                onPress={toggleAuthMode}
+                variant="ghost"
+              >
                 <TText color="primary" style={styles.signUpText}>
                   {isSignUp ? "Sign In" : "Sign Up"}
                 </TText>
