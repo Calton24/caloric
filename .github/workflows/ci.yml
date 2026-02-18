@@ -61,7 +61,7 @@ jobs:
 
   e2e-tests-ios:
     name: E2E Tests (iOS)
-    runs-on: macos-14 # Latest macOS with Xcode 14+
+    runs-on: macos-latest # Latest macOS with newest Xcode
 
     steps:
       - name: Checkout code
