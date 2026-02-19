@@ -19,7 +19,7 @@
     "check": "npm run typecheck && npm run typecheck:edge",
     "check:edge": "npm run typecheck:edge",
     "validate": "npm run check && npm run lint && npm run test && npm run test:edge",
-    "e2e:build": "detox build --configuration ios.debug",
+    "e2e:build": "node ./scripts/e2e-build-ios.js",
     "e2e:test": "detox test --configuration ios.debug",
     "e2e": "npm run e2e:build && npm run e2e:test",
     "prepare": "husky"

@@ -61,7 +61,7 @@ jobs:
 
   e2e-tests-ios:
     name: E2E Tests (iOS)
-    runs-on: macos-latest # Latest macOS with newest Xcode
+    runs-on: macos-14 # Pinned runner - no Xcode version roulette
 
     steps:
       - name: Checkout code
@@ -76,114 +76,62 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Setup Ruby (for CocoaPods)
+      - name: Setup Ruby (Bundler-managed)
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.2"
+          bundler-cache: true
+          working-directory: ios
 
-      - name: Install CocoaPods
+      - name: Pick deterministic simulator destination (UDID)
+        id: sim
+        shell: bash
         run: |
-          sudo gem install cocoapods -v 1.15.2
-          pod --version
-
-      - name: Prebuild iOS directory
-        run: npx expo prebuild --platform ios --clean
-        env:
-          EXPO_PUBLIC_APP_PROFILE: default
-          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
-
-      - name: Fix Podfile for CocoaPods specs
-        run: |
-          cd ios
-          # Ensure CocoaPods CDN source is at the top (required for modern RN dependencies like fast_float)
-          if ! grep -q "source 'https://cdn.cocoapods.org/'" Podfile; then
-            echo "source 'https://cdn.cocoapods.org/'" | cat - Podfile > Podfile.tmp
-            mv Podfile.tmp Podfile
-          fi
-
-          # Add explicit local podspec overrides for RN third-party deps (prevents trunk resolution)
-          # This avoids pulling ancient versions (e.g., glog 0.3.4) that fail on modern Xcode
-          if grep -q "use_expo_modules!" Podfile && ! grep -q "pod 'RCT-Folly'" Podfile; then
-            awk '/use_expo_modules!/ {
-              print;
-              print "";
-              print "  # Force local podspecs for RN third-party deps to avoid trunk resolution issues in CI";
-              print "  # RCT-Folly/Fabric subspec is REQUIRED - adds folly/synchronization/*.h headers needed by React Native";
-              print "  pod '\''RCT-Folly/Fabric'\'', :podspec => '\''../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec'\''";
-              print "  pod '\''boost'\'', :podspec => '\''../node_modules/react-native/third-party-podspecs/boost.podspec'\''";
-              print "  pod '\''glog'\'', :podspec => '\''../node_modules/react-native/third-party-podspecs/glog.podspec'\''";
-              print "  pod '\''fast_float'\'', :podspec => '\''../node_modules/react-native/third-party-podspecs/fast_float.podspec'\''";
-              print "  pod '\''fmt'\'', :podspec => '\''../node_modules/react-native/third-party-podspecs/fmt.podspec'\''";
-              next
-            } 
-            {print}' Podfile > Podfile.tmp
-            mv Podfile.tmp Podfile
-          fi
-
-          # Add post_install hardening to fix deployment targets and exclude legacy architectures
-          if ! grep -q "EXCLUDED_ARCHS\[sdk=iphoneos\*\]" Podfile; then
-            awk '/post_install do \|installer\|/ {
-              print;
-              print "    # Harden build settings to prevent legacy architecture issues with modern Xcode";
-              print "    installer.pods_project.targets.each do |target|";
-              print "      target.build_configurations.each do |config|";
-              print "        config.build_settings['\''EXCLUDED_ARCHS[sdk=iphoneos*]'\'' ] = '\''armv7 armv7s'\''";
-              print "        config.build_settings['\''EXCLUDED_ARCHS[sdk=iphonesimulator*]'\'' ] = '\''i386'\''";
-              print "        config.build_settings['\''IPHONEOS_DEPLOYMENT_TARGET'\'' ] = '\''13.0'\''";
-              print "      end";
-              print "    end";
-              print "";
-              next
-            }
-            {print}' Podfile > Podfile.tmp
-            mv Podfile.tmp Podfile
-          fi
-
-          echo "--- Modified Podfile (first 60 lines) ---"
-          head -60 Podfile
-
-      - name: Cache CocoaPods
-        uses: actions/cache@v4
-        with:
-          path: ios/Pods
-          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-pods-
-
-      - name: Install CocoaPods dependencies
-        run: |
-          cd ios
-          pod repo update
-          pod install --repo-update
-        env:
-          COCOAPODS_DISABLE_STATS: true
-
-      - name: Cache Detox build
-        uses: actions/cache@v4
-        with:
-          path: ~/Library/Detox
-          key: ${{ runner.os }}-detox-build-${{ hashFiles('ios/**') }}
-          restore-keys: |
-            ${{ runner.os }}-detox-build-
-
-      - name: Setup iOS Simulator
-        run: |
+          set -euo pipefail
           xcrun simctl list devices available
-          xcrun simctl create "iPhone 15 Pro CI" "iPhone 15 Pro" || true
-          xcrun simctl boot "iPhone 15 Pro CI" || true
 
-      - name: Build iOS app for Detox
-        run: npm run e2e:build
+          UDID="$(xcrun simctl list devices available | \
+            grep -m 1 -E "iPhone 15 Pro" | \
+            sed -E 's/.*\(([0-9A-F-]+)\).*/\1/')"
+
+          if [[ -z "${UDID}" ]]; then
+            echo "❌ No available iPhone 15 Pro simulator found on runner"
+            exit 1
+          fi
+
+          echo "udid=${UDID}" >> "${GITHUB_OUTPUT}"
+          echo "✅ Using simulator UDID: ${UDID}"
+
+      - name: Boot simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          UDID="${{ steps.sim.outputs.udid }}"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+
+      - name: Install Ruby gems (Bundler)
+        working-directory: ios
+        run: bundle install --deployment
+
+      - name: Install CocoaPods (deterministic)
+        working-directory: ios
         env:
+          COCOAPODS_DISABLE_STATS: "true"
+        run: bundle exec pod install --deployment --clean-install
+
+      - name: Build iOS app for Detox (deterministic)
+        env:
+          DETOX_DEVICE_UDID: ${{ steps.sim.outputs.udid }}
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+        run: npm run e2e:build
 
       - name: Run Detox E2E tests
-        run: npm run e2e:test
         env:
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+        run: npm run e2e:test
 
       - name: Upload E2E test artifacts
         uses: actions/upload-artifact@v4

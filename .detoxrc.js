@@ -12,15 +12,13 @@ module.exports = {
   apps: {
     "ios.debug": {
       type: "ios.app",
-      build:
-        "xcodebuild -workspace ios/MobileCoreDev.xcworkspace -scheme MobileCoreDev -configuration Debug -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=17.5' -derivedDataPath ios/build clean build",
+      build: "npm run e2e:build",
       binaryPath:
         "ios/build/Build/Products/Debug-iphonesimulator/MobileCoreDev.app",
     },
     "ios.release": {
       type: "ios.app",
-      build:
-        "xcodebuild -workspace ios/MobileCoreDev.xcworkspace -scheme MobileCoreDev -configuration Release -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=17.5' -derivedDataPath ios/build clean build",
+      build: "npm run e2e:build",
       binaryPath:
         "ios/build/Build/Products/Release-iphonesimulator/MobileCoreDev.app",
     },
@@ -29,7 +27,7 @@ module.exports = {
     simulator: {
       type: "ios.simulator",
       device: {
-        type: "iPhone 15 Pro",
+        type: "iPhone 16 Pro",
       },
     },
   },

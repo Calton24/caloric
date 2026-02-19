@@ -41,9 +41,12 @@ yarn-error.*
 
 app-example
 
-# generated native folders
-/ios
-/android
+# Native build artifacts (but commit ios/ and android/ source directories)
+ios/build/
+ios/Pods/Pods.xcodeproj/
+android/build/
+android/app/build/
+android/.gradle/
 
 # Firebase configs (production secrets NOT committed)
 # Keep dev configs for local development
