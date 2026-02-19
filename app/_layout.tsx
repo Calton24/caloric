@@ -4,7 +4,7 @@ import "react-native-reanimated";
 
 export default function RootLayout() {
   return (
-    <MobileCoreProviders>
+    <MobileCoreProviders testID="app-ready">
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: "modal" }} />

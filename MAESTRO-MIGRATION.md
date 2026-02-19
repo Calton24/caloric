@@ -9,6 +9,7 @@ Successfully migrated from Detox + GitHub Actions E2E testing to EAS Workflows +
 ## What Changed
 
 ### Removed (Detox)
+
 - ✅ `.detoxrc.js` - Detox configuration
 - ✅ `scripts/e2e-build-ios.js` - Custom xcodebuild wrapper
 - ✅ `e2e/` directory - Detox test files
@@ -17,12 +18,14 @@ Successfully migrated from Detox + GitHub Actions E2E testing to EAS Workflows +
 - ✅ GitHub Actions `e2e-tests-ios` job (eliminated macOS runner usage)
 
 ### Added (Maestro)
+
 - ✅ `.eas/workflows/e2e-ios.yml` - EAS Workflow for E2E testing
 - ✅ `maestro/flows/smoke-test.yaml` - Sample Maestro test flow
 - ✅ `eas.json` - Added `preview` build profile for simulator builds
 - ✅ npm script: `maestro:test` - Run Maestro tests locally
 
 ### Updated
+
 - ✅ `package.json` - Removed Detox scripts/deps, added Maestro script
 - ✅ `.github/workflows/ci.yml` - Removed E2E job, kept lint/unit tests only
 
@@ -45,8 +48,8 @@ jobs:
         id: ios_simulator_build
         with:
           platform: ios
-          profile: preview  # Simulator build
-      
+          profile: preview # Simulator build
+
       - type: maestro
         id: maestro_test
         with:
@@ -61,6 +64,7 @@ jobs:
 ### Prerequisites
 
 Install Maestro CLI:
+
 ```bash
 curl -fsSL "https://get.maestro.mobile.dev" | bash
 ```
@@ -84,6 +88,7 @@ maestro test --debug maestro/flows/smoke-test.yaml
 ### Local Simulator Build (Optional)
 
 If you want to test with a local build:
+
 ```bash
 # Build for simulator
 npx expo run:ios --configuration Release
@@ -158,21 +163,25 @@ appId: com.calton24.mobilecore.dev
 ## Environment Variables
 
 Same Supabase env vars used in both local and EAS:
+
 - `EXPO_PUBLIC_SUPABASE_URL`
 - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
 
 Configure in:
+
 - **EAS**: Project settings → Secrets
 - **Local**: `.env.local` (not committed)
 
 ## Cost Savings
 
 **Before:**
+
 - GitHub Actions: 2,000 minutes/month
 - macOS runner: 10x multiplier
 - E2E tests consumed ~200 real minutes = 2,000 GitHub minutes
 
 **After:**
+
 - GitHub Actions: Lint + unit tests only (~50 minutes/month)
 - EAS Workflows: Dedicated mobile CI (no GitHub budget impact)
 - **Savings**: ~1,950 GitHub Actions minutes/month freed up
@@ -180,22 +189,26 @@ Configure in:
 ## Troubleshooting
 
 ### Workflow doesn't trigger
+
 - Check branch name matches trigger config
 - Verify EAS project is linked: `eas whoami`
 - Check workflow syntax: `eas workflow:list`
 
 ### Build fails
+
 - Check build logs in EAS dashboard
 - Verify `preview` profile in `eas.json`
 - Ensure environment variables are set in EAS project
 
 ### Maestro tests fail
+
 - Check test logs/screenshots in workflow artifacts
 - Run locally with `maestro test --debug`
 - Verify accessibility IDs match actual UI
 - Check for timing issues (add `timeout` or `waitForAnimationToEnd`)
 
 ### Local Maestro not found
+
 ```bash
 # Install/update Maestro
 curl -fsSL "https://get.maestro.mobile.dev" | bash

@@ -24,6 +24,8 @@
     "ios:sim:build": "node scripts/ios-sim-build.js",
     "ios:sim:install": "node scripts/ios-sim-install.js",
     "maestro:ci:ios": "node scripts/maestro-ci-ios.js",
+    "maestro:ci:ios:fast": "SKIP_BUILD=1 node scripts/maestro-ci-ios.js",
+    "maestro:ci:ios:full": "SKIP_BUILD=0 node scripts/maestro-ci-ios.js",
     "prepare": "husky"
   },
   "dependencies": {

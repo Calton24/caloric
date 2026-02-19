@@ -14,14 +14,16 @@ Successfully pivoted from Detox + GitHub Actions to Maestro + EAS Workflows for 
 ## What Was Done
 
 ### 1. Removed Detox (Complete)
+
 - ❌ `.detoxrc.js` - Detox configuration
-- ❌ `scripts/e2e-build-ios.js` - Custom xcodebuild wrapper  
+- ❌ `scripts/e2e-build-ios.js` - Custom xcodebuild wrapper
 - ❌ `e2e/` directory - Detox test files (app.e2e.ts, jest.config.js, tsconfig.json)
 - ❌ GitHub Actions `e2e-tests-ios` job (82 lines)
 - ❌ npm scripts: `e2e:build`, `e2e:test`, `e2e`
 - ❌ Dependencies: `detox`, `jest-circus`, `detox-expo-helpers`
 
 ### 2. Added Maestro (Minimal & Boring)
+
 - ✅ `.eas/workflows/e2e-ios.yml` - EAS Workflow (36 lines)
 - ✅ `maestro/flows/smoke-test.yaml` - Sample test flow
 - ✅ `eas.json` - Added `preview` build profile (simulator: true)
@@ -29,6 +31,7 @@ Successfully pivoted from Detox + GitHub Actions to Maestro + EAS Workflows for 
 - ✅ `MAESTRO-MIGRATION.md` - Complete migration guide
 
 ### 3. Preserved
+
 - ✅ GitHub Actions: Lint + Unit tests only (no macOS runner)
 - ✅ All existing build profiles: intake-dev, intake-staging, intake-prod
 - ✅ All npm scripts except e2e-related ones
@@ -40,13 +43,14 @@ Successfully pivoted from Detox + GitHub Actions to Maestro + EAS Workflows for 
 ```json
 {
   "scripts": {
-    "maestro:test": "maestro test maestro/flows",  // NEW
+    "maestro:test": "maestro test maestro/flows" // NEW
     // REMOVED: "e2e:build", "e2e:test", "e2e"
   }
 }
 ```
 
 **Local usage:**
+
 ```bash
 npm run maestro:test
 ```
@@ -94,9 +98,10 @@ jobs:
 ```
 
 **Key features:**
+
 - ✅ Builds iOS simulator app using `preview` profile
 - ✅ Runs Maestro tests with JUnit output
-- ✅ Uses same env vars as GitHub Actions (EXPO_PUBLIC_*)
+- ✅ Uses same env vars as GitHub Actions (EXPO*PUBLIC*\*)
 - ✅ Targets iPhone 16 Plus simulator
 - ✅ Minimal, deterministic, boring
 
@@ -107,15 +112,18 @@ jobs:
 ### How to Trigger Workflows
 
 **Automatic:**
+
 - Push to: `main`, `develop`, `mvp-features`
 - Pull requests to: `main`, `develop`
 
 **Manual:**
+
 ```bash
 eas workflow:run e2e-ios
 ```
 
 **Via Git:**
+
 ```bash
 git push origin your-branch
 ```
@@ -205,7 +213,7 @@ git push origin your-branch
 @@ -59,82 +59,6 @@
            files: ./coverage/lcov.info
            fail_ci_if_error: false
- 
+
 -  e2e-tests-ios:
 -    name: E2E Tests (iOS)
 -    runs-on: macos-14
@@ -325,6 +333,7 @@ git push origin mvp-features
 ### 4. Update Maestro Flow
 
 Edit `maestro/flows/smoke-test.yaml` to match your actual UI:
+
 - Replace placeholder text selectors
 - Add accessibility IDs to your components
 - Create flows for critical user paths
@@ -342,11 +351,13 @@ npm run maestro:test  # Test locally
 ## Cost Impact
 
 **Before (Detox + GitHub Actions):**
+
 - GitHub Actions: 2,000 minutes/month (exhausted)
 - macOS runner: 10x multiplier
 - E2E tests: ~200 real minutes = 2,000 GitHub minutes
 
 **After (Maestro + EAS Workflows):**
+
 - GitHub Actions: ~50 minutes/month (lint + unit tests)
 - EAS Workflows: Runs on dedicated infrastructure (no GitHub budget)
 - **Savings: 1,950 GitHub Actions minutes/month**
@@ -361,7 +372,7 @@ npm run maestro:test  # Test locally
 ✅ Zero GitHub Actions macOS usage  
 ✅ EAS Workflow syntax valid  
 ✅ Maestro flow sample provided  
-✅ Documentation complete  
+✅ Documentation complete
 
 **Status:** Ready to trigger workflow
 
@@ -380,12 +391,14 @@ npm run maestro:test  # Test locally
 ## Support
 
 If workflow fails:
+
 1. Check EAS dashboard for logs
 2. Verify secrets are set: `eas secret:list`
 3. Ensure `preview` profile builds locally: `eas build --platform ios --profile preview`
 4. Run Maestro locally first: `npm run maestro:test`
 
 Maestro Cloud (optional):
+
 - Parallel test execution
 - Device matrix testing
 - Screenshot/video recording
