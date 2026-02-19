@@ -118,6 +118,7 @@ jobs:
         working-directory: ios
         env:
           COCOAPODS_DISABLE_STATS: "true"
+          RUBYOPT: "-rlogger"
         run: bundle exec pod install --deployment --clean-install
 
       - name: Build iOS app for Detox (deterministic)
