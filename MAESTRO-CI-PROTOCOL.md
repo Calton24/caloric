@@ -2,12 +2,18 @@
 
 ## Quick Start
 
+### Set Simulator UDID (Run Once)
+
+```bash
+export UDID=$(xcrun simctl list devices available | grep -m 1 -E "iPhone 15 Pro" | sed -E 's/.*\(([0-9A-F-]+)\).*/\1/')
+echo "UDID: $UDID"
+```
+
 ### Daily Development (Fast Mode)
 
 Skip xcodebuild, just install + test (~11s):
 
 ```bash
-UDID=$(xcrun simctl list devices available | grep -m 1 -E "iPhone 15 Pro" | sed -E 's/.*\(([0-9A-F-]+)\).*/\1/')
 SIMULATOR_UDID=$UDID npm run maestro:ci:ios:fast
 ```
 
@@ -16,7 +22,6 @@ SIMULATOR_UDID=$UDID npm run maestro:ci:ios:fast
 Build + install + test (~4min first time, ~30s incremental):
 
 ```bash
-UDID=$(xcrun simctl list devices available | grep -m 1 -E "iPhone 15 Pro" | sed -E 's/.*\(([0-9A-F-]+)\).*/\1/')
 SIMULATOR_UDID=$UDID npm run maestro:ci:ios:full
 ```
 
@@ -27,6 +32,12 @@ Every run creates a timestamped log in `ci-logs/`:
 ```bash
 # Check latest result
 tail ci-logs/$(ls -t ci-logs/ | head -1) | grep CI_RESULT
+```
+
+Or view the full log:
+
+```bash
+cat ci-logs/$(ls -t ci-logs/ | head -1)
 ```
 
 Look for:
@@ -74,9 +85,14 @@ Each log contains:
 Run fast mode twice to prove no state leakage:
 
 ```bash
-UDID=$(xcrun simctl list devices available | grep -m 1 -E "iPhone 15 Pro" | sed -E 's/.*\(([0-9A-F-]+)\).*/\1/')
-SIMULATOR_UDID=$UDID npm run maestro:ci:ios:fast  # RUN #1
-SIMULATOR_UDID=$UDID npm run maestro:ci:ios:fast  # RUN #2 (must also pass)
+# Set UDID once
+export UDID=$(xcrun simctl list devices available | grep -m 1 -E "iPhone 15 Pro" | sed -E 's/.*\(([0-9A-F-]+)\).*/\1/')
+
+# RUN #1
+SIMULATOR_UDID=$UDID npm run maestro:ci:ios:fast
+
+# RUN #2 (must also pass)
+SIMULATOR_UDID=$UDID npm run maestro:ci:ios:fast
 ```
 
 Both should show `CI_RESULT=PASS` in their respective log files.

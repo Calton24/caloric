@@ -5,7 +5,7 @@ const fs = require("fs");
 const path = require("path");
 
 // ===== Configuration =====
-const udid = process.env.SIMULATOR_UDID || process.env.DETOX_DEVICE_UDID;
+const udid = process.env.SIMULATOR_UDID;
 const skipBuild = process.env.SKIP_BUILD === "1";
 const metroPort = 8081;
 
@@ -23,7 +23,8 @@ function log(line) {
 
 // ===== Validation =====
 if (!udid) {
-  log("❌ Missing SIMULATOR_UDID (or DETOX_DEVICE_UDID).");
+  log("❌ Missing SIMULATOR_UDID environment variable.");
+  log("Usage: SIMULATOR_UDID=<uuid> npm run maestro:ci:ios:fast");
   process.exit(1);
 }
 
