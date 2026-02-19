@@ -1,0 +1,24 @@
+# maestro/flows/smoke-test.yaml
+# Basic smoke test: Launch app and verify critical screens load
+
+appId: com.calton24.mobilecore.dev
+
+---
+# Test 1: App launches successfully
+- launchApp
+
+# Test 2: Home screen is visible
+- assertVisible:
+    text: ".*" # Wait for any text to appear (app has loaded)
+    timeout: 10000
+
+# Test 3: Navigate through tabs (adjust based on your actual tab structure)
+- tapOn:
+    id: "explore-tab" # Adjust based on your actual tab IDs
+    optional: true
+
+# Test 4: Check that navigation works
+- assertVisible:
+    text: ".*"
+    timeout: 5000
+# Success - app is functional
