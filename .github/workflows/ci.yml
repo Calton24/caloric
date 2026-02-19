@@ -114,26 +114,10 @@ jobs:
         working-directory: ios
         run: bundle install --deployment
 
-      - name: Debug Gemfile + logger requirement
-        working-directory: ios
-        run: |
-          set -e
-          echo "=== Ruby ==="
-          ruby -v
-          which ruby
-          echo "=== Bundler ==="
-          bundle -v
-          which bundle
-          echo "=== Gemfile (logger lines) ==="
-          nl -ba Gemfile | sed -n '1,120p' | grep -n "logger" || echo "No logger in Gemfile ✅"
-          echo "=== Gemfile.lock (logger lines) ==="
-          (grep -n "logger" Gemfile.lock || true)
-
       - name: Install CocoaPods (deterministic)
         working-directory: ios
         env:
           COCOAPODS_DISABLE_STATS: "true"
-          RUBYOPT: "-rlogger"
         run: bundle exec pod install --deployment --clean-install
 
       - name: Build iOS app for Detox (deterministic)
