@@ -253,3 +253,9 @@ Workflow will start running automatically on next push.
 - Build validation (ubuntu)
 
 **All covered by:** `npm run validate` (runs locally in ~20s)
+
+### Reenable Git Actions Work Flow
+
+- git mv .github/workflows-disabled/ci.yml .github/workflows/ci.yml
+- git commit -m "chore(ci): re-enable GitHub Actions"
+- git push
