@@ -37,4 +37,4 @@ export const FeatureFlags: Flags = {
   SHOW_MOBILE_CORE: __DEV__,
 };
 
-export type FeatureFlag = keyof Flags;
+export type FeatureFlag = keyof typeof FeatureFlags;
