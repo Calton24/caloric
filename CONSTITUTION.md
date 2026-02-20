@@ -10,7 +10,7 @@ No vendor SDK imports outside `src/lib/**` or `src/infrastructure/**`.
 
 Feature code, UI code, and application code import abstractions, never packages.
 
-*Enforced by: `no-restricted-imports` pattern rule in `eslint.config.js`.*
+_Enforced by: `no-restricted-imports` pattern rule in `eslint.config.js`._
 
 ---
 
@@ -24,7 +24,7 @@ UI → features/application → infrastructure/lib → vendor SDK → nothing
 
 Never the other way around.
 
-*Enforced by: code review + Rule 1 lint rule. Layer rules (optional future ESLint scope).*
+_Enforced by: code review + Rule 1 lint rule. Layer rules (optional future ESLint scope)._
 
 ---
 
@@ -38,7 +38,7 @@ If Sentry isn't configured, error reporting silently no-ops.
 If PostHog isn't configured, analytics silently no-ops.
 If no flags provider is set, flags return defaults.
 
-*Enforced by: every subsystem ships a Noop implementation as its default.*
+_Enforced by: every subsystem ships a Noop implementation as its default._
 
 ---
 
@@ -50,7 +50,7 @@ No second logging system. No ad-hoc analytics calls. No scattered storage helper
 
 If it's cross-cutting, it goes through the infrastructure layer. Period.
 
-*Enforced by: Rule 1 (vendor isolation) + directory convention.*
+_Enforced by: Rule 1 (vendor isolation) + directory convention._
 
 ---
 
@@ -64,7 +64,7 @@ If a capability might differ across apps — backend, billing, analytics, storag
 
 No concrete classes in feature code. No "just this once" direct SDK usage.
 
-*Enforced by: TypeScript compiler + Rule 1 lint rule.*
+_Enforced by: TypeScript compiler + Rule 1 lint rule._
 
 ---
 

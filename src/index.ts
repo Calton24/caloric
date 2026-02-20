@@ -58,8 +58,13 @@ export { FormField } from "./ui/forms/FormField";
 export type { FormFieldProps } from "./ui/forms/FormField";
 
 // === AUTH ===
-export { authClient } from "./features/auth/authClient";
-export type { AuthClient, Session, User } from "./features/auth/authClient";
+export { authClient, createAuthClient } from "./features/auth/authClient";
+export type {
+  AuthClient,
+  AuthProviderType,
+  Session,
+  User,
+} from "./features/auth/authClient";
 
 // === DEV UTILITIES ===
 export { DevOnly } from "./ui/dev/DevOnly";
