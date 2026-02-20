@@ -95,6 +95,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           backgroundColor: "#ffffff",
         },
       ],
+      [
+        "@sentry/react-native/expo",
+        {
+          organization: process.env.SENTRY_ORG,
+          project: process.env.SENTRY_PROJECT,
+          url: "https://sentry.io/",
+        },
+      ],
     ],
 
     experiments: {
@@ -105,6 +113,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     extra: {
       APP_PROFILE: appProfile,
       APP_ENV: appEnv,
+      sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+      enableSentryInDev:
+        process.env.EXPO_PUBLIC_ENABLE_SENTRY_IN_DEV === "true",
+      environment: appEnv,
       eas: {
         projectId: process.env.EAS_PROJECT_ID || "your-eas-project-id",
       },

@@ -4,11 +4,15 @@
  */
 
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import React from "react";
+import React, { useEffect } from "react";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "./features/auth/AuthProvider";
+import {
+    ErrorBoundary,
+    initErrorReporting,
+} from "./infrastructure/errorReporting";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { BottomSheetProvider } from "./ui/sheets/BottomSheetProvider";
 
@@ -25,19 +29,29 @@ export function MobileCoreProviders({
   children,
   testID,
 }: MobileCoreProvidersProps) {
+  // Initialize error reporting on mount
+  useEffect(() => {
+    const reporter = initErrorReporting();
+    if (reporter.isEnabled()) {
+      console.log("[MobileCore] Error reporting initialized");
+    }
+  }, []);
+
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={{ flex: 1 }} testID={testID}>
-        <SafeAreaProvider>
-          <ThemeProvider>
-            <AuthProvider>
-              <BottomSheetModalProvider>
-                <BottomSheetProvider>{children}</BottomSheetProvider>
-              </BottomSheetModalProvider>
-            </AuthProvider>
-          </ThemeProvider>
-        </SafeAreaProvider>
-      </View>
-    </GestureHandlerRootView>
+    <ErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <View style={{ flex: 1 }} testID={testID}>
+          <SafeAreaProvider>
+            <ThemeProvider>
+              <AuthProvider>
+                <BottomSheetModalProvider>
+                  <BottomSheetProvider>{children}</BottomSheetProvider>
+                </BottomSheetModalProvider>
+              </AuthProvider>
+            </ThemeProvider>
+          </SafeAreaProvider>
+        </View>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }
