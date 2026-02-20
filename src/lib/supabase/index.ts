@@ -3,7 +3,8 @@
  */
 
 export {
-    __resetSupabaseClient, createSupabaseClient,
+    __resetSupabaseClient,
+    createSupabaseClient,
     getCurrentSession,
     getCurrentUser,
     getSupabaseClient,
@@ -12,6 +13,9 @@ export {
 } from "./client";
 
 export type { AuthError, Session, SupabaseClient, User } from "./client";
+
+// Re-export Supabase types to prevent direct vendor imports in feature code
+export type { RealtimeChannel } from "@supabase/supabase-js";
 
 export {
     callAuthenticatedEdgeFunction,

@@ -3,8 +3,7 @@
  * Encapsulates all Supabase logic for notes feature
  */
 
-import { RealtimeChannel } from "@supabase/supabase-js";
-import { getSupabaseClient } from "../../lib/supabase";
+import { getSupabaseClient, RealtimeChannel } from "../../lib/supabase";
 import type { CreateNoteInput, Note } from "./notes.types";
 
 let channel: RealtimeChannel | null = null;

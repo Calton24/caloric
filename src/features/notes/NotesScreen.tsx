@@ -26,8 +26,8 @@ import {
 } from "react-native";
 import { analytics } from "../../analytics/analytics";
 import { flags } from "../../flags/flags";
+import { ErrorBoundary } from "../../infrastructure/errorReporting";
 import { getCurrentUser } from "../../lib/supabase";
-import { ErrorBoundary } from "../../logging/ErrorBoundary";
 import { logger } from "../../logging/logger";
 import { useTheme } from "../../theme/useTheme";
 import { GlassCard } from "../../ui/glass/GlassCard";

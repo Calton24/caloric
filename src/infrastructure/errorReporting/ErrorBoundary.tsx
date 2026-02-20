@@ -9,7 +9,8 @@ import { getErrorReporter } from "./factory";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
-  fallback?: (error: Error, retry: () => void) => ReactNode;
+  /** Fallback UI — either a render function (error, retry) => ReactNode, or a static ReactNode */
+  fallback?: ReactNode | ((error: Error, retry: () => void) => ReactNode);
 }
 
 interface ErrorBoundaryState {
@@ -80,7 +81,11 @@ export class ErrorBoundary extends Component<
     if (this.state.hasError && this.state.error) {
       // Use custom fallback if provided
       if (this.props.fallback) {
-        return this.props.fallback(this.state.error, this.retry);
+        // Support both render function and static ReactNode
+        if (typeof this.props.fallback === "function") {
+          return this.props.fallback(this.state.error, this.retry);
+        }
+        return this.props.fallback;
       }
 
       // Default fallback UI
