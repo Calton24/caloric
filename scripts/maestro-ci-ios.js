@@ -118,12 +118,13 @@ process.on("SIGTERM", () => cleanup(143));
     // 2. Kill any existing Metro on port 8081
     killPort(metroPort);
 
-    // 3. Start Metro
+    // 3. Start Metro (with E2E flag so feature flags are deterministic)
     log("🧠 Starting Metro (dev-client)...");
     metro = spawn("npx", ["expo", "start", "--dev-client", "--port", String(metroPort)], {
       stdio: "inherit",
       env: {
         ...process.env,
+        EXPO_PUBLIC_E2E: "1",
         RCT_METRO_PORT: String(metroPort),
         REACT_NATIVE_PACKAGER_HOSTNAME: "127.0.0.1",
       },

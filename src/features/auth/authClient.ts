@@ -51,7 +51,7 @@ export type AuthProviderType = "supabase" | "mock";
  *   const auth = createAuthClient("mock");      // Mock (tests / offline dev)
  */
 export function createAuthClient(
-  provider: AuthProviderType = "supabase",
+  provider: AuthProviderType = "supabase"
 ): AuthClient {
   switch (provider) {
     case "supabase":
@@ -100,4 +100,3 @@ export const authClient: AuthClient = {
 
 // Re-export provider classes for direct construction in tests
 export { MockAuthClient, SupabaseAuthClient };
-

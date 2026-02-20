@@ -120,8 +120,7 @@ export class SupabaseAuthClient implements AuthClient {
       return { error: null };
     } catch (err) {
       return {
-        error:
-          err instanceof Error ? err : new Error("Password update failed"),
+        error: err instanceof Error ? err : new Error("Password update failed"),
       };
     }
   }
@@ -183,7 +182,11 @@ export class SupabaseAuthClient implements AuthClient {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function mapUser(supabaseUser: { id: string; email?: string | null; created_at: string }): User {
+function mapUser(supabaseUser: {
+  id: string;
+  email?: string | null;
+  created_at: string;
+}): User {
   return {
     id: supabaseUser.id,
     email: supabaseUser.email || "",
@@ -193,7 +196,7 @@ function mapUser(supabaseUser: { id: string; email?: string | null; created_at: 
 
 function mapSession(
   user: User,
-  raw: { access_token: string; refresh_token: string },
+  raw: { access_token: string; refresh_token: string }
 ): Session {
   return {
     user,

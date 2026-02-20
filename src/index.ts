@@ -60,10 +60,10 @@ export type { FormFieldProps } from "./ui/forms/FormField";
 // === AUTH ===
 export { authClient, createAuthClient } from "./features/auth/authClient";
 export type {
-  AuthClient,
-  AuthProviderType,
-  Session,
-  User,
+    AuthClient,
+    AuthProviderType,
+    Session,
+    User
 } from "./features/auth/authClient";
 
 // === DEV UTILITIES ===

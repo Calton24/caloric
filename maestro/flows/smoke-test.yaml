@@ -14,9 +14,12 @@ appId: com.calton24.mobilecore.dev
 - assertVisible:
     id: "app-ready"
 
+# Wait for tabs container to mount (prevents native-tabs race)
+- assertVisible:
+    id: "tabs-root"
+
+# Only then interact with tabs
 - assertVisible: "Playground"
-
 - tapOn: "Playground"
-
 - assertVisible:
     id: "screen-playground"
