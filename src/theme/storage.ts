@@ -1,9 +1,10 @@
 /**
  * Theme Storage
- * Persists theme preferences to AsyncStorage
+ * Persists theme preferences via the platform KeyValueStore abstraction.
+ * Default backend: AsyncStorage. Swap via setStorage() for tests or MMKV.
  */
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getStorage } from "../infrastructure/storage";
 import { ColorMode } from "./colors";
 
 const THEME_MODE_KEY = "@mobile-core/theme-mode";
@@ -17,7 +18,7 @@ export interface ThemePreferences {
 export const themeStorage = {
   async getMode(): Promise<ColorMode | null> {
     try {
-      const mode = await AsyncStorage.getItem(THEME_MODE_KEY);
+      const mode = await getStorage().getItem(THEME_MODE_KEY);
       return mode as ColorMode | null;
     } catch (error) {
       if (__DEV__) {
@@ -29,7 +30,7 @@ export const themeStorage = {
 
   async setMode(mode: ColorMode): Promise<void> {
     try {
-      await AsyncStorage.setItem(THEME_MODE_KEY, mode);
+      await getStorage().setItem(THEME_MODE_KEY, mode);
     } catch (error) {
       if (__DEV__) {
         console.error("Failed to save theme mode:", error);
@@ -39,7 +40,7 @@ export const themeStorage = {
 
   async getBrandHue(): Promise<number | null> {
     try {
-      const hue = await AsyncStorage.getItem(BRAND_HUE_KEY);
+      const hue = await getStorage().getItem(BRAND_HUE_KEY);
       return hue ? parseInt(hue, 10) : null;
     } catch (error) {
       if (__DEV__) {
@@ -51,7 +52,7 @@ export const themeStorage = {
 
   async setBrandHue(hue: number): Promise<void> {
     try {
-      await AsyncStorage.setItem(BRAND_HUE_KEY, hue.toString());
+      await getStorage().setItem(BRAND_HUE_KEY, hue.toString());
     } catch (error) {
       if (__DEV__) {
         console.error("Failed to save brand hue:", error);

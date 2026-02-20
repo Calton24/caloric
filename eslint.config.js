@@ -68,9 +68,5 @@ module.exports = defineConfig([
     files: ['src/infrastructure/analytics/providers/*.ts', 'src/analytics/posthog.client.ts'],
     rules: { 'no-restricted-imports': 'off' },
   },
-  {
-    files: ['src/theme/storage.ts'],
-    // TODO: Remove this override after migrating theme storage to src/infrastructure/storage
-    rules: { 'no-restricted-imports': 'off' },
-  },
+
 ]);
