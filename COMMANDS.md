@@ -228,13 +228,15 @@ xcrun simctl uninstall "$UDID" com.calton24.mobilecore.dev
 When you have billing or want cloud CI again:
 
 ```bash
-# Rename workflow back
-git mv .github/workflows/ci.disabled.yml .github/workflows/ci.yml
+# Move workflow back to workflows directory
+git mv .github/workflows-disabled/ci.yml .github/workflows/ci.yml
 git commit -m "chore(ci): re-enable GitHub Actions"
 git push
 ```
 
 Workflow will start running automatically on next push.
+
+**Important:** Renaming to `.disabled.yml` doesn't work - GitHub runs ALL `.yml` files in `.github/workflows/` regardless of name.
 
 ### Why Disabled?
 
