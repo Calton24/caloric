@@ -25,48 +25,67 @@ module.exports = defineConfig([
           ],
         },
       ],
-      // === ARCHITECTURE BOUNDARY ENFORCEMENT ===
+    },
+  },
+
+  // =========================================================================
+  // ARCHITECTURE BOUNDARY: Vendor SDK Isolation
+  // =========================================================================
+  // Feature/UI/application code CANNOT import vendor SDKs directly.
+  // Only these zones may touch third-party packages:
+  //   - src/infrastructure/**  (provider implementations + abstractions)
+  //   - src/lib/**             (thin SDK wrappers, e.g. Supabase client)
+  //   - src/analytics/**       (TODO: migrate to src/infrastructure/analytics/)
+  //
+  // Dependency direction:  UI → features → abstractions → vendors → nothing
+  // This rule is the physical enforcement of that direction.
+  // =========================================================================
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: [
+      'src/infrastructure/**',
+      'src/lib/**',
+      'src/analytics/**',   // legacy provider location — migrate later
+      'src/examples/**',    // example/reference code, not production
+    ],
+    rules: {
       'no-restricted-imports': [
         'error',
         {
-          paths: [
+          patterns: [
             {
-              name: '@supabase/supabase-js',
-              message: 'Import from src/lib/supabase instead. Only src/lib/supabase/client.ts may import the Supabase SDK directly.',
-            },
-            {
-              name: '@react-native-async-storage/async-storage',
-              message: 'Import from src/infrastructure/storage instead. Only the AsyncStorage provider may import this directly.',
-            },
-            {
-              name: '@sentry/react-native',
-              message: 'Import from src/infrastructure/errorReporting instead. Only the Sentry provider may import this directly.',
-            },
-            {
-              name: 'posthog-react-native',
-              message: 'Import from src/infrastructure/analytics instead. Only the PostHog provider may import this directly.',
+              group: [
+                // ── Storage ──
+                '@react-native-async-storage/*',
+
+                // ── Backend / Auth ──
+                '@supabase/*',
+
+                // ── Observability ──
+                '@sentry/*',
+                '@react-native-firebase/*',
+                '@datadog/*',
+                '@bugsnag/*',
+
+                // ── Analytics ──
+                'posthog-react-native',
+                '@amplitude/*',
+                '@segment/*',
+                '@mixpanel/*',
+
+                // ── Payments ──
+                '@superwall/*',
+                '@stripe/*',
+                '@revenuecat/*',
+                'react-native-purchases',
+              ],
+              message:
+                'Vendor SDKs must only be imported inside src/infrastructure/** or src/lib/**. Use an abstraction instead.',
             },
           ],
         },
       ],
     },
-  },
-  // Allow vendor imports ONLY in infrastructure/provider files
-  {
-    files: ['src/lib/supabase/client.ts', 'src/lib/supabase/index.ts'],
-    rules: { 'no-restricted-imports': 'off' },
-  },
-  {
-    files: ['src/infrastructure/storage/providers/*.ts'],
-    rules: { 'no-restricted-imports': 'off' },
-  },
-  {
-    files: ['src/infrastructure/errorReporting/SentryErrorReporter.ts', 'src/infrastructure/errorReporting/providers/*.ts'],
-    rules: { 'no-restricted-imports': 'off' },
-  },
-  {
-    files: ['src/infrastructure/analytics/providers/*.ts', 'src/analytics/posthog.client.ts'],
-    rules: { 'no-restricted-imports': 'off' },
   },
 
 ]);
