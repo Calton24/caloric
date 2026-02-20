@@ -140,7 +140,8 @@ process.on("SIGTERM", () => cleanup(143));
       log("🏗️  Building iOS...");
       const buildLog = path.join(LOG_DIR, `build-${RUN_ID}.log`);
       try {
-        run(`npm run ios:sim:build`, { stdio: ["inherit", "pipe", "pipe"] });
+        // Capture build output to file
+        execSync(`npm run ios:sim:build > "${buildLog}" 2>&1`);
         log("✅ Build succeeded");
       } catch (err) {
         log("❌ Build failed - saving last 200 lines to log");
