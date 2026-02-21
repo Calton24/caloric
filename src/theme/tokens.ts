@@ -46,6 +46,13 @@ export interface ThemeTokens {
   glassBackground: string;
   glassBorder: string;
   glassTint: string;
+
+  // Glass Widget Kit
+  glassTintLight: string;
+  glassTintDark: string;
+  glassBorderHighlight: string;
+  glassShadow: string;
+  glassActiveRing: string;
 }
 
 export interface SpacingTokens {

@@ -139,6 +139,13 @@ export function generatePalette(
       glassBackground: "rgba(255, 255, 255, 0.7)",
       glassBorder: "rgba(255, 255, 255, 0.3)",
       glassTint: neutrals[0],
+
+      // Glass Widget Kit
+      glassTintLight: "rgba(255, 255, 255, 0.18)",
+      glassTintDark: "rgba(0, 0, 0, 0.06)",
+      glassBorderHighlight: "rgba(255, 255, 255, 0.45)",
+      glassShadow: "rgba(0, 0, 0, 0.12)",
+      glassActiveRing: brandScale[5],
     };
   } else {
     return {
@@ -183,6 +190,13 @@ export function generatePalette(
       glassBackground: "rgba(30, 30, 30, 0.7)",
       glassBorder: "rgba(255, 255, 255, 0.1)",
       glassTint: neutrals[1],
+
+      // Glass Widget Kit
+      glassTintLight: "rgba(255, 255, 255, 0.12)",
+      glassTintDark: "rgba(0, 0, 0, 0.25)",
+      glassBorderHighlight: "rgba(255, 255, 255, 0.18)",
+      glassShadow: "rgba(0, 0, 0, 0.35)",
+      glassActiveRing: brandScale[4],
     };
   }
 }

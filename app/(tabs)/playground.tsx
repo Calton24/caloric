@@ -1,10 +1,10 @@
 import { Form, Group, Host, Image } from "@expo/ui/swift-ui";
 import {
-    cornerRadius,
-    frame,
-    glassEffect,
-    onTapGesture,
-    shadow,
+  cornerRadius,
+  frame,
+  glassEffect,
+  onTapGesture,
+  shadow,
 } from "@expo/ui/swift-ui/modifiers";
 import React from "react";
 import { StyleSheet, View } from "react-native";

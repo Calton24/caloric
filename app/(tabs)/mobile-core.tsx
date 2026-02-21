@@ -22,7 +22,13 @@ import { ListItem } from "../../src/ui/components/ListItem";
 import { Skeleton } from "../../src/ui/components/Skeleton";
 import { useToast } from "../../src/ui/components/Toast";
 import { GlassCard } from "../../src/ui/glass/GlassCard";
+import { GlassIconButton } from "../../src/ui/glass/GlassIconButton";
+import { GlassMiniCard } from "../../src/ui/glass/GlassMiniCard";
+import { GlassSegmentedControl } from "../../src/ui/glass/GlassSegmentedControl";
+import { GlassSliderVertical } from "../../src/ui/glass/GlassSliderVertical";
+import { GlassStatusChip } from "../../src/ui/glass/GlassStatusChip";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
+import { GlassTogglePill } from "../../src/ui/glass/GlassTogglePill";
 import {
     showActionSheet,
     showAlert,
@@ -50,6 +56,24 @@ export default function MobileCoreScreen() {
   const [blurIntensity, setBlurIntensity] = useState<
     "light" | "medium" | "strong"
   >("medium");
+  const [reduceTransparency, setReduceTransparency] = useState(false);
+  const [glassTint, setGlassTint] = useState<"light" | "dark" | "default">(
+    "default"
+  );
+  const [glassIntensityNum, setGlassIntensityNum] = useState(80);
+
+  // Glass widget demo state
+  const [focusActive, setFocusActive] = useState(false);
+  const [rotationLock, setRotationLock] = useState(true);
+  const [brightnessVal, setBrightnessVal] = useState(0.6);
+  const [volumeVal, setVolumeVal] = useState(0.4);
+  const [segmentValue, setSegmentValue] = useState("default");
+  const [activeIcons, setActiveIcons] = useState<Record<string, boolean>>({
+    flashlight: false,
+    timer: false,
+    camera: false,
+    calculator: false,
+  });
 
   // Animation for theme toggle
   const opacity = useSharedValue(1);
@@ -333,6 +357,313 @@ export default function MobileCoreScreen() {
               <TText>Glass Disabled (solid surface)</TText>
             </View>
           )}
+
+          <TSpacer size="md" />
+
+          {/* Reduce Transparency simulation */}
+          <View style={styles.knobRow}>
+            <TText>Reduce Transparency</TText>
+            <Switch
+              value={reduceTransparency}
+              onValueChange={setReduceTransparency}
+              trackColor={{
+                false: theme.colors.border,
+                true: theme.colors.primary,
+              }}
+            />
+          </View>
+          <TSpacer size="sm" />
+
+          {/* Tint selection */}
+          <TText color="secondary">Tint</TText>
+          <TSpacer size="xs" />
+          <GlassSegmentedControl
+            options={[
+              { key: "default", label: "Default" },
+              { key: "light", label: "Light" },
+              { key: "dark", label: "Dark" },
+            ]}
+            value={glassTint}
+            onChange={(k) => setGlassTint(k as "light" | "dark" | "default")}
+            blurEnabled={glassEnabled}
+            reduceTransparency={reduceTransparency}
+          />
+
+          <TSpacer size="sm" />
+
+          {/* Intensity number */}
+          <TText color="secondary">
+            Numeric Intensity: {glassIntensityNum}
+          </TText>
+          <TSpacer size="xs" />
+          <View style={styles.knobRow}>
+            {[30, 50, 80, 100].map((n) => (
+              <TButton
+                key={n}
+                variant={glassIntensityNum === n ? "primary" : "outline"}
+                size="sm"
+                onPress={() => setGlassIntensityNum(n)}
+              >
+                {String(n)}
+              </TButton>
+            ))}
+          </View>
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ═══════════ GLASS WIDGET KIT ═══════════ */}
+
+        {/* ── GlassIconButton Grid ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">GlassIconButton</TText>
+          <TSpacer size="sm" />
+          <TText color="secondary" style={{ fontSize: 13 }}>
+            Tap to toggle active state
+          </TText>
+          <TSpacer size="md" />
+          <View style={styles.iconGrid}>
+            {(
+              [
+                { key: "flashlight", icon: "flashlight" as const },
+                { key: "timer", icon: "timer-outline" as const },
+                { key: "camera", icon: "camera-outline" as const },
+                { key: "calculator", icon: "calculator-outline" as const },
+              ] as const
+            ).map(({ key, icon }) => (
+              <GlassIconButton
+                key={key}
+                icon={icon}
+                active={activeIcons[key]}
+                onPress={() =>
+                  setActiveIcons((prev) => ({ ...prev, [key]: !prev[key] }))
+                }
+                accessibilityLabel={key}
+                blurEnabled={glassEnabled}
+                reduceTransparency={reduceTransparency}
+                intensity={glassIntensityNum}
+                tint={glassTint}
+              />
+            ))}
+          </View>
+          <TSpacer size="md" />
+          <TText color="secondary" style={{ fontSize: 13 }}>
+            Sizes: sm / md / lg
+          </TText>
+          <TSpacer size="sm" />
+          <View style={[styles.iconGrid, { gap: 12 }]}>
+            <GlassIconButton
+              icon="star"
+              size="sm"
+              onPress={() => {}}
+              accessibilityLabel="Small icon"
+              blurEnabled={glassEnabled}
+              reduceTransparency={reduceTransparency}
+              intensity={glassIntensityNum}
+              tint={glassTint}
+            />
+            <GlassIconButton
+              icon="star"
+              size="md"
+              onPress={() => {}}
+              accessibilityLabel="Medium icon"
+              blurEnabled={glassEnabled}
+              reduceTransparency={reduceTransparency}
+              intensity={glassIntensityNum}
+              tint={glassTint}
+            />
+            <GlassIconButton
+              icon="star"
+              size="lg"
+              onPress={() => {}}
+              accessibilityLabel="Large icon"
+              blurEnabled={glassEnabled}
+              reduceTransparency={reduceTransparency}
+              intensity={glassIntensityNum}
+              tint={glassTint}
+            />
+          </View>
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── GlassTogglePill ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">GlassTogglePill</TText>
+          <TSpacer size="md" />
+          <GlassTogglePill
+            leadingIcon="moon"
+            label="Focus"
+            mode="mixed"
+            value={focusActive}
+            onToggle={() => setFocusActive((v) => !v)}
+            onPressMenu={() => toast.show("Focus menu opened", "info")}
+            blurEnabled={glassEnabled}
+            reduceTransparency={reduceTransparency}
+            intensity={glassIntensityNum}
+            tint={glassTint}
+          />
+          <TSpacer size="sm" />
+          <GlassTogglePill
+            leadingIcon="lock-closed"
+            label="Rotation Lock"
+            mode="toggle"
+            value={rotationLock}
+            onToggle={() => setRotationLock((v) => !v)}
+            blurEnabled={glassEnabled}
+            reduceTransparency={reduceTransparency}
+            intensity={glassIntensityNum}
+            tint={glassTint}
+          />
+          <TSpacer size="sm" />
+          <GlassTogglePill
+            leadingIcon="musical-notes"
+            label="Now Playing"
+            mode="menu"
+            onPressMenu={() => toast.show("Now Playing menu", "info")}
+            blurEnabled={glassEnabled}
+            reduceTransparency={reduceTransparency}
+            intensity={glassIntensityNum}
+            tint={glassTint}
+          />
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── GlassSliderVertical ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">GlassSliderVertical</TText>
+          <TSpacer size="md" />
+          <View style={{ flexDirection: "row", justifyContent: "center", gap: 20 }}>
+            <GlassSliderVertical
+              value={brightnessVal}
+              onChange={setBrightnessVal}
+              icon="sunny"
+              accessibilityLabel="Brightness"
+              blurEnabled={glassEnabled}
+              reduceTransparency={reduceTransparency}
+              intensity={glassIntensityNum}
+              tint={glassTint}
+            />
+            <GlassSliderVertical
+              value={volumeVal}
+              onChange={setVolumeVal}
+              icon="volume-medium"
+              step={0.1}
+              accessibilityLabel="Volume"
+              blurEnabled={glassEnabled}
+              reduceTransparency={reduceTransparency}
+              intensity={glassIntensityNum}
+              tint={glassTint}
+            />
+          </View>
+          <TSpacer size="sm" />
+          <TText color="secondary" style={{ fontSize: 12, textAlign: "center" }}>
+            Brightness: {Math.round(brightnessVal * 100)}% · Volume:{" "}
+            {Math.round(volumeVal * 100)}%
+          </TText>
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── GlassSegmentedControl ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">GlassSegmentedControl</TText>
+          <TSpacer size="md" />
+          <GlassSegmentedControl
+            options={[
+              { key: "all", label: "All", icon: "grid-outline" },
+              { key: "active", label: "Active" },
+              { key: "done", label: "Done", icon: "checkmark-outline" },
+            ]}
+            value={segmentValue}
+            onChange={setSegmentValue}
+            blurEnabled={glassEnabled}
+            reduceTransparency={reduceTransparency}
+            intensity={glassIntensityNum}
+            tint={glassTint}
+          />
+          <TSpacer size="sm" />
+          <TText color="secondary" style={{ fontSize: 12, textAlign: "center" }}>
+            Selected: {segmentValue}
+          </TText>
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── GlassStatusChip ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">GlassStatusChip</TText>
+          <TSpacer size="md" />
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            <GlassStatusChip
+              label="Connected"
+              tone="success"
+              blurEnabled={glassEnabled}
+              reduceTransparency={reduceTransparency}
+              intensity={glassIntensityNum}
+              tint={glassTint}
+            />
+            <GlassStatusChip
+              label="Syncing…"
+              tone="warning"
+              blurEnabled={glassEnabled}
+              reduceTransparency={reduceTransparency}
+              intensity={glassIntensityNum}
+              tint={glassTint}
+            />
+            <GlassStatusChip
+              label="Offline"
+              tone="danger"
+              blurEnabled={glassEnabled}
+              reduceTransparency={reduceTransparency}
+              intensity={glassIntensityNum}
+              tint={glassTint}
+            />
+            <GlassStatusChip
+              label="3 items"
+              tone="neutral"
+              icon="layers-outline"
+              blurEnabled={glassEnabled}
+              reduceTransparency={reduceTransparency}
+              intensity={glassIntensityNum}
+              tint={glassTint}
+            />
+          </View>
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── GlassMiniCard ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">GlassMiniCard</TText>
+          <TSpacer size="md" />
+          <View style={{ flexDirection: "row", gap: 12 }}>
+            <GlassMiniCard
+              title="Revenue"
+              value="$12.4k"
+              delta="+12%"
+              subtitle="vs last month"
+              icon="trending-up"
+              blurEnabled={glassEnabled}
+              reduceTransparency={reduceTransparency}
+              intensity={glassIntensityNum}
+              tint={glassTint}
+              style={{ flex: 1 }}
+            />
+            <GlassMiniCard
+              title="Users"
+              value="842"
+              delta="-3%"
+              subtitle="active today"
+              icon="people-outline"
+              blurEnabled={glassEnabled}
+              reduceTransparency={reduceTransparency}
+              intensity={glassIntensityNum}
+              tint={glassTint}
+              style={{ flex: 1 }}
+            />
+          </View>
         </GlassCard>
 
         <TSpacer size="lg" />
@@ -681,5 +1012,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 8,
+  },
+  iconGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+    justifyContent: "center",
   },
 });
