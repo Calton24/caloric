@@ -48,13 +48,11 @@ export const FeatureFlags: Flags = {
 
   /** Google OAuth — off by default, enable when EXPO_PUBLIC_GOOGLE_OAUTH_ENABLED=1 */
   AUTH_GOOGLE_ENABLED:
-    process.env.EXPO_PUBLIC_GOOGLE_OAUTH_ENABLED === "1" ||
-    (__DEV__ && isE2E),
+    process.env.EXPO_PUBLIC_GOOGLE_OAUTH_ENABLED === "1" || (__DEV__ && isE2E),
 
   /** Apple OAuth — off by default, enable when EXPO_PUBLIC_APPLE_OAUTH_ENABLED=1 */
   AUTH_APPLE_ENABLED:
-    process.env.EXPO_PUBLIC_APPLE_OAUTH_ENABLED === "1" ||
-    (__DEV__ && isE2E),
+    process.env.EXPO_PUBLIC_APPLE_OAUTH_ENABLED === "1" || (__DEV__ && isE2E),
 };
 
 export type FeatureFlag = keyof typeof FeatureFlags;

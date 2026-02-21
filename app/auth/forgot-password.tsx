@@ -9,12 +9,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../src/features/auth/useAuth";
@@ -25,7 +25,22 @@ import { TInput } from "../../src/ui/primitives/TInput";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 
-const COOLDOWN_SECONDS = 60;
+// Supabase server-side rate limit is ~60s per email. We use 90s client-side
+// to avoid edge-case collisions where the timer expires but the server hasn't reset.
+const COOLDOWN_SECONDS = 90;
+
+/** Map raw Supabase error messages to user-friendly text */
+function friendlyError(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes("rate limit") || lower.includes("too many requests")) {
+    return "Too many requests. Please wait a couple of minutes before trying again.";
+  }
+  if (lower.includes("not found") || lower.includes("invalid")) {
+    // Supabase normally doesn't leak this, but guard anyway
+    return "If that email is registered, a reset link has been sent.";
+  }
+  return message;
+}
 
 type ScreenState = "form" | "sent";
 
@@ -78,7 +93,12 @@ export default function ForgotPasswordScreen() {
     try {
       const { error } = await resetPassword(trimmed);
       if (error) {
-        setSendError(error.message);
+        const msg = friendlyError(error.message);
+        setSendError(msg);
+        // If server rate-limited, start a cooldown so user can't spam retry
+        if (error.message.toLowerCase().includes("rate limit")) {
+          setCooldown(COOLDOWN_SECONDS);
+        }
         // Stay on form / show inline error — don't navigate to "sent"
       } else {
         setSendError(null);
@@ -100,7 +120,12 @@ export default function ForgotPasswordScreen() {
     try {
       const { error } = await resetPassword(email.trim());
       if (error) {
-        setSendError(error.message);
+        const msg = friendlyError(error.message);
+        setSendError(msg);
+        // If server rate-limited, enforce cooldown again
+        if (error.message.toLowerCase().includes("rate limit")) {
+          setCooldown(COOLDOWN_SECONDS);
+        }
       } else {
         setSendError(null);
         setCooldown(COOLDOWN_SECONDS);
@@ -166,7 +191,7 @@ export default function ForgotPasswordScreen() {
             <TSpacer size="md" />
 
             <TText color="secondary" style={styles.sentHint}>
-              {"Didn't receive it? Check your spam folder or try again."}
+              {"Didn't receive it? Check your spam folder, or wait and tap Resend below."}
             </TText>
 
             {/* Inline error for resend failures */}
@@ -185,9 +210,7 @@ export default function ForgotPasswordScreen() {
               loading={loading}
               disabled={loading || cooldown > 0}
             >
-              {cooldown > 0
-                ? `Resend Link (${cooldown}s)`
-                : "Resend Link"}
+              {cooldown > 0 ? `Resend Link (${cooldown}s)` : "Resend Link"}
             </TButton>
 
             <TSpacer size="sm" />
@@ -223,8 +246,8 @@ export default function ForgotPasswordScreen() {
             </TText>
             <TSpacer size="sm" />
             <TText color="secondary" style={styles.subtitle}>
-              Enter the email address associated with your account and{" "}
-              {"we'll"} send you a link to reset your password.
+              Enter the email address associated with your account and {"we'll"}{" "}
+              send you a link to reset your password.
             </TText>
           </View>
 
