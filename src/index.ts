@@ -33,7 +33,6 @@ export { GlassSurface } from "./ui/glass/GlassSurface";
 
 // === TAB COMPONENTS ===
 export { GlassTabBar } from "./ui/tabs/GlassTabBar";
-export type { Tab } from "./ui/tabs/GlassTabBar";
 
 // === PRIMITIVES ===
 export { ColorPickerSheet } from "./ui/primitives/ColorPickerSheet";

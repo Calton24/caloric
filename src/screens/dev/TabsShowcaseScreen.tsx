@@ -1,101 +1,61 @@
 /**
  * TabsShowcaseScreen
- * Demonstrates glass tab bar component
+ * Demonstrates the custom glass tab bar component.
+ * The GlassTabBar is now wired as a real tab bar via expo-router Tabs,
+ * so this screen just documents its features.
  */
 
-import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Screen } from '../../ui/layout/Screen';
-import { GlassCard } from '../../ui/glass/GlassCard';
-import { GlassTabBar, Tab } from '../../ui/tabs/GlassTabBar';
-import { TText } from '../../ui/primitives/TText';
-import { TSpacer } from '../../ui/primitives/TSpacer';
-import { useTheme } from '../../theme/useTheme';
-
-const DEMO_TABS: Tab[] = [
-  { key: 'home', label: 'Home', icon: <TText>🏠</TText> },
-  { key: 'search', label: 'Search', icon: <TText>🔍</TText> },
-  { key: 'profile', label: 'Profile', icon: <TText>👤</TText> },
-  { key: 'settings', label: 'Settings', icon: <TText>⚙️</TText> },
-];
+import React from "react";
+import { StyleSheet, View } from "react-native";
+import { Screen } from "../../ui/layout/Screen";
+import { GlassCard } from "../../ui/glass/GlassCard";
+import { TText } from "../../ui/primitives/TText";
+import { TSpacer } from "../../ui/primitives/TSpacer";
+import { useTheme } from "../../theme/useTheme";
 
 export function TabsShowcaseScreen() {
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState('home');
-
-  const getTabContent = () => {
-    switch (activeTab) {
-      case 'home':
-        return 'Home tab content. This is where your main feed or dashboard would go.';
-      case 'search':
-        return 'Search tab content. Add search functionality and results here.';
-      case 'profile':
-        return 'Profile tab content. Show user profile and settings.';
-      case 'settings':
-        return 'Settings tab content. App configuration and preferences.';
-      default:
-        return 'Unknown tab';
-    }
-  };
 
   return (
     <Screen padding={false}>
-      <View style={styles.container}>
-        <View
-          style={[
-            styles.content,
-            { padding: theme.spacing.md },
-          ]}
-        >
-          <TSpacer size="lg" />
-          
+      <View style={[styles.container, { padding: theme.spacing.md }]}>
+        <TSpacer size="lg" />
+
+        <TText variant="heading" style={{ color: theme.colors.text }}>
+          Glass Tab Bar
+        </TText>
+
+        <TSpacer size="xl" />
+
+        <GlassCard>
           <TText
-            variant="heading"
-            style={{ color: theme.colors.text }}
+            variant="subheading"
+            style={{
+              color: theme.colors.text,
+              marginBottom: theme.spacing.sm,
+            }}
           >
-            Tab Bar Showcase
+            How it works
           </TText>
+          <TText
+            color="secondary"
+            style={{ fontSize: theme.typography.fontSize.base }}
+          >
+            On iOS 26+ the app uses Apple{"'"}s native liquid-glass tab bar.{"\n"}
+            On iOS &lt; 26 and Android, a custom floating glassmorphism pill tab
+            bar renders instead — with blur on iOS and a translucent fallback on
+            Android.
+          </TText>
+        </GlassCard>
 
-          <TSpacer size="xl" />
+        <TSpacer size="md" />
 
-          <GlassCard>
-            <TText
-              variant="subheading"
-              style={{
-                color: theme.colors.text,
-                marginBottom: theme.spacing.sm,
-              }}
-            >
-              Active Tab: {activeTab}
-            </TText>
-            <TText
-              color="secondary"
-              style={{ fontSize: theme.typography.fontSize.base }}
-            >
-              {getTabContent()}
-            </TText>
-          </GlassCard>
-
-          <TSpacer size="md" />
-
-          <GlassCard>
-            <TText
-              color="secondary"
-              style={{ fontSize: theme.typography.fontSize.sm }}
-            >
-              The glass tab bar below uses blur effects on iOS and a translucent
-              fallback on Android. It stays pinned to the bottom with safe area
-              insets.
-            </TText>
-          </GlassCard>
-        </View>
-
-        {/* Glass Tab Bar */}
-        <GlassTabBar
-          tabs={DEMO_TABS}
-          activeTab={activeTab}
-          onTabPress={setActiveTab}
-        />
+        <GlassCard>
+          <TText color="secondary" style={{ fontSize: theme.typography.fontSize.sm }}>
+            Look at the bottom of the screen — you{"'"}re using the glass tab bar
+            right now! Tap between tabs to see the animated pill indicator slide.
+          </TText>
+        </GlassCard>
       </View>
     </Screen>
   );
@@ -103,9 +63,6 @@ export function TabsShowcaseScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
-  content: {
     flex: 1,
   },
 });

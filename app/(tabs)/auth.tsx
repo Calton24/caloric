@@ -161,10 +161,10 @@ export default function AuthScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: Math.max(insets.bottom, 16) + 100 },
-        ]}
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingBottom: Math.max(insets.bottom, 16) + 100,
+        }}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.content}>
@@ -345,11 +345,6 @@ const styles = StyleSheet.create({
     right: 0,
     height: 400,
     zIndex: 0,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    zIndex: 1,
   },
   content: {
     paddingTop: 40,
