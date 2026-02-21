@@ -1,7 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { Alert, ScrollView, StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
 import { useAuth } from "../../src/features/auth/useAuth";
 import { useTheme } from "../../src/theme/useTheme";
@@ -14,6 +17,7 @@ import { TText } from "../../src/ui/primitives/TText";
 export default function AuthScreen() {
   const { theme } = useTheme();
   const { signIn, signUp, user, signOut } = useAuth();
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -157,7 +161,10 @@ export default function AuthScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: Math.max(insets.bottom, 16) + 100 },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.content}>
@@ -342,11 +349,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 20,
-    paddingBottom: 120,
     zIndex: 1,
   },
   content: {
-    flex: 1,
     paddingTop: 40,
   },
   header: {
