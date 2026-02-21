@@ -1,12 +1,13 @@
 /**
  * Forgot Password Screen
  * User enters their email → taps "Send Reset Link" → sees confirmation UI.
+ * Includes client-side rate limiting (60s cooldown) to prevent abuse.
  * The email contains a deep link that opens app/auth/reset-password.
  */
 
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -24,6 +25,8 @@ import { TInput } from "../../src/ui/primitives/TInput";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 
+const COOLDOWN_SECONDS = 60;
+
 type ScreenState = "form" | "sent";
 
 export default function ForgotPasswordScreen() {
@@ -33,8 +36,33 @@ export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [screenState, setScreenState] = useState<ScreenState>("form");
+  const [cooldown, setCooldown] = useState(0);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const handleSendResetLink = async () => {
+  // Countdown timer
+  useEffect(() => {
+    if (cooldown <= 0) {
+      if (cooldownRef.current) clearInterval(cooldownRef.current);
+      return;
+    }
+    cooldownRef.current = setInterval(() => {
+      setCooldown((prev) => {
+        if (prev <= 1) {
+          if (cooldownRef.current) clearInterval(cooldownRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (cooldownRef.current) clearInterval(cooldownRef.current);
+    };
+  }, [cooldown > 0]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSendResetLink = useCallback(async () => {
+    if (cooldown > 0) return; // rate limited
+
     const trimmed = email.trim();
     if (!trimmed) {
       Alert.alert("Email Required", "Please enter your email address.");
@@ -45,29 +73,69 @@ export default function ForgotPasswordScreen() {
       return;
     }
 
+    setSendError(null);
     setLoading(true);
     try {
       const { error } = await resetPassword(trimmed);
       if (error) {
-        Alert.alert("Error", error.message);
+        setSendError(error.message);
+        // Stay on form / show inline error — don't navigate to "sent"
       } else {
+        setSendError(null);
+        setCooldown(COOLDOWN_SECONDS);
         setScreenState("sent");
       }
+    } catch {
+      setSendError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [cooldown, email, resetPassword]);
+
+  const handleResend = useCallback(async () => {
+    if (cooldown > 0) return;
+
+    setSendError(null);
+    setLoading(true);
+    try {
+      const { error } = await resetPassword(email.trim());
+      if (error) {
+        setSendError(error.message);
+      } else {
+        setSendError(null);
+        setCooldown(COOLDOWN_SECONDS);
+      }
+    } catch {
+      setSendError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [cooldown, email, resetPassword]);
 
   const handleBackToSignIn = () => {
     router.back();
   };
+
+  // ── Drag handle (replaces modal header) ─────────────────────────────────────
+  const DragHandle = () => (
+    <View style={styles.dragHandleContainer}>
+      <View
+        style={[
+          styles.dragHandle,
+          { backgroundColor: theme.colors.border ?? "rgba(120,120,128,0.3)" },
+        ]}
+      />
+    </View>
+  );
 
   // ── Confirmation state ──────────────────────────────────────────────────────
   if (screenState === "sent") {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: theme.colors.background }]}
+        edges={["top"]}
       >
+        <DragHandle />
         <ScrollView
           contentContainerStyle={styles.centeredScroll}
           showsVerticalScrollIndicator={false}
@@ -89,13 +157,10 @@ export default function ForgotPasswordScreen() {
 
             <TSpacer size="sm" />
 
-            <TText
-              color="secondary"
-              style={styles.sentDescription}
-            >
+            <TText color="secondary" style={styles.sentDescription}>
               We sent a password reset link to{" "}
-              <TText style={styles.emailHighlight}>{email.trim()}</TText>.
-              Tap the link in the email to reset your password.
+              <TText style={styles.emailHighlight}>{email.trim()}</TText>. Tap
+              the link in the email to reset your password.
             </TText>
 
             <TSpacer size="md" />
@@ -104,10 +169,25 @@ export default function ForgotPasswordScreen() {
               {"Didn't receive it? Check your spam folder or try again."}
             </TText>
 
+            {/* Inline error for resend failures */}
+            {sendError && (
+              <>
+                <TSpacer size="sm" />
+                <TText style={styles.errorText}>{sendError}</TText>
+              </>
+            )}
+
             <TSpacer size="xl" />
 
-            <TButton onPress={handleSendResetLink} variant="outline">
-              Resend Link
+            <TButton
+              onPress={handleResend}
+              variant="outline"
+              loading={loading}
+              disabled={loading || cooldown > 0}
+            >
+              {cooldown > 0
+                ? `Resend Link (${cooldown}s)`
+                : "Resend Link"}
             </TButton>
 
             <TSpacer size="sm" />
@@ -125,7 +205,9 @@ export default function ForgotPasswordScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
+      edges={["top"]}
     >
+      <DragHandle />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -141,7 +223,7 @@ export default function ForgotPasswordScreen() {
             </TText>
             <TSpacer size="sm" />
             <TText color="secondary" style={styles.subtitle}>
-              Enter the email address associated with your account and
+              Enter the email address associated with your account and{" "}
               {"we'll"} send you a link to reset your password.
             </TText>
           </View>
@@ -164,15 +246,25 @@ export default function ForgotPasswordScreen() {
               autoFocus
             />
 
+            {/* Inline error */}
+            {sendError && (
+              <>
+                <TSpacer size="sm" />
+                <TText style={styles.errorText}>{sendError}</TText>
+              </>
+            )}
+
             <TSpacer size="xl" />
 
             <TButton
               testID="send-reset-link-button"
               onPress={handleSendResetLink}
               loading={loading}
-              disabled={loading}
+              disabled={loading || cooldown > 0}
             >
-              Send Reset Link
+              {cooldown > 0
+                ? `Send Reset Link (${cooldown}s)`
+                : "Send Reset Link"}
             </TButton>
 
             <TSpacer size="md" />
@@ -194,14 +286,24 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
+  dragHandleContainer: {
+    alignItems: "center",
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  dragHandle: {
+    width: 36,
+    height: 5,
+    borderRadius: 2.5,
+  },
   scroll: {
     paddingHorizontal: 20,
-    paddingTop: 40,
+    paddingTop: 20,
     paddingBottom: 40,
   },
   centeredScroll: {
     paddingHorizontal: 20,
-    paddingTop: 60,
+    paddingTop: 40,
     paddingBottom: 40,
   },
   header: {
@@ -222,6 +324,11 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "500",
+  },
+  errorText: {
+    color: "#FF3B30",
+    fontSize: 14,
+    textAlign: "center",
   },
   iconCircle: {
     alignSelf: "center",

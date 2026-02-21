@@ -15,6 +15,7 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
+import { FeatureFlags } from "../../config/features";
 import { useAuth } from "../../src/features/auth/useAuth";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassCard } from "../../src/ui/glass/GlassCard";
@@ -28,6 +29,13 @@ export default function AuthScreen() {
   const { signIn, signUp, user, signOut, signInWithOAuth } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
+  // Auth capability flags
+  const emailEnabled = FeatureFlags.AUTH_EMAIL_ENABLED;
+  const googleEnabled = FeatureFlags.AUTH_GOOGLE_ENABLED;
+  const appleEnabled = FeatureFlags.AUTH_APPLE_ENABLED;
+  const showOAuth = googleEnabled || appleEnabled;
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -95,6 +103,7 @@ export default function AuthScreen() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!FeatureFlags.AUTH_GOOGLE_ENABLED) return;
     setLoading(true);
     try {
       const { url, error } = await signInWithOAuth("google");
@@ -111,6 +120,7 @@ export default function AuthScreen() {
   };
 
   const handleAppleSignIn = () => {
+    if (!FeatureFlags.AUTH_APPLE_ENABLED) return;
     Alert.alert(
       "Coming Soon",
       "Sign in with Apple will be available in a future update."
@@ -323,47 +333,57 @@ export default function AuthScreen() {
               </View>
             </GlassCard>
 
-            <TSpacer size="xl" />
+            {/* Social Login Options — only when OAuth providers are enabled */}
+            {showOAuth && (
+              <>
+                <TSpacer size="xl" />
 
-            {/* Social Login Options */}
-            <GlassCard style={styles.socialCard}>
-              <TText variant="heading" style={styles.orText}>
-                Or continue with
-              </TText>
-              <TSpacer size="md" />
+                <GlassCard style={styles.socialCard}>
+                  <TText variant="heading" style={styles.orText}>
+                    Or continue with
+                  </TText>
+                  <TSpacer size="md" />
 
-              <TButton
-                onPress={handleGoogleSignIn}
-                variant="outline"
-                disabled={loading}
-              >
-                <View style={styles.socialButton}>
-                  <Ionicons
-                    name="logo-google"
-                    size={20}
-                    color={theme.colors.text}
-                  />
-                  <View style={{ width: 12 }} />
-                  <TText>Continue with Google</TText>
-                </View>
-              </TButton>
-              <TSpacer size="sm" />
-              <TButton
-                onPress={handleAppleSignIn}
-                variant="outline"
-                disabled={loading}
-              >
-                <View style={styles.socialButton}>
-                  <Ionicons
-                    name="logo-apple"
-                    size={20}
-                    color={theme.colors.text}
-                  />
-                  <View style={{ width: 12 }} />
-                  <TText>Continue with Apple</TText>
-                </View>
-              </TButton>
-            </GlassCard>
+                  {googleEnabled && (
+                    <TButton
+                      onPress={handleGoogleSignIn}
+                      variant="outline"
+                      disabled={loading}
+                    >
+                      <View style={styles.socialButton}>
+                        <Ionicons
+                          name="logo-google"
+                          size={20}
+                          color={theme.colors.text}
+                        />
+                        <View style={{ width: 12 }} />
+                        <TText>Continue with Google</TText>
+                      </View>
+                    </TButton>
+                  )}
+
+                  {googleEnabled && appleEnabled && <TSpacer size="sm" />}
+
+                  {appleEnabled && (
+                    <TButton
+                      onPress={handleAppleSignIn}
+                      variant="outline"
+                      disabled={loading}
+                    >
+                      <View style={styles.socialButton}>
+                        <Ionicons
+                          name="logo-apple"
+                          size={20}
+                          color={theme.colors.text}
+                        />
+                        <View style={{ width: 12 }} />
+                        <TText>Continue with Apple</TText>
+                      </View>
+                    </TButton>
+                  )}
+                </GlassCard>
+              </>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

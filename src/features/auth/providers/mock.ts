@@ -119,7 +119,9 @@ export class MockAuthClient implements AuthClient {
     return { error: null };
   }
 
-  async exchangeCodeForSession(_code: string): Promise<{ error: Error | null }> {
+  async exchangeCodeForSession(
+    _code: string
+  ): Promise<{ error: Error | null }> {
     await delay(300);
     // Mock: simulate successful code exchange
     return { error: null };

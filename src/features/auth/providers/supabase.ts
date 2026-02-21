@@ -147,8 +147,7 @@ export class SupabaseAuthClient implements AuthClient {
       return { error: null };
     } catch (err) {
       return {
-        error:
-          err instanceof Error ? err : new Error("Code exchange failed"),
+        error: err instanceof Error ? err : new Error("Code exchange failed"),
       };
     }
   }

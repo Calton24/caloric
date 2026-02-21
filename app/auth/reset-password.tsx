@@ -8,13 +8,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../src/features/auth/useAuth";
@@ -110,7 +110,12 @@ export default function ResetPasswordScreen() {
         style={[styles.container, { backgroundColor: theme.colors.background }]}
       >
         <View style={styles.centered}>
-          <View style={[styles.iconCircle, { backgroundColor: "rgba(255,59,48,0.1)" }]}>
+          <View
+            style={[
+              styles.iconCircle,
+              { backgroundColor: "rgba(255,59,48,0.1)" },
+            ]}
+          >
             <Ionicons name="alert-circle-outline" size={48} color="#FF3B30" />
           </View>
           <TSpacer size="lg" />
@@ -136,7 +141,12 @@ export default function ResetPasswordScreen() {
         style={[styles.container, { backgroundColor: theme.colors.background }]}
       >
         <View style={styles.centered}>
-          <View style={[styles.iconCircle, { backgroundColor: "rgba(52,199,89,0.12)" }]}>
+          <View
+            style={[
+              styles.iconCircle,
+              { backgroundColor: "rgba(52,199,89,0.12)" },
+            ]}
+          >
             <Ionicons
               name="checkmark-circle-outline"
               size={48}
@@ -186,7 +196,9 @@ export default function ResetPasswordScreen() {
               Reset Password
             </TText>
             <TSpacer size="sm" />
-            <TText color="secondary">Choose a new password for your account</TText>
+            <TText color="secondary">
+              Choose a new password for your account
+            </TText>
           </View>
 
           <TSpacer size="xl" />

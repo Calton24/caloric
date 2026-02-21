@@ -10,11 +10,17 @@ export default function RootLayout() {
         <Stack.Screen name="modal" options={{ presentation: "modal" }} />
         <Stack.Screen
           name="auth/forgot-password"
-          options={{ presentation: "modal", title: "Forgot Password" }}
+          options={{
+            presentation: "modal",
+            headerShown: false,
+          }}
         />
         <Stack.Screen
           name="auth/reset-password"
-          options={{ presentation: "modal", title: "Reset Password" }}
+          options={{
+            presentation: "modal",
+            headerShown: false,
+          }}
         />
       </Stack>
     </MobileCoreProviders>
