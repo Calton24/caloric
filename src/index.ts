@@ -61,6 +61,8 @@ export { authClient, createAuthClient } from "./features/auth/authClient";
 export type {
     AuthClient,
     AuthProviderType,
+    OAuthProvider,
+    OAuthResponse,
     Session,
     User
 } from "./features/auth/authClient";

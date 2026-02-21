@@ -1,6 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as WebBrowser from "expo-web-browser";
 import React, { useState } from "react";
-import { Alert, ScrollView, StyleSheet, View } from "react-native";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -16,7 +24,8 @@ import { TText } from "../../src/ui/primitives/TText";
 
 export default function AuthScreen() {
   const { theme } = useTheme();
-  const { signIn, signUp, user, signOut } = useAuth();
+  const { signIn, signUp, user, signOut, resetPassword, signInWithOAuth } =
+    useAuth();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -80,10 +89,47 @@ export default function AuthScreen() {
     setConfirmPassword("");
   };
 
-  const handleForgotPassword = () => {
+  const handleForgotPassword = async () => {
+    if (!email) {
+      Alert.alert("Email Required", "Enter your email first, then tap Forgot Password.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await resetPassword(email);
+      if (error) {
+        Alert.alert("Error", error.message);
+      } else {
+        Alert.alert(
+          "Check Your Email",
+          "We sent a password reset link to " + email
+        );
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      const { url, error } = await signInWithOAuth("google");
+      if (error) {
+        Alert.alert("Error", error.message);
+        return;
+      }
+      if (url) {
+        await WebBrowser.openAuthSessionAsync(url);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAppleSignIn = () => {
     Alert.alert(
-      "Forgot Password",
-      "Password reset would be sent to your email"
+      "Coming Soon",
+      "Sign in with Apple will be available in a future update."
     );
   };
 
@@ -160,13 +206,19 @@ export default function AuthScreen() {
         </Svg>
       </View>
 
-      <ScrollView
-        contentContainerStyle={{
-          paddingHorizontal: 20,
-          paddingBottom: Math.max(insets.bottom, 16) + 100,
-        }}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
+        <ScrollView
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingBottom: Math.max(insets.bottom, 16) + 100,
+          }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
         <View style={styles.content}>
           {/* Header */}
           <View style={styles.header}>
@@ -217,7 +269,7 @@ export default function AuthScreen() {
               autoCapitalize="none"
             />
 
-            <TSpacer size="sm" />
+            <TSpacer size="xs" />
 
             {/* Confirm Password (Sign Up Only) */}
             {isSignUp && (
@@ -234,23 +286,21 @@ export default function AuthScreen() {
                   secureTextEntry
                   autoCapitalize="none"
                 />
-                <TSpacer size="sm" />
               </>
             )}
 
-            {/* Forgot Password Link (Sign In Only) */}
+            {/* Forgot Password Link (Sign In Only) — tight to field */}
             {!isSignUp && (
-              <>
-                <TButton onPress={handleForgotPassword} variant="ghost">
+              <View style={styles.forgotRow}>
+                <TButton onPress={handleForgotPassword} variant="ghost" size="sm">
                   <TText color="primary" style={styles.forgotText}>
                     Forgot Password?
                   </TText>
                 </TButton>
-                <TSpacer size="lg" />
-              </>
+              </View>
             )}
 
-            {isSignUp && <TSpacer size="lg" />}
+            <TSpacer size="lg" />
 
             {/* Submit Button */}
             <TButton
@@ -293,8 +343,9 @@ export default function AuthScreen() {
             <TSpacer size="md" />
 
             <TButton
-              onPress={() => console.log("Google login")}
+              onPress={handleGoogleSignIn}
               variant="outline"
+              disabled={loading}
             >
               <View style={styles.socialButton}>
                 <Ionicons
@@ -308,8 +359,9 @@ export default function AuthScreen() {
             </TButton>
             <TSpacer size="sm" />
             <TButton
-              onPress={() => console.log("Apple login")}
+              onPress={handleAppleSignIn}
               variant="outline"
+              disabled={loading}
             >
               <View style={styles.socialButton}>
                 <Ionicons
@@ -324,6 +376,7 @@ export default function AuthScreen() {
           </GlassCard>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -363,9 +416,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
+  flex: {
+    flex: 1,
+  },
+  forgotRow: {
+    alignItems: "flex-end",
+    marginTop: 4,
+  },
   forgotText: {
     fontSize: 14,
-    textAlign: "right",
   },
   signUpContainer: {
     flexDirection: "row",

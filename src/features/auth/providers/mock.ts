@@ -3,7 +3,14 @@
  * For tests and offline development. No network calls.
  */
 
-import type { AuthClient, AuthResponse, Session, User } from "../authClient";
+import type {
+  AuthClient,
+  AuthResponse,
+  OAuthProvider,
+  OAuthResponse,
+  Session,
+  User,
+} from "../authClient";
 
 export class MockAuthClient implements AuthClient {
   private currentSession: Session | null = null;
@@ -110,6 +117,12 @@ export class MockAuthClient implements AuthClient {
       return { error: new Error("Password must be at least 6 characters") };
     }
     return { error: null };
+  }
+
+  async signInWithOAuth(_provider: OAuthProvider): Promise<OAuthResponse> {
+    await delay(500);
+    // Mock returns a fake URL to simulate the OAuth flow
+    return { url: "https://mock-oauth.example.com/authorize", error: null };
   }
 
   async getSession(): Promise<{

@@ -4,7 +4,13 @@
  */
 
 import React, { createContext, useCallback, useEffect, useState } from "react";
-import { authClient, Session, User } from "./authClient";
+import {
+  authClient,
+  OAuthProvider,
+  OAuthResponse,
+  Session,
+  User,
+} from "./authClient";
 
 export interface AuthContextValue {
   user: User | null;
@@ -15,6 +21,7 @@ export interface AuthContextValue {
   signOut: () => Promise<{ error: Error | null }>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
   updatePassword: (newPassword: string) => Promise<{ error: Error | null }>;
+  signInWithOAuth: (provider: OAuthProvider) => Promise<OAuthResponse>;
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(
@@ -95,6 +102,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return await authClient.updatePassword(newPassword);
   }, []);
 
+  const signInWithOAuth = useCallback(async (provider: OAuthProvider) => {
+    return await authClient.signInWithOAuth(provider);
+  }, []);
+
   const contextValue: AuthContextValue = {
     user,
     session,
@@ -104,6 +115,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     signOut,
     resetPassword,
     updatePassword,
+    signInWithOAuth,
   };
 
   return (

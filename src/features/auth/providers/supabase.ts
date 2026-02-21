@@ -6,8 +6,16 @@
  * Feature code must never import this file directly — use createAuthClient().
  */
 
+import { getAppConfig } from "../../../config";
 import { getSupabaseClient } from "../../../lib/supabase";
-import type { AuthClient, AuthResponse, Session, User } from "../authClient";
+import type {
+  AuthClient,
+  AuthResponse,
+  OAuthProvider,
+  OAuthResponse,
+  Session,
+  User,
+} from "../authClient";
 
 export class SupabaseAuthClient implements AuthClient {
   private listeners: ((session: Session | null) => void)[] = [];
@@ -96,7 +104,11 @@ export class SupabaseAuthClient implements AuthClient {
   async resetPasswordForEmail(email: string): Promise<{ error: Error | null }> {
     try {
       const supabase = getSupabaseClient();
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      const config = getAppConfig();
+      const scheme = config.app.scheme;
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${scheme}://auth/reset-password`,
+      });
       if (error) {
         return { error: new Error(error.message) };
       }
@@ -121,6 +133,34 @@ export class SupabaseAuthClient implements AuthClient {
     } catch (err) {
       return {
         error: err instanceof Error ? err : new Error("Password update failed"),
+      };
+    }
+  }
+
+  async signInWithOAuth(provider: OAuthProvider): Promise<OAuthResponse> {
+    try {
+      const supabase = getSupabaseClient();
+      const config = getAppConfig();
+      const scheme = config.app.scheme;
+      const redirectTo = `${scheme}://auth/callback`;
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true, // we open the URL ourselves
+        },
+      });
+
+      if (error) {
+        return { url: null, error: new Error(error.message) };
+      }
+
+      return { url: data.url ?? null, error: null };
+    } catch (err) {
+      return {
+        url: null,
+        error: err instanceof Error ? err : new Error("OAuth sign-in failed"),
       };
     }
   }

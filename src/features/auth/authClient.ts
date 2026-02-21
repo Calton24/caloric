@@ -28,12 +28,21 @@ export interface AuthResponse {
   error: Error | null;
 }
 
+export type OAuthProvider = "google" | "apple";
+
+export interface OAuthResponse {
+  /** URL to open in a browser/auth session. null if the provider returned nothing. */
+  url: string | null;
+  error: Error | null;
+}
+
 export interface AuthClient {
   signIn(email: string, password: string): Promise<AuthResponse>;
   signUp(email: string, password: string): Promise<AuthResponse>;
   signOut(): Promise<{ error: Error | null }>;
   resetPasswordForEmail(email: string): Promise<{ error: Error | null }>;
   updatePassword(newPassword: string): Promise<{ error: Error | null }>;
+  signInWithOAuth(provider: OAuthProvider): Promise<OAuthResponse>;
   getSession(): Promise<{ session: Session | null; error: Error | null }>;
   onAuthStateChange(callback: (session: Session | null) => void): () => void;
 }
@@ -94,6 +103,7 @@ export const authClient: AuthClient = {
   signOut: (...args) => client.signOut(...args),
   resetPasswordForEmail: (...args) => client.resetPasswordForEmail(...args),
   updatePassword: (...args) => client.updatePassword(...args),
+  signInWithOAuth: (...args) => client.signInWithOAuth(...args),
   getSession: (...args) => client.getSession(...args),
   onAuthStateChange: (...args) => client.onAuthStateChange(...args),
 };
