@@ -17,6 +17,7 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { analytics } from "../../src/analytics/analytics";
 import { useAuth } from "../../src/features/auth/useAuth";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassCard } from "../../src/ui/glass/GlassCard";
@@ -101,6 +102,7 @@ export default function ForgotPasswordScreen() {
         }
         // Stay on form / show inline error — don't navigate to "sent"
       } else {
+        analytics.track("password_reset_requested", { email_domain: trimmed.split("@")[1] });
         setSendError(null);
         setCooldown(COOLDOWN_SECONDS);
         setScreenState("sent");
@@ -183,15 +185,17 @@ export default function ForgotPasswordScreen() {
             <TSpacer size="sm" />
 
             <TText color="secondary" style={styles.sentDescription}>
-              We sent a password reset link to{" "}
-              <TText style={styles.emailHighlight}>{email.trim()}</TText>. Tap
-              the link in the email to reset your password.
+              If an account exists for{" "}
+              <TText style={styles.emailHighlight}>{email.trim()}</TText>,
+              {" "}you{"'"}
+              ll receive a password reset link shortly.
             </TText>
 
             <TSpacer size="md" />
 
             <TText color="secondary" style={styles.sentHint}>
-              {"Didn't receive it? Check your spam folder, or wait and tap Resend below."}
+              Check your spam folder. Resend available
+              {cooldown > 0 ? ` in ${cooldown}s` : " now"}.
             </TText>
 
             {/* Inline error for resend failures */}
