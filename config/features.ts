@@ -1,7 +1,8 @@
 /**
  * Static Feature Flags
  *
- * Single source of truth for tab/screen visibility and auth capabilities.
+ * Single source of truth for tab/screen visibility.
+ * Auth capabilities are in src/features/auth/authCapabilities.ts.
  * Defaults can depend on __DEV__ — that's fine.
  * E2E tests force-enable what they need via EXPO_PUBLIC_E2E=1.
  *
@@ -16,10 +17,7 @@ type FlagName =
   | "SHOW_NOTES"
   | "SHOW_AUTH"
   | "SHOW_PLAYGROUND"
-  | "SHOW_MOBILE_CORE"
-  | "AUTH_EMAIL_ENABLED"
-  | "AUTH_GOOGLE_ENABLED"
-  | "AUTH_APPLE_ENABLED";
+  | "SHOW_MOBILE_CORE";
 
 type Flags = Record<FlagName, boolean>;
 
@@ -38,21 +36,6 @@ export const FeatureFlags: Flags = {
 
   /** Mobile Core dev tools — dev only */
   SHOW_MOBILE_CORE: __DEV__,
-
-  // ── Auth capabilities ────────────────────────────────────────────────────
-  // Email/password is the default "always works" path.
-  // OAuth providers are opt-in — set to true only when credentials are configured.
-
-  /** Email/password auth — always available */
-  AUTH_EMAIL_ENABLED: true,
-
-  /** Google OAuth — off by default, enable when EXPO_PUBLIC_GOOGLE_OAUTH_ENABLED=1 */
-  AUTH_GOOGLE_ENABLED:
-    process.env.EXPO_PUBLIC_GOOGLE_OAUTH_ENABLED === "1" || (__DEV__ && isE2E),
-
-  /** Apple OAuth — off by default, enable when EXPO_PUBLIC_APPLE_OAUTH_ENABLED=1 */
-  AUTH_APPLE_ENABLED:
-    process.env.EXPO_PUBLIC_APPLE_OAUTH_ENABLED === "1" || (__DEV__ && isE2E),
 };
 
 export type FeatureFlag = keyof typeof FeatureFlags;

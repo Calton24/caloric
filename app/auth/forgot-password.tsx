@@ -9,12 +9,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { analytics } from "../../src/analytics/analytics";
@@ -102,7 +102,9 @@ export default function ForgotPasswordScreen() {
         }
         // Stay on form / show inline error — don't navigate to "sent"
       } else {
-        analytics.track("password_reset_requested", { email_domain: trimmed.split("@")[1] });
+        analytics.track("password_reset_requested", {
+          email_domain: trimmed.split("@")[1],
+        });
         setSendError(null);
         setCooldown(COOLDOWN_SECONDS);
         setScreenState("sent");
@@ -186,8 +188,8 @@ export default function ForgotPasswordScreen() {
 
             <TText color="secondary" style={styles.sentDescription}>
               If an account exists for{" "}
-              <TText style={styles.emailHighlight}>{email.trim()}</TText>,
-              {" "}you{"'"}
+              <TText style={styles.emailHighlight}>{email.trim()}</TText>, you
+              {"'"}
               ll receive a password reset link shortly.
             </TText>
 

@@ -15,7 +15,7 @@ import {
     useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
-import { FeatureFlags } from "../../config/features";
+import { AuthCapabilities } from "../../src/features/auth/authCapabilities";
 import { useAuth } from "../../src/features/auth/useAuth";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassCard } from "../../src/ui/glass/GlassCard";
@@ -31,9 +31,8 @@ export default function AuthScreen() {
   const insets = useSafeAreaInsets();
 
   // Auth capability flags
-  const emailEnabled = FeatureFlags.AUTH_EMAIL_ENABLED;
-  const googleEnabled = FeatureFlags.AUTH_GOOGLE_ENABLED;
-  const appleEnabled = FeatureFlags.AUTH_APPLE_ENABLED;
+  const googleEnabled = AuthCapabilities.google;
+  const appleEnabled = AuthCapabilities.apple;
   const showOAuth = googleEnabled || appleEnabled;
 
   const [email, setEmail] = useState("");
@@ -103,7 +102,10 @@ export default function AuthScreen() {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!FeatureFlags.AUTH_GOOGLE_ENABLED) return;
+    if (!AuthCapabilities.google) {
+      Alert.alert("Unavailable", "Google sign-in is disabled for this app.");
+      return;
+    }
     setLoading(true);
     try {
       const { url, error } = await signInWithOAuth("google");
@@ -120,7 +122,10 @@ export default function AuthScreen() {
   };
 
   const handleAppleSignIn = () => {
-    if (!FeatureFlags.AUTH_APPLE_ENABLED) return;
+    if (!AuthCapabilities.apple) {
+      Alert.alert("Unavailable", "Apple sign-in is disabled for this app.");
+      return;
+    }
     Alert.alert(
       "Coming Soon",
       "Sign in with Apple will be available in a future update."
