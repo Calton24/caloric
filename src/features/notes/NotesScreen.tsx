@@ -27,7 +27,7 @@ import {
 import { analytics } from "../../analytics/analytics";
 import { flags } from "../../flags/flags";
 import { ErrorBoundary } from "../../infrastructure/errorReporting";
-import { getCurrentUser } from "../../lib/supabase";
+import { useAuth } from "../auth/useAuth";
 import { logger } from "../../logging/logger";
 import { useTheme } from "../../theme/useTheme";
 import { GlassCard } from "../../ui/glass/GlassCard";
@@ -46,36 +46,37 @@ import type { Note } from "./notes.types";
 function NotesScreenContent() {
   const { theme } = useTheme();
   const { open: openSheet, close: closeSheet } = useBottomSheet();
+  const { user: authUser, isLoading: authLoading } = useAuth();
 
-  const [userId, setUserId] = useState<string | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const userId = authUser?.id ?? null;
+
   // Feature flag check
   const canCreateNotes = flags.isEnabled("notes.create", true);
 
-  // Check auth and load initial data
+  // Load notes when user becomes available
   useEffect(() => {
-    const initialize = async () => {
+    if (authLoading) return;
+
+    if (!userId) {
+      setNotes([]);
+      setLoading(false);
+      return;
+    }
+
+    const loadNotes = async () => {
+      setLoading(true);
       try {
-        const user = await getCurrentUser();
-
-        if (!user) {
-          setUserId(null);
-          setLoading(false);
-          return;
-        }
-
-        setUserId(user.id);
-
         // Track screen view
         analytics.track("notes_screen_viewed", {
-          user_id: user.id,
+          user_id: userId,
         });
 
         // Fetch initial notes
-        const initialNotes = await fetchNotes(user.id);
+        const initialNotes = await fetchNotes(userId);
         setNotes(initialNotes);
       } catch (error) {
         logger.error("[NotesScreen] Failed to initialize", {
@@ -86,8 +87,8 @@ function NotesScreenContent() {
       }
     };
 
-    initialize();
-  }, []);
+    loadNotes();
+  }, [userId, authLoading]);
 
   // Subscribe to realtime updates
   useEffect(() => {
@@ -198,7 +199,7 @@ function NotesScreenContent() {
   );
 
   // Not authenticated
-  if (!loading && !userId) {
+  if (!loading && !authLoading && !userId) {
     return (
       <View
         style={[
