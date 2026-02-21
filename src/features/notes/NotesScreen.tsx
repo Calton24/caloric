@@ -24,6 +24,7 @@ import {
     StyleSheet,
     View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { analytics } from "../../analytics/analytics";
 import { flags } from "../../flags/flags";
 import { ErrorBoundary } from "../../infrastructure/errorReporting";
@@ -201,39 +202,41 @@ function NotesScreenContent() {
   // Not authenticated
   if (!loading && !authLoading && !userId) {
     return (
-      <View
+      <SafeAreaView
         style={[
           styles.centered,
           {
             backgroundColor: theme.colors.background,
           },
         ]}
+        edges={["top"]}
       >
         <TText variant="body" color="secondary">
           Not signed in
         </TText>
-      </View>
+      </SafeAreaView>
     );
   }
 
   // Loading state
   if (loading) {
     return (
-      <View
+      <SafeAreaView
         style={[
           styles.centered,
           {
             backgroundColor: theme.colors.background,
           },
         ]}
+        edges={["top"]}
       >
         <ActivityIndicator size="large" color={theme.colors.primary} />
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View
+    <SafeAreaView
       testID="notes-screen"
       style={[
         styles.container,
@@ -241,6 +244,7 @@ function NotesScreenContent() {
           backgroundColor: theme.colors.background,
         },
       ]}
+      edges={["top"]}
     >
       <View
         style={[
@@ -295,7 +299,7 @@ function NotesScreenContent() {
           />
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -309,18 +313,19 @@ export function NotesScreen() {
   return (
     <ErrorBoundary
       fallback={
-        <View
+        <SafeAreaView
           style={[
             styles.centered,
             {
               backgroundColor: theme.colors.background,
             },
           ]}
+          edges={["top"]}
         >
           <TText variant="body" color="secondary">
             Something went wrong
           </TText>
-        </View>
+        </SafeAreaView>
       }
     >
       <NotesScreenContent />
