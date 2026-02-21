@@ -7,11 +7,17 @@
  * Works on iOS (BlurView) and Android (solid translucent fallback).
  */
 
-import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
+import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import * as Haptics from "expo-haptics";
 import React, { useCallback } from "react";
-import { LayoutChangeEvent, Platform, Pressable, StyleSheet, View } from "react-native";
+import {
+  LayoutChangeEvent,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+} from "react-native";
 import Animated, {
   FadeIn,
   FadeOut,
@@ -81,9 +87,7 @@ export function GlassTabBar({
     const tabWidth = containerWidth.value / (tabCount || 1);
     return {
       width: tabWidth,
-      transform: [
-        { translateX: withSpring(state.index * tabWidth, SPRING) },
-      ],
+      transform: [{ translateX: withSpring(state.index * tabWidth, SPRING) }],
     };
   });
 
@@ -99,12 +103,7 @@ export function GlassTabBar({
       ]}
     >
       {/* Active pill background */}
-      <Animated.View
-        style={[
-          styles.pill,
-          pillStyle,
-        ]}
-      >
+      <Animated.View style={[styles.pill, pillStyle]}>
         <View
           style={[
             styles.pillInner,
@@ -132,7 +131,7 @@ export function GlassTabBar({
           const label =
             typeof options.tabBarLabel === "string"
               ? options.tabBarLabel
-              : options.title ?? route.name;
+              : (options.title ?? route.name);
           const isFocused = state.index === index;
           const icons = ICON_MAP[route.name] ?? {
             filled: "ellipse",
@@ -154,9 +153,7 @@ export function GlassTabBar({
                 name={(isFocused ? icons.filled : icons.outline) as any}
                 size={22}
                 color={
-                  isFocused
-                    ? theme.colors.primary
-                    : theme.colors.textSecondary
+                  isFocused ? theme.colors.primary : theme.colors.textSecondary
                 }
               />
               <Animated.Text

@@ -14,11 +14,41 @@ const USE_NATIVE_TABS = Platform.OS === "ios" && IOS_VERSION >= 26;
 
 // ─── Shared tab definitions ───────────────────────────────────
 const TABS = [
-  { name: "index", flag: FeatureFlags.SHOW_HOME, label: "Home", sf: "house.fill", ionicon: "home" },
-  { name: "notes", flag: FeatureFlags.SHOW_NOTES, label: "Notes", sf: "note.text", ionicon: "document-text" },
-  { name: "auth", flag: FeatureFlags.SHOW_AUTH, label: "Auth", sf: "person.circle.fill", ionicon: "person-circle" },
-  { name: "playground", flag: FeatureFlags.SHOW_PLAYGROUND, label: "Playground", sf: "sparkles", ionicon: "sparkles" },
-  { name: "mobile-core", flag: FeatureFlags.SHOW_MOBILE_CORE, label: "Mobile Core", sf: "hammer.fill", ionicon: "hammer" },
+  {
+    name: "index",
+    flag: FeatureFlags.SHOW_HOME,
+    label: "Home",
+    sf: "house.fill",
+    ionicon: "home",
+  },
+  {
+    name: "notes",
+    flag: FeatureFlags.SHOW_NOTES,
+    label: "Notes",
+    sf: "note.text",
+    ionicon: "document-text",
+  },
+  {
+    name: "auth",
+    flag: FeatureFlags.SHOW_AUTH,
+    label: "Auth",
+    sf: "person.circle.fill",
+    ionicon: "person-circle",
+  },
+  {
+    name: "playground",
+    flag: FeatureFlags.SHOW_PLAYGROUND,
+    label: "Playground",
+    sf: "sparkles",
+    ionicon: "sparkles",
+  },
+  {
+    name: "mobile-core",
+    flag: FeatureFlags.SHOW_MOBILE_CORE,
+    label: "Mobile Core",
+    sf: "hammer.fill",
+    ionicon: "hammer",
+  },
 ] as const;
 
 // ─── Native liquid-glass tabs (iOS 26+) ───────────────────────
