@@ -15,6 +15,7 @@ import {
 } from "./infrastructure/errorReporting";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { BottomSheetProvider } from "./ui/sheets/BottomSheetProvider";
+import { ToastProvider } from "./ui/components/Toast";
 
 interface MobileCoreProvidersProps {
   children: React.ReactNode;
@@ -45,7 +46,9 @@ export function MobileCoreProviders({
             <ThemeProvider>
               <AuthProvider>
                 <BottomSheetModalProvider>
-                  <BottomSheetProvider>{children}</BottomSheetProvider>
+                  <BottomSheetProvider>
+                    <ToastProvider>{children}</ToastProvider>
+                  </BottomSheetProvider>
                 </BottomSheetModalProvider>
               </AuthProvider>
             </ThemeProvider>

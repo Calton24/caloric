@@ -5,6 +5,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   View,
 } from "react-native";
 import Animated, {
@@ -17,6 +18,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassCard } from "../../src/ui/glass/GlassCard";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
+import { EmptyState } from "../../src/ui/components/EmptyState";
+import { Header } from "../../src/ui/components/Header";
+import { ListItem } from "../../src/ui/components/ListItem";
+import { Skeleton } from "../../src/ui/components/Skeleton";
+import { useToast } from "../../src/ui/components/Toast";
 import {
   showActionSheet,
   showAlert,
@@ -38,7 +44,10 @@ export default function MobileCoreScreen() {
   const { theme, toggleMode } = useTheme();
   const sheet = useBottomSheet();
   const { open } = sheet;
+  const toast = useToast();
   const [inputValue, setInputValue] = useState("");
+  const [glassEnabled, setGlassEnabled] = useState(true);
+  const [blurIntensity, setBlurIntensity] = useState<"light" | "medium" | "strong">("medium");
 
   // Animation for theme toggle
   const opacity = useSharedValue(1);
@@ -253,16 +262,203 @@ export default function MobileCoreScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <TText variant="heading">Mobile Core</TText>
-          <TSpacer size="xs" />
-          <TText color="secondary">Test all components here</TText>
-        </View>
+        {/* Header Component Demo */}
+        <Header
+          title="Mobile Core"
+          subtitle="Tier A Component Catalog"
+          trailing={
+            <Pressable onPress={handleToggleMode}>
+              <AnimatedIonicons
+                name={theme.mode === "dark" ? "sunny" : "moon"}
+                size={24}
+                color={theme.colors.text}
+                style={animatedStyle}
+              />
+            </Pressable>
+          }
+        />
 
         <TSpacer size="lg" />
 
-        {/* Theme Section */}
+        {/* ── Knobs ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">Knobs</TText>
+          <TSpacer size="md" />
+
+          {/* Glass toggle */}
+          <View style={styles.knobRow}>
+            <TText>Glass Enabled</TText>
+            <Switch
+              value={glassEnabled}
+              onValueChange={setGlassEnabled}
+              trackColor={{
+                false: theme.colors.border,
+                true: theme.colors.primary,
+              }}
+            />
+          </View>
+          <TSpacer size="sm" />
+
+          {/* Blur intensity picker */}
+          <TText color="secondary">Blur Intensity</TText>
+          <TSpacer size="xs" />
+          <View style={styles.knobRow}>
+            {(["light", "medium", "strong"] as const).map((level) => (
+              <TButton
+                key={level}
+                variant={blurIntensity === level ? "primary" : "outline"}
+                size="sm"
+                onPress={() => setBlurIntensity(level)}
+              >
+                {level}
+              </TButton>
+            ))}
+          </View>
+          <TSpacer size="md" />
+
+          {/* Glass preview */}
+          {glassEnabled ? (
+            <GlassSurface intensity={blurIntensity} style={styles.glassSample}>
+              <TText>
+                Glass Preview ({blurIntensity})
+              </TText>
+            </GlassSurface>
+          ) : (
+            <View
+              style={[
+                styles.glassSample,
+                { backgroundColor: theme.colors.surface },
+              ]}
+            >
+              <TText>Glass Disabled (solid surface)</TText>
+            </View>
+          )}
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── Header ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">Header</TText>
+          <TSpacer size="md" />
+          <Header title="Page Title" subtitle="Optional subtitle" align="left" />
+          <TSpacer size="sm" />
+          <TDivider />
+          <TSpacer size="sm" />
+          <Header
+            title="With Action"
+            trailing={
+              <Ionicons name="ellipsis-horizontal" size={20} color={theme.colors.text} />
+            }
+          />
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── ListItem ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">ListItem</TText>
+          <TSpacer size="md" />
+          <ListItem
+            label="Settings"
+            icon="settings-outline"
+            onPress={() => toast.show("Settings tapped")}
+          />
+          <TDivider />
+          <ListItem
+            label="Notifications"
+            subtitle="3 unread"
+            icon="notifications-outline"
+            onPress={() => toast.show("Notifications tapped")}
+          />
+          <TDivider />
+          <ListItem
+            label="Disabled Item"
+            icon="lock-closed-outline"
+            disabled
+            onPress={() => {}}
+          />
+          <TDivider />
+          <ListItem
+            label="Custom trailing"
+            icon="color-palette-outline"
+            trailing={
+              <View
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 12,
+                  backgroundColor: theme.colors.primary,
+                }}
+              />
+            }
+          />
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── EmptyState ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">EmptyState</TText>
+          <TSpacer size="md" />
+          <EmptyState
+            title="No items yet"
+            subtitle="Tap below to add your first item"
+            actionLabel="Add Item"
+            onAction={() => toast.show("Add tapped", "success")}
+          />
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── Toast ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">Toast</TText>
+          <TSpacer size="md" />
+          <TButton onPress={() => toast.show("Operation successful", "success")}>
+            Success Toast
+          </TButton>
+          <TSpacer size="sm" />
+          <TButton onPress={() => toast.show("Something went wrong", "error")} variant="secondary">
+            Error Toast
+          </TButton>
+          <TSpacer size="sm" />
+          <TButton onPress={() => toast.show("Heads up!", "info")} variant="outline">
+            Info Toast
+          </TButton>
+          <TSpacer size="sm" />
+          <TButton onPress={() => toast.show("Check this out", "warning")} variant="ghost">
+            Warning Toast
+          </TButton>
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── Skeleton ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">Skeleton</TText>
+          <TSpacer size="md" />
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Skeleton width={48} height={48} circle />
+            <View style={{ marginLeft: 12, flex: 1 }}>
+              <Skeleton height={14} width="60%" />
+              <TSpacer size="xs" />
+              <Skeleton height={10} width="40%" />
+            </View>
+          </View>
+          <TSpacer size="md" />
+          <Skeleton height={12} />
+          <TSpacer size="xs" />
+          <Skeleton height={12} />
+          <TSpacer size="xs" />
+          <Skeleton height={12} width="75%" />
+          <TSpacer size="md" />
+          <Skeleton height={120} borderRadius={12} />
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── Theme System ── */}
         <GlassCard style={styles.section}>
           <TText variant="heading">Theme System</TText>
           <TSpacer size="md" />
@@ -287,7 +483,7 @@ export default function MobileCoreScreen() {
 
         <TSpacer size="lg" />
 
-        {/* Glass Components */}
+        {/* ── Glass Components ── */}
         <GlassCard style={styles.section}>
           <TText variant="heading">Glass Components</TText>
           <TSpacer size="md" />
@@ -306,7 +502,7 @@ export default function MobileCoreScreen() {
 
         <TSpacer size="lg" />
 
-        {/* Bottom Sheet Test */}
+        {/* ── Bottom Sheet Test ── */}
         <GlassCard style={styles.section}>
           <TText variant="heading">Bottom Sheet Sizes</TText>
           <TSpacer size="md" />
@@ -345,7 +541,7 @@ export default function MobileCoreScreen() {
 
         <TSpacer size="lg" />
 
-        {/* Modals */}
+        {/* ── Modals ── */}
         <GlassCard style={styles.section}>
           <TText variant="heading">Modals (from Sheets)</TText>
           <TSpacer size="md" />
@@ -370,7 +566,7 @@ export default function MobileCoreScreen() {
 
         <TSpacer size="lg" />
 
-        {/* Buttons */}
+        {/* ── Buttons ── */}
         <GlassCard style={styles.section}>
           <TText variant="heading">Buttons</TText>
           <TSpacer size="md" />
@@ -395,7 +591,7 @@ export default function MobileCoreScreen() {
 
         <TSpacer size="lg" />
 
-        {/* Inputs */}
+        {/* ── Inputs ── */}
         <GlassCard style={styles.section}>
           <TText variant="heading">Text Input</TText>
           <TSpacer size="md" />
@@ -415,7 +611,7 @@ export default function MobileCoreScreen() {
 
         <TSpacer size="lg" />
 
-        {/* Typography */}
+        {/* ── Typography ── */}
         <GlassCard style={styles.section}>
           <TText variant="heading">Heading</TText>
           <TSpacer size="xs" />
@@ -460,5 +656,11 @@ const styles = StyleSheet.create({
   glassSample: {
     padding: 12,
     alignItems: "center",
+  },
+  knobRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
   },
 });

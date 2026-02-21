@@ -2,9 +2,9 @@ import React from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../src/theme/useTheme";
-import { TText } from "../../src/ui/primitives/TText";
 import { GlassCard } from "../../src/ui/glass/GlassCard";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
+import { TText } from "../../src/ui/primitives/TText";
 
 export default function HomeScreen() {
   const { theme } = useTheme();
@@ -55,10 +55,7 @@ export default function HomeScreen() {
           ].map((stat) => (
             <GlassCard key={stat.label} style={styles.statCard}>
               <TText style={styles.statEmoji}>{stat.emoji}</TText>
-              <TText
-                color="primary"
-                style={styles.statValue}
-              >
+              <TText color="primary" style={styles.statValue}>
                 {stat.value}
               </TText>
               <TText color="secondary" style={styles.statLabel}>
