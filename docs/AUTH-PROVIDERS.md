@@ -1,13 +1,12 @@
-# AUTH-PROVIDERS.md (Mobile Core)
+# Auth Providers Setup (Supabase + Expo / React Native)
 
-This repo (`mobile-core`) includes auth UX + abstractions. Provider configuration is **per app/project** (Supabase project + OAuth credentials).
+This repo supports:
 
----
+- Email/password (always enabled)
+- Google OAuth (feature-flagged OFF by default)
+- Apple OAuth (feature-flagged OFF by default)
 
-## 0) Core Principle
-
-- **mobile-core owns:** screens, flows, timers, deep-link handling, error mapping.
-- **each app owns:** Supabase project settings, OAuth credentials, `.env` values, Apple/Google setup.
+OAuth is configured **per-app** (per Supabase project), not "once for mobile-core".
 
 So forking an app = new provider config, same auth code.
 

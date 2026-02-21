@@ -288,6 +288,8 @@ EXPO_PUBLIC_APP_ENV=dev
 3. For testing: Disable email confirmation
 4. For production: Configure SMTP settings
 
+> **OAuth:** Google/Apple buttons are OFF by default. Enable per app via `EXPO_PUBLIC_AUTH_GOOGLE=1` / `EXPO_PUBLIC_AUTH_APPLE=1`. See [docs/AUTH-PROVIDERS.md](docs/AUTH-PROVIDERS.md).
+
 ### 3. Run Notes Table Migration (For Validation)
 
 If you want to test the Notes validation harness:
