@@ -14,8 +14,8 @@ import {
     initErrorReporting,
 } from "./infrastructure/errorReporting";
 import { ThemeProvider } from "./theme/ThemeProvider";
-import { BottomSheetProvider } from "./ui/sheets/BottomSheetProvider";
 import { ToastProvider } from "./ui/components/Toast";
+import { BottomSheetProvider } from "./ui/sheets/BottomSheetProvider";
 
 interface MobileCoreProvidersProps {
   children: React.ReactNode;

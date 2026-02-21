@@ -47,11 +47,20 @@ Adjust `SpacingTokens` and `RadiusTokens` for a tighter or looser feel:
 
 ```ts
 const spacing: SpacingTokens = {
-  xs: 2, sm: 4, md: 8, lg: 16, xl: 24, xxl: 32,
+  xs: 2,
+  sm: 4,
+  md: 8,
+  lg: 16,
+  xl: 24,
+  xxl: 32,
 };
 
 const radius: RadiusTokens = {
-  sm: 2, md: 6, lg: 12, xl: 20, full: 9999,
+  sm: 2,
+  md: 6,
+  lg: 12,
+  xl: 20,
+  full: 9999,
 };
 ```
 
@@ -61,7 +70,7 @@ If your fork prefers a more subtle or stronger glass effect, override `glassInte
 
 ```ts
 export const glassIntensity = {
-  light: 30,   // subtler
+  light: 30, // subtler
   medium: 60,
   strong: 90,
 };
@@ -71,12 +80,12 @@ export const glassIntensity = {
 
 ## What NOT to Override
 
-| Don't do this | Do this instead |
-|---|---|
-| Copy `TButton.tsx` into your fork and edit it | Change `theme.colors.primary` via `brandHue` |
-| Add a second `BlurView` wrapper | Adjust `glassIntensity` values |
-| Hard-code colors in fork screens | Use `useTheme()` and token keys |
-| Create fork-specific layout components | Use `Screen`, `Header`, `TSpacer` with different tokens |
+| Don't do this                                 | Do this instead                                         |
+| --------------------------------------------- | ------------------------------------------------------- |
+| Copy `TButton.tsx` into your fork and edit it | Change `theme.colors.primary` via `brandHue`            |
+| Add a second `BlurView` wrapper               | Adjust `glassIntensity` values                          |
+| Hard-code colors in fork screens              | Use `useTheme()` and token keys                         |
+| Create fork-specific layout components        | Use `Screen`, `Header`, `TSpacer` with different tokens |
 
 ---
 

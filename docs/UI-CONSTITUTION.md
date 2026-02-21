@@ -37,4 +37,4 @@ If a component needs a provider (e.g., `Toast`), the provider and hook live in t
 
 ---
 
-*Violations should be caught in code review. If a rule blocks legitimate progress, amend this document — don't silently break it.*
+_Violations should be caught in code review. If a rule blocks legitimate progress, amend this document — don't silently break it._

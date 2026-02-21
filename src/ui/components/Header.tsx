@@ -4,7 +4,13 @@
  */
 
 import React from "react";
-import { Pressable, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
+import {
+    Pressable,
+    StyleProp,
+    StyleSheet,
+    View,
+    ViewStyle,
+} from "react-native";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -46,10 +52,14 @@ export function Header({
   ) : null;
 
   return (
-    <View style={[styles.container, { paddingBottom: theme.spacing.md }, style]}>
+    <View
+      style={[styles.container, { paddingBottom: theme.spacing.md }, style]}
+    >
       <View style={styles.row}>
         {leading && <View style={styles.leading}>{leading}</View>}
-        <View style={[styles.titles, align === "center" && styles.titlesCenter]}>
+        <View
+          style={[styles.titles, align === "center" && styles.titlesCenter]}
+        >
           <TText variant="heading" style={styles.title}>
             {title}
           </TText>

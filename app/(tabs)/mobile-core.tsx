@@ -1,33 +1,33 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo, useState } from "react";
 import {
-  Dimensions,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  View,
+    Dimensions,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    View,
 } from "react-native";
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withTiming,
+    useAnimatedStyle,
+    useSharedValue,
+    withSequence,
+    withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../src/theme/useTheme";
-import { GlassCard } from "../../src/ui/glass/GlassCard";
-import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { EmptyState } from "../../src/ui/components/EmptyState";
 import { Header } from "../../src/ui/components/Header";
 import { ListItem } from "../../src/ui/components/ListItem";
 import { Skeleton } from "../../src/ui/components/Skeleton";
 import { useToast } from "../../src/ui/components/Toast";
+import { GlassCard } from "../../src/ui/glass/GlassCard";
+import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import {
-  showActionSheet,
-  showAlert,
-  showConfirm,
-  showCustomModal,
+    showActionSheet,
+    showAlert,
+    showConfirm,
+    showCustomModal,
 } from "../../src/ui/modals/ModalHelpers";
 import { ColorPickerSheet } from "../../src/ui/primitives/ColorPickerSheet";
 import { TButton } from "../../src/ui/primitives/TButton";
@@ -47,7 +47,9 @@ export default function MobileCoreScreen() {
   const toast = useToast();
   const [inputValue, setInputValue] = useState("");
   const [glassEnabled, setGlassEnabled] = useState(true);
-  const [blurIntensity, setBlurIntensity] = useState<"light" | "medium" | "strong">("medium");
+  const [blurIntensity, setBlurIntensity] = useState<
+    "light" | "medium" | "strong"
+  >("medium");
 
   // Animation for theme toggle
   const opacity = useSharedValue(1);
@@ -319,9 +321,7 @@ export default function MobileCoreScreen() {
           {/* Glass preview */}
           {glassEnabled ? (
             <GlassSurface intensity={blurIntensity} style={styles.glassSample}>
-              <TText>
-                Glass Preview ({blurIntensity})
-              </TText>
+              <TText>Glass Preview ({blurIntensity})</TText>
             </GlassSurface>
           ) : (
             <View
@@ -341,14 +341,22 @@ export default function MobileCoreScreen() {
         <GlassCard style={styles.section}>
           <TText variant="heading">Header</TText>
           <TSpacer size="md" />
-          <Header title="Page Title" subtitle="Optional subtitle" align="left" />
+          <Header
+            title="Page Title"
+            subtitle="Optional subtitle"
+            align="left"
+          />
           <TSpacer size="sm" />
           <TDivider />
           <TSpacer size="sm" />
           <Header
             title="With Action"
             trailing={
-              <Ionicons name="ellipsis-horizontal" size={20} color={theme.colors.text} />
+              <Ionicons
+                name="ellipsis-horizontal"
+                size={20}
+                color={theme.colors.text}
+              />
             }
           />
         </GlassCard>
@@ -415,19 +423,30 @@ export default function MobileCoreScreen() {
         <GlassCard style={styles.section}>
           <TText variant="heading">Toast</TText>
           <TSpacer size="md" />
-          <TButton onPress={() => toast.show("Operation successful", "success")}>
+          <TButton
+            onPress={() => toast.show("Operation successful", "success")}
+          >
             Success Toast
           </TButton>
           <TSpacer size="sm" />
-          <TButton onPress={() => toast.show("Something went wrong", "error")} variant="secondary">
+          <TButton
+            onPress={() => toast.show("Something went wrong", "error")}
+            variant="secondary"
+          >
             Error Toast
           </TButton>
           <TSpacer size="sm" />
-          <TButton onPress={() => toast.show("Heads up!", "info")} variant="outline">
+          <TButton
+            onPress={() => toast.show("Heads up!", "info")}
+            variant="outline"
+          >
             Info Toast
           </TButton>
           <TSpacer size="sm" />
-          <TButton onPress={() => toast.show("Check this out", "warning")} variant="ghost">
+          <TButton
+            onPress={() => toast.show("Check this out", "warning")}
+            variant="ghost"
+          >
             Warning Toast
           </TButton>
         </GlassCard>

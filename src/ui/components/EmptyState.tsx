@@ -45,11 +45,7 @@ export function EmptyState({
           },
         ]}
       >
-        <Ionicons
-          name={icon}
-          size={32}
-          color={theme.colors.textMuted}
-        />
+        <Ionicons name={icon} size={32} color={theme.colors.textMuted} />
       </View>
       <TSpacer size="md" />
       <TText variant="subheading" style={styles.title}>
@@ -58,10 +54,7 @@ export function EmptyState({
       {subtitle && (
         <>
           <TSpacer size="xs" />
-          <TText
-            color="secondary"
-            style={styles.subtitle}
-          >
+          <TText color="secondary" style={styles.subtitle}>
             {subtitle}
           </TText>
         </>

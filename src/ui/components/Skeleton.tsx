@@ -55,7 +55,7 @@ export function Skeleton({
 
   const resolvedRadius = circle
     ? height / 2
-    : borderRadius ?? theme.radius.md;
+    : (borderRadius ?? theme.radius.md);
 
   return (
     <Animated.View

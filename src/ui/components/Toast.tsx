@@ -11,17 +11,13 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useRef,
-  useState,
+    createContext,
+    useCallback,
+    useContext,
+    useRef,
+    useState,
 } from "react";
-import {
-  Animated,
-  StyleSheet,
-  View,
-} from "react-native";
+import { Animated, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";

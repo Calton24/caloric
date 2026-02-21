@@ -6,7 +6,13 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Pressable, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
+import {
+    Pressable,
+    StyleProp,
+    StyleSheet,
+    View,
+    ViewStyle,
+} from "react-native";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -41,25 +47,23 @@ export function ListItem({
 
   const showChevron = chevron ?? !!onPress;
 
-  const leadingElement = leading ?? (icon ? (
-    <View
-      style={[
-        styles.iconWrapper,
-        {
-          backgroundColor: theme.colors.surfaceSecondary,
-          borderRadius: theme.radius.md,
-          width: 36,
-          height: 36,
-        },
-      ]}
-    >
-      <Ionicons
-        name={icon}
-        size={20}
-        color={theme.colors.primary}
-      />
-    </View>
-  ) : null);
+  const leadingElement =
+    leading ??
+    (icon ? (
+      <View
+        style={[
+          styles.iconWrapper,
+          {
+            backgroundColor: theme.colors.surfaceSecondary,
+            borderRadius: theme.radius.md,
+            width: 36,
+            height: 36,
+          },
+        ]}
+      >
+        <Ionicons name={icon} size={20} color={theme.colors.primary} />
+      </View>
+    ) : null);
 
   const content = (
     <View
@@ -90,13 +94,14 @@ export function ListItem({
         )}
       </View>
 
-      {trailing ?? (showChevron && (
-        <Ionicons
-          name="chevron-forward"
-          size={18}
-          color={theme.colors.textMuted}
-        />
-      ))}
+      {trailing ??
+        (showChevron && (
+          <Ionicons
+            name="chevron-forward"
+            size={18}
+            color={theme.colors.textMuted}
+          />
+        ))}
     </View>
   );
 
