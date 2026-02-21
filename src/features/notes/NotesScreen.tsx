@@ -27,7 +27,6 @@ import {
 import { analytics } from "../../analytics/analytics";
 import { flags } from "../../flags/flags";
 import { ErrorBoundary } from "../../infrastructure/errorReporting";
-import { useAuth } from "../auth/useAuth";
 import { logger } from "../../logging/logger";
 import { useTheme } from "../../theme/useTheme";
 import { GlassCard } from "../../ui/glass/GlassCard";
@@ -35,6 +34,7 @@ import { TButton } from "../../ui/primitives/TButton";
 import { TSpacer } from "../../ui/primitives/TSpacer";
 import { TText } from "../../ui/primitives/TText";
 import { useBottomSheet } from "../../ui/sheets/useBottomSheet";
+import { useAuth } from "../auth/useAuth";
 import { CreateNoteSheet } from "./CreateNoteSheet";
 import {
     fetchNotes,
