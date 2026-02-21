@@ -9,12 +9,12 @@
 import { getAppConfig } from "../../../config";
 import { getSupabaseClient } from "../../../lib/supabase";
 import type {
-  AuthClient,
-  AuthResponse,
-  OAuthProvider,
-  OAuthResponse,
-  Session,
-  User,
+    AuthClient,
+    AuthResponse,
+    OAuthProvider,
+    OAuthResponse,
+    Session,
+    User,
 } from "../authClient";
 
 export class SupabaseAuthClient implements AuthClient {
@@ -133,6 +133,22 @@ export class SupabaseAuthClient implements AuthClient {
     } catch (err) {
       return {
         error: err instanceof Error ? err : new Error("Password update failed"),
+      };
+    }
+  }
+
+  async exchangeCodeForSession(code: string): Promise<{ error: Error | null }> {
+    try {
+      const supabase = getSupabaseClient();
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      if (error) {
+        return { error: new Error(error.message) };
+      }
+      return { error: null };
+    } catch (err) {
+      return {
+        error:
+          err instanceof Error ? err : new Error("Code exchange failed"),
       };
     }
   }

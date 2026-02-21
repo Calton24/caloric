@@ -4,12 +4,12 @@
  */
 
 import type {
-  AuthClient,
-  AuthResponse,
-  OAuthProvider,
-  OAuthResponse,
-  Session,
-  User,
+    AuthClient,
+    AuthResponse,
+    OAuthProvider,
+    OAuthResponse,
+    Session,
+    User,
 } from "../authClient";
 
 export class MockAuthClient implements AuthClient {
@@ -116,6 +116,12 @@ export class MockAuthClient implements AuthClient {
     if (newPassword.length < 6) {
       return { error: new Error("Password must be at least 6 characters") };
     }
+    return { error: null };
+  }
+
+  async exchangeCodeForSession(_code: string): Promise<{ error: Error | null }> {
+    await delay(300);
+    // Mock: simulate successful code exchange
     return { error: null };
   }
 

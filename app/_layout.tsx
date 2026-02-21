@@ -9,6 +9,10 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: "modal" }} />
         <Stack.Screen
+          name="auth/forgot-password"
+          options={{ presentation: "modal", title: "Forgot Password" }}
+        />
+        <Stack.Screen
           name="auth/reset-password"
           options={{ presentation: "modal", title: "Reset Password" }}
         />

@@ -43,6 +43,7 @@ export interface AuthClient {
   resetPasswordForEmail(email: string): Promise<{ error: Error | null }>;
   updatePassword(newPassword: string): Promise<{ error: Error | null }>;
   signInWithOAuth(provider: OAuthProvider): Promise<OAuthResponse>;
+  exchangeCodeForSession(code: string): Promise<{ error: Error | null }>;
   getSession(): Promise<{ session: Session | null; error: Error | null }>;
   onAuthStateChange(callback: (session: Session | null) => void): () => void;
 }
@@ -104,6 +105,7 @@ export const authClient: AuthClient = {
   resetPasswordForEmail: (...args) => client.resetPasswordForEmail(...args),
   updatePassword: (...args) => client.updatePassword(...args),
   signInWithOAuth: (...args) => client.signInWithOAuth(...args),
+  exchangeCodeForSession: (...args) => client.exchangeCodeForSession(...args),
   getSession: (...args) => client.getSession(...args),
   onAuthStateChange: (...args) => client.onAuthStateChange(...args),
 };

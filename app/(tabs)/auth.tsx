@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import React, { useState } from "react";
 import {
@@ -24,8 +25,8 @@ import { TText } from "../../src/ui/primitives/TText";
 
 export default function AuthScreen() {
   const { theme } = useTheme();
-  const { signIn, signUp, user, signOut, resetPassword, signInWithOAuth } =
-    useAuth();
+  const { signIn, signUp, user, signOut, signInWithOAuth } = useAuth();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -89,25 +90,8 @@ export default function AuthScreen() {
     setConfirmPassword("");
   };
 
-  const handleForgotPassword = async () => {
-    if (!email) {
-      Alert.alert("Email Required", "Enter your email first, then tap Forgot Password.");
-      return;
-    }
-    setLoading(true);
-    try {
-      const { error } = await resetPassword(email);
-      if (error) {
-        Alert.alert("Error", error.message);
-      } else {
-        Alert.alert(
-          "Check Your Email",
-          "We sent a password reset link to " + email
-        );
-      }
-    } finally {
-      setLoading(false);
-    }
+  const handleForgotPassword = () => {
+    router.push("/auth/forgot-password");
   };
 
   const handleGoogleSignIn = async () => {
@@ -219,163 +203,169 @@ export default function AuthScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-        <View style={styles.content}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TText variant="heading" style={styles.title}>
-              {isSignUp ? "Create Account" : "Welcome"}
-            </TText>
-            <TSpacer size="sm" />
-            <TText color="secondary">
-              {isSignUp ? "Sign up to get started" : "Sign in to continue"}
-            </TText>
-          </View>
+          <View style={styles.content}>
+            {/* Header */}
+            <View style={styles.header}>
+              <TText variant="heading" style={styles.title}>
+                {isSignUp ? "Create Account" : "Welcome"}
+              </TText>
+              <TSpacer size="sm" />
+              <TText color="secondary">
+                {isSignUp ? "Sign up to get started" : "Sign in to continue"}
+              </TText>
+            </View>
 
-          <TSpacer size="xl" />
+            <TSpacer size="xl" />
 
-          {/* Auth Form */}
-          <GlassCard style={styles.formCard}>
-            <TText variant="heading">{isSignUp ? "Sign Up" : "Sign In"}</TText>
-            <TSpacer size="lg" />
+            {/* Auth Form */}
+            <GlassCard style={styles.formCard}>
+              <TText variant="heading">
+                {isSignUp ? "Sign Up" : "Sign In"}
+              </TText>
+              <TSpacer size="lg" />
 
-            {/* Email Input */}
-            <TText color="secondary" style={styles.label}>
-              Email
-            </TText>
-            <TSpacer size="xs" />
-            <TInput
-              testID="email-input"
-              placeholder="Enter your email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
+              {/* Email Input */}
+              <TText color="secondary" style={styles.label}>
+                Email
+              </TText>
+              <TSpacer size="xs" />
+              <TInput
+                testID="email-input"
+                placeholder="Enter your email"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
 
-            <TSpacer size="md" />
+              <TSpacer size="md" />
 
-            {/* Password Input */}
-            <TText color="secondary" style={styles.label}>
-              Password
-            </TText>
-            <TSpacer size="xs" />
-            <TInput
-              testID="password-input"
-              placeholder="Enter your password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-            />
+              {/* Password Input */}
+              <TText color="secondary" style={styles.label}>
+                Password
+              </TText>
+              <TSpacer size="xs" />
+              <TInput
+                testID="password-input"
+                placeholder="Enter your password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoCapitalize="none"
+              />
 
-            <TSpacer size="xs" />
+              <TSpacer size="xs" />
 
-            {/* Confirm Password (Sign Up Only) */}
-            {isSignUp && (
-              <>
-                <TText color="secondary" style={styles.label}>
-                  Confirm Password
+              {/* Confirm Password (Sign Up Only) */}
+              {isSignUp && (
+                <>
+                  <TText color="secondary" style={styles.label}>
+                    Confirm Password
+                  </TText>
+                  <TSpacer size="xs" />
+                  <TInput
+                    testID="confirm-password-input"
+                    placeholder="Confirm your password"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry
+                    autoCapitalize="none"
+                  />
+                </>
+              )}
+
+              {/* Forgot Password Link (Sign In Only) — tight to field */}
+              {!isSignUp && (
+                <View style={styles.forgotRow}>
+                  <TButton
+                    onPress={handleForgotPassword}
+                    variant="ghost"
+                    size="sm"
+                  >
+                    <TText color="primary" style={styles.forgotText}>
+                      Forgot Password?
+                    </TText>
+                  </TButton>
+                </View>
+              )}
+
+              <TSpacer size="lg" />
+
+              {/* Submit Button */}
+              <TButton
+                testID="submit-button"
+                onPress={isSignUp ? handleSignUpSubmit : handleLogin}
+                loading={loading}
+                disabled={loading}
+              >
+                {isSignUp ? "Create Account" : "Sign In"}
+              </TButton>
+
+              <TSpacer size="md" />
+
+              {/* Toggle Auth Mode Link */}
+              <View style={styles.signUpContainer}>
+                <TText color="secondary">
+                  {isSignUp
+                    ? "Already have an account? "
+                    : "Don't have an account? "}
                 </TText>
-                <TSpacer size="xs" />
-                <TInput
-                  testID="confirm-password-input"
-                  placeholder="Confirm your password"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry
-                  autoCapitalize="none"
-                />
-              </>
-            )}
-
-            {/* Forgot Password Link (Sign In Only) — tight to field */}
-            {!isSignUp && (
-              <View style={styles.forgotRow}>
-                <TButton onPress={handleForgotPassword} variant="ghost" size="sm">
-                  <TText color="primary" style={styles.forgotText}>
-                    Forgot Password?
+                <TButton
+                  testID="toggle-auth-mode"
+                  onPress={toggleAuthMode}
+                  variant="ghost"
+                >
+                  <TText color="primary" style={styles.signUpText}>
+                    {isSignUp ? "Sign In" : "Sign Up"}
                   </TText>
                 </TButton>
               </View>
-            )}
+            </GlassCard>
 
-            <TSpacer size="lg" />
+            <TSpacer size="xl" />
 
-            {/* Submit Button */}
-            <TButton
-              testID="submit-button"
-              onPress={isSignUp ? handleSignUpSubmit : handleLogin}
-              loading={loading}
-              disabled={loading}
-            >
-              {isSignUp ? "Create Account" : "Sign In"}
-            </TButton>
-
-            <TSpacer size="md" />
-
-            {/* Toggle Auth Mode Link */}
-            <View style={styles.signUpContainer}>
-              <TText color="secondary">
-                {isSignUp
-                  ? "Already have an account? "
-                  : "Don't have an account? "}
+            {/* Social Login Options */}
+            <GlassCard style={styles.socialCard}>
+              <TText variant="heading" style={styles.orText}>
+                Or continue with
               </TText>
+              <TSpacer size="md" />
+
               <TButton
-                testID="toggle-auth-mode"
-                onPress={toggleAuthMode}
-                variant="ghost"
+                onPress={handleGoogleSignIn}
+                variant="outline"
+                disabled={loading}
               >
-                <TText color="primary" style={styles.signUpText}>
-                  {isSignUp ? "Sign In" : "Sign Up"}
-                </TText>
+                <View style={styles.socialButton}>
+                  <Ionicons
+                    name="logo-google"
+                    size={20}
+                    color={theme.colors.text}
+                  />
+                  <View style={{ width: 12 }} />
+                  <TText>Continue with Google</TText>
+                </View>
               </TButton>
-            </View>
-          </GlassCard>
-
-          <TSpacer size="xl" />
-
-          {/* Social Login Options */}
-          <GlassCard style={styles.socialCard}>
-            <TText variant="heading" style={styles.orText}>
-              Or continue with
-            </TText>
-            <TSpacer size="md" />
-
-            <TButton
-              onPress={handleGoogleSignIn}
-              variant="outline"
-              disabled={loading}
-            >
-              <View style={styles.socialButton}>
-                <Ionicons
-                  name="logo-google"
-                  size={20}
-                  color={theme.colors.text}
-                />
-                <View style={{ width: 12 }} />
-                <TText>Continue with Google</TText>
-              </View>
-            </TButton>
-            <TSpacer size="sm" />
-            <TButton
-              onPress={handleAppleSignIn}
-              variant="outline"
-              disabled={loading}
-            >
-              <View style={styles.socialButton}>
-                <Ionicons
-                  name="logo-apple"
-                  size={20}
-                  color={theme.colors.text}
-                />
-                <View style={{ width: 12 }} />
-                <TText>Continue with Apple</TText>
-              </View>
-            </TButton>
-          </GlassCard>
-        </View>
-      </ScrollView>
+              <TSpacer size="sm" />
+              <TButton
+                onPress={handleAppleSignIn}
+                variant="outline"
+                disabled={loading}
+              >
+                <View style={styles.socialButton}>
+                  <Ionicons
+                    name="logo-apple"
+                    size={20}
+                    color={theme.colors.text}
+                  />
+                  <View style={{ width: 12 }} />
+                  <TText>Continue with Apple</TText>
+                </View>
+              </TButton>
+            </GlassCard>
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

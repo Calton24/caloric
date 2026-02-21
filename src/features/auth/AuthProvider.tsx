@@ -21,6 +21,7 @@ export interface AuthContextValue {
   signOut: () => Promise<{ error: Error | null }>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
   updatePassword: (newPassword: string) => Promise<{ error: Error | null }>;
+  exchangeCodeForSession: (code: string) => Promise<{ error: Error | null }>;
   signInWithOAuth: (provider: OAuthProvider) => Promise<OAuthResponse>;
 }
 
@@ -102,6 +103,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return await authClient.updatePassword(newPassword);
   }, []);
 
+  const exchangeCodeForSession = useCallback(async (code: string) => {
+    return await authClient.exchangeCodeForSession(code);
+  }, []);
+
   const signInWithOAuth = useCallback(async (provider: OAuthProvider) => {
     return await authClient.signInWithOAuth(provider);
   }, []);
@@ -115,6 +120,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     signOut,
     resetPassword,
     updatePassword,
+    exchangeCodeForSession,
     signInWithOAuth,
   };
 
