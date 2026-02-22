@@ -112,7 +112,7 @@ export function TBadge({
           {
             fontSize: s.fontSize,
             fontWeight: "600",
-            color: outline ? color : color,
+            color,
           },
         ]}
       >

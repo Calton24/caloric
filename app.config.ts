@@ -117,6 +117,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       enableSentryInDev:
         process.env.EXPO_PUBLIC_ENABLE_SENTRY_IN_DEV === "true",
       environment: appEnv,
+      // Analytics (PostHog) — static reads so the bundler inlines them
+      POSTHOG_API_KEY: process.env.EXPO_PUBLIC_POSTHOG_API_KEY,
+      POSTHOG_HOST: process.env.EXPO_PUBLIC_POSTHOG_HOST,
       eas: {
         projectId: process.env.EAS_PROJECT_ID || "your-eas-project-id",
       },

@@ -8,7 +8,9 @@ import React, { useEffect } from "react";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { getAppConfig } from "./config";
 import { AuthProvider } from "./features/auth/AuthProvider";
+import { analytics, initAnalytics } from "./infrastructure/analytics";
 import {
     ErrorBoundary,
     initErrorReporting,
@@ -31,11 +33,18 @@ export function MobileCoreProviders({
   children,
   testID,
 }: MobileCoreProvidersProps) {
-  // Initialize error reporting on mount
+  // Initialize cross-cutting infrastructure on mount
   useEffect(() => {
     const reporter = initErrorReporting();
     if (reporter.isEnabled()) {
       console.log("[MobileCore] Error reporting initialized");
+    }
+
+    initAnalytics();
+
+    if (__DEV__) {
+      const cfg = getAppConfig();
+      analytics.track("app_booted", { profile: cfg.profile });
     }
   }, []);
 

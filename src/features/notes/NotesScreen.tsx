@@ -25,8 +25,8 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { analytics } from "../../analytics/analytics";
 import { flags } from "../../flags/flags";
+import { analytics } from "../../infrastructure/analytics";
 import { ErrorBoundary } from "../../infrastructure/errorReporting";
 import { logger } from "../../logging/logger";
 import { useTheme } from "../../theme/useTheme";

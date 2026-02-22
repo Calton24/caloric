@@ -4,12 +4,13 @@
  */
 
 import React, { createContext, useCallback, useEffect, useState } from "react";
+import { analytics } from "../../infrastructure/analytics";
 import {
-  authClient,
-  OAuthProvider,
-  OAuthResponse,
-  Session,
-  User,
+    authClient,
+    OAuthProvider,
+    OAuthResponse,
+    Session,
+    User,
 } from "./authClient";
 
 export interface AuthContextValue {
@@ -44,14 +45,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (initialSession) {
         setSession(initialSession);
         setUser(initialSession.user);
+        analytics.identify(initialSession.user.id, {
+          email: initialSession.user.email,
+        });
       }
       setIsLoading(false);
     });
 
-    // Subscribe to auth state changes
+    // Subscribe to auth state changes — single choke point for analytics
+    // identity. Fires for signIn, signUp, OAuth, deep-link token exchange,
+    // and token refresh. This means we don't need manual identify/reset in
+    // each handler.
     const unsubscribe = authClient.onAuthStateChange((newSession) => {
+      const prevUser = user;
       setSession(newSession);
       setUser(newSession?.user || null);
+
+      if (newSession?.user) {
+        // New authenticated session — identify
+        analytics.identify(newSession.user.id, {
+          email: newSession.user.email,
+        });
+      } else if (prevUser && !newSession?.user) {
+        // Went from authenticated → unauthenticated — reset
+        analytics.reset();
+      }
     });
 
     return unsubscribe;
@@ -67,6 +85,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (!error && authUser && authSession) {
       setUser(authUser);
       setSession(authSession);
+      // identify() handled by onAuthStateChange listener
+      analytics.track("sign_in", { method: "email" });
     }
 
     return { error };
@@ -82,16 +102,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (!error && authUser && authSession) {
       setUser(authUser);
       setSession(authSession);
+      // identify() handled by onAuthStateChange listener
+      analytics.track("sign_up", { method: "email" });
     }
 
     return { error };
   }, []);
 
   const signOut = useCallback(async () => {
+    // Track before reset so the event still has a user identity attached
+    analytics.track("sign_out");
     const { error } = await authClient.signOut();
     // Always clear local state even if API fails
     setUser(null);
     setSession(null);
+    // reset() handled by onAuthStateChange listener
     return { error };
   }, []);
 

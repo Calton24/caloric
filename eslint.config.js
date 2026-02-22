@@ -22,6 +22,7 @@ module.exports = defineConfig([
             '@react-native-firebase/analytics',
             '@react-native-firebase/crashlytics',
             '@react-native-firebase/perf',
+            'posthog-react-native',
           ],
         },
       ],
@@ -35,7 +36,6 @@ module.exports = defineConfig([
   // Only these zones may touch third-party packages:
   //   - src/infrastructure/**  (provider implementations + abstractions)
   //   - src/lib/**             (thin SDK wrappers, e.g. Supabase client)
-  //   - src/analytics/**       (TODO: migrate to src/infrastructure/analytics/)
   //
   // Dependency direction:  UI → features → abstractions → vendors → nothing
   // This rule is the physical enforcement of that direction.
@@ -45,7 +45,7 @@ module.exports = defineConfig([
     ignores: [
       'src/infrastructure/**',
       'src/lib/**',
-      'src/analytics/**',   // legacy provider location — migrate later
+      // src/analytics/ removed — migrated to src/infrastructure/analytics/
       'src/examples/**',    // example/reference code, not production
     ],
     rules: {

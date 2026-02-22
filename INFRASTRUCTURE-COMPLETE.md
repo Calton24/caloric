@@ -109,12 +109,10 @@ export class PostHogAnalyticsClient implements AnalyticsClient {
 **Usage:**
 
 ```typescript
-import { analytics, setAnalyticsClient } from "src/analytics/analytics";
-import { PostHogAnalyticsClient } from "src/analytics/posthog.client";
+import { analytics } from "@/src/infrastructure/analytics";
 
-// Setup (in App.tsx or similar)
-const posthog = new PostHogAnalyticsClient(POSTHOG_KEY, POSTHOG_HOST);
-setAnalyticsClient(posthog);
+// Analytics is auto-initialized by MobileCoreProviders.
+// Set EXPO_PUBLIC_POSTHOG_API_KEY in .env to enable PostHog.
 
 // Use anywhere
 analytics.track("button_clicked", { screen: "home" });
@@ -374,15 +372,15 @@ This enables co-located tests with source files while maintaining backward compa
 
 ### To enable PostHog analytics:
 
-1. Install: `npm install posthog-react-native`
-2. Setup:
+1. Set `EXPO_PUBLIC_POSTHOG_API_KEY` in `.env` or `eas.json`
+2. Set `features.analytics: true` in your config profile
+3. Install in your fork: `npm install posthog-react-native`
+
+Analytics is auto-initialized by `MobileCoreProviders`. No manual setup needed.
 
 ```typescript
-import { setAnalyticsClient } from "src/analytics/analytics";
-import { PostHogAnalyticsClient } from "src/analytics/posthog.client";
-
-const posthog = new PostHogAnalyticsClient(POSTHOG_KEY, POSTHOG_HOST);
-setAnalyticsClient(posthog);
+import { analytics } from "@/src/infrastructure/analytics";
+analytics.track("purchase_completed", { plan: "pro" });
 ```
 
 ### To enable custom logger (e.g., Sentry):

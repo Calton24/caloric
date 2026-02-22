@@ -5,7 +5,7 @@
 
 import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { analytics } from "../../analytics/analytics";
+import { analytics } from "../../infrastructure/analytics";
 import { logger } from "../../logging/logger";
 import { useTheme } from "../../theme/useTheme";
 import { TButton } from "../../ui/primitives/TButton";

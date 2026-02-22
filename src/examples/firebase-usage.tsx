@@ -1,24 +1,24 @@
 /**
- * Firebase Integration Example
- * Shows how to use Firebase in your mobile-core app
+ * Infrastructure Integration Examples
+ *
+ * Shows how to use:
+ *  - Analytics (PostHog via src/infrastructure/analytics)
+ *  - Crashlytics (Firebase via src/lib/firebase)
+ *
+ * Analytics is vendor-agnostic — feature code never imports PostHog directly.
+ * Crashlytics stays Firebase-native (no abstraction needed today).
  */
 
 import { getAppConfig } from "@/src/config";
+import { analytics } from "@/src/infrastructure/analytics";
 import {
     didCrashOnPreviousExecution,
     initializeFirebase,
     isFirebaseReady,
-    logLogin,
-    logPurchase,
-    logScreenView,
     // Crashlytics
     recordError,
     setAttributes,
     setCrashUserId,
-    setUserId,
-    setUserProperties,
-    // Analytics
-    trackEvent,
 } from "@/src/lib/firebase";
 import React from "react";
 import { Button, Text, View } from "react-native";
@@ -50,9 +50,9 @@ export function FirebaseInitExample() {
 // Example 2: Track User Events
 // ============================================
 export function TrackEventExample() {
-  const handleFoodScanned = async (foodType: string, calories: number) => {
-    // Track custom event
-    await trackEvent("food_scanned", {
+  const handleFoodScanned = (foodType: string, calories: number) => {
+    // Track custom event via analytics singleton
+    analytics.track("food_scanned", {
       food_type: foodType,
       calories: calories,
       meal_time: new Date().getHours() < 12 ? "breakfast" : "lunch",
@@ -72,7 +72,7 @@ export function TrackEventExample() {
 export function ScreenViewExample() {
   React.useEffect(() => {
     // Log screen view when component mounts
-    logScreenView("HomeScreen", "Home");
+    analytics.screen("HomeScreen", { section: "Home" });
   }, []);
 
   return <Text>Home Screen</Text>;
@@ -83,20 +83,17 @@ export function ScreenViewExample() {
 // ============================================
 export function UserContextExample() {
   const handleLogin = async (userId: string, email: string) => {
-    // Set user ID for analytics
-    await setUserId(userId);
-
-    // Set user properties for segmentation
-    await setUserProperties({
+    // Identify user for analytics segmentation
+    analytics.identify(userId, {
       subscription_tier: "free",
       signup_date: new Date().toISOString().split("T")[0],
       preferred_language: "en",
     });
 
-    // Log login event
-    await logLogin("email");
+    // Track login event
+    analytics.track("login", { method: "email" });
 
-    // Set user ID for crash reports
+    // Set user ID for crash reports (still Firebase-native)
     await setCrashUserId(userId);
 
     // Set crash attributes
@@ -106,7 +103,7 @@ export function UserContextExample() {
       app_version: "1.0.0",
     });
 
-    console.log("User context set for Firebase");
+    console.log("User context set");
   };
 
   return (
@@ -201,22 +198,15 @@ export function ErrorBoundaryExample() {
 // Example 7: Track E-Commerce Events
 // ============================================
 export function EcommerceExample() {
-  const handlePurchase = async () => {
-    // Track purchase event
-    await logPurchase(9.99, "USD", [
-      {
-        item_id: "premium_monthly",
-        item_name: "Premium Subscription",
-        item_category: "subscription",
-        price: 9.99,
-        quantity: 1,
-      },
-    ]);
-
-    await trackEvent("subscription_purchased", {
-      plan: "premium_monthly",
+  const handlePurchase = () => {
+    // Track purchase via analytics singleton
+    analytics.track("purchase", {
+      item_id: "premium_monthly",
+      item_name: "Premium Subscription",
+      item_category: "subscription",
       price: 9.99,
       currency: "USD",
+      quantity: 1,
     });
   };
 
@@ -241,16 +231,15 @@ export function CrashCheckExample() {
 }
 
 // ============================================
-// Example 9: Feature Flag Driven Firebase
+// Example 9: Feature Flag Driven Analytics
 // ============================================
 export function FeatureFlagExample() {
   const config = getAppConfig();
 
-  const handleButtonClick = async () => {
-    // Only track if Firebase Analytics is enabled
-    if (config.features.firebaseAnalytics) {
-      await trackEvent("button_clicked", { button_id: "cta_primary" });
-    }
+  const handleButtonClick = () => {
+    // analytics.track() is always safe to call — if the config profile
+    // disables analytics, the singleton is a NoopAnalyticsClient.
+    analytics.track("button_clicked", { button_id: "cta_primary" });
 
     // Your button logic
     console.log("Button clicked");
@@ -260,10 +249,9 @@ export function FeatureFlagExample() {
     <View>
       <Button title="Click Me" onPress={handleButtonClick} />
 
-      {/* Show Firebase status */}
+      {/* Show infrastructure status */}
       <Text>
-        Firebase Analytics:{" "}
-        {config.features.firebaseAnalytics ? "Enabled" : "Disabled"}
+        Analytics: {config.features.analytics ? "Enabled" : "Disabled"}
       </Text>
       <Text>
         Crashlytics: {config.features.crashReporting ? "Enabled" : "Disabled"}
@@ -280,7 +268,7 @@ export function CompleteAppSetup() {
 
   React.useEffect(() => {
     const initializeApp = async () => {
-      // 1. Initialize Firebase
+      // 1. Initialize Firebase (Crashlytics + Performance)
       const firebaseReady = await initializeFirebase();
 
       if (firebaseReady) {
@@ -289,15 +277,16 @@ export function CompleteAppSetup() {
         // 2. Check previous crash
         const crashed = await didCrashOnPreviousExecution();
         if (crashed) {
-          await trackEvent("app_recovered_from_crash");
+          analytics.track("app_recovered_from_crash");
         }
-
-        // 3. Track app open
-        await trackEvent("app_open", {
-          platform: "ios", // or Platform.OS
-          version: "1.0.0",
-        });
       }
+
+      // 3. Analytics is initialized separately via initAnalytics()
+      //    in MobileCoreProviders — no manual setup needed here.
+      analytics.track("app_open", {
+        platform: "ios",
+        version: "1.0.0",
+      });
 
       setIsReady(true);
     };

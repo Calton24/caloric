@@ -1,22 +1,22 @@
 /**
  * Analytics Tests
+ * Migrated from src/analytics/analytics.test.ts → src/infrastructure/analytics/
  */
 
 import { analytics, getAnalyticsClient, setAnalyticsClient } from "./analytics";
-import type { AnalyticsClient } from "./analytics.types";
-import { NoopAnalyticsClient } from "./analytics.types";
+import { NoopAnalyticsClient } from "./NoopAnalyticsClient";
+import type { AnalyticsClient } from "./types";
 
 describe("Analytics", () => {
   let mockClient: jest.Mocked<AnalyticsClient>;
 
   beforeEach(() => {
-    // Reset to noop client before each test
     setAnalyticsClient(new NoopAnalyticsClient());
 
-    // Create mock client
     mockClient = {
       identify: jest.fn(),
       track: jest.fn(),
+      screen: jest.fn(),
       reset: jest.fn(),
     };
   });
@@ -26,6 +26,7 @@ describe("Analytics", () => {
       expect(() => {
         analytics.track("test_event");
         analytics.identify("user123");
+        analytics.screen("home");
         analytics.reset();
       }).not.toThrow();
     });
@@ -39,8 +40,7 @@ describe("Analytics", () => {
   describe("Client Swapping", () => {
     it("should swap to custom client", () => {
       setAnalyticsClient(mockClient);
-      const currentClient = getAnalyticsClient();
-      expect(currentClient).toBe(mockClient);
+      expect(getAnalyticsClient()).toBe(mockClient);
     });
 
     it("should call custom client methods", () => {
@@ -54,6 +54,11 @@ describe("Analytics", () => {
       analytics.track("button_clicked", { button: "submit" });
       expect(mockClient.track).toHaveBeenCalledWith("button_clicked", {
         button: "submit",
+      });
+
+      analytics.screen("settings", { tab: "account" });
+      expect(mockClient.screen).toHaveBeenCalledWith("settings", {
+        tab: "account",
       });
 
       analytics.reset();
@@ -70,6 +75,9 @@ describe("Analytics", () => {
         track: () => {
           throw new Error("Test error");
         },
+        screen: () => {
+          throw new Error("Test error");
+        },
         reset: () => {
           throw new Error("Test error");
         },
@@ -80,6 +88,7 @@ describe("Analytics", () => {
       expect(() => {
         analytics.identify("user123");
         analytics.track("event");
+        analytics.screen("home");
         analytics.reset();
       }).not.toThrow();
     });
@@ -93,6 +102,9 @@ describe("Analytics", () => {
         track: () => {
           throw new Error("Test error");
         },
+        screen: () => {
+          throw new Error("Test error");
+        },
         reset: () => {
           throw new Error("Test error");
         },
@@ -102,9 +114,10 @@ describe("Analytics", () => {
 
       analytics.identify("user123");
       analytics.track("event");
+      analytics.screen("home");
       analytics.reset();
 
-      expect(consoleWarnSpy).toHaveBeenCalledTimes(3);
+      expect(consoleWarnSpy).toHaveBeenCalledTimes(4);
       consoleWarnSpy.mockRestore();
     });
   });
@@ -116,6 +129,7 @@ describe("Analytics", () => {
       expect(() => {
         noop.identify("user123", { email: "test@example.com" });
         noop.track("event", { prop: "value" });
+        noop.screen("home", { from: "deep_link" });
         noop.reset();
       }).not.toThrow();
     });
