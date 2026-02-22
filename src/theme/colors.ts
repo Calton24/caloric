@@ -136,15 +136,15 @@ export function generatePalette(
       overlayHeavy: "rgba(0, 0, 0, 0.6)",
 
       // Glass Effects
-      glassBackground: "rgba(255, 255, 255, 0.7)",
-      glassBorder: "rgba(255, 255, 255, 0.3)",
-      glassTint: neutrals[0],
+      glassBackground: "rgba(180, 184, 192, 0.55)",
+      glassBorder: "rgba(0, 0, 0, 0.08)",
+      glassTint: neutrals[2],
 
       // Glass Widget Kit
-      glassTintLight: "rgba(255, 255, 255, 0.18)",
-      glassTintDark: "rgba(0, 0, 0, 0.06)",
-      glassBorderHighlight: "rgba(255, 255, 255, 0.45)",
-      glassShadow: "rgba(0, 0, 0, 0.12)",
+      glassTintLight: "rgba(140, 140, 148, 0.14)",
+      glassTintDark: "rgba(0, 0, 0, 0.10)",
+      glassBorderHighlight: "rgba(255, 255, 255, 0.60)",
+      glassShadow: "rgba(0, 0, 0, 0.18)",
       glassActiveRing: brandScale[5],
     };
   } else {

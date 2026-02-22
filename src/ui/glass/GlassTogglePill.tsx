@@ -1,15 +1,22 @@
 /**
  * GlassTogglePill
  * Large pill control — toggle, menu, or mixed mode (iOS Focus style).
+ * Animated active state transitions for premium feel.
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback } from "react";
-import { Pressable, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
+import React, { useCallback, useEffect } from "react";
+import {
+    Pressable,
+    StyleProp,
+    StyleSheet,
+    ViewStyle
+} from "react-native";
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
+    interpolateColor,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
 } from "react-native-reanimated";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
@@ -36,7 +43,8 @@ interface GlassTogglePillProps {
   style?: StyleProp<ViewStyle>;
 }
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const AnimatedView = Animated.View;
+const TOGGLE_TIMING = { duration: 250 };
 
 export function GlassTogglePill({
   leadingIcon,
@@ -56,6 +64,12 @@ export function GlassTogglePill({
 }: GlassTogglePillProps) {
   const { theme } = useTheme();
   const scale = useSharedValue(1);
+  const activeProgress = useSharedValue(value ? 1 : 0);
+
+  // Animate active state in/out
+  useEffect(() => {
+    activeProgress.value = withTiming(value ? 1 : 0, TOGGLE_TIMING);
+  }, [value, activeProgress]);
 
   const handlePressIn = useCallback(() => {
     scale.value = withTiming(0.96, { duration: 80 });
@@ -65,8 +79,22 @@ export function GlassTogglePill({
     scale.value = withTiming(1, { duration: 120 });
   }, [scale]);
 
-  const animatedStyle = useAnimatedStyle(() => ({
+  const animatedScale = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
+  }));
+
+  // Background tint fades in when active
+  const tintAnimStyle = useAnimatedStyle(() => ({
+    opacity: activeProgress.value * 0.25,
+  }));
+
+  // Leading icon circle color animates
+  const iconCircleStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+      activeProgress.value,
+      [0, 1],
+      [theme.colors.surfaceSecondary, theme.colors.glassActiveRing]
+    ),
   }));
 
   const handleBodyPress = useCallback(() => {
@@ -77,11 +105,15 @@ export function GlassTogglePill({
     }
   }, [mode, onToggle, onPressMenu]);
 
-  const iconColor = value ? theme.colors.text : theme.colors.textSecondary;
+  const iconColor = value
+    ? theme.colors.textInverse
+    : theme.colors.textSecondary;
   const labelColor = value ? "primary" : "secondary";
 
   return (
-    <Animated.View style={[animatedStyle, { opacity: disabled ? 0.4 : 1 }, style]}>
+    <AnimatedView
+      style={[animatedScale, { opacity: disabled ? 0.4 : 1 }, style]}
+    >
       <GlassSurface
         variant="pill"
         border={value}
@@ -91,19 +123,18 @@ export function GlassTogglePill({
         tint={tint}
         style={styles.pill}
       >
-        {/* Active background tint */}
-        {value && (
-          <View
-            style={[
-              StyleSheet.absoluteFill,
-              {
-                backgroundColor: theme.colors.glassTintLight,
-                borderRadius: theme.radius.full,
-              },
-            ]}
-            pointerEvents="none"
-          />
-        )}
+        {/* Animated active background tint */}
+        <AnimatedView
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              backgroundColor: theme.colors.glassTintLight,
+              borderRadius: theme.radius.full,
+            },
+            tintAnimStyle,
+          ]}
+          pointerEvents="none"
+        />
 
         <Pressable
           onPress={handleBodyPress}
@@ -120,28 +151,11 @@ export function GlassTogglePill({
           style={styles.bodyPressable}
         >
           {leadingIcon && (
-            <View
-              style={[
-                styles.leadingIconWrap,
-                {
-                  backgroundColor: value
-                    ? theme.colors.glassActiveRing
-                    : theme.colors.surfaceSecondary,
-                },
-              ]}
-            >
-              <Ionicons
-                name={leadingIcon}
-                size={18}
-                color={value ? theme.colors.textInverse : iconColor}
-              />
-            </View>
+            <AnimatedView style={[styles.leadingIconWrap, iconCircleStyle]}>
+              <Ionicons name={leadingIcon} size={18} color={iconColor} />
+            </AnimatedView>
           )}
-          <TText
-            color={labelColor}
-            style={styles.label}
-            numberOfLines={1}
-          >
+          <TText color={labelColor} style={styles.label} numberOfLines={1}>
             {label}
           </TText>
         </Pressable>
@@ -164,7 +178,7 @@ export function GlassTogglePill({
           </Pressable>
         )}
       </GlassSurface>
-    </Animated.View>
+    </AnimatedView>
   );
 }
 

@@ -1,15 +1,16 @@
 /**
  * GlassIconButton
  * Circular quick-action button with glass background — iOS Control Center style.
+ * Animated press scale + smooth active ring fade.
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback } from "react";
-import { Pressable, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
+import React, { useCallback, useEffect } from "react";
+import { Pressable, StyleProp, StyleSheet, ViewStyle } from "react-native";
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
 } from "react-native-reanimated";
 import { useTheme } from "../../theme/useTheme";
 import { GlassSurface } from "./GlassSurface";
@@ -57,6 +58,12 @@ export function GlassIconButton({
   const { theme } = useTheme();
   const dims = SIZE_MAP[size];
   const scale = useSharedValue(1);
+  const ringOpacity = useSharedValue(active ? 0.5 : 0);
+
+  // Animate active ring in/out
+  useEffect(() => {
+    ringOpacity.value = withTiming(active ? 0.5 : 0, { duration: 220 });
+  }, [active, ringOpacity]);
 
   const handlePressIn = useCallback(() => {
     scale.value = withTiming(0.9, { duration: 100 });
@@ -68,6 +75,10 @@ export function GlassIconButton({
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
+  }));
+
+  const ringAnimStyle = useAnimatedStyle(() => ({
+    opacity: ringOpacity.value,
   }));
 
   const iconColor = disabled
@@ -103,21 +114,19 @@ export function GlassIconButton({
           },
         ]}
       >
-        {/* Active ring glow */}
-        {active && (
-          <View
-            style={[
-              StyleSheet.absoluteFill,
-              {
-                borderRadius: dims.container / 2,
-                borderWidth: 2,
-                borderColor: theme.colors.glassActiveRing,
-                opacity: 0.5,
-              },
-            ]}
-            pointerEvents="none"
-          />
-        )}
+        {/* Active ring glow — always mounted, opacity animated */}
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              borderRadius: dims.container / 2,
+              borderWidth: 2,
+              borderColor: theme.colors.glassActiveRing,
+            },
+            ringAnimStyle,
+          ]}
+          pointerEvents="none"
+        />
         <Ionicons name={icon} size={dims.icon} color={iconColor} />
       </GlassSurface>
     </AnimatedPressable>

@@ -1,6 +1,6 @@
 /**
  * Toast
- * Ephemeral feedback overlay. Shows a message briefly then auto-dismisses.
+ * Ephemeral feedback overlay. Slides in from the bottom, auto-dismisses.
  *
  * Usage:
  *   const toast = useToast();
@@ -37,7 +37,7 @@ interface ToastContextValue {
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
 const TOAST_DURATION = 2500;
-const ANIMATION_DURATION = 250;
+const ANIMATION_DURATION = 300;
 
 const variantIcons: Record<ToastVariant, keyof typeof Ionicons.glyphMap> = {
   success: "checkmark-circle",
@@ -50,7 +50,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const [toast, setToast] = useState<ToastState | null>(null);
-  const translateY = useRef(new Animated.Value(-100)).current;
+  const translateY = useRef(new Animated.Value(100)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const idRef = useRef(0);
@@ -58,7 +58,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const dismiss = useCallback(() => {
     Animated.parallel([
       Animated.timing(translateY, {
-        toValue: -100,
+        toValue: 100,
         duration: ANIMATION_DURATION,
         useNativeDriver: true,
       }),
@@ -78,15 +78,16 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       const id = ++idRef.current;
       setToast({ message, variant, id });
 
-      // Reset + animate in
-      translateY.setValue(-100);
+      // Reset + animate in from bottom
+      translateY.setValue(100);
       opacity.setValue(0);
 
       Animated.parallel([
-        Animated.timing(translateY, {
+        Animated.spring(translateY, {
           toValue: 0,
-          duration: ANIMATION_DURATION,
           useNativeDriver: true,
+          damping: 18,
+          stiffness: 200,
         }),
         Animated.timing(opacity, {
           toValue: 1,
@@ -123,7 +124,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           style={[
             styles.toastContainer,
             {
-              top: insets.top + 8,
+              bottom: insets.bottom + 80,
               transform: [{ translateY }],
               opacity,
             },
@@ -134,7 +135,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               styles.toast,
               {
                 backgroundColor: theme.colors.surfaceElevated,
-                borderRadius: theme.radius.lg,
+                borderRadius: theme.radius.xl,
                 borderLeftColor: colorForVariant(toast.variant),
                 borderLeftWidth: 4,
                 paddingVertical: theme.spacing.md,
@@ -178,7 +179,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: "100%",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,

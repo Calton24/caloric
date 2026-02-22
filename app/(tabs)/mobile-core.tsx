@@ -16,10 +16,18 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../src/theme/useTheme";
+import { Accordion } from "../../src/ui/components/Accordion";
+import { Avatar } from "../../src/ui/components/Avatar";
 import { EmptyState } from "../../src/ui/components/EmptyState";
+import { HamburgerMenu } from "../../src/ui/components/HamburgerMenu";
 import { Header } from "../../src/ui/components/Header";
+import { HelpIcon } from "../../src/ui/components/HelpIcon";
 import { ListItem } from "../../src/ui/components/ListItem";
+import { useNotificationToast } from "../../src/ui/components/NotificationToast";
+import { ProgressBar } from "../../src/ui/components/ProgressBar";
 import { Skeleton } from "../../src/ui/components/Skeleton";
+import { Slider } from "../../src/ui/components/Slider";
+import { TabSelector } from "../../src/ui/components/TabSelector";
 import { useToast } from "../../src/ui/components/Toast";
 import { GlassCard } from "../../src/ui/glass/GlassCard";
 import { GlassIconButton } from "../../src/ui/glass/GlassIconButton";
@@ -51,6 +59,7 @@ export default function MobileCoreScreen() {
   const sheet = useBottomSheet();
   const { open } = sheet;
   const toast = useToast();
+  const notification = useNotificationToast();
   const [inputValue, setInputValue] = useState("");
   const [glassEnabled, setGlassEnabled] = useState(true);
   const [blurIntensity, setBlurIntensity] = useState<
@@ -74,6 +83,20 @@ export default function MobileCoreScreen() {
     camera: false,
     calculator: false,
   });
+
+  // New component demo state
+  const [progressVal, setProgressVal] = useState(0.45);
+  const [sliderVal, setSliderVal] = useState(0.5);
+  const [accordionOpen1, setAccordionOpen1] = useState(false);
+  const [accordionOpen2, setAccordionOpen2] = useState(false);
+
+  // TabSelector demo state
+  const [dateTab, setDateTab] = useState("today");
+  const [contentTab, setContentTab] = useState("preview");
+
+  // HamburgerMenu demo state
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuSide, setMenuSide] = useState<"left" | "right">("left");
 
   // Animation for theme toggle
   const opacity = useSharedValue(1);
@@ -534,7 +557,9 @@ export default function MobileCoreScreen() {
         <GlassCard style={styles.section}>
           <TText variant="heading">GlassSliderVertical</TText>
           <TSpacer size="md" />
-          <View style={{ flexDirection: "row", justifyContent: "center", gap: 20 }}>
+          <View
+            style={{ flexDirection: "row", justifyContent: "center", gap: 20 }}
+          >
             <GlassSliderVertical
               value={brightnessVal}
               onChange={setBrightnessVal}
@@ -558,7 +583,10 @@ export default function MobileCoreScreen() {
             />
           </View>
           <TSpacer size="sm" />
-          <TText color="secondary" style={{ fontSize: 12, textAlign: "center" }}>
+          <TText
+            color="secondary"
+            style={{ fontSize: 12, textAlign: "center" }}
+          >
             Brightness: {Math.round(brightnessVal * 100)}% · Volume:{" "}
             {Math.round(volumeVal * 100)}%
           </TText>
@@ -584,7 +612,10 @@ export default function MobileCoreScreen() {
             tint={glassTint}
           />
           <TSpacer size="sm" />
-          <TText color="secondary" style={{ fontSize: 12, textAlign: "center" }}>
+          <TText
+            color="secondary"
+            style={{ fontSize: 12, textAlign: "center" }}
+          >
             Selected: {segmentValue}
           </TText>
         </GlassCard>
@@ -746,40 +777,6 @@ export default function MobileCoreScreen() {
             actionLabel="Add Item"
             onAction={() => toast.show("Add tapped", "success")}
           />
-        </GlassCard>
-
-        <TSpacer size="lg" />
-
-        {/* ── Toast ── */}
-        <GlassCard style={styles.section}>
-          <TText variant="heading">Toast</TText>
-          <TSpacer size="md" />
-          <TButton
-            onPress={() => toast.show("Operation successful", "success")}
-          >
-            Success Toast
-          </TButton>
-          <TSpacer size="sm" />
-          <TButton
-            onPress={() => toast.show("Something went wrong", "error")}
-            variant="secondary"
-          >
-            Error Toast
-          </TButton>
-          <TSpacer size="sm" />
-          <TButton
-            onPress={() => toast.show("Heads up!", "info")}
-            variant="outline"
-          >
-            Info Toast
-          </TButton>
-          <TSpacer size="sm" />
-          <TButton
-            onPress={() => toast.show("Check this out", "warning")}
-            variant="ghost"
-          >
-            Warning Toast
-          </TButton>
         </GlassCard>
 
         <TSpacer size="lg" />
@@ -957,6 +954,444 @@ export default function MobileCoreScreen() {
             onChangeText={() => {}}
             error="This field is required"
           />
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── Accordion ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">Accordion</TText>
+          <TSpacer size="md" />
+          <Accordion
+            title="What is mobile-core?"
+            subtitle="About this repo"
+            icon="code-slash-outline"
+            expanded={accordionOpen1}
+            onToggle={setAccordionOpen1}
+          >
+            <TText color="secondary">
+              mobile-core is a shared UI component library for building
+              production mobile apps. Fork it, change the tokens, ship your app.
+            </TText>
+          </Accordion>
+          <TSpacer size="sm" />
+          <Accordion
+            title="How do I customize the theme?"
+            icon="color-palette-outline"
+            expanded={accordionOpen2}
+            onToggle={setAccordionOpen2}
+          >
+            <TText color="secondary">
+              Override the brandHue in your ThemeProvider setup. All colors
+              derive from that single number via the palette generator.
+            </TText>
+          </Accordion>
+          <TSpacer size="sm" />
+          <Accordion title="Disabled accordion" disabled>
+            <TText>You should not see this.</TText>
+          </Accordion>
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── Progress Bar ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">Progress Bar</TText>
+          <TSpacer size="md" />
+          <ProgressBar progress={progressVal} showLabel />
+          <TSpacer size="md" />
+          <View style={styles.knobRow}>
+            <TButton
+              size="sm"
+              variant="outline"
+              onPress={() => setProgressVal(Math.max(0, progressVal - 0.15))}
+            >
+              − 15%
+            </TButton>
+            <TButton
+              size="sm"
+              variant="outline"
+              onPress={() => setProgressVal(Math.min(1, progressVal + 0.15))}
+            >
+              + 15%
+            </TButton>
+            <TButton
+              size="sm"
+              variant="ghost"
+              onPress={() => setProgressVal(0)}
+            >
+              Reset
+            </TButton>
+          </View>
+          <TSpacer size="lg" />
+          <TText color="secondary" style={{ fontSize: 13 }}>
+            Tones:
+          </TText>
+          <TSpacer size="xs" />
+          <ProgressBar progress={0.8} tone="success" height={6} />
+          <TSpacer size="xs" />
+          <ProgressBar progress={0.5} tone="warning" height={6} />
+          <TSpacer size="xs" />
+          <ProgressBar progress={0.3} tone="error" height={6} />
+          <TSpacer size="lg" />
+          <TText color="secondary" style={{ fontSize: 13 }}>
+            Indeterminate:
+          </TText>
+          <TSpacer size="xs" />
+          <ProgressBar progress={0} indeterminate tone="info" />
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── Slider ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">Slider</TText>
+          <TSpacer size="md" />
+          <TText color="secondary" style={{ fontSize: 13 }}>
+            Value: {Math.round(sliderVal * 100)}%
+          </TText>
+          <TSpacer size="sm" />
+          <Slider value={sliderVal} onChange={setSliderVal} />
+          <TSpacer size="lg" />
+          <TText color="secondary" style={{ fontSize: 13 }}>
+            Stepped (10%):
+          </TText>
+          <TSpacer size="sm" />
+          <Slider
+            value={sliderVal}
+            onChange={setSliderVal}
+            step={0.1}
+            tone="success"
+          />
+          <TSpacer size="lg" />
+          <TText color="secondary" style={{ fontSize: 13 }}>
+            Disabled:
+          </TText>
+          <TSpacer size="sm" />
+          <Slider value={0.6} onChange={() => {}} disabled />
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── TabSelector ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">Tab Selector</TText>
+          <TSpacer size="md" />
+
+          <TText variant="subheading" color="secondary">
+            Date selector
+          </TText>
+          <TSpacer size="sm" />
+          <TabSelector
+            tabs={[
+              { key: "mon", label: "Mon 16" },
+              { key: "yesterday", label: "Yesterday" },
+              { key: "today", label: "Today" },
+              { key: "tomorrow", label: "Tomorrow" },
+              { key: "thu", label: "Thu 20" },
+              { key: "fri", label: "Fri 21" },
+              { key: "sat", label: "Sat 22" },
+            ]}
+            value={dateTab}
+            onChange={setDateTab}
+          />
+
+          <TSpacer size="lg" />
+
+          <TText variant="subheading" color="secondary">
+            Content tabs
+          </TText>
+          <TSpacer size="sm" />
+          <TabSelector
+            tabs={[
+              { key: "preview", label: "Preview" },
+              { key: "commentary", label: "Commentary" },
+              { key: "lineup", label: "Lineup" },
+              { key: "knockout", label: "Knockout" },
+              { key: "stats", label: "Stats" },
+            ]}
+            value={contentTab}
+            onChange={setContentTab}
+          />
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── Avatar ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">Avatar</TText>
+          <TSpacer size="md" />
+
+          <TText variant="subheading" color="secondary">
+            Sizes
+          </TText>
+          <TSpacer size="sm" />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <Avatar size="xs" name="Alice" />
+            <Avatar size="sm" name="Bob Chen" />
+            <Avatar size="md" name="Charlie" />
+            <Avatar size="lg" name="Diana Ross" />
+            <Avatar size="xl" name="Eve" />
+          </View>
+
+          <TSpacer size="md" />
+          <TText variant="subheading" color="secondary">
+            Status badges
+          </TText>
+          <TSpacer size="sm" />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <Avatar size="lg" name="Online" status="online" />
+            <Avatar size="lg" name="Away" status="away" />
+            <Avatar size="lg" name="Busy" status="busy" />
+            <Avatar size="lg" name="Offline" status="offline" />
+          </View>
+
+          <TSpacer size="md" />
+          <TText variant="subheading" color="secondary">
+            Variants
+          </TText>
+          <TSpacer size="sm" />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <Avatar size="lg" name="Bordered" bordered />
+            <Avatar size="lg" />
+            <Avatar
+              size="lg"
+              source="https://i.pravatar.cc/150?img=3"
+              name="Image"
+              bordered
+              status="online"
+            />
+          </View>
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── HelpIcon ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">Help Icon</TText>
+          <TSpacer size="md" />
+
+          <TText variant="subheading" color="secondary">
+            Outline (default)
+          </TText>
+          <TSpacer size="sm" />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+            <HelpIcon
+              size="sm"
+              onPress={() => toast.show("Small help", "info")}
+            />
+            <HelpIcon
+              size="md"
+              onPress={() => toast.show("Medium help", "info")}
+            />
+            <HelpIcon
+              size="lg"
+              onPress={() => toast.show("Large help", "info")}
+            />
+          </View>
+
+          <TSpacer size="md" />
+          <TText variant="subheading" color="secondary">
+            Filled
+          </TText>
+          <TSpacer size="sm" />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+            <HelpIcon
+              variant="filled"
+              size="sm"
+              onPress={() => toast.show("Filled sm", "info")}
+            />
+            <HelpIcon
+              variant="filled"
+              size="md"
+              onPress={() => toast.show("Filled md", "info")}
+            />
+            <HelpIcon
+              variant="filled"
+              size="lg"
+              onPress={() => toast.show("Filled lg", "info")}
+            />
+          </View>
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── HamburgerMenu ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">Hamburger Menu</TText>
+          <TSpacer size="md" />
+
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+            <TButton
+              size="sm"
+              variant={menuSide === "left" ? "primary" : "outline"}
+              onPress={() => setMenuSide("left")}
+            >
+              Left
+            </TButton>
+            <TButton
+              size="sm"
+              variant={menuSide === "right" ? "primary" : "outline"}
+              onPress={() => setMenuSide("right")}
+            >
+              Right
+            </TButton>
+          </View>
+          <TSpacer size="md" />
+
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <HamburgerMenu
+              open={menuOpen}
+              onToggle={setMenuOpen}
+              side={menuSide}
+              header={
+                <View>
+                  <TText variant="heading">Menu</TText>
+                  <TText color="secondary">Explore the app</TText>
+                </View>
+              }
+              sections={[
+                {
+                  title: "Navigation",
+                  items: [
+                    {
+                      key: "home",
+                      label: "Home",
+                      icon: "home-outline",
+                      onPress: () => toast.show("Home"),
+                    },
+                    {
+                      key: "profile",
+                      label: "Profile",
+                      icon: "person-outline",
+                      onPress: () => toast.show("Profile"),
+                    },
+                    {
+                      key: "settings",
+                      label: "Settings",
+                      icon: "settings-outline",
+                      onPress: () => toast.show("Settings"),
+                    },
+                  ],
+                },
+                {
+                  title: "Support",
+                  items: [
+                    {
+                      key: "help",
+                      label: "Help Center",
+                      icon: "help-circle-outline",
+                      onPress: () => toast.show("Help"),
+                    },
+                    {
+                      key: "feedback",
+                      label: "Send Feedback",
+                      icon: "chatbubble-outline",
+                      onPress: () => toast.show("Feedback"),
+                    },
+                  ],
+                },
+                {
+                  items: [
+                    {
+                      key: "logout",
+                      label: "Log Out",
+                      icon: "log-out-outline",
+                      destructive: true,
+                      onPress: () => toast.show("Logged out", "warning"),
+                    },
+                  ],
+                },
+              ]}
+              footer={
+                <TText variant="caption" color="muted">
+                  v1.0.0 · mobile-core
+                </TText>
+              }
+            />
+            <TText color="secondary">← Tap the hamburger icon</TText>
+          </View>
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── Notification Toast ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">Notification Toast</TText>
+          <TSpacer size="md" />
+          <TButton
+            onPress={() =>
+              notification.show({
+                title: "New Message",
+                body: "Hey! Check out the new features.",
+                icon: "chatbubble-ellipses",
+              })
+            }
+          >
+            Message Notification
+          </TButton>
+          <TSpacer size="sm" />
+          <TButton
+            variant="secondary"
+            onPress={() =>
+              notification.show({
+                title: "Payment Received",
+                body: "$42.00 from Alex Johnson",
+                avatarUri: "https://i.pravatar.cc/150?img=5",
+                onPress: () => toast.show("Opening payment...", "info"),
+              })
+            }
+          >
+            With Avatar + Tap Action
+          </TButton>
+          <TSpacer size="sm" />
+          <TButton
+            variant="outline"
+            onPress={() =>
+              notification.show({
+                title: "Update Available",
+                body: "v2.1.0 is ready to install.",
+                icon: "arrow-up-circle",
+                duration: 6000,
+              })
+            }
+          >
+            Long Duration (6s)
+          </TButton>
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── Toast (from bottom) ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">Toast (Bottom)</TText>
+          <TSpacer size="md" />
+          <TButton
+            onPress={() => toast.show("Operation successful", "success")}
+          >
+            Success Toast
+          </TButton>
+          <TSpacer size="sm" />
+          <TButton
+            onPress={() => toast.show("Something went wrong", "error")}
+            variant="secondary"
+          >
+            Error Toast
+          </TButton>
+          <TSpacer size="sm" />
+          <TButton
+            onPress={() => toast.show("Heads up!", "info")}
+            variant="outline"
+          >
+            Info Toast
+          </TButton>
+          <TSpacer size="sm" />
+          <TButton
+            onPress={() => toast.show("Check this out", "warning")}
+            variant="ghost"
+          >
+            Warning Toast
+          </TButton>
         </GlassCard>
 
         <TSpacer size="lg" />

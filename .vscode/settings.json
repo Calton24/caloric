@@ -38,5 +38,10 @@
   // Associate Deno files correctly
   "[typescript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
-  }
+  },
+
+  // Exclude Maestro E2E flows from the unit test runner
+  // Run Maestro tests explicitly via: npm run maestro:test
+  "maestro.flowsPath": "",
+  "testing.excludeFromRun": ["maestro/**"]
 }

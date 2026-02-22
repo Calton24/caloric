@@ -7,13 +7,7 @@
 
 import { BlurView } from "expo-blur";
 import React from "react";
-import {
-  Platform,
-  StyleProp,
-  StyleSheet,
-  View,
-  ViewStyle,
-} from "react-native";
+import { Platform, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import { useTheme } from "../../theme/useTheme";
 import { glassIntensity, GlassIntensity } from "./glassStyles";
 
@@ -67,11 +61,11 @@ export function GlassSurface({
     variant === "pill" || variant === "circle"
       ? theme.radius.full
       : theme.radius.lg;
-  const borderRadius = radius ?? (flatStyle?.borderRadius as number | undefined) ?? defaultRadius;
+  const borderRadius =
+    radius ?? (flatStyle?.borderRadius as number | undefined) ?? defaultRadius;
 
   // Determine if we should use real blur
-  const useBlur =
-    Platform.OS === "ios" && blurEnabled && !reduceTransparency;
+  const useBlur = Platform.OS === "ios" && blurEnabled && !reduceTransparency;
 
   // Tint overlay color for glass depth
   const tintOverlay =
@@ -108,11 +102,7 @@ export function GlassSurface({
 
   if (useBlur) {
     const blurTint =
-      tint === "default"
-        ? theme.mode === "light"
-          ? "extraLight"
-          : "dark"
-        : tint;
+      tint === "default" ? (theme.mode === "light" ? "light" : "dark") : tint;
 
     return (
       <BlurView

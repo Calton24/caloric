@@ -18,8 +18,10 @@ appId: com.calton24.mobilecore.dev
 - assertVisible:
     id: "tabs-root"
 
-# Only then interact with tabs
-- assertVisible: "Playground"
-- tapOn: "Playground"
+# Use testID selectors (more reliable than text matching with GlassTabBar)
+- assertVisible:
+    id: "tab-playground"
+- tapOn:
+    id: "tab-playground"
 - assertVisible:
     id: "screen-playground"

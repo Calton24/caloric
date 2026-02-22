@@ -14,6 +14,7 @@ import {
     initErrorReporting,
 } from "./infrastructure/errorReporting";
 import { ThemeProvider } from "./theme/ThemeProvider";
+import { NotificationToastProvider } from "./ui/components/NotificationToast";
 import { ToastProvider } from "./ui/components/Toast";
 import { BottomSheetProvider } from "./ui/sheets/BottomSheetProvider";
 
@@ -47,7 +48,11 @@ export function MobileCoreProviders({
               <AuthProvider>
                 <BottomSheetModalProvider>
                   <BottomSheetProvider>
-                    <ToastProvider>{children}</ToastProvider>
+                    <ToastProvider>
+                      <NotificationToastProvider>
+                        {children}
+                      </NotificationToastProvider>
+                    </ToastProvider>
                   </BottomSheetProvider>
                 </BottomSheetModalProvider>
               </AuthProvider>
