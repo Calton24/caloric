@@ -34,7 +34,7 @@ type AnalyticsMode =
   | "sdk_missing_fallback_noop";
 
 function logMode(mode: AnalyticsMode): void {
-  console.log(`[Analytics] ${mode}`);
+  console.log(`[Analytics] mode=${mode}`);
 }
 
 export function initAnalytics(): AnalyticsClient {

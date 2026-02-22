@@ -30,6 +30,15 @@ interface CatalogEntry {
   count: number;
 }
 
+const GROWTH_ENTRY: CatalogEntry = {
+  key: "growth",
+  route: "/(tabs)/mobile-core/growth",
+  title: "Growth Layer",
+  subtitle: "Feature request sheet + milestone tracking",
+  icon: "rocket-outline",
+  count: 1,
+};
+
 const CATALOG: CatalogEntry[] = [
   {
     key: "primitives",
@@ -67,6 +76,7 @@ const CATALOG: CatalogEntry[] = [
     icon: "bar-chart-outline",
     count: 6,
   },
+  ...(__DEV__ ? [GROWTH_ENTRY] : []),
 ];
 
 export default function MobileCoreMenu() {

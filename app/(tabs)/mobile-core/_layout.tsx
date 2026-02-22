@@ -13,6 +13,7 @@ export default function MobileCoreLayout() {
       <Stack.Screen name="glass" />
       <Stack.Screen name="patterns" />
       <Stack.Screen name="widgets" />
+      <Stack.Screen name="growth" />
     </Stack>
   );
 }

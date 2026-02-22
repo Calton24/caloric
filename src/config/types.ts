@@ -95,6 +95,8 @@ export interface FeatureFlags {
   habit: boolean;
   /** Analytics (Supabase / custom) */
   analytics: boolean;
+  /** Growth layer (feature requests + milestones) */
+  growth: boolean;
   /** Push notifications */
   notifications: boolean;
   /** Firebase Analytics instrumentation */

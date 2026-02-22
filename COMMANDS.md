@@ -170,6 +170,18 @@ npm run lint
 npm run validate
 ```
 
+### Mobile Core verify (fork gate)
+
+```bash
+npm run mobile-core:verify
+```
+
+### Mobile Core verify (deep, open handles)
+
+```bash
+npm run mobile-core:verify:deep
+```
+
 ## Git Workflow
 
 ### Check status and recent commits

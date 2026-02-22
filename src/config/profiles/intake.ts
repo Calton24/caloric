@@ -56,6 +56,7 @@ export const intakeConfig: AppProfileConfig = {
     water: true,
     habit: false, // Not needed for intake
     analytics: true,
+    growth: false,
     notifications: true,
     firebaseAnalytics: false, // Firebase not installed in mobile-core
     crashReporting: false, // Firebase not installed in mobile-core
@@ -96,6 +97,7 @@ export const intakeConfig: AppProfileConfig = {
       },
       features: {
         analytics: false,
+        growth: true,
         firebaseAnalytics: true, // Keep Firebase Analytics in dev
         crashReporting: true, // Keep crash reporting
         performanceMonitoring: false, // Disable perf monitoring in dev

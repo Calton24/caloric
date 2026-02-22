@@ -15,6 +15,7 @@ import {
     ErrorBoundary,
     initErrorReporting,
 } from "./infrastructure/errorReporting";
+import { growth, initGrowth } from "./infrastructure/growth";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { NotificationToastProvider } from "./ui/components/NotificationToast";
 import { ToastProvider } from "./ui/components/Toast";
@@ -41,10 +42,12 @@ export function MobileCoreProviders({
     }
 
     initAnalytics();
+    initGrowth();
 
     if (__DEV__) {
       const cfg = getAppConfig();
       analytics.track("app_booted", { profile: cfg.profile });
+      growth.track("growth_booted", { profile: cfg.profile });
     }
   }, []);
 

@@ -20,6 +20,8 @@
     "check": "npm run typecheck && npm run typecheck:edge",
     "check:edge": "npm run typecheck:edge",
     "validate": "npm run check && npm run lint && npm run test && npm run test:edge",
+    "mobile-core:verify": "node scripts/verify-mobile-core.js",
+    "mobile-core:verify:deep": "npm run mobile-core:verify && npx jest --detectOpenHandles --runInBand",
     "maestro:test": "maestro test maestro/flows",
     "ios:sim:build": "node scripts/ios-sim-build.js",
     "ios:sim:install": "node scripts/ios-sim-install.js",

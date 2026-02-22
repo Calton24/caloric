@@ -125,6 +125,7 @@ export const FeatureFlagsSchema = z.object({
   water: z.boolean(),
   habit: z.boolean(),
   analytics: z.boolean(),
+  growth: z.boolean(),
   notifications: z.boolean(),
   firebaseAnalytics: z.boolean(),
   crashReporting: z.boolean(),

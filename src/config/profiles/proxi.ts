@@ -56,6 +56,7 @@ export const proxiConfig: AppProfileConfig = {
     water: false,
     habit: true, // Social habits/streaks
     analytics: true,
+    growth: false,
     notifications: true, // Critical for proximity alerts
     firebaseAnalytics: false, // Firebase not installed in mobile-core
     crashReporting: false, // Firebase not installed in mobile-core
@@ -99,6 +100,7 @@ export const proxiConfig: AppProfileConfig = {
       },
       features: {
         analytics: false,
+        growth: true,
         firebaseAnalytics: true,
         crashReporting: true,
         billing: false, // Disable billing in dev

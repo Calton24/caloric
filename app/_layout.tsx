@@ -1,10 +1,12 @@
 import { MobileCoreProviders } from "@/src/MobileCoreProviders";
 import { useScreenTracking } from "@/src/infrastructure/analytics";
+import { useGrowthScreenTracking } from "@/src/infrastructure/growth";
 import { Stack } from "expo-router";
 import "react-native-reanimated";
 
 export default function RootLayout() {
   useScreenTracking();
+  useGrowthScreenTracking();
 
   return (
     <MobileCoreProviders testID="app-ready">

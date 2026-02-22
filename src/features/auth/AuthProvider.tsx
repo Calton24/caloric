@@ -5,6 +5,7 @@
 
 import React, { createContext, useCallback, useEffect, useState } from "react";
 import { analytics } from "../../infrastructure/analytics";
+import { growth } from "../../infrastructure/growth";
 import {
     authClient,
     OAuthProvider,
@@ -48,6 +49,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         analytics.identify(initialSession.user.id, {
           email: initialSession.user.email,
         });
+        growth.setUser({ userId: initialSession.user.id });
       }
       setIsLoading(false);
     });
@@ -66,9 +68,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         analytics.identify(newSession.user.id, {
           email: newSession.user.email,
         });
+        growth.setUser({ userId: newSession.user.id });
       } else if (prevUser && !newSession?.user) {
         // Went from authenticated → unauthenticated — reset
         analytics.reset();
+        growth.setUser(null);
       }
     });
 

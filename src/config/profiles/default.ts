@@ -59,6 +59,7 @@ export const defaultConfig: AppProfileConfig = {
     water: false,
     habit: true,
     analytics: true,
+    growth: false,
     notifications: true,
     firebaseAnalytics: false, // Firebase not installed in mobile-core
     crashReporting: false, // Firebase not installed in mobile-core
@@ -99,6 +100,7 @@ export const defaultConfig: AppProfileConfig = {
       },
       features: {
         analytics: false,
+        growth: true,
         firebaseAnalytics: true,
         crashReporting: true,
         billing: false, // Disable billing in dev
