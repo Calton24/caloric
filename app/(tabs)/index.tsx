@@ -1,10 +1,19 @@
 import React from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "../../src/theme/useTheme";
+import { GlassCard } from "../../src/ui/glass/GlassCard";
+import { TSpacer } from "../../src/ui/primitives/TSpacer";
+import { TText } from "../../src/ui/primitives/TText";
 
 export default function HomeScreen() {
+  const { theme } = useTheme();
+
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      edges={["top"]}
+    >
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
@@ -12,54 +21,57 @@ export default function HomeScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>🚗 Cara</Text>
-          <Text style={styles.subtitle}>Your Car Companion App</Text>
+          <TText variant="heading" style={styles.title}>
+            Mobile Core
+          </TText>
+          <TText color="secondary" style={styles.subtitle}>
+            Component Library
+          </TText>
         </View>
 
-        {/* Placeholder Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Welcome to Cara</Text>
-          <Text style={styles.cardText}>
-            This will be the home page for your car app. Features coming soon:
-          </Text>
-          <View style={styles.featureList}>
-            <Text style={styles.featureItem}>• Vehicle Dashboard</Text>
-            <Text style={styles.featureItem}>• Maintenance Tracking</Text>
-            <Text style={styles.featureItem}>• Fuel Log</Text>
-            <Text style={styles.featureItem}>• Trip History</Text>
-            <Text style={styles.featureItem}>• Service Reminders</Text>
-          </View>
-        </View>
+        <TSpacer size="md" />
 
-        {/* Quick Stats Placeholder */}
+        {/* Welcome Card */}
+        <GlassCard style={styles.card}>
+          <TText variant="heading" style={styles.cardTitle}>
+            Welcome
+          </TText>
+          <TSpacer size="sm" />
+          <TText color="secondary" style={styles.cardText}>
+            This is a reusable component library built with Expo and React
+            Native. Explore the Playground tab to see all available components.
+          </TText>
+        </GlassCard>
+
+        <TSpacer size="md" />
+
+        {/* Quick Stats */}
         <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <Text style={styles.statEmoji}>⛽</Text>
-            <Text style={styles.statValue}>--</Text>
-            <Text style={styles.statLabel}>Fuel Level</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statEmoji}>🛣️</Text>
-            <Text style={styles.statValue}>--</Text>
-            <Text style={styles.statLabel}>Miles</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statEmoji}>🔧</Text>
-            <Text style={styles.statValue}>--</Text>
-            <Text style={styles.statLabel}>Next Service</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statEmoji}>💰</Text>
-            <Text style={styles.statValue}>--</Text>
-            <Text style={styles.statLabel}>This Month</Text>
-          </View>
+          {[
+            { emoji: "🎨", value: "14", label: "Components" },
+            { emoji: "⚡", value: "Swift UI", label: "Inspired" },
+            { emoji: "📦", value: "@expo/ui", label: "Powered" },
+            { emoji: "🚀", value: "Ready", label: "For Use" },
+          ].map((stat) => (
+            <GlassCard key={stat.label} style={styles.statCard}>
+              <TText style={styles.statEmoji}>{stat.emoji}</TText>
+              <TText color="primary" style={styles.statValue}>
+                {stat.value}
+              </TText>
+              <TText color="secondary" style={styles.statLabel}>
+                {stat.label}
+              </TText>
+            </GlassCard>
+          ))}
         </View>
+
+        <TSpacer size="md" />
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Check out the Playground tab for Expo UI demos →
-          </Text>
+          <TText color="primary" style={styles.footerText}>
+            Check out the Playground tab to explore components →
+          </TText>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -69,7 +81,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F2F2F7",
   },
   scrollView: {
     flex: 1,
@@ -80,81 +91,49 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    marginBottom: 24,
     paddingVertical: 20,
   },
   title: {
     fontSize: 36,
     fontWeight: "bold",
-    color: "#000",
-    marginBottom: 8,
   },
   subtitle: {
     fontSize: 18,
-    color: "#666",
+    marginTop: 8,
   },
   card: {
-    backgroundColor: "white",
-    borderRadius: 16,
     padding: 20,
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
   },
   cardTitle: {
     fontSize: 20,
     fontWeight: "600",
-    color: "#000",
-    marginBottom: 12,
   },
   cardText: {
     fontSize: 15,
-    color: "#666",
     lineHeight: 22,
-    marginBottom: 16,
-  },
-  featureList: {
-    gap: 8,
-  },
-  featureItem: {
-    fontSize: 15,
-    color: "#333",
-    lineHeight: 24,
   },
   statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
     gap: 12,
-    marginBottom: 20,
   },
   statCard: {
     width: "47%",
-    backgroundColor: "white",
-    borderRadius: 16,
     padding: 16,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
   },
   statEmoji: {
     fontSize: 32,
     marginBottom: 8,
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "bold",
-    color: "#007AFF",
+    textAlign: "center",
   },
   statLabel: {
     fontSize: 12,
-    color: "#666",
     marginTop: 4,
   },
   footer: {
@@ -163,7 +142,6 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: "#007AFF",
     fontWeight: "500",
   },
 });

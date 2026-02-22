@@ -3,5 +3,45 @@
     "source.fixAll": "explicit",
     "source.organizeImports": "explicit",
     "source.sortMembers": "explicit"
-  }
+  },
+
+  // Deno settings - enable ONLY for Edge Functions
+  "deno.enable": false,
+  "deno.enablePaths": ["./supabase/functions"],
+  "deno.config": "./supabase/functions/deno.json",
+  "deno.importMap": "./supabase/functions/import_map.json",
+  "deno.lint": true,
+  "deno.unstable": [],
+  "deno.suggest.imports.hosts": {
+    "https://deno.land": true,
+    "https://esm.sh": true
+  },
+
+  // Prevent TypeScript server from analyzing Deno files
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+
+  // Exclude node_modules from TypeScript diagnostics
+  "typescript.validate.enable": true,
+  "typescript.exclude": ["**/node_modules/**", "**/bower_components/**"],
+
+  // Exclude Deno files from TypeScript analysis
+  "files.exclude": {
+    "**/supabase/functions/**/*.ts": false
+  },
+
+  // Don't show diagnostics for node_modules
+  "files.watcherExclude": {
+    "**/node_modules/**": true
+  },
+
+  // Associate Deno files correctly
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // Exclude Maestro E2E flows from the unit test runner
+  // Run Maestro tests explicitly via: npm run maestro:test
+  "maestro.flowsPath": "",
+  "testing.excludeFromRun": ["maestro/**"]
 }

@@ -1,0 +1,9 @@
+node_modules
+dist
+build
+.expo
+.expo-shared
+*.log
+coverage
+__tests__/coverage
+*.tsbuildinfo

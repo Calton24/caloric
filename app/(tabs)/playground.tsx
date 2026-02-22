@@ -1,14 +1,13 @@
 import { Form, Group, Host, Image } from "@expo/ui/swift-ui";
 import {
-    cornerRadius,
-    frame,
-    glassEffect,
-    onTapGesture,
-    shadow,
+  cornerRadius,
+  frame,
+  glassEffect,
+  onTapGesture,
+  shadow,
 } from "@expo/ui/swift-ui/modifiers";
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BottomSheetSection } from "@/components/playground/BottomSheetSection";
 import { ButtonsSection } from "@/components/playground/ButtonsSection";
@@ -24,17 +23,17 @@ import { ProgressSection } from "@/components/playground/ProgressSection";
 import { SliderSection } from "@/components/playground/SliderSection";
 import { SwitchSection } from "@/components/playground/SwitchSection";
 import { TextFieldSection } from "@/components/playground/TextFieldSection";
+import { useTheme } from "@/src/theme/useTheme";
 
 export default function PlaygroundScreen() {
-  const insets = useSafeAreaInsets();
-
+  const { theme } = useTheme();
   const handleSearch = () => {
     console.log("Search button pressed!");
   };
 
   return (
-    <View style={{ flex: 1 }}>
-      <Host style={{ flex: 1 }}>
+    <View testID="screen-playground" style={{ flex: 1 }}>
+      <Host style={{ flex: 1 }} colorScheme={theme.mode}>
         <Form>
           <ButtonsSection />
           <SwitchSection />

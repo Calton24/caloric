@@ -1,0 +1,27 @@
+# maestro/flows/smoke-test.yaml
+appId: com.calton24.mobilecore.dev
+
+---
+- stopApp: com.calton24.mobilecore.dev
+- clearState: com.calton24.mobilecore.dev
+
+- launchApp:
+    appId: com.calton24.mobilecore.dev
+
+- assertNotVisible:
+    text: "No script URL provided"
+
+- assertVisible:
+    id: "app-ready"
+
+# Wait for tabs container to mount (prevents native-tabs race)
+- assertVisible:
+    id: "tabs-root"
+
+# Use testID selectors (more reliable than text matching with GlassTabBar)
+- assertVisible:
+    id: "tab-playground"
+- tapOn:
+    id: "tab-playground"
+- assertVisible:
+    id: "screen-playground"

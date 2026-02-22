@@ -1,0 +1,110 @@
+/**
+ * Theme Provider
+ * Provides theme context with color mode and brand customization
+ */
+
+import React, {
+    createContext,
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
+import { useColorScheme } from "react-native";
+import { ColorMode, generatePalette } from "./colors";
+import { themeStorage } from "./storage";
+import { ThemeTokens, radius, spacing, typography } from "./tokens";
+
+export interface Theme {
+  colors: ThemeTokens;
+  spacing: typeof spacing;
+  radius: typeof radius;
+  typography: typeof typography;
+  mode: ColorMode;
+  brandHue: number;
+}
+
+export interface ThemeContextValue {
+  theme: Theme;
+  setMode: (mode: ColorMode) => void;
+  setBrandHue: (hue: number) => void;
+  toggleMode: () => void;
+}
+
+export const ThemeContext = createContext<ThemeContextValue | undefined>(
+  undefined
+);
+
+interface ThemeProviderProps {
+  children: React.ReactNode;
+  defaultMode?: ColorMode;
+  defaultBrandHue?: number;
+}
+
+export function ThemeProvider({
+  children,
+  defaultMode,
+  defaultBrandHue = 220,
+}: ThemeProviderProps) {
+  const systemColorScheme = useColorScheme();
+  const [mode, setModeState] = useState<ColorMode>(
+    defaultMode || (systemColorScheme as ColorMode) || "light"
+  );
+  const [brandHue, setBrandHueState] = useState<number>(defaultBrandHue);
+
+  // Load persisted theme on mount (async, non-blocking)
+  useEffect(() => {
+    themeStorage.getPreferences().then((prefs) => {
+      // Defensive fallbacks in case storage returns undefined
+      if (prefs.mode) {
+        setModeState(prefs.mode);
+      }
+      if (prefs.brandHue !== undefined && prefs.brandHue !== null) {
+        setBrandHueState(prefs.brandHue);
+      }
+    });
+  }, []);
+
+  // Generate theme from current settings (memoized to prevent recreation)
+  const theme: Theme = useMemo(
+    () => ({
+      colors: generatePalette(brandHue, mode),
+      spacing,
+      radius,
+      typography,
+      mode,
+      brandHue,
+    }),
+    [brandHue, mode]
+  );
+
+  const setMode = useCallback((newMode: ColorMode) => {
+    setModeState(newMode);
+    themeStorage.setMode(newMode);
+  }, []);
+
+  const setBrandHue = useCallback((hue: number) => {
+    setBrandHueState(hue);
+    themeStorage.setBrandHue(hue);
+  }, []);
+
+  const toggleMode = useCallback(() => {
+    setMode(mode === "light" ? "dark" : "light");
+  }, [mode, setMode]);
+
+  const contextValue: ThemeContextValue = useMemo(
+    () => ({
+      theme,
+      setMode,
+      setBrandHue,
+      toggleMode,
+    }),
+    [theme, setMode, setBrandHue, toggleMode]
+  );
+
+  return (
+    <ThemeContext.Provider value={contextValue}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
