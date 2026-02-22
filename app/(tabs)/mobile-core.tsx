@@ -16,8 +16,16 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../src/theme/useTheme";
+import { ActivityRings } from "../../src/ui/analytics/ActivityRings";
+import { HeartRateCard } from "../../src/ui/analytics/HeartRateCard";
+import { SleepChart } from "../../src/ui/analytics/SleepChart";
+import { SpendingCard } from "../../src/ui/analytics/SpendingCard";
+import { StepCounter } from "../../src/ui/analytics/StepCounter";
+import { WaterTracker } from "../../src/ui/analytics/WaterTracker";
 import { Accordion } from "../../src/ui/components/Accordion";
 import { Avatar } from "../../src/ui/components/Avatar";
+import { Carousel } from "../../src/ui/components/Carousel";
+import { Checkbox, CheckboxGroup } from "../../src/ui/components/Checkbox";
 import { EmptyState } from "../../src/ui/components/EmptyState";
 import { HamburgerMenu } from "../../src/ui/components/HamburgerMenu";
 import { Header } from "../../src/ui/components/Header";
@@ -25,13 +33,18 @@ import { HelpIcon } from "../../src/ui/components/HelpIcon";
 import { ListItem } from "../../src/ui/components/ListItem";
 import { useNotificationToast } from "../../src/ui/components/NotificationToast";
 import { ProgressBar } from "../../src/ui/components/ProgressBar";
+import { useReviewSheet } from "../../src/ui/components/ReviewModal";
 import { Skeleton } from "../../src/ui/components/Skeleton";
 import { Slider } from "../../src/ui/components/Slider";
+import { StarRating } from "../../src/ui/components/StarRating";
+import { Stories } from "../../src/ui/components/Stories";
+import { SwipeCard } from "../../src/ui/components/SwipeCard";
 import { TabSelector } from "../../src/ui/components/TabSelector";
 import { useToast } from "../../src/ui/components/Toast";
 import { GlassCard } from "../../src/ui/glass/GlassCard";
 import { GlassIconButton } from "../../src/ui/glass/GlassIconButton";
 import { GlassMiniCard } from "../../src/ui/glass/GlassMiniCard";
+import { GlassSearch } from "../../src/ui/glass/GlassSearch";
 import { GlassSegmentedControl } from "../../src/ui/glass/GlassSegmentedControl";
 import { GlassSliderVertical } from "../../src/ui/glass/GlassSliderVertical";
 import { GlassStatusChip } from "../../src/ui/glass/GlassStatusChip";
@@ -60,6 +73,11 @@ export default function MobileCoreScreen() {
   const { open } = sheet;
   const toast = useToast();
   const notification = useNotificationToast();
+  const openReview = useReviewSheet({
+    onSubmit: (review) => {
+      toast.show(`${review.rating}★ review submitted!`, "success");
+    },
+  });
   const [inputValue, setInputValue] = useState("");
   const [glassEnabled, setGlassEnabled] = useState(true);
   const [blurIntensity, setBlurIntensity] = useState<
@@ -97,6 +115,17 @@ export default function MobileCoreScreen() {
   // HamburgerMenu demo state
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuSide, setMenuSide] = useState<"left" | "right">("left");
+
+  // GlassSearch demo state
+  const [searchText, setSearchText] = useState("");
+
+  // StarRating demo state
+  const [starRatingVal, setStarRatingVal] = useState(3.5);
+
+  // Checkbox demo state
+  const [checkA, setCheckA] = useState(false);
+  const [checkB, setCheckB] = useState(true);
+  const [checkGroup, setCheckGroup] = useState<string[]>(["notifications"]);
 
   // Animation for theme toggle
   const opacity = useSharedValue(1);
@@ -1396,6 +1425,221 @@ export default function MobileCoreScreen() {
 
         <TSpacer size="lg" />
 
+        {/* ── GlassSearch ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">GlassSearch</TText>
+          <TSpacer size="sm" />
+          <GlassSearch
+            value={searchText}
+            onChangeText={setSearchText}
+            placeholder="Search anything…"
+            onSubmit={(t) => toast.show(`Searched: ${t}`, "info")}
+          />
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── SwipeCard ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">SwipeCard</TText>
+          <TSpacer size="sm" />
+          <SwipeCard
+            data={[
+              {
+                key: "1",
+                image: "https://picsum.photos/seed/card1/400/600",
+                title: "Jessica",
+                subtitle: "24",
+              },
+              {
+                key: "2",
+                image: "https://picsum.photos/seed/card2/400/600",
+                title: "Marcus",
+                subtitle: "28",
+              },
+              {
+                key: "3",
+                image: "https://picsum.photos/seed/card3/400/600",
+                title: "Ava",
+                subtitle: "22",
+              },
+            ]}
+            onSwipeRight={(item) =>
+              toast.show(`Liked ${item.title}`, "success")
+            }
+            onSwipeLeft={(item) => toast.show(`Noped ${item.title}`, "info")}
+            onEmpty={() => toast.show("No more cards!", "warning")}
+          />
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── Carousel ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">Carousel</TText>
+          <TSpacer size="sm" />
+          <TText color="muted" style={{ marginBottom: 8 }}>
+            Bar indicator (default)
+          </TText>
+          <Carousel
+            data={[
+              { key: "c1", image: "https://picsum.photos/seed/car1/600/300" },
+              { key: "c2", image: "https://picsum.photos/seed/car2/600/300" },
+              { key: "c3", image: "https://picsum.photos/seed/car3/600/300" },
+              { key: "c4", image: "https://picsum.photos/seed/car4/600/300" },
+            ]}
+            itemHeight={220}
+            itemRadius={12}
+          />
+          <TSpacer size="md" />
+          <TText color="muted" style={{ marginBottom: 8 }}>
+            Dot indicator
+          </TText>
+          <Carousel
+            data={[
+              { key: "d1", image: "https://picsum.photos/seed/dot1/600/300" },
+              { key: "d2", image: "https://picsum.photos/seed/dot2/600/300" },
+              { key: "d3", image: "https://picsum.photos/seed/dot3/600/300" },
+            ]}
+            itemHeight={160}
+            itemRadius={12}
+            indicator="dots"
+          />
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── Stories ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">Stories</TText>
+          <TSpacer size="sm" />
+          <Stories
+            data={[
+              {
+                key: "s1",
+                name: "You",
+                avatar: "https://i.pravatar.cc/100?u=you",
+                stories: [
+                  { image: "https://picsum.photos/seed/story1/400/800" },
+                  { image: "https://picsum.photos/seed/story1b/400/800" },
+                ],
+              },
+              {
+                key: "s2",
+                name: "Emma",
+                avatar: "https://i.pravatar.cc/100?u=emma",
+                stories: [
+                  { image: "https://picsum.photos/seed/story2/400/800" },
+                ],
+              },
+              {
+                key: "s3",
+                name: "Liam",
+                avatar: "https://i.pravatar.cc/100?u=liam",
+                stories: [
+                  { image: "https://picsum.photos/seed/story3/400/800" },
+                ],
+              },
+              {
+                key: "s4",
+                name: "Olivia",
+                avatar: "https://i.pravatar.cc/100?u=olivia",
+                viewed: true,
+                stories: [
+                  { image: "https://picsum.photos/seed/story4/400/800" },
+                ],
+              },
+              {
+                key: "s5",
+                name: "Noah",
+                avatar: "https://i.pravatar.cc/100?u=noah",
+                stories: [
+                  { image: "https://picsum.photos/seed/story5/400/800" },
+                ],
+              },
+            ]}
+            onStoriesEnd={(u) =>
+              toast.show(`Finished ${u.name}'s stories`, "info")
+            }
+          />
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── Review Sheet ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">Review Sheet</TText>
+          <TSpacer size="sm" />
+          <TText color="muted">Opens in the bottom sheet with glass blur</TText>
+          <TSpacer size="sm" />
+          <TButton onPress={openReview}>Write a Review</TButton>
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── StarRating ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">Star Rating</TText>
+          <TSpacer size="sm" />
+          <TText color="muted" style={{ marginBottom: 8 }}>
+            Interactive (half-star)
+          </TText>
+          <StarRating
+            rating={starRatingVal}
+            onChange={setStarRatingVal}
+            showLabel
+            size="lg"
+          />
+          <TSpacer size="md" />
+          <TText color="muted" style={{ marginBottom: 8 }}>
+            Read-only sizes
+          </TText>
+          <View style={{ gap: 8 }}>
+            <StarRating rating={4.5} size="sm" showLabel />
+            <StarRating rating={3} size="md" showLabel />
+            <StarRating rating={2.5} size="lg" showLabel />
+          </View>
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
+        {/* ── Checkbox ── */}
+        <GlassCard style={styles.section}>
+          <TText variant="heading">Checkbox</TText>
+          <TSpacer size="sm" />
+          <Checkbox
+            checked={checkA}
+            onChange={setCheckA}
+            label="Accept terms & conditions"
+          />
+          <Checkbox
+            checked={checkB}
+            onChange={setCheckB}
+            label="Subscribe to newsletter"
+            description="We'll send you weekly updates"
+          />
+          <Checkbox
+            checked={false}
+            onChange={() => {}}
+            label="Disabled option"
+            disabled
+          />
+          <TSpacer size="md" />
+          <TText variant="subheading">Checkbox Group</TText>
+          <TSpacer size="xs" />
+          <CheckboxGroup
+            value={checkGroup}
+            onChange={setCheckGroup}
+            options={[
+              { value: "notifications", label: "Push Notifications" },
+              { value: "emails", label: "Email Updates" },
+              { value: "sms", label: "SMS Alerts" },
+            ]}
+          />
+        </GlassCard>
+
+        <TSpacer size="lg" />
+
         {/* ── Typography ── */}
         <GlassCard style={styles.section}>
           <TText variant="heading">Heading</TText>
@@ -1414,6 +1658,121 @@ export default function MobileCoreScreen() {
           <TSpacer size="xs" />
           <TText variant="caption">Caption text</TText>
         </GlassCard>
+
+        {/* ── Analytics Widgets ── */}
+        <TText variant="heading" style={{ marginTop: 32, marginBottom: 8 }}>
+          📊 Analytics Widgets
+        </TText>
+
+        {/* Spending Card */}
+        <TText variant="subheading" style={{ marginTop: 16, marginBottom: 8 }}>
+          Finance — Spending
+        </TText>
+        <SpendingCard
+          title="Spent this month"
+          amount={157}
+          currency="£"
+          change={157}
+          data={[
+            0, 0, 0, 0, 0, 120, 120, 120, 120, 120, 157, 157, 157, 157, 157,
+            157, 157, 157, 157, 157, 157,
+          ]}
+          projectedData={[157, 157, 157, 157, 157, 157, 157]}
+          periodLabels={["1", "6", "11", "16", "21", "28"]}
+        />
+        <TSpacer size="md" />
+
+        {/* Activity Rings */}
+        <TText variant="subheading" style={{ marginTop: 16, marginBottom: 8 }}>
+          Fitness — Activity Rings
+        </TText>
+        <ActivityRings
+          rings={[
+            {
+              label: "Move",
+              current: 420,
+              goal: 500,
+              color: "#FF3B30",
+              unit: "cal",
+            },
+            {
+              label: "Exercise",
+              current: 28,
+              goal: 30,
+              color: "#4CD964",
+              unit: "min",
+            },
+            {
+              label: "Stand",
+              current: 10,
+              goal: 12,
+              color: "#5AC8FA",
+              unit: "hrs",
+            },
+          ]}
+        />
+        <TSpacer size="md" />
+
+        {/* Step Counter */}
+        <TText variant="subheading" style={{ marginTop: 16, marginBottom: 8 }}>
+          Fitness — Steps
+        </TText>
+        <StepCounter
+          steps={8432}
+          goal={10000}
+          distance={5.8}
+          calories={320}
+          activeMinutes={42}
+        />
+        <TSpacer size="md" />
+
+        {/* Heart Rate */}
+        <TText variant="subheading" style={{ marginTop: 16, marginBottom: 8 }}>
+          Health — Heart Rate
+        </TText>
+        <HeartRateCard
+          currentBpm={72}
+          data={[
+            68, 70, 72, 71, 73, 75, 72, 70, 68, 72, 74, 76, 73, 71, 69, 72, 78,
+            82, 79, 74, 71, 70, 68, 67,
+          ]}
+          min={58}
+          max={142}
+          avg={72}
+          restingBpm={62}
+        />
+        <TSpacer size="md" />
+
+        {/* Sleep Chart */}
+        <TText variant="subheading" style={{ marginTop: 16, marginBottom: 8 }}>
+          Health — Sleep
+        </TText>
+        <SleepChart
+          data={[
+            { day: "Mon", deep: 1.5, light: 3, rem: 1.5, awake: 0.5 },
+            { day: "Tue", deep: 2, light: 3.5, rem: 1, awake: 0.3 },
+            { day: "Wed", deep: 1.2, light: 3.8, rem: 1.2, awake: 0.8 },
+            { day: "Thu", deep: 1.8, light: 3.2, rem: 1.4, awake: 0.4 },
+            { day: "Fri", deep: 2.1, light: 2.8, rem: 1.6, awake: 0.2 },
+            { day: "Sat", deep: 2.5, light: 3.5, rem: 1.8, awake: 0.2 },
+            { day: "Sun", deep: 1.9, light: 3.1, rem: 1.5, awake: 0.5 },
+          ]}
+          averageHours={7.2}
+          qualityScore={85}
+        />
+        <TSpacer size="md" />
+
+        {/* Water Tracker */}
+        <TText variant="subheading" style={{ marginTop: 16, marginBottom: 8 }}>
+          Health — Hydration
+        </TText>
+        <WaterTracker
+          current={1.4}
+          goal={2.5}
+          unit="L"
+          glasses={6}
+          glassSize={0.25}
+        />
 
         <TSpacer size="xxl" />
       </ScrollView>
