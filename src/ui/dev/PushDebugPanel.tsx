@@ -215,6 +215,23 @@ export function PushDebugPanel() {
           bg={theme.colors.textSecondary + "15"}
         />
       </View>
+
+      {/* Error display */}
+      {lastError && (
+        <>
+          <TSpacer size="sm" />
+          <View
+            style={[
+              styles.errorBox,
+              { backgroundColor: theme.colors.error + "12" },
+            ]}
+          >
+            <TText style={[styles.errorText, { color: theme.colors.error }]}>
+              {lastError}
+            </TText>
+          </View>
+        </>
+      )}
     </GlassCard>
   );
 }
@@ -309,5 +326,13 @@ const styles = StyleSheet.create({
   actionLabel: {
     fontSize: 13,
     fontWeight: "500",
+  },
+  errorBox: {
+    padding: 10,
+    borderRadius: 8,
+  },
+  errorText: {
+    fontSize: 12,
+    fontFamily: "monospace",
   },
 });

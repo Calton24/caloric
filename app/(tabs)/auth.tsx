@@ -1,18 +1,19 @@
+/* eslint-disable react/no-unescaped-entities */
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import React, { useState } from "react";
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
 } from "react-native";
 import {
-    SafeAreaView,
-    useSafeAreaInsets,
+  SafeAreaView,
+  useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
 import { AuthCapabilities } from "../../src/features/auth/authCapabilities";
@@ -40,6 +41,7 @@ export default function AuthScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [signUpSuccess, setSignUpSuccess] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -80,10 +82,7 @@ export default function AuthScreen() {
       if (error) {
         Alert.alert("Sign Up Failed", error.message);
       } else {
-        Alert.alert(
-          "Success",
-          "Account created! Check your email to verify your account."
-        );
+        setSignUpSuccess(true);
       }
     } finally {
       setLoading(false);
@@ -92,6 +91,15 @@ export default function AuthScreen() {
 
   const toggleAuthMode = () => {
     setIsSignUp(!isSignUp);
+    setSignUpSuccess(false);
+    setEmail("");
+    setPassword("");
+    setConfirmPassword("");
+  };
+
+  const handleGoToSignIn = () => {
+    setSignUpSuccess(false);
+    setIsSignUp(false);
     setEmail("");
     setPassword("");
     setConfirmPassword("");
@@ -162,6 +170,91 @@ export default function AuthScreen() {
           >
             Sign Out
           </TButton>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Sign-up success screen
+  if (signUpSuccess) {
+    return (
+      <SafeAreaView
+        testID="auth-screen"
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+        edges={["top"]}
+      >
+        {/* Gradient Hue Teardrop */}
+        <View style={styles.gradientTeardrop}>
+          <Svg height="100%" width="100%" style={StyleSheet.absoluteFill}>
+            <Defs>
+              <RadialGradient
+                id={`grad-success-${theme.mode}`}
+                cx="50%"
+                cy="0%"
+                r="100%"
+              >
+                <Stop
+                  offset="0%"
+                  stopColor={theme.colors.success}
+                  stopOpacity={theme.mode === "light" ? 0.5 : 0.4}
+                />
+                <Stop
+                  offset="40%"
+                  stopColor={theme.colors.success}
+                  stopOpacity={theme.mode === "light" ? 0.25 : 0.15}
+                />
+                <Stop
+                  offset="100%"
+                  stopColor={theme.colors.success}
+                  stopOpacity={0}
+                />
+              </RadialGradient>
+            </Defs>
+            <Ellipse
+              cx="50%"
+              cy="0"
+              rx="60%"
+              ry="400"
+              fill={`url(#grad-success-${theme.mode})`}
+            />
+          </Svg>
+        </View>
+
+        <View style={styles.successContainer}>
+          <View
+            style={[
+              styles.successIcon,
+              { backgroundColor: theme.colors.success + "18" },
+            ]}
+          >
+            <Ionicons
+              name="checkmark-circle"
+              size={72}
+              color={theme.colors.success}
+            />
+          </View>
+
+          <TSpacer size="xl" />
+
+          <TText variant="heading" style={styles.successTitle}>
+            Account Created!
+          </TText>
+
+          <TSpacer size="md" />
+
+          <TText color="secondary" style={styles.successMessage}>
+            We've sent a verification link to{"\n"}
+            <TText style={{ fontWeight: "600" }}>{email}</TText>
+            {"\n\n"}Check your inbox and verify your email, then sign in below.
+          </TText>
+
+          <TSpacer size="xl" />
+
+          <View style={styles.successActions}>
+            <TButton testID="go-to-sign-in-button" onPress={handleGoToSignIn}>
+              Go to Sign In
+            </TButton>
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -405,6 +498,33 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
+  },
+  successContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
+  },
+  successIcon: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  successTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  successMessage: {
+    fontSize: 16,
+    textAlign: "center",
+    lineHeight: 24,
+  },
+  successActions: {
+    width: "100%",
+    paddingHorizontal: 16,
   },
   gradientTeardrop: {
     position: "absolute",
