@@ -97,6 +97,8 @@ export interface FeatureFlags {
   analytics: boolean;
   /** Growth layer (feature requests + milestones) */
   growth: boolean;
+  /** Haptic feedback */
+  haptics: boolean;
   /** Push notifications */
   notifications: boolean;
   /** Firebase Analytics instrumentation */

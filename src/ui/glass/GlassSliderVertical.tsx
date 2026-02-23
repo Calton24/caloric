@@ -9,11 +9,12 @@ import React, { useCallback } from "react";
 import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
 } from "react-native-reanimated";
+import { haptics } from "../../infrastructure/haptics";
 import { useTheme } from "../../theme/useTheme";
 import { GlassSurface } from "./GlassSurface";
 
@@ -57,7 +58,7 @@ export function GlassSliderVertical({
   onChange,
   icon,
   step,
-  haptics: _haptics = false,
+  haptics: hapticsEnabled = true,
   disabled = false,
   accessibilityLabel = "Slider",
   blurEnabled,
@@ -69,6 +70,12 @@ export function GlassSliderVertical({
   const { theme } = useTheme();
   const fillHeight = useSharedValue(value * TRACK_HEIGHT);
   const startFill = useSharedValue(value * TRACK_HEIGHT);
+
+  const lastSnapped = useSharedValue(value);
+
+  const fireHaptic = useCallback(() => {
+    if (hapticsEnabled) haptics.selection();
+  }, [hapticsEnabled]);
 
   const emitChange = useCallback(
     (v: number) => {
@@ -91,6 +98,10 @@ export function GlassSliderVertical({
       );
       const snapped = snap(raw, step);
       fillHeight.value = snapped * TRACK_HEIGHT;
+      if (snapped !== lastSnapped.value) {
+        lastSnapped.value = snapped;
+        runOnJS(fireHaptic)();
+      }
       runOnJS(emitChange)(snapped);
     })
     .onEnd(() => {
@@ -152,11 +163,7 @@ export function GlassSliderVertical({
             {/* Icon at bottom center */}
             {icon && (
               <View style={styles.iconContainer}>
-                <Ionicons
-                  name={icon}
-                  size={22}
-                  color={theme.colors.text}
-                />
+                <Ionicons name={icon} size={22} color={theme.colors.text} />
               </View>
             )}
           </GlassSurface>

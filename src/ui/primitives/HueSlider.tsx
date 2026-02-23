@@ -3,7 +3,7 @@
  * Interactive hue slider for theme customization
  */
 
-import React from "react";
+import React, { useCallback } from "react";
 import { StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -11,6 +11,7 @@ import Animated, {
     useAnimatedStyle,
     useSharedValue,
 } from "react-native-reanimated";
+import { haptics } from "../../infrastructure/haptics";
 import { useTheme } from "../../theme/useTheme";
 
 interface HueSliderProps {
@@ -22,15 +23,32 @@ const SLIDER_WIDTH = 280;
 const THUMB_SIZE = 28;
 const TRACK_HEIGHT = 12;
 
+// Snap hue to nearest 10-degree increment for haptic ticks
+const HUE_STEP = 10;
+function snapHue(hue: number) {
+  "worklet";
+  return Math.round(hue / HUE_STEP) * HUE_STEP;
+}
+
 export function HueSlider({ value, onValueChange }: HueSliderProps) {
   const { theme } = useTheme();
   const translateX = useSharedValue((value / 360) * SLIDER_WIDTH);
+  const lastSnappedHue = useSharedValue(snapHue(value));
+
+  const fireHaptic = useCallback(() => {
+    haptics.selection();
+  }, []);
 
   const panGesture = Gesture.Pan()
     .onUpdate((event) => {
       const newX = Math.max(0, Math.min(SLIDER_WIDTH, event.x));
       translateX.value = newX;
       const newHue = Math.round((newX / SLIDER_WIDTH) * 360);
+      const snapped = snapHue(newHue);
+      if (snapped !== lastSnappedHue.value) {
+        lastSnappedHue.value = snapped;
+        runOnJS(fireHaptic)();
+      }
       runOnJS(onValueChange)(newHue);
     })
     .onEnd(() => {

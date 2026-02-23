@@ -19,7 +19,7 @@ export default function GrowthLayerScreen() {
 
   const openSheet = () => {
     open(<FeatureRequestSheet />, {
-      snapPoints: [560],
+      snapPoints: ["85%"],
     });
   };
 

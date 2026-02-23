@@ -1,7 +1,10 @@
 import { FeatureFlags } from "@/config/features";
+import { haptics } from "@/src/infrastructure/haptics";
+import { useTheme } from "@/src/theme/useTheme";
 import { GlassTabBar } from "@/src/ui/tabs/GlassTabBar";
-import { Tabs } from "expo-router";
+import { Tabs, usePathname } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
+import { useEffect, useRef } from "react";
 import { Platform, View } from "react-native";
 import "react-native-reanimated";
 
@@ -51,10 +54,37 @@ const TABS = [
   },
 ] as const;
 
+/**
+ * Fires haptics on tab changes by watching the current pathname.
+ * Works for both NativeTabs (iOS 26+) and GlassTabBar since
+ * usePathname() is global to the expo-router.
+ */
+function useTabChangeHaptics() {
+  const pathname = usePathname();
+  const prevPathname = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (prevPathname.current !== null && pathname !== prevPathname.current) {
+      haptics.impact("light");
+    }
+    prevPathname.current = pathname;
+  }, [pathname]);
+}
+
 // ─── Native liquid-glass tabs (iOS 26+) ───────────────────────
 function NativeTabLayout() {
+  const { theme } = useTheme();
+  useTabChangeHaptics();
+
+  // Use the app's own theme mode (not the device's useColorScheme)
+  // so the wrapper background stays in sync with screen content.
+  const screenBg =
+    theme.mode === "dark"
+      ? "#000000" // iOS systemBackground (dark)
+      : "#FFFFFF"; // iOS systemBackground (light)
+
   return (
-    <View testID="tabs-root" style={{ flex: 1 }}>
+    <View testID="tabs-root" style={{ flex: 1, backgroundColor: screenBg }}>
       <NativeTabs>
         {TABS.filter((t) => t.flag).map((t) => (
           <NativeTabs.Trigger key={t.name} name={t.name}>

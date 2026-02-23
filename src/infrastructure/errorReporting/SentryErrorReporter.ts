@@ -1,9 +1,8 @@
 /**
  * Error Reporting - Sentry Implementation
- * Only imports Sentry SDK - isolated from rest of app
+ * Uses dynamic require to avoid bundler crashes when @sentry/react-native is not installed
  */
 
-import * as Sentry from "@sentry/react-native";
 import { Platform } from "react-native";
 import {
     Breadcrumb,
@@ -15,13 +14,33 @@ import {
 } from "./types";
 
 /**
+ * Dynamically load Sentry SDK
+ * Returns null if SDK is not installed (e.g., in forks that don't need Sentry)
+ */
+let Sentry: any = null;
+try {
+  Sentry = require("@sentry/react-native");
+} catch {
+  // SDK not installed - this is fine, we'll behave like Noop
+  Sentry = null;
+}
+
+/**
  * Sentry-based error reporter
- * Only this file imports @sentry/react-native
+ * Gracefully degrades to noop if SDK is not installed
  */
 export class SentryErrorReporter implements ErrorReporter {
   private enabled = false;
 
   init(config: ErrorReporterConfig): void {
+    // Check if Sentry SDK is available
+    if (!Sentry) {
+      console.warn(
+        "[SentryErrorReporter] @sentry/react-native not installed - error reporting disabled"
+      );
+      return;
+    }
+
     if (!config.dsn) {
       console.warn(
         "[SentryErrorReporter] No DSN provided - error reporting disabled"
@@ -62,7 +81,7 @@ export class SentryErrorReporter implements ErrorReporter {
           }),
         ],
         beforeSend: config.beforeSend
-          ? (event, hint) => {
+          ? (event: any, hint: any) => {
               // Call custom filter with error object
               const error = hint.originalException as Error;
               const shouldSend = config.beforeSend!(error, event.contexts);
@@ -105,7 +124,7 @@ export class SentryErrorReporter implements ErrorReporter {
 
     try {
       Sentry.captureMessage(message, {
-        level: level as Sentry.SeverityLevel,
+        level: level as any, // Sentry.SeverityLevel (SDK is dynamically loaded)
         contexts: context,
       });
     } catch (err) {
@@ -140,7 +159,7 @@ export class SentryErrorReporter implements ErrorReporter {
       Sentry.addBreadcrumb({
         message: breadcrumb.message,
         category: breadcrumb.category,
-        level: breadcrumb.level as Sentry.SeverityLevel,
+        level: breadcrumb.level as any, // Sentry.SeverityLevel (SDK is dynamically loaded)
         data: breadcrumb.data,
         timestamp: breadcrumb.timestamp,
       });
@@ -151,5 +170,13 @@ export class SentryErrorReporter implements ErrorReporter {
 
   isEnabled(): boolean {
     return this.enabled;
+  }
+
+  /**
+   * Check if Sentry SDK is available
+   * @returns true if @sentry/react-native is installed
+   */
+  static isSdkAvailable(): boolean {
+    return Sentry !== null;
   }
 }

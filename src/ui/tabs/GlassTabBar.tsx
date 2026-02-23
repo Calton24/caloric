@@ -9,23 +9,23 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import * as Haptics from "expo-haptics";
 import React, { useCallback } from "react";
 import {
-  LayoutChangeEvent,
-  Platform,
-  Pressable,
-  StyleSheet,
-  View,
+    LayoutChangeEvent,
+    Platform,
+    Pressable,
+    StyleSheet,
+    View,
 } from "react-native";
 import Animated, {
-  FadeIn,
-  FadeOut,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
+    FadeIn,
+    FadeOut,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { haptics } from "../../infrastructure/haptics";
 import { useTheme } from "../../theme/useTheme";
 import { GlassSurface } from "../glass/GlassSurface";
 
@@ -67,7 +67,7 @@ export function GlassTabBar({
         canPreventDefault: true,
       });
       if (!isFocused && !event.defaultPrevented) {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        haptics.impact("light");
         navigation.navigate(routeName);
       }
     },
@@ -76,7 +76,7 @@ export function GlassTabBar({
 
   const handleLongPress = useCallback(
     (routeKey: string) => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      haptics.impact("medium");
       navigation.emit({ type: "tabLongPress", target: routeKey });
     },
     [navigation]

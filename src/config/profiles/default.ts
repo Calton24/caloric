@@ -60,6 +60,7 @@ export const defaultConfig: AppProfileConfig = {
     habit: true,
     analytics: true,
     growth: false,
+    haptics: true,
     notifications: true,
     firebaseAnalytics: false, // Firebase not installed in mobile-core
     crashReporting: false, // Firebase not installed in mobile-core

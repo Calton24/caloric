@@ -57,6 +57,7 @@ export const proxiConfig: AppProfileConfig = {
     habit: true, // Social habits/streaks
     analytics: true,
     growth: false,
+    haptics: true,
     notifications: true, // Critical for proximity alerts
     firebaseAnalytics: false, // Firebase not installed in mobile-core
     crashReporting: false, // Firebase not installed in mobile-core

@@ -32,7 +32,13 @@ export default function PlaygroundScreen() {
   };
 
   return (
-    <View testID="screen-playground" style={{ flex: 1 }}>
+    <View
+      testID="screen-playground"
+      style={{
+        flex: 1,
+        backgroundColor: theme.mode === "dark" ? "#000" : "#FFFFFF",
+      }}
+    >
       <Host style={{ flex: 1 }} colorScheme={theme.mode}>
         <Form>
           <ButtonsSection />
@@ -51,9 +57,8 @@ export default function PlaygroundScreen() {
           <DisclosureGroupSection />
         </Form>
       </Host>
-
-      {/* Floating Search Button - inline with tab bar */}
-      <View style={[styles.floatingButton, { bottom: 0, right: 16 }]}>
+      {/* Floating Search Button - top right */}
+      <View style={[styles.floatingButton, { top: 60, right: 16 }]}>
         <Host matchContents>
           <Group
             modifiers={[

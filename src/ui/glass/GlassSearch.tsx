@@ -5,7 +5,7 @@
  * Features:
  * - Glassmorphism background (GlassSurface pill variant)
  * - Search icon + text input + optional clear button
- * - Cancel button slides in when focused
+ * - Cancel button animates in/out via native LayoutAnimation
  * - Animated focus ring
  * - Token-driven colors & spacing via useTheme()
  */
@@ -13,21 +13,42 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useRef, useState } from "react";
 import {
-    Pressable,
-    StyleProp,
-    StyleSheet,
-    TextInput,
-    View,
-    ViewStyle,
+  LayoutAnimation,
+  Platform,
+  Pressable,
+  StyleProp,
+  StyleSheet,
+  TextInput,
+  UIManager,
+  View,
+  ViewStyle,
 } from "react-native";
 import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withTiming,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
 } from "react-native-reanimated";
+import { haptics } from "../../infrastructure/haptics";
 import { useTheme } from "../../theme/useTheme";
 import { GlassSurface } from "../glass/GlassSurface";
 import { TText } from "../primitives/TText";
+
+/* ── Enable LayoutAnimation on Android ────────────── */
+
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+/* ── Native layout animation config ───────────────── */
+
+const LAYOUT_ANIM = LayoutAnimation.create(
+  250,
+  LayoutAnimation.Types.easeInEaseOut,
+  LayoutAnimation.Properties.scaleX
+);
 
 /* ── Types ─────────────────────────────────────────── */
 
@@ -70,107 +91,114 @@ export function GlassSearch({
 }: GlassSearchProps) {
   const { theme } = useTheme();
   const inputRef = useRef<TextInput>(null);
-  const [focused, setFocused] = useState(false);
+  const [cancelVisible, setCancelVisible] = useState(false);
 
-  const cancelWidth = useSharedValue(0);
-  const cancelOpacity = useSharedValue(0);
+  // Focus ring (Reanimated — runs on UI thread)
+  const focusRingOpacity = useSharedValue(0);
 
   const handleFocus = useCallback(() => {
-    setFocused(true);
+    focusRingOpacity.value = withTiming(1, { duration: 150 });
     if (showCancel) {
-      cancelWidth.value = withTiming(60, { duration: 200 });
-      cancelOpacity.value = withTiming(1, { duration: 200 });
+      LayoutAnimation.configureNext(LAYOUT_ANIM);
+      setCancelVisible(true);
     }
-  }, [showCancel, cancelWidth, cancelOpacity]);
+    haptics.impact("light");
+  }, [showCancel, focusRingOpacity]);
 
   const handleBlur = useCallback(() => {
-    setFocused(false);
-    cancelWidth.value = withTiming(0, { duration: 200 });
-    cancelOpacity.value = withTiming(0, { duration: 200 });
-  }, [cancelWidth, cancelOpacity]);
+    focusRingOpacity.value = withTiming(0, { duration: 150 });
+    LayoutAnimation.configureNext(LAYOUT_ANIM);
+    setCancelVisible(false);
+  }, [focusRingOpacity]);
 
   const handleCancel = useCallback(() => {
     onChangeText("");
     inputRef.current?.blur();
     onCancel?.();
+    haptics.impact("light");
   }, [onChangeText, onCancel]);
 
   const handleClear = useCallback(() => {
     onChangeText("");
     inputRef.current?.focus();
+    haptics.selection();
   }, [onChangeText]);
 
-  const cancelStyle = useAnimatedStyle(() => ({
-    width: cancelWidth.value,
-    opacity: cancelOpacity.value,
+  const focusRingStyle = useAnimatedStyle(() => ({
+    borderWidth: 1.5,
+    borderColor: theme.colors.primary + "60",
+    opacity: focusRingOpacity.value,
   }));
 
   return (
     <View style={[styles.wrapper, style]}>
-      <GlassSurface
-        variant="pill"
-        intensity={intensity}
-        tint={tint}
-        style={[
-          styles.surface,
-          focused && {
-            borderWidth: 1.5,
-            borderColor: theme.colors.primary + "60",
-          },
-        ]}
-      >
-        <Ionicons
-          name="search"
-          size={18}
-          color={theme.colors.textMuted}
-          style={styles.searchIcon}
-        />
-        <TextInput
-          ref={inputRef}
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={theme.colors.textMuted}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          onSubmitEditing={() => onSubmit?.(value)}
-          returnKeyType="search"
-          autoFocus={autoFocus}
-          autoCorrect={false}
-          autoCapitalize="none"
-          style={[
-            styles.input,
-            {
-              color: theme.colors.text,
-              fontSize: theme.typography.fontSize.base,
-            },
-          ]}
-        />
-        {value.length > 0 && (
-          <Pressable onPress={handleClear} hitSlop={8} style={styles.clearBtn}>
-            <Ionicons
-              name="close-circle"
-              size={18}
-              color={theme.colors.textMuted}
-            />
-          </Pressable>
-        )}
-      </GlassSurface>
-
-      {showCancel && (
-        <Animated.View style={[styles.cancelContainer, cancelStyle]}>
-          <Pressable onPress={handleCancel}>
-            <TText
-              style={{
-                color: theme.colors.primary,
+      <View style={{ flex: 1 }}>
+        <GlassSurface
+          variant="pill"
+          intensity={intensity}
+          tint={tint}
+          style={styles.surface}
+        >
+          <Ionicons
+            name="search"
+            size={18}
+            color={theme.colors.textMuted}
+            style={styles.searchIcon}
+          />
+          <TextInput
+            ref={inputRef}
+            value={value}
+            onChangeText={onChangeText}
+            placeholder={placeholder}
+            placeholderTextColor={theme.colors.textMuted}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            onSubmitEditing={() => onSubmit?.(value)}
+            returnKeyType="search"
+            autoFocus={autoFocus}
+            autoCorrect={false}
+            autoCapitalize="none"
+            style={[
+              styles.input,
+              {
+                color: theme.colors.text,
                 fontSize: theme.typography.fontSize.base,
-                fontWeight: theme.typography.fontWeight.medium,
-              }}
+              },
+            ]}
+          />
+          {value.length > 0 && (
+            <Pressable
+              onPress={handleClear}
+              hitSlop={8}
+              style={styles.clearBtn}
             >
-              Cancel
-            </TText>
-          </Pressable>
-        </Animated.View>
+              <Ionicons
+                name="close-circle"
+                size={18}
+                color={theme.colors.textMuted}
+              />
+            </Pressable>
+          )}
+        </GlassSurface>
+        {/* Animated focus ring overlay */}
+        <Animated.View
+          style={[styles.focusRing, { borderRadius: 999 }, focusRingStyle]}
+          pointerEvents="none"
+        />
+      </View>
+
+      {cancelVisible && (
+        <Pressable onPress={handleCancel} style={styles.cancelButton}>
+          <TText
+            style={{
+              color: theme.colors.primary,
+              fontSize: theme.typography.fontSize.base,
+              fontWeight: theme.typography.fontWeight.medium,
+            }}
+          >
+            Cancel
+          </TText>
+        </Pressable>
       )}
     </View>
   );
@@ -201,10 +229,14 @@ const styles = StyleSheet.create({
   clearBtn: {
     marginLeft: 6,
   },
-  cancelContainer: {
-    overflow: "hidden",
+  cancelButton: {
+    marginLeft: 12,
     justifyContent: "center",
-    alignItems: "flex-end",
-    marginLeft: 8,
+  },
+  focusRing: {
+    ...StyleSheet.absoluteFillObject,
+    pointerEvents: "none",
+  },
+});
   },
 });

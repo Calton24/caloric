@@ -57,6 +57,7 @@ export const intakeConfig: AppProfileConfig = {
     habit: false, // Not needed for intake
     analytics: true,
     growth: false,
+    haptics: true,
     notifications: true,
     firebaseAnalytics: false, // Firebase not installed in mobile-core
     crashReporting: false, // Firebase not installed in mobile-core
