@@ -67,5 +67,16 @@ export type {
     User
 } from "./features/auth/authClient";
 
+// === NOTIFICATIONS ===
+export { NoopNotificationsClient, initNotifications, notifications, resetNotifications } from "./infrastructure/notifications";
+export type {
+    NotificationsClient,
+    PermissionStatus,
+    ScheduleLocalOpts,
+    SendTestRemoteOpts
+} from "./infrastructure/notifications";
+
 // === DEV UTILITIES ===
 export { DevOnly } from "./ui/dev/DevOnly";
+export { PushDebugPanel } from "./ui/dev/PushDebugPanel";
+

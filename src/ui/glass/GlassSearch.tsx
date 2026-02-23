@@ -13,20 +13,20 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useRef, useState } from "react";
 import {
-  LayoutAnimation,
-  Platform,
-  Pressable,
-  StyleProp,
-  StyleSheet,
-  TextInput,
-  UIManager,
-  View,
-  ViewStyle,
+    LayoutAnimation,
+    Platform,
+    Pressable,
+    StyleProp,
+    StyleSheet,
+    TextInput,
+    UIManager,
+    View,
+    ViewStyle,
 } from "react-native";
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
 } from "react-native-reanimated";
 import { haptics } from "../../infrastructure/haptics";
 import { useTheme } from "../../theme/useTheme";
@@ -236,7 +236,5 @@ const styles = StyleSheet.create({
   focusRing: {
     ...StyleSheet.absoluteFillObject,
     pointerEvents: "none",
-  },
-});
   },
 });

@@ -17,6 +17,7 @@ import {
 } from "./infrastructure/errorReporting";
 import { growth, initGrowth } from "./infrastructure/growth";
 import { initHaptics } from "./infrastructure/haptics";
+import { initNotifications } from "./infrastructure/notifications";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { NotificationToastProvider } from "./ui/components/NotificationToast";
 import { ToastProvider } from "./ui/components/Toast";
@@ -45,6 +46,7 @@ export function MobileCoreProviders({
     initAnalytics();
     initGrowth();
     initHaptics();
+    initNotifications();
 
     if (__DEV__) {
       const cfg = getAppConfig();

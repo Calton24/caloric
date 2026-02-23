@@ -39,6 +39,15 @@ const GROWTH_ENTRY: CatalogEntry = {
   count: 1,
 };
 
+const PUSH_ENTRY: CatalogEntry = {
+  key: "push",
+  route: "/(tabs)/mobile-core/push",
+  title: "Push Notifications",
+  subtitle: "Permissions, token, local test, badge clear",
+  icon: "notifications-outline",
+  count: 4,
+};
+
 const CATALOG: CatalogEntry[] = [
   {
     key: "primitives",
@@ -76,7 +85,7 @@ const CATALOG: CatalogEntry[] = [
     icon: "bar-chart-outline",
     count: 6,
   },
-  ...(__DEV__ ? [GROWTH_ENTRY] : []),
+  ...(__DEV__ ? [GROWTH_ENTRY, PUSH_ENTRY] : []),
 ];
 
 export default function MobileCoreMenu() {
