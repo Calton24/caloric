@@ -102,6 +102,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           color: "#ffffff",
         },
       ],
+      // expo-widgets config plugin will be added here once the package
+      // ships a stable plugin. Until then the factory falls back to Noop.
+      // See: src/infrastructure/liveActivity/factory.ts
+      "./plugins/withLiveActivity",
     ],
 
     experiments: {

@@ -10,6 +10,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { getAppConfig } from "./config";
 import { AuthProvider } from "./features/auth/AuthProvider";
+import { initActivityMonitor } from "./infrastructure/activityMonitor";
 import { analytics, initAnalytics } from "./infrastructure/analytics";
 import {
     ErrorBoundary,
@@ -17,7 +18,10 @@ import {
 } from "./infrastructure/errorReporting";
 import { growth, initGrowth } from "./infrastructure/growth";
 import { initHaptics } from "./infrastructure/haptics";
+import { initI18n } from "./infrastructure/i18n";
+import { initLiveActivity } from "./infrastructure/liveActivity";
 import { initNotifications } from "./infrastructure/notifications";
+import { initPresence } from "./infrastructure/presence";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { NotificationToastProvider } from "./ui/components/NotificationToast";
 import { ToastProvider } from "./ui/components/Toast";
@@ -47,6 +51,10 @@ export function MobileCoreProviders({
     initGrowth();
     initHaptics();
     initNotifications();
+    initI18n();
+    initPresence();
+    initActivityMonitor();
+    initLiveActivity();
 
     if (__DEV__) {
       const cfg = getAppConfig();

@@ -1,0 +1,37 @@
+{
+  "app": {
+    "title": "Mobile Core"
+  },
+  "auth": {
+    "signIn": "Inloggen",
+    "signUp": "Registreren",
+    "signOut": "Uitloggen",
+    "email": "E-mail",
+    "password": "Wachtwoord",
+    "confirmPassword": "Wachtwoord bevestigen",
+    "forgotPassword": "Wachtwoord vergeten?",
+    "createAccount": "Account aanmaken",
+    "welcome": "Welkom",
+    "signInToContinue": "Log in om verder te gaan",
+    "signUpToGetStarted": "Registreer om te beginnen"
+  },
+  "common": {
+    "cancel": "Annuleren",
+    "save": "Opslaan",
+    "loading": "Laden…",
+    "done": "Klaar",
+    "delete": "Verwijderen",
+    "edit": "Bewerken",
+    "back": "Terug",
+    "next": "Volgende",
+    "ok": "OK",
+    "error": "Fout",
+    "success": "Gelukt",
+    "retry": "Opnieuw"
+  },
+  "calories": {
+    "label": "Calorieën",
+    "value_one": "{{count}} calorie",
+    "value_other": "{{count}} calorieën"
+  }
+}

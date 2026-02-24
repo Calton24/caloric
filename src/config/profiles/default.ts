@@ -66,6 +66,10 @@ export const defaultConfig: AppProfileConfig = {
     crashReporting: false, // Firebase not installed in mobile-core
     performanceMonitoring: false, // Firebase not installed in mobile-core
     billing: true, // Enable billing system (includes paywall UI)
+    i18n: true,
+    presence: true,
+    activityMonitor: true,
+    liveActivity: true,
   },
 
   app: {

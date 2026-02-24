@@ -1,0 +1,6 @@
+{
+  "name": "live-activity-module",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "description": "Local Expo module bridging iOS ActivityKit to JS for Live Activities + Dynamic Island"
+}

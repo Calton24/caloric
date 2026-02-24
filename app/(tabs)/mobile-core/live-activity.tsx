@@ -1,0 +1,35 @@
+/**
+ * Live Activities — Dev Debug Screen
+ * Accessible from Mobile Core catalog in __DEV__ only.
+ */
+
+import React from "react";
+import { FitnessActivityDebugPanel } from "../../../src/ui/dev/FitnessActivityDebugPanel";
+import { LiveActivityDebugPanel } from "../../../src/ui/dev/LiveActivityDebugPanel";
+import { Screen } from "../../../src/ui/layout/Screen";
+import { TSpacer } from "../../../src/ui/primitives/TSpacer";
+import { TText } from "../../../src/ui/primitives/TText";
+
+export default function LiveActivityDebugScreen() {
+  return (
+    <Screen scrollable>
+      <TSpacer size="lg" />
+      <TText variant="heading">Live Activities</TText>
+      <TSpacer size="xs" />
+      <TText color="secondary">
+        Dev panel for testing Live Activities via native ActivityKit. Activities
+        appear in the Dynamic Island and Lock Screen. Requires iOS dev build.
+      </TText>
+
+      <TSpacer size="lg" />
+
+      <LiveActivityDebugPanel />
+
+      <TSpacer size="lg" />
+
+      <FitnessActivityDebugPanel />
+
+      <TSpacer size="xl" />
+    </Screen>
+  );
+}

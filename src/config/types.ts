@@ -109,6 +109,14 @@ export interface FeatureFlags {
   performanceMonitoring: boolean;
   /** Billing / subscription system (includes paywall UI) */
   billing: boolean;
+  /** Internationalisation (i18n) */
+  i18n: boolean;
+  /** App lifecycle presence detection */
+  presence: boolean;
+  /** Activity monitor (in-app / Live Activities) */
+  activityMonitor: boolean;
+  /** Live Activities via expo-widgets (iOS only, alpha) */
+  liveActivity: boolean;
 }
 
 export interface AppMetadata {

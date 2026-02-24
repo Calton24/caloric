@@ -1,0 +1,37 @@
+{
+  "app": {
+    "title": "Mobile Core"
+  },
+  "auth": {
+    "signIn": "Se connecter",
+    "signUp": "S'inscrire",
+    "signOut": "Se déconnecter",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "forgotPassword": "Mot de passe oublié ?",
+    "createAccount": "Créer un compte",
+    "welcome": "Bienvenue",
+    "signInToContinue": "Connectez-vous pour continuer",
+    "signUpToGetStarted": "Inscrivez-vous pour commencer"
+  },
+  "common": {
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "loading": "Chargement…",
+    "done": "Terminé",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "back": "Retour",
+    "next": "Suivant",
+    "ok": "OK",
+    "error": "Erreur",
+    "success": "Succès",
+    "retry": "Réessayer"
+  },
+  "calories": {
+    "label": "Calories",
+    "value_one": "{{count}} calorie",
+    "value_other": "{{count}} calories"
+  }
+}

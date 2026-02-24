@@ -1,0 +1,38 @@
+/**
+ * Live Activity — Public barrel export
+ */
+
+// ── Consumer API (feature code uses these) ──
+export {
+    getLiveActivityClient,
+    liveActivity,
+    setLiveActivityClient
+} from "./liveActivity";
+
+// ── Bootstrap (called once in MobileCoreProviders) ──
+export { initLiveActivity, resetLiveActivity } from "./factory";
+
+// ── Types ──
+export type {
+    LAEndResult,
+    LAStartResult,
+    LAUpdateResult,
+    LiveActivityClient,
+    LiveActivityProps
+} from "./types";
+
+// ── Implementations (swap in factory or tests) ──
+export { ExpoWidgetsLiveActivityClient } from "./ExpoWidgetsLiveActivityClient";
+export { NativeLiveActivityClient } from "./NativeLiveActivityClient";
+export { NoopLiveActivityClient } from "./NoopLiveActivityClient";
+
+// ── Fitness Activity (steps + calorie ring) ──
+export { fitnessActivity } from "./FitnessActivity";
+export type {
+    FitnessActivityStartProps,
+    FitnessActivityUpdateProps,
+    FitnessEndResult,
+    FitnessStartResult,
+    FitnessUpdateResult
+} from "./FitnessActivity";
+

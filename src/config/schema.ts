@@ -132,6 +132,10 @@ export const FeatureFlagsSchema = z.object({
   crashReporting: z.boolean(),
   performanceMonitoring: z.boolean(),
   billing: z.boolean(),
+  i18n: z.boolean(),
+  presence: z.boolean(),
+  activityMonitor: z.boolean(),
+  liveActivity: z.boolean(),
 });
 
 export const AppMetadataSchema = z.object({
