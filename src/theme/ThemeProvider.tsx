@@ -11,6 +11,7 @@ import React, {
     useState,
 } from "react";
 import { Appearance, useColorScheme } from "react-native";
+import { haptics } from "../infrastructure/haptics";
 import { ColorMode, generatePalette } from "./colors";
 import { themeStorage } from "./storage";
 import { ThemeTokens, radius, spacing, typography } from "./tokens";
@@ -96,6 +97,7 @@ export function ThemeProvider({
   }, []);
 
   const toggleMode = useCallback(() => {
+    haptics.impact("medium");
     setMode(mode === "light" ? "dark" : "light");
   }, [mode, setMode]);
 

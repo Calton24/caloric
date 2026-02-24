@@ -29,6 +29,7 @@ import Animated, {
     useSharedValue,
     withTiming,
 } from "react-native-reanimated";
+import { haptics } from "../../infrastructure/haptics";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -172,7 +173,10 @@ export function TabSelector({
           return (
             <Pressable
               key={item.key}
-              onPress={() => onChange(item.key)}
+              onPress={() => {
+                haptics.selection();
+                onChange(item.key);
+              }}
               onLayout={(e) => handleTabLayout(item.key, e)}
               accessibilityRole="tab"
               accessibilityState={{ selected: isActive }}

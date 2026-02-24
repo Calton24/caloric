@@ -28,6 +28,7 @@ import Animated, {
     withSpring,
     withTiming,
 } from "react-native-reanimated";
+import { haptics } from "../../infrastructure/haptics";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -99,7 +100,8 @@ export function Checkbox({
 
   const handlePress = useCallback(() => {
     if (disabled) return;
-    // Bounce
+    // Haptic + bounce
+    haptics.impact("light");
     scale.value = withSequence(
       withSpring(0.85, { damping: 10, stiffness: 400 }),
       withSpring(1, { damping: 8, stiffness: 250 })

@@ -20,6 +20,7 @@ import Animated, {
     useSharedValue,
     withTiming,
 } from "react-native-reanimated";
+import { haptics } from "../../infrastructure/haptics";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 import { GlassSurface } from "./GlassSurface";
@@ -173,6 +174,7 @@ function SegmentTab({
   }, [active, labelOpacity]);
 
   const handlePressIn = useCallback(() => {
+    haptics.selection();
     scale.value = withTiming(0.93, { duration: 80 });
   }, [scale]);
 

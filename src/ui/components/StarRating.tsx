@@ -28,6 +28,7 @@ import Animated, {
     withSequence,
     withSpring,
 } from "react-native-reanimated";
+import { haptics } from "../../infrastructure/haptics";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -103,6 +104,7 @@ function StarItem({
 
   const handlePress = useCallback(() => {
     if (!interactive || !onChange) return;
+    haptics.impact("light");
     scale.value = withSequence(
       withSpring(1.25, { damping: 6, stiffness: 300 }),
       withSpring(1, { damping: 8, stiffness: 200 })
