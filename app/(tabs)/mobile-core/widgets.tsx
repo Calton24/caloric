@@ -9,6 +9,7 @@ import React from "react";
 import { StyleSheet } from "react-native";
 import { ActivityRings } from "../../../src/ui/analytics/ActivityRings";
 import { HeartRateCard } from "../../../src/ui/analytics/HeartRateCard";
+import { NetCaloriesWidget } from "../../../src/ui/analytics/NetCaloriesWidget";
 import { SleepChart } from "../../../src/ui/analytics/SleepChart";
 import { SpendingCard } from "../../../src/ui/analytics/SpendingCard";
 import { StepCounter } from "../../../src/ui/analytics/StepCounter";
@@ -94,6 +95,29 @@ export default function WidgetsScreen() {
         distance={5.8}
         calories={320}
         activeMinutes={42}
+      />
+
+      <TSpacer size="lg" />
+
+      {/* ── Calorie Budget ── */}
+      <TText variant="heading" style={s.sectionTitle}>
+        Nutrition — Calorie Budget
+      </TText>
+      <NetCaloriesWidget
+        baseGoal={2000}
+        consumed={1580}
+        activityBonus={500}
+        subtitle="Live from activity"
+      />
+
+      <TSpacer size="md" />
+
+      <NetCaloriesWidget
+        baseGoal={2000}
+        consumed={2300}
+        activityBonus={200}
+        title="Over Budget Demo"
+        subtitle="Consumed exceeds budget"
       />
 
       <TSpacer size="lg" />

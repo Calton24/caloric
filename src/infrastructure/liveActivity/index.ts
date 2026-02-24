@@ -36,3 +36,23 @@ export type {
     FitnessUpdateResult
 } from "./FitnessActivity";
 
+// ── Pedometer Activity (real CMPedometer tracking) ──
+export { pedometerActivity } from "./PedometerActivity";
+export type {
+    PedometerData,
+    PedometerEndResult,
+    PedometerStartProps,
+    PedometerStartResult
+} from "./PedometerActivity";
+
+// ── Calorie Budget Activity (intake vs budget tracking) ──
+export { calorieBudgetActivity } from "./CalorieBudgetActivity";
+export type {
+    CalorieBudgetEndResult,
+    CalorieBudgetMode,
+    CalorieBudgetStartProps,
+    CalorieBudgetStartResult,
+    CalorieBudgetUpdateProps,
+    CalorieBudgetUpdateResult
+} from "./CalorieBudgetActivity";
+

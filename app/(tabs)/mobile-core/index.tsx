@@ -84,6 +84,15 @@ const LIVE_ACTIVITY_ENTRY: CatalogEntry = {
   count: 3,
 };
 
+const MAINTENANCE_ENTRY: CatalogEntry = {
+  key: "maintenance",
+  route: "/(tabs)/mobile-core/maintenance",
+  title: "Maintenance",
+  subtitle: "Degraded-mode states, overrides, outage monitor",
+  icon: "construct-outline",
+  count: 6,
+};
+
 const CATALOG: CatalogEntry[] = [
   {
     key: "primitives",
@@ -129,6 +138,7 @@ const CATALOG: CatalogEntry[] = [
         PRESENCE_ENTRY,
         ACTIVITY_ENTRY,
         LIVE_ACTIVITY_ENTRY,
+        MAINTENANCE_ENTRY,
       ]
     : []),
 ];

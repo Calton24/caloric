@@ -117,6 +117,8 @@ export interface FeatureFlags {
   activityMonitor: boolean;
   /** Live Activities via expo-widgets (iOS only, alpha) */
   liveActivity: boolean;
+  /** Maintenance / degraded-mode system */
+  maintenance: boolean;
 }
 
 export interface AppMetadata {

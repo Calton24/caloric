@@ -81,4 +81,39 @@ export const liveActivity = {
       return false;
     }
   },
+
+  /**
+   * End ALL active live activities (status + fitness).
+   * Useful for cleanup before starting fresh or on logout.
+   */
+  endAll(): boolean {
+    try {
+      return (client as any).endAll?.() ?? false;
+    } catch {
+      return false;
+    }
+  },
+
+  /**
+   * Query all active Live Activities from ActivityKit.
+   * Returns array of { id, type, name, title, value, activityState }.
+   */
+  getActiveActivities(): Record<string, string>[] {
+    try {
+      return (client as any).getActiveActivities?.() ?? [];
+    } catch {
+      return [];
+    }
+  },
+
+  /**
+   * Get total count of active activities (status + fitness).
+   */
+  getActiveCount(): number {
+    try {
+      return (client as any).getActiveCount?.() ?? 0;
+    } catch {
+      return 0;
+    }
+  },
 };

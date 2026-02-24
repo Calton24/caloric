@@ -21,3 +21,6 @@ export type { StepCounterProps } from "./StepCounter";
 export { HeartRateCard } from "./HeartRateCard";
 export type { HeartRateCardProps } from "./HeartRateCard";
 
+export { NetCaloriesWidget } from "./NetCaloriesWidget";
+export type { NetCaloriesWidgetProps } from "./NetCaloriesWidget";
+

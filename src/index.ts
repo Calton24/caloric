@@ -147,10 +147,37 @@ export type {
     LiveActivityProps
 } from "./infrastructure/liveActivity";
 
+// === MAINTENANCE / DEGRADED-MODE ===
+export {
+    DEFAULT_MAINTENANCE_STATE,
+    IMPLICIT_SUPABASE_BLOCKS,
+    MAINTENANCE_CACHE_KEY,
+    MAINTENANCE_OVERRIDE_KEY,
+    MaintenanceGate,
+    NoopMaintenanceClient,
+    PostHogMaintenanceClient,
+    RemoteJsonMaintenanceClient,
+    SupabaseHealthMonitor,
+    VALID_MODES,
+    VALID_REASONS,
+    getHealthMonitor,
+    initMaintenance,
+    maintenance,
+    resetMaintenance,
+    useMaintenanceState
+} from "./infrastructure/maintenance";
+export type {
+    MaintenanceClient,
+    MaintenanceMode,
+    MaintenanceReason,
+    MaintenanceState
+} from "./infrastructure/maintenance";
+
 // === DEV UTILITIES ===
 export { ActivityDebugPanel } from "./ui/dev/ActivityDebugPanel";
 export { DevOnly } from "./ui/dev/DevOnly";
 export { LiveActivityDebugPanel } from "./ui/dev/LiveActivityDebugPanel";
+export { MaintenanceDebugPanel } from "./ui/dev/MaintenanceDebugPanel";
 export { PresenceDebugPanel } from "./ui/dev/PresenceDebugPanel";
 export { PushDebugPanel } from "./ui/dev/PushDebugPanel";
 

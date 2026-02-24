@@ -67,6 +67,7 @@ export const intakeConfig: AppProfileConfig = {
     presence: true,
     activityMonitor: true,
     liveActivity: true,
+    maintenance: true,
   },
 
   app: {

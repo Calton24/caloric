@@ -67,6 +67,7 @@ export const proxiConfig: AppProfileConfig = {
     presence: true,
     activityMonitor: true,
     liveActivity: true,
+    maintenance: true,
   },
 
   app: {

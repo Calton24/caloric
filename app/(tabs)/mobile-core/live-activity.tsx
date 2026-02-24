@@ -4,8 +4,11 @@
  */
 
 import React from "react";
+import { CalorieBudgetActivityDebugPanel } from "../../../src/ui/dev/CalorieBudgetActivityDebugPanel";
 import { FitnessActivityDebugPanel } from "../../../src/ui/dev/FitnessActivityDebugPanel";
 import { LiveActivityDebugPanel } from "../../../src/ui/dev/LiveActivityDebugPanel";
+import { LiveActivityLifecyclePanel } from "../../../src/ui/dev/LiveActivityLifecyclePanel";
+import { PedometerActivityDebugPanel } from "../../../src/ui/dev/PedometerActivityDebugPanel";
 import { Screen } from "../../../src/ui/layout/Screen";
 import { TSpacer } from "../../../src/ui/primitives/TSpacer";
 import { TText } from "../../../src/ui/primitives/TText";
@@ -28,6 +31,18 @@ export default function LiveActivityDebugScreen() {
       <TSpacer size="lg" />
 
       <FitnessActivityDebugPanel />
+
+      <TSpacer size="lg" />
+
+      <PedometerActivityDebugPanel />
+
+      <TSpacer size="lg" />
+
+      <CalorieBudgetActivityDebugPanel />
+
+      <TSpacer size="lg" />
+
+      <LiveActivityLifecyclePanel />
 
       <TSpacer size="xl" />
     </Screen>

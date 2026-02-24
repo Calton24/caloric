@@ -67,6 +67,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ios: {
       supportsTablet: true,
       bundleIdentifier: appConfig.bundleIdentifier,
+      infoPlist: {
+        NSMotionUsageDescription:
+          "This app uses the pedometer to track your steps, distance, and floors climbed for the Live Activity.",
+      },
     },
 
     android: {

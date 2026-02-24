@@ -20,6 +20,7 @@ import { growth, initGrowth } from "./infrastructure/growth";
 import { initHaptics } from "./infrastructure/haptics";
 import { initI18n } from "./infrastructure/i18n";
 import { initLiveActivity } from "./infrastructure/liveActivity";
+import { initMaintenance, MaintenanceGate } from "./infrastructure/maintenance";
 import { initNotifications } from "./infrastructure/notifications";
 import { initPresence } from "./infrastructure/presence";
 import { ThemeProvider } from "./theme/ThemeProvider";
@@ -55,6 +56,7 @@ export function MobileCoreProviders({
     initPresence();
     initActivityMonitor();
     initLiveActivity();
+    initMaintenance();
 
     if (__DEV__) {
       const cfg = getAppConfig();
@@ -69,17 +71,19 @@ export function MobileCoreProviders({
         <View style={{ flex: 1 }} testID={testID}>
           <SafeAreaProvider>
             <ThemeProvider>
-              <AuthProvider>
-                <BottomSheetModalProvider>
-                  <BottomSheetProvider>
-                    <ToastProvider>
-                      <NotificationToastProvider>
-                        {children}
-                      </NotificationToastProvider>
-                    </ToastProvider>
-                  </BottomSheetProvider>
-                </BottomSheetModalProvider>
-              </AuthProvider>
+              <MaintenanceGate>
+                <AuthProvider>
+                  <BottomSheetModalProvider>
+                    <BottomSheetProvider>
+                      <ToastProvider>
+                        <NotificationToastProvider>
+                          {children}
+                        </NotificationToastProvider>
+                      </ToastProvider>
+                    </BottomSheetProvider>
+                  </BottomSheetModalProvider>
+                </AuthProvider>
+              </MaintenanceGate>
             </ThemeProvider>
           </SafeAreaProvider>
         </View>

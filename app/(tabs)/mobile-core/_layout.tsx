@@ -14,6 +14,7 @@ export default function MobileCoreLayout() {
       <Stack.Screen name="patterns" />
       <Stack.Screen name="widgets" />
       <Stack.Screen name="growth" />
+      <Stack.Screen name="maintenance" />
     </Stack>
   );
 }

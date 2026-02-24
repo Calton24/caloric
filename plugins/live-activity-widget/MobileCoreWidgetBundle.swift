@@ -13,5 +13,7 @@ struct MobileCoreWidgetBundle: WidgetBundle {
     var body: some Widget {
         MobileCoreWidgetLiveActivity()
         FitnessLiveActivity()
+        PedometerLiveActivity()
+        CalorieBudgetLiveActivity()
     }
 }

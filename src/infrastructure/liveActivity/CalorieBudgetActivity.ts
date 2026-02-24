@@ -1,39 +1,41 @@
 /**
- * FitnessActivity — High-level JS API for the Fitness Live Activity
+ * CalorieBudgetActivity — High-level JS API for the Calorie Budget Live Activity
  *
- * Shows steps on the left and a calorie ring on the right
+ * Tracks daily calorie intake vs. budget (base goal + activity bonus)
  * in the Dynamic Island and Lock Screen.
  *
  * Usage:
- *   import { fitnessActivity } from "../../infrastructure/liveActivity/FitnessActivity";
- *   const result = fitnessActivity.start({ calorieGoal: 2000, steps: 0, caloriesUsed: 0, distance: 0 });
- *   fitnessActivity.update(result.activityId, { steps: 3400, caloriesUsed: 420, distance: 2.1 });
- *   fitnessActivity.end(result.activityId);
+ *   import { calorieBudgetActivity } from "../../infrastructure/liveActivity/CalorieBudgetActivity";
+ *   const result = calorieBudgetActivity.start({ baseGoal: 2000, consumed: 0, activityBonus: 0 });
+ *   calorieBudgetActivity.update(result.activityId, { consumed: 800, activityBonus: 200 });
+ *   calorieBudgetActivity.end(result.activityId);
  */
 
-export interface FitnessActivityStartProps {
-  calorieGoal: number;
-  steps: number;
-  caloriesUsed: number;
-  distance: number; // km
+export type CalorieBudgetMode = "strict" | "adaptive";
+
+export interface CalorieBudgetStartProps {
+  baseGoal: number;
+  consumed?: number;
+  activityBonus?: number;
+  /** "strict" = budget is baseGoal only, "adaptive" = baseGoal + activityBonus */
+  mode?: CalorieBudgetMode;
 }
 
-export interface FitnessActivityUpdateProps {
-  steps: number;
-  caloriesUsed: number;
-  distance: number; // km
+export interface CalorieBudgetUpdateProps {
+  consumed: number;
+  activityBonus: number;
 }
 
-export type FitnessStartResult =
+export type CalorieBudgetStartResult =
   | { status: "started"; activityId: string }
   | { status: "unavailable"; reason: string }
   | { status: "denied"; reason: string };
 
-export type FitnessUpdateResult =
+export type CalorieBudgetUpdateResult =
   | { status: "updated" }
   | { status: "unavailable"; reason: string };
 
-export type FitnessEndResult =
+export type CalorieBudgetEndResult =
   | { status: "ended" }
   | { status: "unavailable"; reason: string };
 
@@ -45,12 +47,13 @@ try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { requireNativeModule } = require("expo-modules-core");
   nativeModule = requireNativeModule("LiveActivityModule");
-  moduleAvailable = typeof nativeModule?.startFitnessActivity === "function";
+  moduleAvailable =
+    typeof nativeModule?.startCalorieBudgetActivity === "function";
 } catch {
   moduleAvailable = false;
 }
 
-class FitnessActivityClient {
+class CalorieBudgetActivityClient {
   private readonly available: boolean;
 
   constructor() {
@@ -69,7 +72,7 @@ class FitnessActivityClient {
     return this.available;
   }
 
-  start(props: FitnessActivityStartProps): FitnessStartResult {
+  start(props: CalorieBudgetStartProps): CalorieBudgetStartResult {
     if (!this.available) {
       return {
         status: "unavailable",
@@ -78,11 +81,11 @@ class FitnessActivityClient {
     }
 
     try {
-      const activityId: string | null = nativeModule.startFitnessActivity(
-        props.calorieGoal,
-        props.steps,
-        props.caloriesUsed,
-        props.distance
+      const activityId: string | null = nativeModule.startCalorieBudgetActivity(
+        props.baseGoal,
+        props.consumed ?? 0,
+        props.activityBonus ?? 0,
+        props.mode ?? "adaptive"
       );
 
       if (typeof activityId === "string" && activityId.length > 0) {
@@ -93,15 +96,18 @@ class FitnessActivityClient {
         reason: "Live Activities denied or failed to start",
       };
     } catch (err: any) {
-      console.warn("[FitnessActivity] start failed:", err?.message ?? err);
+      console.warn(
+        "[CalorieBudgetActivity] start failed:",
+        err?.message ?? err
+      );
       return { status: "unavailable", reason: err?.message ?? "unknown error" };
     }
   }
 
   update(
     activityId: string,
-    props: FitnessActivityUpdateProps
-  ): FitnessUpdateResult {
+    props: CalorieBudgetUpdateProps
+  ): CalorieBudgetUpdateResult {
     if (!this.available) {
       return {
         status: "unavailable",
@@ -110,20 +116,22 @@ class FitnessActivityClient {
     }
 
     try {
-      nativeModule.updateFitnessActivity(
+      nativeModule.updateCalorieBudgetActivity(
         activityId,
-        props.steps,
-        props.caloriesUsed,
-        props.distance
+        props.consumed,
+        props.activityBonus
       );
       return { status: "updated" };
     } catch (err: any) {
-      console.warn("[FitnessActivity] update failed:", err?.message ?? err);
+      console.warn(
+        "[CalorieBudgetActivity] update failed:",
+        err?.message ?? err
+      );
       return { status: "unavailable", reason: err?.message ?? "unknown error" };
     }
   }
 
-  end(activityId: string): FitnessEndResult {
+  end(activityId: string): CalorieBudgetEndResult {
     if (!this.available) {
       return {
         status: "unavailable",
@@ -132,34 +140,34 @@ class FitnessActivityClient {
     }
 
     try {
-      nativeModule.endFitnessActivity(activityId);
+      nativeModule.endCalorieBudgetActivity(activityId);
       return { status: "ended" };
     } catch (err: any) {
-      console.warn("[FitnessActivity] end failed:", err?.message ?? err);
+      console.warn("[CalorieBudgetActivity] end failed:", err?.message ?? err);
       return { status: "unavailable", reason: err?.message ?? "unknown error" };
     }
   }
 
   /**
-   * End ALL active fitness activities.
+   * End ALL active calorie budget activities.
    */
   endAll(): boolean {
     if (!this.available) return false;
     try {
-      return nativeModule.endAllFitnessActivities?.() ?? false;
+      return nativeModule.endAllCalorieBudgetActivities?.() ?? false;
     } catch {
       return false;
     }
   }
 
   /**
-   * Query active fitness activities from ActivityKit.
-   * Returns array with id, calorieGoal, steps, caloriesUsed, distance, activityState.
+   * Query active calorie budget activities from ActivityKit.
+   * Returns array with id, baseGoal, consumed, activityBonus, activityState.
    */
   getActiveActivities(): Record<string, any>[] {
     if (!this.available) return [];
     try {
-      return nativeModule.getActiveFitnessActivities?.() ?? [];
+      return nativeModule.getActiveCalorieBudgetActivities?.() ?? [];
     } catch {
       return [];
     }
@@ -167,4 +175,4 @@ class FitnessActivityClient {
 }
 
 /** Singleton — safe on Android / Expo Go (returns "unavailable" on every call) */
-export const fitnessActivity = new FitnessActivityClient();
+export const calorieBudgetActivity = new CalorieBudgetActivityClient();

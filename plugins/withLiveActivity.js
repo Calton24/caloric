@@ -31,6 +31,8 @@ const WIDGET_SWIFT_FILES = [
   "MobileCoreWidgetBundle.swift",
   "MobileCoreWidgetLiveActivity.swift",
   "FitnessLiveActivity.swift",
+  "PedometerLiveActivity.swift",
+  "CalorieBudgetLiveActivity.swift",
 ];
 
 // ────────────────────────────────────────────────────────

@@ -158,6 +158,45 @@ export class NativeLiveActivityClient implements LiveActivityClient {
     }
   }
 
+  /**
+   * End ALL live activities (status + fitness).
+   * Useful for cleanup on logout or app reset.
+   */
+  endAll(): boolean {
+    if (!this.available) return false;
+    try {
+      return nativeModule.endAllActivities?.() ?? false;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Query all active Live Activities from ActivityKit.
+   * Returns array of { id, type, name, title, value, activityState }.
+   * activityState: "active" | "ended" | "dismissed" | "stale"
+   */
+  getActiveActivities(): Record<string, string>[] {
+    if (!this.available) return [];
+    try {
+      return nativeModule.getActiveActivities?.() ?? [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Get total count of active activities (status + fitness).
+   */
+  getActiveCount(): number {
+    if (!this.available) return 0;
+    try {
+      return nativeModule.getActiveCount?.() ?? 0;
+    } catch {
+      return 0;
+    }
+  }
+
   isSupported(): boolean {
     return this.available;
   }

@@ -42,6 +42,7 @@ struct FitnessLiveActivity: Widget {
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
+                    .padding(.leading, 4)
                 }
 
                 DynamicIslandExpandedRegion(.trailing) {
@@ -50,6 +51,7 @@ struct FitnessLiveActivity: Widget {
                         goal: context.attributes.calorieGoal,
                         size: 44
                     )
+                    .padding(.trailing, 8)
                 }
 
                 DynamicIslandExpandedRegion(.center) {
@@ -74,6 +76,7 @@ struct FitnessLiveActivity: Widget {
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
+                    .padding(.horizontal, 4)
                 }
             } compactLeading: {
                 // ── Compact pill — left: step count ──
@@ -149,7 +152,8 @@ struct FitnessLiveActivity: Widget {
                 size: 40
             )
         }
-        .padding()
+        .padding(.vertical, 16)
+        .padding(.horizontal, 20)
         .activityBackgroundTint(Color(.systemBackground).opacity(0.8))
     }
 
@@ -208,6 +212,8 @@ struct CalorieRing: View {
 // MARK: - Calorie Ring Compact (compact pill / minimal)
 
 /// Tiny calorie ring for the compact pill trailing slot.
+/// Sized to fit within the Dynamic Island compact trailing region
+/// without being clipped by the capsule mask.
 struct CalorieRingCompact: View {
     let used: Int
     let goal: Int
@@ -220,20 +226,21 @@ struct CalorieRingCompact: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(Color.orange.opacity(0.25), lineWidth: 2.5)
+                .stroke(Color.orange.opacity(0.25), lineWidth: 2)
 
             Circle()
                 .trim(from: 0, to: 1.0 - fraction)
                 .stroke(
                     Color.orange,
-                    style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
+                    style: StrokeStyle(lineWidth: 2, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
 
             Image(systemName: "flame.fill")
-                .font(.system(size: 8))
+                .font(.system(size: 7))
                 .foregroundColor(.orange)
         }
-        .frame(width: 18, height: 18)
+        .frame(width: 14, height: 14)
+        .padding(2)
     }
 }
