@@ -42,11 +42,19 @@ export const IMPLICIT_SUPABASE_BLOCKS: readonly string[] = [
   "uploads",
   "growth",
   "realtime",
+  "auth",
 ];
 
 let client: MaintenanceClient = new NoopMaintenanceClient();
 let healthMonitor: SupabaseHealthMonitor | null = null;
+let monitorUnsub: (() => void) | null = null;
 let localOverride: MaintenanceState | null = null;
+
+/**
+ * Last resolved state — kept in sync so isBlocked() has something
+ * to work with synchronously even when only a provider supplied the state.
+ */
+let lastResolvedState: MaintenanceState = { ...DEFAULT_MAINTENANCE_STATE };
 
 // ── Transition logging (non-spam) ──
 let lastLoggedMode: string | undefined;
@@ -56,6 +64,10 @@ let lastLoggedReason: string | undefined;
  * Log ONLY when mode or reason actually changes.
  * Format: [Maintenance] state_changed mode=<mode> reason=<reason> blocked=<csv or "none">
  * Never logs secrets or URLs.
+ *
+ * This is an internal helper — it should only be called from
+ * notifyListeners() (the one true "commit" path). getState() must
+ * remain pure: resolve + save, never log.
  */
 function logTransition(
   prev: { mode?: string; reason?: string },
@@ -77,14 +89,15 @@ function logTransition(
 type Listener = (state: MaintenanceState) => void;
 const listeners = new Set<Listener>();
 
+/**
+ * Commit state: log transition (if changed) + notify all subscribers.
+ * This is the ONE place that logs transitions — keeping getState() pure.
+ */
 function notifyListeners(state: MaintenanceState): void {
-  // Log on transitions
-  logTransition(
-    { mode: lastLoggedMode, reason: lastLoggedReason },
-    state
-  );
+  logTransition({ mode: lastLoggedMode, reason: lastLoggedReason }, state);
   lastLoggedMode = state.mode;
   lastLoggedReason = state.reason;
+  lastResolvedState = state;
 
   for (const fn of listeners) {
     try {
@@ -105,9 +118,30 @@ export function getMaintenanceClient(): MaintenanceClient {
   return client;
 }
 
-/** Attach the optional outage monitor (called by factory). */
+/**
+ * Attach the optional outage monitor (called by factory).
+ * Subscribes the proxy to monitor transitions so every state change
+ * flows through the single commit path (notifyListeners).
+ */
 export function setHealthMonitor(monitor: SupabaseHealthMonitor | null): void {
+  // Tear down previous bridge
+  if (monitorUnsub) {
+    monitorUnsub();
+    monitorUnsub = null;
+  }
+
   healthMonitor = monitor;
+
+  // Bridge: monitor transitions → proxy commit path
+  if (monitor) {
+    monitorUnsub = monitor.subscribe((monitorState) => {
+      // Re-resolve because a local override may still outrank the monitor
+      resolveState().then(
+        (resolved) => notifyListeners(resolved),
+        () => {} // never crash
+      );
+    });
+  }
 }
 
 /** Retrieve the current outage monitor (testing). */
@@ -151,13 +185,8 @@ export const maintenance = {
   async getState(): Promise<MaintenanceState> {
     try {
       const state = await resolveState();
-      // Log on transitions even if nobody called subscribe
-      logTransition(
-        { mode: lastLoggedMode, reason: lastLoggedReason },
-        state
-      );
-      lastLoggedMode = state.mode;
-      lastLoggedReason = state.reason;
+      // Pure: resolve + save. No logging — that happens only via notifyListeners().
+      lastResolvedState = state;
       return state;
     } catch (error) {
       console.warn("[Maintenance] getState failed:", error);
@@ -175,14 +204,15 @@ export const maintenance = {
   isBlocked(feature: string): boolean {
     try {
       // Use the last known resolved state synchronously
-      const state = localOverride && localOverride.mode !== "normal"
-        ? localOverride
-        : healthMonitor && healthMonitor.getState().mode !== "normal"
-          ? healthMonitor.getState()
-          : null;
+      const state =
+        localOverride && localOverride.mode !== "normal"
+          ? localOverride
+          : healthMonitor && healthMonitor.getState().mode !== "normal"
+            ? healthMonitor.getState()
+            : null;
 
-      // If no override/monitor, fall back to provider's cached last state
-      const effective = state ?? { mode: "normal" as MaintenanceMode };
+      // If no override/monitor, fall back to last resolved state
+      const effective = state ?? lastResolvedState;
 
       if (effective.mode === "maintenance") return true;
       if (effective.blockedFeatures?.includes(feature)) return true;
@@ -202,9 +232,7 @@ export const maintenance = {
    * Apply a manual local override. Pass null to clear.
    * Persists to AsyncStorage so it survives restarts.
    */
-  async setLocalOverride(
-    state: MaintenanceState | null
-  ): Promise<void> {
+  async setLocalOverride(state: MaintenanceState | null): Promise<void> {
     try {
       localOverride = state;
       const storage = getAsyncStorage();
@@ -243,6 +271,9 @@ export const maintenance = {
 /**
  * Load persisted local override from AsyncStorage on boot.
  * Called by factory during init. Never throws.
+ *
+ * When an override is found, commits it immediately so isBlocked()
+ * returns the correct answer from the very first tick — no timing roulette.
  */
 export async function loadPersistedOverride(): Promise<void> {
   try {
@@ -257,6 +288,9 @@ export async function loadPersistedOverride(): Promise<void> {
       VALID_MODES.includes(parsed.mode as MaintenanceMode)
     ) {
       localOverride = parsed as MaintenanceState;
+      // Commit immediately — override is the highest-priority truth
+      const resolved = await resolveState();
+      notifyListeners(resolved);
     }
   } catch {
     // Corrupt override — ignore
@@ -267,9 +301,15 @@ export async function loadPersistedOverride(): Promise<void> {
  * Reset everything — testing only.
  */
 export function resetProxy(): void {
+  // Tear down monitor bridge before clearing the reference
+  if (monitorUnsub) {
+    monitorUnsub();
+    monitorUnsub = null;
+  }
   client = new NoopMaintenanceClient();
   healthMonitor = null;
   localOverride = null;
+  lastResolvedState = { ...DEFAULT_MAINTENANCE_STATE };
   listeners.clear();
   lastLoggedMode = undefined;
   lastLoggedReason = undefined;

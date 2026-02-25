@@ -8,10 +8,10 @@
  */
 
 // Mock global fetch
+import { SupabaseHealthMonitor } from "./SupabaseHealthMonitor";
+
 const mockFetch = jest.fn();
 (global as any).fetch = mockFetch;
-
-import { SupabaseHealthMonitor } from "./SupabaseHealthMonitor";
 
 const TEST_URL = "https://myproject.supabase.co";
 const TEST_KEY = "anon-key-xxx";
@@ -213,7 +213,10 @@ describe("SupabaseHealthMonitor", () => {
   it("handles fetch timeout (AbortController)", async () => {
     jest.useRealTimers();
     mockFetch.mockImplementation(
-      () => new Promise((_, reject) => setTimeout(() => reject(new Error("Aborted")), 50))
+      () =>
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Aborted")), 50)
+        )
     );
 
     // Should not throw, just count as failure

@@ -13,12 +13,12 @@
  */
 
 import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useRef,
+    useState,
 } from "react";
 import {
     ActivityIndicator,
@@ -28,6 +28,7 @@ import {
     Text,
     View,
 } from "react-native";
+import { useToast } from "../../ui/components/Toast";
 import { maintenance } from "./maintenance";
 import { DEFAULT_MAINTENANCE_STATE, type MaintenanceState } from "./types";
 
@@ -61,10 +62,10 @@ export function MaintenanceGate({
   children,
   pollInterval = 60_000,
 }: MaintenanceGateProps) {
+  const toast = useToast();
   const [state, setState] = useState<MaintenanceState>(
     DEFAULT_MAINTENANCE_STATE
   );
-  const [bannerDismissed, setBannerDismissed] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const prevMode = useRef(state.mode);
 
@@ -93,13 +94,26 @@ export function MaintenanceGate({
     };
   }, [fetchState, pollInterval]);
 
-  // Reset banner dismissal when mode changes
+  // Show persistent toast for degraded/read_only, dismiss on return to normal
   useEffect(() => {
-    if (prevMode.current !== state.mode) {
-      setBannerDismissed(false);
-      prevMode.current = state.mode;
+    if (prevMode.current === state.mode) return;
+    prevMode.current = state.mode;
+
+    if (state.mode === "degraded") {
+      toast.show(
+        state.message ?? "⚠️ Some features may be temporarily unavailable.",
+        "warning",
+        { persistent: true }
+      );
+    } else if (state.mode === "read_only") {
+      toast.show(state.message ?? "🔒 App is in read-only mode.", "info", {
+        persistent: true,
+      });
+    } else {
+      // normal → no toast needed; maintenance → full-screen overlay, not a toast
+      toast.dismiss();
     }
-  }, [state.mode]);
+  }, [state.mode, state.message, toast]);
 
   const handleRetry = useCallback(async () => {
     setRetrying(true);
@@ -150,39 +164,9 @@ export function MaintenanceGate({
     );
   }
 
-  // ── Normal / degraded / read_only — render children with optional banner ──
-  const showBanner =
-    (state.mode === "degraded" || state.mode === "read_only") &&
-    !bannerDismissed;
-
+  // ── Normal / degraded / read_only — render children (toast handles status) ──
   return (
     <MaintenanceContext.Provider value={contextValue}>
-      {showBanner && (
-        <View
-          style={[
-            styles.banner,
-            state.mode === "read_only"
-              ? styles.bannerReadOnly
-              : styles.bannerDegraded,
-          ]}
-          testID="maintenance-banner"
-        >
-          <Text style={styles.bannerText} numberOfLines={2}>
-            {state.mode === "read_only" ? "🔒 " : "⚠️ "}
-            {state.message ??
-              (state.mode === "degraded"
-                ? "Some features may be temporarily unavailable."
-                : "App is in read-only mode.")}
-          </Text>
-          <Pressable
-            onPress={() => setBannerDismissed(true)}
-            hitSlop={8}
-            testID="maintenance-banner-dismiss"
-          >
-            <Text style={styles.bannerDismiss}>✕</Text>
-          </Pressable>
-        </View>
-      )}
       {children}
     </MaintenanceContext.Provider>
   );
@@ -236,29 +220,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: "#ECEDEE",
-  },
-  banner: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    minHeight: 44,
-  },
-  bannerDegraded: {
-    backgroundColor: "#3D2E00",
-  },
-  bannerReadOnly: {
-    backgroundColor: "#1A2333",
-  },
-  bannerText: {
-    flex: 1,
-    fontSize: 13,
-    color: "#ECEDEE",
-    lineHeight: 18,
-  },
-  bannerDismiss: {
-    fontSize: 16,
-    color: "#9BA1A6",
-    paddingLeft: 12,
   },
 });

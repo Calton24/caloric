@@ -1,12 +1,14 @@
 import {
     getMaintenanceClient,
     IMPLICIT_SUPABASE_BLOCKS,
+    loadPersistedOverride,
     maintenance,
     resetProxy,
     setHealthMonitor,
     setMaintenanceClient,
 } from "./maintenance";
 import { NoopMaintenanceClient } from "./NoopMaintenanceClient";
+import { SupabaseHealthMonitor } from "./SupabaseHealthMonitor";
 import type { MaintenanceClient, MaintenanceState } from "./types";
 
 // Mock AsyncStorage for setLocalOverride persistence
@@ -230,7 +232,159 @@ describe("maintenance proxy — subscribe", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// logTransition — only fires on mode/reason changes
+// loadPersistedOverride — commits immediately so isBlocked() works from tick 0
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("maintenance proxy — loadPersistedOverride", () => {
+  beforeEach(() => {
+    resetProxy();
+    jest.clearAllMocks();
+  });
+
+  it("commits persisted override so isBlocked works without getState", async () => {
+    mockAsyncStorage.getItem.mockResolvedValueOnce(
+      JSON.stringify({
+        mode: "maintenance",
+        reason: "manual_override",
+        updatedAt: Date.now(),
+      })
+    );
+
+    await loadPersistedOverride();
+
+    // isBlocked should work immediately — no getState() needed
+    expect(maintenance.isBlocked("auth")).toBe(true);
+    expect(maintenance.isBlocked("writes")).toBe(true);
+  });
+
+  it("notifies subscribers when persisted override is loaded", async () => {
+    const listener = jest.fn();
+    maintenance.subscribe(listener);
+
+    mockAsyncStorage.getItem.mockResolvedValueOnce(
+      JSON.stringify({
+        mode: "degraded",
+        reason: "supabase_unreachable",
+        updatedAt: Date.now(),
+      })
+    );
+
+    await loadPersistedOverride();
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledWith(
+      expect.objectContaining({ mode: "degraded" })
+    );
+  });
+
+  it("does nothing when no persisted override exists", async () => {
+    mockAsyncStorage.getItem.mockResolvedValueOnce(null);
+
+    await loadPersistedOverride();
+
+    expect(maintenance.isBlocked("auth")).toBe(false);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Monitor → proxy bridge — transitions committed through notifyListeners
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Mock fetch for SupabaseHealthMonitor
+const mockFetch = jest.fn();
+(global as any).fetch = mockFetch;
+
+describe("maintenance proxy — monitor bridge", () => {
+  beforeEach(() => {
+    resetProxy();
+    jest.clearAllMocks();
+    mockFetch.mockResolvedValue({ ok: true });
+  });
+
+  afterEach(() => {
+    // Clean up monitor timers + bridge subscription
+    resetProxy();
+  });
+
+  it("proxy subscribers are notified when monitor transitions", async () => {
+    const monitor = new SupabaseHealthMonitor(
+      "https://test.supabase.co",
+      "anon-key",
+      999_999 // large poll so timers don't auto-fire
+    );
+    setHealthMonitor(monitor);
+
+    const listener = jest.fn();
+    maintenance.subscribe(listener);
+
+    // Drive the monitor into degraded (3 failures)
+    mockFetch.mockRejectedValue(new Error("down"));
+    await monitor.check();
+    await monitor.check();
+    await monitor.check();
+
+    // Wait a tick for the bridge's async resolveState().then()
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(listener).toHaveBeenCalled();
+    const lastCall = listener.mock.calls[listener.mock.calls.length - 1][0];
+    expect(lastCall.mode).toBe("degraded");
+    expect(lastCall.reason).toBe("supabase_unreachable");
+  });
+
+  it("monitor bridge updates lastResolvedState for isBlocked", async () => {
+    const monitor = new SupabaseHealthMonitor(
+      "https://test.supabase.co",
+      "anon-key",
+      999_999
+    );
+    setHealthMonitor(monitor);
+
+    // Before any failures, isBlocked is false
+    expect(maintenance.isBlocked("writes")).toBe(false);
+
+    // 3 failures → degraded
+    mockFetch.mockRejectedValue(new Error("down"));
+    await monitor.check();
+    await monitor.check();
+    await monitor.check();
+
+    // Wait for async bridge
+    await new Promise((r) => setTimeout(r, 0));
+
+    // isBlocked now picks up the committed state
+    expect(maintenance.isBlocked("writes")).toBe(true);
+    expect(maintenance.isBlocked("auth")).toBe(true);
+  });
+
+  it("setHealthMonitor(null) unsubscribes the bridge", async () => {
+    const monitor = new SupabaseHealthMonitor(
+      "https://test.supabase.co",
+      "anon-key",
+      999_999
+    );
+    setHealthMonitor(monitor);
+
+    const listener = jest.fn();
+    maintenance.subscribe(listener);
+
+    // Detach the monitor
+    setHealthMonitor(null);
+
+    // Drive the old monitor into degraded — bridge should NOT fire
+    mockFetch.mockRejectedValue(new Error("down"));
+    await monitor.check();
+    await monitor.check();
+    await monitor.check();
+
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(listener).not.toHaveBeenCalled();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// logTransition — only fires via notifyListeners (commit path), never getState
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("maintenance proxy — logTransition", () => {
@@ -246,7 +400,7 @@ describe("maintenance proxy — logTransition", () => {
     consoleSpy.mockRestore();
   });
 
-  it("logs when mode transitions from normal to degraded", async () => {
+  it("getState is pure — never produces transition logs", async () => {
     const mockClient: MaintenanceClient = {
       getState: jest.fn().mockResolvedValue({
         mode: "degraded",
@@ -257,74 +411,100 @@ describe("maintenance proxy — logTransition", () => {
     };
     setMaintenanceClient(mockClient);
 
-    await maintenance.getState();
-
-    expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining("[Maintenance] state_changed mode=degraded reason=supabase_unreachable blocked=writes,growth")
-    );
-  });
-
-  it("does NOT log when mode stays the same", async () => {
-    const mockClient: MaintenanceClient = {
-      getState: jest.fn().mockResolvedValue({
-        mode: "degraded",
-        reason: "supabase_unreachable",
-        updatedAt: Date.now(),
-      } satisfies MaintenanceState),
-    };
-    setMaintenanceClient(mockClient);
-
-    await maintenance.getState(); // first call logs
-    consoleSpy.mockClear();
-    await maintenance.getState(); // second call should NOT log
+    // 20 getState calls — zero transition logs
+    for (let i = 0; i < 20; i++) {
+      await maintenance.getState();
+    }
 
     const maintenanceLogs = consoleSpy.mock.calls.filter(
-      (args: any[]) => typeof args[0] === "string" && args[0].includes("[Maintenance] state_changed")
+      (args: any[]) =>
+        typeof args[0] === "string" &&
+        args[0].includes("[Maintenance] state_changed")
     );
     expect(maintenanceLogs).toHaveLength(0);
   });
 
-  it("logs again when mode changes back to normal", async () => {
-    const mockClient: MaintenanceClient = {
-      getState: jest.fn()
-        .mockResolvedValueOnce({
-          mode: "degraded",
-          reason: "supabase_unreachable",
-          updatedAt: Date.now(),
-        })
-        .mockResolvedValueOnce({
-          mode: "normal",
-          updatedAt: Date.now(),
-        }),
-    };
-    setMaintenanceClient(mockClient);
+  it("logs when setLocalOverride triggers a mode transition", async () => {
+    await maintenance.setLocalOverride({
+      mode: "degraded",
+      reason: "supabase_unreachable",
+      blockedFeatures: ["writes", "growth"],
+      updatedAt: Date.now(),
+    });
 
-    await maintenance.getState(); // logs: normal → degraded
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "[Maintenance] state_changed mode=degraded reason=supabase_unreachable blocked=writes,growth"
+      )
+    );
+  });
+
+  it("does NOT log when setLocalOverride keeps the same mode/reason", async () => {
+    await maintenance.setLocalOverride({
+      mode: "degraded",
+      reason: "supabase_unreachable",
+      updatedAt: Date.now(),
+    });
     consoleSpy.mockClear();
-    await maintenance.getState(); // logs: degraded → normal
+
+    // Same mode + reason again — should NOT log
+    await maintenance.setLocalOverride({
+      mode: "degraded",
+      reason: "supabase_unreachable",
+      updatedAt: Date.now() + 1000,
+    });
 
     const maintenanceLogs = consoleSpy.mock.calls.filter(
-      (args: any[]) => typeof args[0] === "string" && args[0].includes("[Maintenance] state_changed")
+      (args: any[]) =>
+        typeof args[0] === "string" &&
+        args[0].includes("[Maintenance] state_changed")
+    );
+    expect(maintenanceLogs).toHaveLength(0);
+  });
+
+  it("logs again when override changes mode back to normal", async () => {
+    await maintenance.setLocalOverride({
+      mode: "degraded",
+      reason: "supabase_unreachable",
+      updatedAt: Date.now(),
+    });
+    consoleSpy.mockClear();
+
+    await maintenance.setLocalOverride(null); // clears back to normal
+
+    const maintenanceLogs = consoleSpy.mock.calls.filter(
+      (args: any[]) =>
+        typeof args[0] === "string" &&
+        args[0].includes("[Maintenance] state_changed")
     );
     expect(maintenanceLogs).toHaveLength(1);
     expect(maintenanceLogs[0][0]).toContain("mode=normal");
   });
 
   it("logs blocked=none when no blockedFeatures", async () => {
-    const mockClient: MaintenanceClient = {
-      getState: jest.fn().mockResolvedValue({
-        mode: "maintenance",
-        reason: "manual_override",
-        updatedAt: Date.now(),
-      } satisfies MaintenanceState),
-    };
-    setMaintenanceClient(mockClient);
-
-    await maintenance.getState();
+    await maintenance.setLocalOverride({
+      mode: "maintenance",
+      reason: "manual_override",
+      updatedAt: Date.now(),
+    });
 
     expect(consoleSpy).toHaveBeenCalledWith(
       expect.stringContaining("blocked=none")
     );
+  });
+
+  it("subscriber receives state when notifyListeners fires", async () => {
+    const received: MaintenanceState[] = [];
+    maintenance.subscribe((s) => received.push(s));
+
+    await maintenance.setLocalOverride({
+      mode: "maintenance",
+      reason: "manual_override",
+      updatedAt: Date.now(),
+    });
+
+    expect(received).toHaveLength(1);
+    expect(received[0].mode).toBe("maintenance");
   });
 });
 
@@ -367,7 +547,7 @@ describe("maintenance proxy — isBlocked", () => {
     expect(maintenance.isBlocked("other_feature")).toBe(false);
   });
 
-  it("implicitly blocks writes/uploads/growth/realtime when supabase_unreachable", () => {
+  it("implicitly blocks writes/uploads/growth/realtime/auth when supabase_unreachable", () => {
     const fakeMonitor = {
       getState: () => ({
         mode: "degraded" as const,
@@ -385,6 +565,8 @@ describe("maintenance proxy — isBlocked", () => {
     for (const feat of IMPLICIT_SUPABASE_BLOCKS) {
       expect(maintenance.isBlocked(feat)).toBe(true);
     }
+    // Verify 'auth' is in the list
+    expect(IMPLICIT_SUPABASE_BLOCKS).toContain("auth");
     // Non-implicit features are NOT blocked in degraded mode
     expect(maintenance.isBlocked("custom_read_only_feature")).toBe(false);
   });
@@ -404,5 +586,26 @@ describe("maintenance proxy — isBlocked", () => {
     // Even with broken state, isBlocked should never crash
     expect(() => maintenance.isBlocked("anything")).not.toThrow();
     expect(maintenance.isBlocked("anything")).toBe(false);
+  });
+
+  it("uses lastResolvedState from provider after getState()", async () => {
+    const mockClient: MaintenanceClient = {
+      getState: jest.fn().mockResolvedValue({
+        mode: "degraded",
+        reason: "supabase_unreachable",
+        blockedFeatures: ["growth"],
+        updatedAt: Date.now(),
+      } satisfies MaintenanceState),
+    };
+    setMaintenanceClient(mockClient);
+
+    // Before getState, isBlocked uses default (normal)
+    expect(maintenance.isBlocked("growth")).toBe(false);
+
+    // After getState, isBlocked picks up the provider state
+    await maintenance.getState();
+    expect(maintenance.isBlocked("growth")).toBe(true);
+    expect(maintenance.isBlocked("writes")).toBe(true); // implicit
+    expect(maintenance.isBlocked("auth")).toBe(true); // implicit
   });
 });

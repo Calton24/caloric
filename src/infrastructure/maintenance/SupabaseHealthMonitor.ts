@@ -14,10 +14,7 @@
  *   features.maintenance === true AND presence of SUPABASE_URL + SUPABASE_ANON_KEY
  */
 
-import {
-  DEFAULT_MAINTENANCE_STATE,
-  type MaintenanceState,
-} from "./types";
+import { DEFAULT_MAINTENANCE_STATE, type MaintenanceState } from "./types";
 
 /** How long to wait for a Supabase response before considering it failed */
 const HEALTH_TIMEOUT_MS = 2_000;
@@ -133,8 +130,7 @@ export class SupabaseHealthMonitor {
         this.transition({
           mode: "degraded",
           reason: "supabase_unreachable",
-          message:
-            "Some features may be temporarily unavailable.",
+          message: "Some features may be temporarily unavailable.",
           blockedFeatures: ["growth", "realtime"],
           updatedAt: Date.now(),
         });
@@ -145,13 +141,10 @@ export class SupabaseHealthMonitor {
   // ── Internals ─────────────────────────────────────────────────────────────
 
   private async ping(): Promise<boolean> {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(
-        () => controller.abort(),
-        HEALTH_TIMEOUT_MS
-      );
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS);
 
+    try {
       const response = await fetch(this.url, {
         method: "GET",
         headers: {
@@ -161,10 +154,11 @@ export class SupabaseHealthMonitor {
         signal: controller.signal,
       });
 
-      clearTimeout(timeout);
       return response.ok;
     } catch {
       return false;
+    } finally {
+      clearTimeout(timeout);
     }
   }
 

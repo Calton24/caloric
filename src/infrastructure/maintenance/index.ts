@@ -4,12 +4,10 @@
 
 // ── Consumer API (feature code uses these) ──
 export {
-    getMaintenanceClient,
-    IMPLICIT_SUPABASE_BLOCKS,
-    maintenance,
+    IMPLICIT_SUPABASE_BLOCKS, getMaintenanceClient, maintenance,
     resetProxy,
     setHealthMonitor,
-    setMaintenanceClient,
+    setMaintenanceClient
 } from "./maintenance";
 
 // ── Bootstrap (called once in MobileCoreProviders) ──
@@ -25,13 +23,13 @@ export {
     MAINTENANCE_CACHE_KEY,
     MAINTENANCE_OVERRIDE_KEY,
     VALID_MODES,
-    VALID_REASONS,
+    VALID_REASONS
 } from "./types";
 export type {
     MaintenanceClient,
     MaintenanceMode,
     MaintenanceReason,
-    MaintenanceState,
+    MaintenanceState
 } from "./types";
 
 // ── Components ──

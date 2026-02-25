@@ -18,6 +18,7 @@ import Constants from "expo-constants";
 import { getAppConfig } from "../../config";
 import {
     loadPersistedOverride,
+    maintenance,
     setHealthMonitor,
     setMaintenanceClient,
 } from "./maintenance";
@@ -101,6 +102,12 @@ export function initMaintenance(): MaintenanceClient {
 
   // ── Load persisted override asynchronously (non-blocking) ─────────────
   void loadPersistedOverride();
+
+  // ── Populate lastResolvedState so isBlocked() works from first tick ───
+  // Also logs a seed confirmation so operators can grep for boot proof.
+  void maintenance.getState().then(() => {
+    console.log("[Maintenance] seeded=true source=init");
+  });
 
   initialized = true;
   return resolvedClient;

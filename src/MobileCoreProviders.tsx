@@ -71,19 +71,19 @@ export function MobileCoreProviders({
         <View style={{ flex: 1 }} testID={testID}>
           <SafeAreaProvider>
             <ThemeProvider>
-              <MaintenanceGate>
-                <AuthProvider>
-                  <BottomSheetModalProvider>
-                    <BottomSheetProvider>
-                      <ToastProvider>
+              <ToastProvider>
+                <MaintenanceGate>
+                  <AuthProvider>
+                    <BottomSheetModalProvider>
+                      <BottomSheetProvider>
                         <NotificationToastProvider>
                           {children}
                         </NotificationToastProvider>
-                      </ToastProvider>
-                    </BottomSheetProvider>
-                  </BottomSheetModalProvider>
-                </AuthProvider>
-              </MaintenanceGate>
+                      </BottomSheetProvider>
+                    </BottomSheetModalProvider>
+                  </AuthProvider>
+                </MaintenanceGate>
+              </ToastProvider>
             </ThemeProvider>
           </SafeAreaProvider>
         </View>

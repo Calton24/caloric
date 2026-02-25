@@ -4,6 +4,10 @@ import { PostHogMaintenanceClient } from "./PostHogMaintenanceClient";
 import { RemoteJsonMaintenanceClient } from "./RemoteJsonMaintenanceClient";
 import { SupabaseHealthMonitor } from "./SupabaseHealthMonitor";
 
+// Prevent real network calls when the factory starts the outage monitor
+const mockFetch = jest.fn().mockResolvedValue({ ok: true });
+(global as any).fetch = mockFetch;
+
 // Mock config gating — default: maintenance enabled
 jest.mock("../../config", () => ({
   getAppConfig: () => ({
@@ -15,10 +19,16 @@ jest.mock("../../config", () => ({
 describe("maintenance factory", () => {
   beforeEach(() => {
     resetMaintenance();
+    mockFetch.mockClear();
     delete process.env.EXPO_PUBLIC_MAINTENANCE_URL;
     delete process.env.EXPO_PUBLIC_POSTHOG_API_KEY;
     delete process.env.EXPO_PUBLIC_SUPABASE_URL;
     delete process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+  });
+
+  afterEach(() => {
+    // Stop the monitor timer/fetch to prevent async leaks after teardown
+    resetMaintenance();
   });
 
   it("returns the same instance on repeated init", () => {

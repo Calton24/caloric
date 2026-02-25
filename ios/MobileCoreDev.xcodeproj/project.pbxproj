@@ -7,42 +7,42 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		065589BAC79B4A42845B6CB9 /* MobileCoreWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BEBB05518E84BC1A73FEB56 /* MobileCoreWidgetBundle.swift */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		364E7B05020A49ACB9257D6F /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3F3C544CF62D4F79892B1073 /* WidgetKit.framework */; };
+		1755967963268B81A2B8578D /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 935DBCB2C7150E7A4796668C /* ExpoModulesProvider.swift */; };
+		2D6D7230464747F7878E78D3 /* MobileCoreWidgetLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 309588C7376D4B8CAF92B6C7 /* MobileCoreWidgetLiveActivity.swift */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		70BC2F3309F8448D8F9883B0 /* MobileCoreActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9464CC3EC6FD4019BC318070 /* MobileCoreActivity.swift */; };
-		9646FD3BE22A4CE9B955154C /* FitnessLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFA6C27AA8974456B41DC28E /* FitnessLiveActivity.swift */; };
-		9B1EB6EBC6B1A579E06A4D19 /* libPods-MobileCoreDev.a in Frameworks */ = {isa = PBXBuildFile; fileRef = ADFEAF545591BD7E3C26D911 /* libPods-MobileCoreDev.a */; };
-		AE6DD3E2BB82481BB4B7244E /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33004F9862AD41B29E7A754B /* SwiftUI.framework */; };
+		6AC21010EB9F4FF781F2812B /* FitnessLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20076B465F7498DAE16596D /* FitnessLiveActivity.swift */; };
+		7E4764B8112D421883AEA459 /* CalorieBudgetLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3079BCCB54FD40B39087CCC0 /* CalorieBudgetLiveActivity.swift */; };
+		8A9B7CBADA5E45FBA0EC42CD /* MobileCoreWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57DF6BB643FD4866A0BE545F /* MobileCoreWidgetBundle.swift */; };
+		9D0E224CB00F426DA6BFD33A /* MobileCoreActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFE14561AB7D44418344244D /* MobileCoreActivity.swift */; };
+		9EC60EB90A364827878432A5 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1DD7B02D7E074AD7AE122BB5 /* WidgetKit.framework */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		DA64D059ED6E4D06A9C1C367 /* PedometerLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A0970EBF9B48A080DD000B /* PedometerLiveActivity.swift */; };
+		C675E66046AB47F98EF3D093 /* PedometerLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C4719BEA00F4EF5A8F2074D /* PedometerLiveActivity.swift */; };
+		D852590B44E94C86841F7995 /* MobileCoreWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AE782D9E61F74C7AA480B4CF /* MobileCoreWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		DED1C4E077E14CEAB6423E30 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D088B9982DC249AB8FD2FB6A /* SwiftUI.framework */; };
+		E0852762F448F6AB70755A39 /* libPods-MobileCoreDev.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CFFFF8C13159EF1C0F2DE45 /* libPods-MobileCoreDev.a */; };
+		E0A8F7D59D6FC5AEB814FF32 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = AD9AF0EC4CE4CB154D067B76 /* PrivacyInfo.xcprivacy */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
-		F325D43CBDBF4CA28FD53D16 /* MobileCoreWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 95C0FD1D5FEB49B880176776 /* MobileCoreWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		F98E98307D0242ED8C1F5EED /* CalorieBudgetLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 328C58AB013B40C4B2807525 /* CalorieBudgetLiveActivity.swift */; };
-		FAB69143B3E9EAD71ACD7C84 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB29C1C139F937D8B9A281F9 /* ExpoModulesProvider.swift */; };
-		FBF94D35785544DE895F63C5 /* MobileCoreWidgetLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05AC94A394234437920E5D33 /* MobileCoreWidgetLiveActivity.swift */; };
-		FEFFB098BC113DA5E768C2B6 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 37F12BD1E6B1094E667948F9 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		8180D291F7824182B6AEE12C /* PBXContainerItemProxy */ = {
+		881D26BF73B1421BB78A3EE9 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 83CBB9F71A601CBA00E9B192 /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = DF6B0F0B0EA64DD0A5AE8968;
+			remoteGlobalIDString = 595CE2125EE84985BD6ED67F;
 			remoteInfo = MobileCoreWidget;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		E12E1087C22E471C972C9691 /* Embed App Extensions */ = {
+		8424A32133404EB189A5944D /* Embed App Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				F325D43CBDBF4CA28FD53D16 /* MobileCoreWidget.appex in Embed App Extensions */,
+				D852590B44E94C86841F7995 /* MobileCoreWidget.appex in Embed App Extensions */,
 			);
 			name = "Embed App Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -50,52 +50,66 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		05AC94A394234437920E5D33 /* MobileCoreWidgetLiveActivity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MobileCoreWidgetLiveActivity.swift; sourceTree = "<group>"; };
-		0BEBB05518E84BC1A73FEB56 /* MobileCoreWidgetBundle.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MobileCoreWidgetBundle.swift; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* MobileCoreDev.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MobileCoreDev.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = MobileCoreDev/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = MobileCoreDev/Info.plist; sourceTree = "<group>"; };
-		328C58AB013B40C4B2807525 /* CalorieBudgetLiveActivity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CalorieBudgetLiveActivity.swift; sourceTree = "<group>"; };
-		33004F9862AD41B29E7A754B /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
-		37F12BD1E6B1094E667948F9 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = MobileCoreDev/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		3F3C544CF62D4F79892B1073 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
-		52A0970EBF9B48A080DD000B /* PedometerLiveActivity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PedometerLiveActivity.swift; sourceTree = "<group>"; };
-		5C2298B91C40B9884CBD62DC /* Pods-MobileCoreDev.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MobileCoreDev.release.xcconfig"; path = "Target Support Files/Pods-MobileCoreDev/Pods-MobileCoreDev.release.xcconfig"; sourceTree = "<group>"; };
-		8C8A0A65242A1C0635C2DCEA /* Pods-MobileCoreDev.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MobileCoreDev.debug.xcconfig"; path = "Target Support Files/Pods-MobileCoreDev/Pods-MobileCoreDev.debug.xcconfig"; sourceTree = "<group>"; };
-		9464CC3EC6FD4019BC318070 /* MobileCoreActivity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MobileCoreActivity.swift; sourceTree = "<group>"; };
-		95C0FD1D5FEB49B880176776 /* MobileCoreWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MobileCoreWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		1CFFFF8C13159EF1C0F2DE45 /* libPods-MobileCoreDev.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-MobileCoreDev.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1DD7B02D7E074AD7AE122BB5 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		3079BCCB54FD40B39087CCC0 /* CalorieBudgetLiveActivity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CalorieBudgetLiveActivity.swift; sourceTree = "<group>"; };
+		309588C7376D4B8CAF92B6C7 /* MobileCoreWidgetLiveActivity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MobileCoreWidgetLiveActivity.swift; sourceTree = "<group>"; };
+		3EDE9C2C58EAD51C42578370 /* Pods-MobileCoreDev.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MobileCoreDev.release.xcconfig"; path = "Target Support Files/Pods-MobileCoreDev/Pods-MobileCoreDev.release.xcconfig"; sourceTree = "<group>"; };
+		57DF6BB643FD4866A0BE545F /* MobileCoreWidgetBundle.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MobileCoreWidgetBundle.swift; sourceTree = "<group>"; };
+		934253BD30A844668C60630E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		935DBCB2C7150E7A4796668C /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-MobileCoreDev/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		9C4719BEA00F4EF5A8F2074D /* PedometerLiveActivity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PedometerLiveActivity.swift; sourceTree = "<group>"; };
+		A20076B465F7498DAE16596D /* FitnessLiveActivity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FitnessLiveActivity.swift; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = MobileCoreDev/SplashScreen.storyboard; sourceTree = "<group>"; };
-		ADFEAF545591BD7E3C26D911 /* libPods-MobileCoreDev.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-MobileCoreDev.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		BB29C1C139F937D8B9A281F9 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-MobileCoreDev/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		AD9AF0EC4CE4CB154D067B76 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = MobileCoreDev/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		AE782D9E61F74C7AA480B4CF /* MobileCoreWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MobileCoreWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		AFE14561AB7D44418344244D /* MobileCoreActivity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MobileCoreActivity.swift; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		CFA6C27AA8974456B41DC28E /* FitnessLiveActivity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FitnessLiveActivity.swift; sourceTree = "<group>"; };
-		D8A9D8A38593490F9B6305E3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		D088B9982DC249AB8FD2FB6A /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		DDC3B03E7CC3A735F431A40E /* Pods-MobileCoreDev.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MobileCoreDev.debug.xcconfig"; path = "Target Support Files/Pods-MobileCoreDev/Pods-MobileCoreDev.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = MobileCoreDev/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* MobileCoreDev-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "MobileCoreDev-Bridging-Header.h"; path = "MobileCoreDev/MobileCoreDev-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		1058A50C2E344F3BBC010C61 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				364E7B05020A49ACB9257D6F /* WidgetKit.framework in Frameworks */,
-				AE6DD3E2BB82481BB4B7244E /* SwiftUI.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		13B07F8C1A680F5B00A75B9A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9B1EB6EBC6B1A579E06A4D19 /* libPods-MobileCoreDev.a in Frameworks */,
+				E0852762F448F6AB70755A39 /* libPods-MobileCoreDev.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		19C8AD530E814FB1A225F26F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9EC60EB90A364827878432A5 /* WidgetKit.framework in Frameworks */,
+				DED1C4E077E14CEAB6423E30 /* SwiftUI.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		129C79CD73984DE5B480F700 /* MobileCoreWidget */ = {
+			isa = PBXGroup;
+			children = (
+				AFE14561AB7D44418344244D /* MobileCoreActivity.swift */,
+				57DF6BB643FD4866A0BE545F /* MobileCoreWidgetBundle.swift */,
+				309588C7376D4B8CAF92B6C7 /* MobileCoreWidgetLiveActivity.swift */,
+				A20076B465F7498DAE16596D /* FitnessLiveActivity.swift */,
+				9C4719BEA00F4EF5A8F2074D /* PedometerLiveActivity.swift */,
+				3079BCCB54FD40B39087CCC0 /* CalorieBudgetLiveActivity.swift */,
+				934253BD30A844668C60630E /* Info.plist */,
+			);
+			path = MobileCoreWidget;
+			sourceTree = "<group>";
+		};
 		13B07FAE1A68108700A75B9A /* MobileCoreDev */ = {
 			isa = PBXGroup;
 			children = (
@@ -105,50 +119,36 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				37F12BD1E6B1094E667948F9 /* PrivacyInfo.xcprivacy */,
+				AD9AF0EC4CE4CB154D067B76 /* PrivacyInfo.xcprivacy */,
 			);
 			name = MobileCoreDev;
-			sourceTree = "<group>";
-		};
-		2732E3914F0B40B3985D1205 /* MobileCoreWidget */ = {
-			isa = PBXGroup;
-			children = (
-				9464CC3EC6FD4019BC318070 /* MobileCoreActivity.swift */,
-				0BEBB05518E84BC1A73FEB56 /* MobileCoreWidgetBundle.swift */,
-				05AC94A394234437920E5D33 /* MobileCoreWidgetLiveActivity.swift */,
-				CFA6C27AA8974456B41DC28E /* FitnessLiveActivity.swift */,
-				52A0970EBF9B48A080DD000B /* PedometerLiveActivity.swift */,
-				328C58AB013B40C4B2807525 /* CalorieBudgetLiveActivity.swift */,
-				D8A9D8A38593490F9B6305E3 /* Info.plist */,
-			);
-			path = MobileCoreWidget;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				ADFEAF545591BD7E3C26D911 /* libPods-MobileCoreDev.a */,
+				1CFFFF8C13159EF1C0F2DE45 /* libPods-MobileCoreDev.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		64ED3F5795EC7446EA846BDC /* MobileCoreDev */ = {
+		77D5773C0FB330E65D2080D4 /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				BB29C1C139F937D8B9A281F9 /* ExpoModulesProvider.swift */,
-			);
-			name = MobileCoreDev;
-			sourceTree = "<group>";
-		};
-		7F7030B2BEE26964FAD25481 /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				8C8A0A65242A1C0635C2DCEA /* Pods-MobileCoreDev.debug.xcconfig */,
-				5C2298B91C40B9884CBD62DC /* Pods-MobileCoreDev.release.xcconfig */,
+				DDC3B03E7CC3A735F431A40E /* Pods-MobileCoreDev.debug.xcconfig */,
+				3EDE9C2C58EAD51C42578370 /* Pods-MobileCoreDev.release.xcconfig */,
 			);
 			name = Pods;
 			path = Pods;
+			sourceTree = "<group>";
+		};
+		786F396B4F5BFD8B4D6A3F6D /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				BB4B636D8EF46395D426C45B /* MobileCoreDev */,
+			);
+			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -165,9 +165,9 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				2732E3914F0B40B3985D1205 /* MobileCoreWidget */,
-				7F7030B2BEE26964FAD25481 /* Pods */,
-				F613162B581A924DBE374B20 /* ExpoModulesProviders */,
+				129C79CD73984DE5B480F700 /* MobileCoreWidget */,
+				77D5773C0FB330E65D2080D4 /* Pods */,
+				786F396B4F5BFD8B4D6A3F6D /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -178,7 +178,7 @@
 			isa = PBXGroup;
 			children = (
 				13B07F961A680F5B00A75B9A /* MobileCoreDev.app */,
-				95C0FD1D5FEB49B880176776 /* MobileCoreWidget.appex */,
+				AE782D9E61F74C7AA480B4CF /* MobileCoreWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -192,12 +192,12 @@
 			path = MobileCoreDev/Supporting;
 			sourceTree = "<group>";
 		};
-		F613162B581A924DBE374B20 /* ExpoModulesProviders */ = {
+		BB4B636D8EF46395D426C45B /* MobileCoreDev */ = {
 			isa = PBXGroup;
 			children = (
-				64ED3F5795EC7446EA846BDC /* MobileCoreDev */,
+				935DBCB2C7150E7A4796668C /* ExpoModulesProvider.swift */,
 			);
-			name = ExpoModulesProviders;
+			name = MobileCoreDev;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -208,32 +208,32 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "MobileCoreDev" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				3C4C9757B40934FA220CE5B7 /* [Expo] Configure project */,
+				575E9B6CF6F0CFE4CAAE2603 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				E12E1087C22E471C972C9691 /* Embed App Extensions */,
-				30DD36AACAE1FDA5170193BC /* [CP] Embed Pods Frameworks */,
+				8424A32133404EB189A5944D /* Embed App Extensions */,
+				F134F6CF11F539363D016463 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				D575F795123A4856A0244419 /* PBXTargetDependency */,
+				B11F7E54EA5344BEBA0DCB83 /* PBXTargetDependency */,
 			);
 			name = MobileCoreDev;
 			productName = MobileCoreDev;
 			productReference = 13B07F961A680F5B00A75B9A /* MobileCoreDev.app */;
 			productType = "com.apple.product-type.application";
 		};
-		DF6B0F0B0EA64DD0A5AE8968 /* MobileCoreWidget */ = {
+		595CE2125EE84985BD6ED67F /* MobileCoreWidget */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 18A88C6E0E7348558C1635AE /* Build configuration list for PBXNativeTarget "MobileCoreWidget" */;
+			buildConfigurationList = A8F0F32CB40C493C8F37236A /* Build configuration list for PBXNativeTarget "MobileCoreWidget" */;
 			buildPhases = (
-				992AB3E873244294B3C3A73B /* Sources */,
-				1058A50C2E344F3BBC010C61 /* Frameworks */,
-				6CDB16B5C9D447119F5F8C9E /* Resources */,
+				A8190531521C44BD922E9769 /* Sources */,
+				19C8AD530E814FB1A225F26F /* Frameworks */,
+				40D758411A244224A19D8996 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -241,7 +241,7 @@
 			);
 			name = MobileCoreWidget;
 			productName = MobileCoreWidget;
-			productReference = 95C0FD1D5FEB49B880176776 /* MobileCoreWidget.appex */;
+			productReference = AE782D9E61F74C7AA480B4CF /* MobileCoreWidget.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
@@ -257,7 +257,7 @@
 						DevelopmentTeam = "93HBV58WBY";
 						ProvisioningStyle = Automatic;
 					};
-					DF6B0F0B0EA64DD0A5AE8968 = {
+					595CE2125EE84985BD6ED67F = {
 						DevelopmentTeam = "93HBV58WBY";
 						ProvisioningStyle = Automatic;
 					};
@@ -277,7 +277,7 @@
 			projectRoot = "";
 			targets = (
 				13B07F861A680F5B00A75B9A /* MobileCoreDev */,
-				DF6B0F0B0EA64DD0A5AE8968 /* MobileCoreWidget */,
+				595CE2125EE84985BD6ED67F /* MobileCoreWidget */,
 			);
 		};
 /* End PBXProject section */
@@ -290,11 +290,11 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				FEFFB098BC113DA5E768C2B6 /* PrivacyInfo.xcprivacy in Resources */,
+				E0A8F7D59D6FC5AEB814FF32 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		6CDB16B5C9D447119F5F8C9E /* Resources */ = {
+		40D758411A244224A19D8996 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -343,29 +343,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		30DD36AACAE1FDA5170193BC /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-MobileCoreDev/Pods-MobileCoreDev-frameworks.sh",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/React.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ReactNativeDependencies.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-MobileCoreDev/Pods-MobileCoreDev-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		3C4C9757B40934FA220CE5B7 /* [Expo] Configure project */ = {
+		575E9B6CF6F0CFE4CAAE2603 /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -433,6 +411,28 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-MobileCoreDev/Pods-MobileCoreDev-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
+		F134F6CF11F539363D016463 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-MobileCoreDev/Pods-MobileCoreDev-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/React.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ReactNativeDependencies.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-MobileCoreDev/Pods-MobileCoreDev-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -441,37 +441,37 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				FAB69143B3E9EAD71ACD7C84 /* ExpoModulesProvider.swift in Sources */,
+				1755967963268B81A2B8578D /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		992AB3E873244294B3C3A73B /* Sources */ = {
+		A8190531521C44BD922E9769 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				70BC2F3309F8448D8F9883B0 /* MobileCoreActivity.swift in Sources */,
-				065589BAC79B4A42845B6CB9 /* MobileCoreWidgetBundle.swift in Sources */,
-				FBF94D35785544DE895F63C5 /* MobileCoreWidgetLiveActivity.swift in Sources */,
-				9646FD3BE22A4CE9B955154C /* FitnessLiveActivity.swift in Sources */,
-				DA64D059ED6E4D06A9C1C367 /* PedometerLiveActivity.swift in Sources */,
-				F98E98307D0242ED8C1F5EED /* CalorieBudgetLiveActivity.swift in Sources */,
+				9D0E224CB00F426DA6BFD33A /* MobileCoreActivity.swift in Sources */,
+				8A9B7CBADA5E45FBA0EC42CD /* MobileCoreWidgetBundle.swift in Sources */,
+				2D6D7230464747F7878E78D3 /* MobileCoreWidgetLiveActivity.swift in Sources */,
+				6AC21010EB9F4FF781F2812B /* FitnessLiveActivity.swift in Sources */,
+				C675E66046AB47F98EF3D093 /* PedometerLiveActivity.swift in Sources */,
+				7E4764B8112D421883AEA459 /* CalorieBudgetLiveActivity.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		D575F795123A4856A0244419 /* PBXTargetDependency */ = {
+		B11F7E54EA5344BEBA0DCB83 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = DF6B0F0B0EA64DD0A5AE8968 /* MobileCoreWidget */;
-			targetProxy = 8180D291F7824182B6AEE12C /* PBXContainerItemProxy */;
+			target = 595CE2125EE84985BD6ED67F /* MobileCoreWidget */;
+			targetProxy = 881D26BF73B1421BB78A3EE9 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 8C8A0A65242A1C0635C2DCEA /* Pods-MobileCoreDev.debug.xcconfig */;
+			baseConfigurationReference = DDC3B03E7CC3A735F431A40E /* Pods-MobileCoreDev.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -510,7 +510,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 5C2298B91C40B9884CBD62DC /* Pods-MobileCoreDev.release.xcconfig */;
+			baseConfigurationReference = 3EDE9C2C58EAD51C42578370 /* Pods-MobileCoreDev.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -540,6 +540,65 @@
 				CODE_SIGN_STYLE = Automatic;
 			};
 			name = Release;
+		};
+		1E4FEA43699E488193E25490 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "93HBV58WBY";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MobileCoreWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
+				PRODUCT_BUNDLE_IDENTIFIER = com.calton24.mobilecore.dev.MobileCoreWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				CODE_SIGN_IDENTITY = "Apple Development";
+			};
+			name = Release;
+		};
+		4516297E5CA749B6A78106FB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "93HBV58WBY";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MobileCoreWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
+				PRODUCT_BUNDLE_IDENTIFIER = com.calton24.mobilecore.dev.MobileCoreWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				CODE_SIGN_IDENTITY = "Apple Development";
+			};
+			name = Debug;
 		};
 		83CBBA201A601CBA00E9B192 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -659,65 +718,6 @@
 			};
 			name = Release;
 		};
-		A0C21DE151E243F3B4839653 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "93HBV58WBY";
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = MobileCoreWidget/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
-				PRODUCT_BUNDLE_IDENTIFIER = com.calton24.mobilecore.dev.MobileCoreWidget;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				CODE_SIGN_IDENTITY = "Apple Development";
-			};
-			name = Debug;
-		};
-		DFA6EBA4E28642DCA83EF6AE /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CODE_SIGN_STYLE = Automatic;
-				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = "93HBV58WBY";
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = MobileCoreWidget/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
-				PRODUCT_BUNDLE_IDENTIFIER = com.calton24.mobilecore.dev.MobileCoreWidget;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				CODE_SIGN_IDENTITY = "Apple Development";
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -730,20 +730,20 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		18A88C6E0E7348558C1635AE /* Build configuration list for PBXNativeTarget "MobileCoreWidget" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				A0C21DE151E243F3B4839653 /* Debug */,
-				DFA6EBA4E28642DCA83EF6AE /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "MobileCoreDev" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				83CBBA201A601CBA00E9B192 /* Debug */,
 				83CBBA211A601CBA00E9B192 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A8F0F32CB40C493C8F37236A /* Build configuration list for PBXNativeTarget "MobileCoreWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4516297E5CA749B6A78106FB /* Debug */,
+				1E4FEA43699E488193E25490 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

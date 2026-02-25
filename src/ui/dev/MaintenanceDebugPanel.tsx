@@ -250,7 +250,10 @@ export function MaintenanceDebugPanel() {
       <TSpacer size="xs" />
 
       <Pressable
-        style={[styles.actionBtn, { backgroundColor: theme.colors.secondary + "20" }]}
+        style={[
+          styles.actionBtn,
+          { backgroundColor: theme.colors.secondary + "20" },
+        ]}
         onPress={handleClear}
       >
         <TText style={styles.btnText}>Clear Override</TText>
@@ -260,7 +263,10 @@ export function MaintenanceDebugPanel() {
 
       {/* Health check */}
       <Pressable
-        style={[styles.actionBtn, { borderColor: theme.colors.border, borderWidth: 1 }]}
+        style={[
+          styles.actionBtn,
+          { borderColor: theme.colors.border, borderWidth: 1 },
+        ]}
         onPress={handleCheckNow}
         disabled={loading}
       >

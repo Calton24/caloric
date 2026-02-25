@@ -2,6 +2,8 @@
 
 > Resilient maintenance and outage handling that does **NOT** rely on Supabase.
 
+**Fork contract:** To enable maintenance control, set `features.maintenance = true` in your config profile and configure either `EXPO_PUBLIC_MAINTENANCE_URL` (primary) or PostHog flags (fallback). No app code changes required.
+
 ## Why independent of Supabase?
 
 The maintenance system exists specifically for the scenario where Supabase (or any backend) is **down**. If the maintenance layer depended on Supabase, it would fail at the exact moment it's needed most. Instead, it uses:
@@ -57,13 +59,13 @@ Host a static JSON file at any URL. Set `EXPO_PUBLIC_MAINTENANCE_URL` in your en
 }
 ```
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `mode` | `"normal" \| "degraded" \| "read_only" \| "maintenance"` | ✅ | Current operational mode |
-| `message` | `string` | ❌ | Human-readable message for users |
-| `reason` | `"manual_override" \| "supabase_unreachable" \| "network_unreachable" \| "unknown"` | ❌ | Why the mode was set |
-| `blockedFeatures` | `string[]` | ❌ | Feature keys to force-disable |
-| `until` | `string` (ISO 8601) | ❌ | Estimated end of maintenance window |
+| Field             | Type                                                                                | Required | Description                         |
+| ----------------- | ----------------------------------------------------------------------------------- | -------- | ----------------------------------- |
+| `mode`            | `"normal" \| "degraded" \| "read_only" \| "maintenance"`                            | ✅       | Current operational mode            |
+| `message`         | `string`                                                                            | ❌       | Human-readable message for users    |
+| `reason`          | `"manual_override" \| "supabase_unreachable" \| "network_unreachable" \| "unknown"` | ❌       | Why the mode was set                |
+| `blockedFeatures` | `string[]`                                                                          | ❌       | Feature keys to force-disable       |
+| `until`           | `string` (ISO 8601)                                                                 | ❌       | Estimated end of maintenance window |
 
 ### Validation rules
 
@@ -76,12 +78,12 @@ Host a static JSON file at any URL. Set `EXPO_PUBLIC_MAINTENANCE_URL` in your en
 
 ## Modes
 
-| Mode | UI | Features | Use case |
-|---|---|---|---|
-| `normal` | Nothing | All enabled | Everything is fine |
-| `degraded` | Dismissible amber banner | `blockedFeatures` disabled | Supabase slow / partial outage |
-| `read_only` | Dismissible blue banner | Writes blocked, reads OK | Database migration, backups |
-| `maintenance` | Full-screen overlay + retry | All blocked | Full outage, deploy in progress |
+| Mode          | UI                          | Features                   | Use case                        |
+| ------------- | --------------------------- | -------------------------- | ------------------------------- |
+| `normal`      | Nothing                     | All enabled                | Everything is fine              |
+| `degraded`    | Dismissible amber banner    | `blockedFeatures` disabled | Supabase slow / partial outage  |
+| `read_only`   | Dismissible blue banner     | Writes blocked, reads OK   | Database migration, backups     |
+| `maintenance` | Full-screen overlay + retry | All blocked                | Full outage, deploy in progress |
 
 ---
 
@@ -91,11 +93,11 @@ The `SupabaseHealthMonitor` pings `${SUPABASE_URL}/auth/v1/health` every 30 seco
 
 **Escalation ladder:**
 
-| Consecutive failures | Mode | Reason |
-|---|---|---|
-| 1–2 | `normal` | — |
-| 3–5 | `degraded` | `supabase_unreachable` |
-| 6+ | `maintenance` | `supabase_unreachable` |
+| Consecutive failures | Mode          | Reason                 |
+| -------------------- | ------------- | ---------------------- |
+| 1–2                  | `normal`      | —                      |
+| 3–5                  | `degraded`    | `supabase_unreachable` |
+| 6+                   | `maintenance` | `supabase_unreachable` |
 
 **Recovery:** 2 consecutive successes → back to `normal` (unless a manual override is active).
 
@@ -119,13 +121,13 @@ The system is designed to **never crash** and **never block boot**:
 
 ## Environment Variables
 
-| Variable | Purpose |
-|---|---|
-| `EXPO_PUBLIC_MAINTENANCE_URL` | URL to static JSON endpoint |
-| `EXPO_PUBLIC_POSTHOG_API_KEY` | PostHog API key (also used by analytics) |
-| `EXPO_PUBLIC_POSTHOG_HOST` | PostHog host (default: `https://us.i.posthog.com`) |
-| `EXPO_PUBLIC_SUPABASE_URL` | Supabase project URL (for health monitor) |
-| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (for health monitor) |
+| Variable                        | Purpose                                            |
+| ------------------------------- | -------------------------------------------------- |
+| `EXPO_PUBLIC_MAINTENANCE_URL`   | URL to static JSON endpoint                        |
+| `EXPO_PUBLIC_POSTHOG_API_KEY`   | PostHog API key (also used by analytics)           |
+| `EXPO_PUBLIC_POSTHOG_HOST`      | PostHog host (default: `https://us.i.posthog.com`) |
+| `EXPO_PUBLIC_SUPABASE_URL`      | Supabase project URL (for health monitor)          |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (for health monitor)             |
 
 ---
 
@@ -143,6 +145,7 @@ if (maintenance.isBlocked("writes")) {
 ```
 
 `maintenance.isBlocked(feature)` returns `true` when:
+
 - `mode === "maintenance"` (everything blocked)
 - `feature` is listed in `blockedFeatures`
 - `reason === "supabase_unreachable"` and feature is in the implicit block list: **writes, uploads, growth, realtime**
@@ -202,7 +205,25 @@ A single structured log line is printed when mode or reason changes:
 [Maintenance] state_changed mode=normal reason=none blocked=none
 ```
 
-- Only fires on transitions — never spams
+At boot, a seed confirmation is emitted after the first state resolution:
+
+```
+[Maintenance] seeded=true source=init
+```
+
+### Commit Path Rule
+
+Every state change in the system flows through **one** commit function (`notifyListeners`):
+
+| Change source             | Triggers commit via                                            |
+| ------------------------- | -------------------------------------------------------------- |
+| `setLocalOverride()`      | Direct call to `notifyListeners(resolved)`                     |
+| Outage monitor transition | Bridge subscription → `notifyListeners(resolved)`              |
+| `loadPersistedOverride()` | Direct call to `notifyListeners(resolved)` when override found |
+
+- **`getState()` is pure** — it resolves + caches state but never logs
+- Logs only fire through the commit path, never from polling
+- Only fires on transitions — never spams, even in render loops
 - Never logs secrets, tokens, or URLs
 - `blocked` shows the CSV of `blockedFeatures`, or `"none"`
 
@@ -228,11 +249,13 @@ EXPO_PUBLIC_MAINTENANCE_URL=https://status.yourapp.com/maintenance.json
 ### Example Payloads
 
 **Normal operation:**
+
 ```json
 { "mode": "normal" }
 ```
 
 **Planned maintenance window:**
+
 ```json
 {
   "mode": "maintenance",
@@ -243,6 +266,7 @@ EXPO_PUBLIC_MAINTENANCE_URL=https://status.yourapp.com/maintenance.json
 ```
 
 **Partial outage — block specific features:**
+
 ```json
 {
   "mode": "degraded",
@@ -253,6 +277,7 @@ EXPO_PUBLIC_MAINTENANCE_URL=https://status.yourapp.com/maintenance.json
 ```
 
 **Read-only mode for database migration:**
+
 ```json
 {
   "mode": "read_only",
@@ -298,9 +323,36 @@ Route: `app/(tabs)/mobile-core/maintenance.tsx`
 Component: `src/ui/dev/MaintenanceDebugPanel.tsx`
 
 It shows:
+
 - Current resolved mode / reason / message / blockedFeatures / until
 - Override buttons: Normal, Degraded, Read-Only, Maintenance, Clear
 - Trigger Health Check button (runs `monitor.checkOnce()`)
+
+---
+
+## Auth UX Protection
+
+When Supabase is unreachable, the auth proxy (`authClient`) checks `maintenance.isBlocked("auth")` before calling Supabase. If blocked, it returns:
+
+```
+"Service temporarily unavailable. Please try again shortly."
+```
+
+instead of confusing errors like "wrong password" or "session expired" (which would appear because the server is simply unreachable).
+
+Protected operations: `signIn`, `signUp`, `signInWithOAuth`. Read-only operations (`getSession`, `onAuthStateChange`, `signOut`) are **not** blocked — a user who is already signed in should not be forcibly signed out.
+
+---
+
+## Implicit Feature Blocks
+
+When `reason === "supabase_unreachable"`, these features are implicitly blocked even if not listed in `blockedFeatures`:
+
+- `writes` — any Supabase insert/update
+- `uploads` — file uploads
+- `growth` — feature request submission
+- `realtime` — realtime subscriptions
+- `auth` — sign-in, sign-up, OAuth
 
 ---
 

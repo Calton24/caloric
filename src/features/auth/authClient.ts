@@ -5,6 +5,7 @@
  * Feature code imports from this file. Never from providers directly.
  */
 
+import { maintenance } from "../../infrastructure/maintenance";
 import { MockAuthClient } from "./providers/mock";
 import { SupabaseAuthClient } from "./providers/supabase";
 
@@ -75,6 +76,33 @@ export function createAuthClient(
   }
 }
 
+// ── Maintenance guard ────────────────────────────────────────────────────────
+
+const SERVICE_UNAVAILABLE_ERROR = new Error(
+  "Service temporarily unavailable. Please try again shortly."
+);
+
+/**
+ * If auth is blocked by the maintenance system, return a friendly error
+ * instead of letting the request hit Supabase (which would produce
+ * confusing "wrong password" or "session expired" errors when the
+ * backend is actually unreachable).
+ */
+function authBlocked(): AuthResponse | null {
+  try {
+    if (maintenance.isBlocked("auth")) {
+      return {
+        user: null,
+        session: null,
+        error: SERVICE_UNAVAILABLE_ERROR,
+      };
+    }
+  } catch {
+    // maintenance must never crash auth
+  }
+  return null;
+}
+
 // ── Singleton ────────────────────────────────────────────────────────────────
 
 let client: AuthClient = createAuthClient();
@@ -99,12 +127,17 @@ export function getAuthClient(): AuthClient {
  * Safe to hold a reference; swapping via setAuthClient() is reflected immediately.
  */
 export const authClient: AuthClient = {
-  signIn: (...args) => client.signIn(...args),
-  signUp: (...args) => client.signUp(...args),
+  signIn: (...args) => authBlocked() ?? client.signIn(...args),
+  signUp: (...args) => authBlocked() ?? client.signUp(...args),
   signOut: (...args) => client.signOut(...args),
   resetPasswordForEmail: (...args) => client.resetPasswordForEmail(...args),
   updatePassword: (...args) => client.updatePassword(...args),
-  signInWithOAuth: (...args) => client.signInWithOAuth(...args),
+  signInWithOAuth: (provider) => {
+    if (maintenance.isBlocked("auth")) {
+      return Promise.resolve({ url: null, error: SERVICE_UNAVAILABLE_ERROR });
+    }
+    return client.signInWithOAuth(provider);
+  },
   exchangeCodeForSession: (...args) => client.exchangeCodeForSession(...args),
   getSession: (...args) => client.getSession(...args),
   onAuthStateChange: (...args) => client.onAuthStateChange(...args),

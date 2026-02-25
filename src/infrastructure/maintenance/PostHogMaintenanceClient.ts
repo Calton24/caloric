@@ -100,10 +100,7 @@ export class PostHogMaintenanceClient implements MaintenanceClient {
     try {
       const storage = getAsyncStorage();
       if (storage) {
-        await storage.setItem(
-          MAINTENANCE_CACHE_KEY,
-          JSON.stringify(state)
-        );
+        await storage.setItem(MAINTENANCE_CACHE_KEY, JSON.stringify(state));
       }
     } catch {
       // Cache write failure is non-critical
