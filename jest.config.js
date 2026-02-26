@@ -46,4 +46,8 @@ module.exports = {
   clearMocks: true,
   resetMocks: true,
   restoreMocks: true,
+  // Force exit after tests complete - verified no real leaks with --detectOpenHandles
+  forceExit: true,
+  // Limit workers to reduce race conditions causing "worker failed to exit" warnings
+  maxWorkers: "50%",
 };

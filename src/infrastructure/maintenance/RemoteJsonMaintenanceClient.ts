@@ -52,17 +52,15 @@ export class RemoteJsonMaintenanceClient implements MaintenanceClient {
   }
 
   async getState(): Promise<MaintenanceState> {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
+    try {
       const response = await fetch(this.url, {
         method: "GET",
         headers: { Accept: "application/json" },
         signal: controller.signal,
       });
-
-      clearTimeout(timeout);
 
       if (!response.ok) {
         logger.warn(
@@ -89,6 +87,8 @@ export class RemoteJsonMaintenanceClient implements MaintenanceClient {
         );
       }
       return this.getCachedOrDefault();
+    } finally {
+      clearTimeout(timeout);
     }
   }
 

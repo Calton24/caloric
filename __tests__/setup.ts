@@ -20,3 +20,14 @@ global.console = {
 process.env.EXPO_PUBLIC_APP_PROFILE = "intake";
 process.env.EXPO_PUBLIC_APP_ENV = "dev";
 process.env.APP_ENV = "dev"; // Also set APP_ENV for config loader
+
+// Clean up any pending timers after each test
+afterEach(() => {
+  jest.clearAllTimers();
+});
+
+// Ensure all async operations are cleaned up after all tests
+afterAll(async () => {
+  // Give async operations a moment to settle
+  await new Promise((resolve) => setImmediate(resolve));
+});

@@ -31,6 +31,7 @@ const CODE_EXTENSIONS = new Set([
 
 const ALLOWED_POSTHOG_IMPORTS = new Set([
   path.join("src", "infrastructure", "analytics", "PostHogAnalyticsClient.ts"),
+  path.join("src", "infrastructure", "maintenance", "PostHogMaintenanceClient.ts"),
 ]);
 
 const files = [];
