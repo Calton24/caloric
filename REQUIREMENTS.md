@@ -6,28 +6,28 @@
 
 ## System Requirements
 
-| Tool | Required Version | Install Command | Purpose |
-|------|------------------|-----------------|---------|
-| **Node.js** | 20.x LTS | `brew install node@20` or `nvm install 20` | JavaScript runtime |
-| **npm** | 10.x+ | Comes with Node.js | Package manager |
-| **Watchman** | Latest | `brew install watchman` | File watching for Metro |
-| **Ruby** | 2.7+ | System Ruby or `rbenv install 2.7.2` | CocoaPods dependency |
-| **CocoaPods** | 1.14+ | `gem install cocoapods` | iOS dependency manager |
-| **Xcode** | 15+ | Mac App Store | iOS development |
-| **Xcode CLI Tools** | Latest | `xcode-select --install` | Build tools |
-| **Java JDK** | 17+ | `brew install openjdk@17` | Android builds |
+| Tool                | Required Version | Install Command                            | Purpose                 |
+| ------------------- | ---------------- | ------------------------------------------ | ----------------------- |
+| **Node.js**         | 20.x LTS         | `brew install node@20` or `nvm install 20` | JavaScript runtime      |
+| **npm**             | 10.x+            | Comes with Node.js                         | Package manager         |
+| **Watchman**        | Latest           | `brew install watchman`                    | File watching for Metro |
+| **Ruby**            | 2.7+             | System Ruby or `rbenv install 2.7.2`       | CocoaPods dependency    |
+| **CocoaPods**       | 1.14+            | `gem install cocoapods`                    | iOS dependency manager  |
+| **Xcode**           | 15+              | Mac App Store                              | iOS development         |
+| **Xcode CLI Tools** | Latest           | `xcode-select --install`                   | Build tools             |
+| **Java JDK**        | 17+              | `brew install openjdk@17`                  | Android builds          |
 
 ---
 
 ## Development Tools
 
-| Tool | Required | Install Command | Purpose |
-|------|----------|-----------------|---------|
-| **GitHub CLI** | ✅ Yes | `brew install gh` | Branch protection setup |
-| **Maestro** | ✅ Yes | `curl -Ls "https://get.maestro.mobile.dev" \| bash` | E2E testing |
-| **EAS CLI** | ✅ Yes | `npm install -g eas-cli` | Expo build service |
-| **Deno** | Optional | `brew install deno` | Edge function testing |
-| **jq** | Optional | `brew install jq` | JSON parsing in scripts |
+| Tool           | Required | Install Command                                     | Purpose                 |
+| -------------- | -------- | --------------------------------------------------- | ----------------------- |
+| **GitHub CLI** | ✅ Yes   | `brew install gh`                                   | Branch protection setup |
+| **Maestro**    | ✅ Yes   | `curl -Ls "https://get.maestro.mobile.dev" \| bash` | E2E testing             |
+| **EAS CLI**    | ✅ Yes   | `npm install -g eas-cli`                            | Expo build service      |
+| **Deno**       | Optional | `brew install deno`                                 | Edge function testing   |
+| **jq**         | Optional | `brew install jq`                                   | JSON parsing in scripts |
 
 ---
 
@@ -217,15 +217,15 @@ npm install --legacy-peer-deps
 
 Tested with:
 
-| Component | Version |
-|-----------|---------|
-| Expo SDK | 54.x |
-| React Native | 0.81.x |
-| TypeScript | 5.3.x |
-| Node.js | 20.x |
-| Xcode | 15+ |
-| CocoaPods | 1.14+ |
-| Maestro | 1.36+ |
+| Component    | Version |
+| ------------ | ------- |
+| Expo SDK     | 54.x    |
+| React Native | 0.81.x  |
+| TypeScript   | 5.3.x   |
+| Node.js      | 20.x    |
+| Xcode        | 15+     |
+| CocoaPods    | 1.14+   |
+| Maestro      | 1.36+   |
 
 ---
 

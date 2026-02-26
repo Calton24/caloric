@@ -1,4 +1,4 @@
-package com.yourcompany.intake.dev
+package com.calton24.mobilecore.dev
 
 import android.app.Application
 import android.content.res.Configuration
