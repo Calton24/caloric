@@ -21,6 +21,12 @@
 - [ ] No new direct Supabase inserts without RLS documentation
 - [ ] If adding a new dependency: verified it's not pre-release and has no critical CVEs
 
+## React Hooks Checklist
+
+- [ ] **If using `__DEV__` gates:** All hooks run BEFORE any early return
+- [ ] No conditional hook calls (`if (x) useEffect(...)` is forbidden)
+- [ ] Custom hooks follow the `use*` naming convention
+
 ## Testing
 
 - [ ] Unit tests added/updated
