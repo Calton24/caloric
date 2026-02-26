@@ -31,6 +31,7 @@ Mobile Core is a reusable foundation that combines essential infrastructure patt
 - [Testing](#testing)
 - [Notes Validation Harness](#notes-validation-harness)
 - [Common Issues](#common-issues)
+- [Security Gates](#security-gates)
 - [Documentation](#documentation)
 
 ---
@@ -309,7 +310,7 @@ If you want to test the Notes validation harness:
 
 ```dotenv
 EXPO_PUBLIC_SUPABASE_URL=https://your-actual-project.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.your-key-here
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key-here
 ```
 
 ### 5. Restart Dev Server
@@ -683,6 +684,46 @@ npx expo run:ios  # or: npx expo run:android
 
 # Then use npm start for all subsequent launches
 ```
+
+---
+
+## Security Gates
+
+All PRs must pass the security gate before merge. This is enforced via CI and manual review.
+
+### Merge Gate Requirements
+
+```bash
+# MUST PASS before merge
+npm run mobile-core:verify:security
+```
+
+This runs 22+ automated checks including:
+
+| Category           | Checks                                                       |
+| ------------------ | ------------------------------------------------------------ |
+| **Secrets**        | No hardcoded API keys, JWT tokens, or credentials in source  |
+| **Dependencies**   | npm audit --omit=dev FAIL for runtime vulns (zero tolerance) |
+| **Auth**           | SecureStore for tokens, no AsyncStorage fallback             |
+| **Logging**        | No bare console.log — use logger abstraction only            |
+| **Debug Gates**    | Admin/debug screens gated behind `__DEV__`                   |
+| **Banned Imports** | No direct crypto, eval, or dangerous patterns                |
+| **Git History**    | gitleaks scan for leaked secrets in commits                  |
+
+### PR Checklist
+
+Every PR uses the [PR template](.github/PULL_REQUEST_TEMPLATE.md) with security checkboxes:
+
+- [ ] `npm run mobile-core:verify:security` passes locally
+- [ ] No console.log outside logger
+- [ ] No hardcoded secrets or keys
+- [ ] No direct Supabase inserts (use Edge Functions for growth tables)
+
+### Documentation
+
+- **[SECURITY-DONE-GATE.md](./docs/SECURITY-DONE-GATE.md)** — Full audit status and remaining work
+- **[THREAT-MODEL.md](./docs/THREAT-MODEL.md)** — 6 threat categories with mitigations
+- **[SECURITY.md](./docs/SECURITY.md)** — RLS policies, env var best practices
 
 ---
 

@@ -3,6 +3,7 @@
  * Safe wrapper with no-op behavior when Firebase is disabled
  */
 
+import { logger } from "../../logging/logger";
 import { getCrashlytics } from "./init";
 
 /**
@@ -20,13 +21,13 @@ import { getCrashlytics } from "./init";
  */
 export async function recordError(
   error: Error | string,
-  context?: Record<string, any>,
+  context?: Record<string, any>
 ): Promise<void> {
   const crashlytics = getCrashlytics();
 
   if (!crashlytics) {
     // No-op when disabled, but still log to console
-    console.error("[Crashlytics] Error (not reported):", error, context);
+    logger.error("[Crashlytics] Error (not reported):", { error, context });
     return;
   }
 
@@ -42,9 +43,9 @@ export async function recordError(
     }
 
     await crashlytics.recordError(errorObj);
-    console.log("[Crashlytics] Error recorded:", errorObj.message);
+    logger.log("[Crashlytics] Error recorded:", errorObj.message);
   } catch (err) {
-    console.error("[Crashlytics] Failed to record error:", err);
+    logger.error("[Crashlytics] Failed to record error:", err);
   }
 }
 
@@ -68,7 +69,7 @@ export async function log(message: string): Promise<void> {
   try {
     await crashlytics.log(message);
   } catch (error) {
-    console.error("[Crashlytics] Failed to log message:", error);
+    logger.error("[Crashlytics] Failed to log message:", error);
   }
 }
 
@@ -91,9 +92,9 @@ export async function setCrashUserId(userId: string | null): Promise<void> {
 
   try {
     await crashlytics.setUserId(userId || "");
-    console.log(`[Crashlytics] User ID set:`, userId);
+    logger.log(`[Crashlytics] User ID set:`, userId);
   } catch (error) {
-    console.error("[Crashlytics] Failed to set user ID:", error);
+    logger.error("[Crashlytics] Failed to set user ID:", error);
   }
 }
 
@@ -118,7 +119,7 @@ export async function setAttribute(key: string, value: string): Promise<void> {
   try {
     await crashlytics.setAttribute(key, value);
   } catch (error) {
-    console.error("[Crashlytics] Failed to set attribute:", error);
+    logger.error("[Crashlytics] Failed to set attribute:", error);
   }
 }
 
@@ -146,9 +147,9 @@ export async function setAttributes(attributes: {
 
   try {
     await crashlytics.setAttributes(attributes);
-    console.log("[Crashlytics] Attributes set:", attributes);
+    logger.log("[Crashlytics] Attributes set:", attributes);
   } catch (error) {
-    console.error("[Crashlytics] Failed to set attributes:", error);
+    logger.error("[Crashlytics] Failed to set attributes:", error);
   }
 }
 
@@ -160,7 +161,7 @@ export async function setAttributes(attributes: {
  * @param enabled - Whether to enable crash collection
  */
 export async function setCrashCollectionEnabled(
-  enabled: boolean,
+  enabled: boolean
 ): Promise<void> {
   const crashlytics = getCrashlytics();
 
@@ -170,9 +171,9 @@ export async function setCrashCollectionEnabled(
 
   try {
     await crashlytics.setCrashlyticsCollectionEnabled(enabled);
-    console.log(`[Crashlytics] Collection ${enabled ? "enabled" : "disabled"}`);
+    logger.log(`[Crashlytics] Collection ${enabled ? "enabled" : "disabled"}`);
   } catch (error) {
-    console.error("[Crashlytics] Failed to set collection enabled:", error);
+    logger.error("[Crashlytics] Failed to set collection enabled:", error);
   }
 }
 
@@ -191,10 +192,7 @@ export async function didCrashOnPreviousExecution(): Promise<boolean> {
   try {
     return await crashlytics.didCrashOnPreviousExecution();
   } catch (error) {
-    console.error(
-      "[Crashlytics] Failed to check previous crash status:",
-      error,
-    );
+    logger.error("[Crashlytics] Failed to check previous crash status:", error);
     return false;
   }
 }
@@ -208,11 +206,11 @@ export function crash(): void {
   const crashlytics = getCrashlytics();
 
   if (!crashlytics) {
-    console.warn("[Crashlytics] Crash test disabled (Crashlytics not enabled)");
+    logger.warn("[Crashlytics] Crash test disabled (Crashlytics not enabled)");
     return;
   }
 
-  console.warn("[Crashlytics] Forcing crash for testing...");
+  logger.warn("[Crashlytics] Forcing crash for testing...");
   crashlytics.crash();
 }
 
@@ -230,9 +228,9 @@ export async function sendUnsentReports(): Promise<void> {
 
   try {
     await crashlytics.sendUnsentReports();
-    console.log("[Crashlytics] Unsent reports sent");
+    logger.log("[Crashlytics] Unsent reports sent");
   } catch (error) {
-    console.error("[Crashlytics] Failed to send unsent reports:", error);
+    logger.error("[Crashlytics] Failed to send unsent reports:", error);
   }
 }
 
@@ -250,9 +248,9 @@ export async function deleteUnsentReports(): Promise<void> {
 
   try {
     await crashlytics.deleteUnsentReports();
-    console.log("[Crashlytics] Unsent reports deleted");
+    logger.log("[Crashlytics] Unsent reports deleted");
   } catch (error) {
-    console.error("[Crashlytics] Failed to delete unsent reports:", error);
+    logger.error("[Crashlytics] Failed to delete unsent reports:", error);
   }
 }
 
@@ -267,7 +265,7 @@ export async function deleteUnsentReports(): Promise<void> {
 export async function recordErrorWithContext(
   error: Error | string,
   userId?: string,
-  additionalContext?: Record<string, any>,
+  additionalContext?: Record<string, any>
 ): Promise<void> {
   if (userId) {
     await setCrashUserId(userId);

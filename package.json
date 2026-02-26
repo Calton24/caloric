@@ -28,6 +28,8 @@
     "maestro:ci:ios": "node scripts/maestro-ci-ios.js",
     "maestro:ci:ios:fast": "SKIP_BUILD=1 node scripts/maestro-ci-ios.js",
     "maestro:ci:ios:full": "SKIP_BUILD=0 node scripts/maestro-ci-ios.js",
+    "mobile-core:security": "node scripts/security-audit.js",
+    "mobile-core:verify:security": "npm run mobile-core:security && npm run check && npm run lint && npm run test",
     "prepare": "husky",
     "postinstall": "patch-package"
   },
@@ -55,6 +57,7 @@
     "expo-localization": "^17.0.8",
     "expo-notifications": "~0.32.16",
     "expo-router": "~6.0.22",
+    "expo-secure-store": "~15.0.8",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
     "expo-symbols": "~1.0.8",

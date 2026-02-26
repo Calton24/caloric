@@ -17,7 +17,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-    Dimensions,
     Modal,
     PanResponder,
     Pressable,
@@ -92,8 +91,6 @@ const DRAWER_TIMING = {
   duration: 300,
   easing: Easing.bezier(0.25, 0.1, 0.25, 1),
 };
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 /* ── Component ─────────────────────────────────────── */
 

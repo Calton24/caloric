@@ -114,6 +114,8 @@ export function HeartRateCard({
         false
       );
     }
+    // heartScale is a stable useSharedValue ref
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentBpm, showHeartbeat]);
 
   const heartStyle = useAnimatedStyle(() => ({
@@ -149,6 +151,8 @@ export function HeartRateCard({
       line + ` L ${toX(data.length - 1)} ${chartHeight} L 0 ${chartHeight} Z`;
 
     return { linePath: line, areaPath: area };
+    // padding/plotH are constant; toX/toY are defined inside memo
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, chartWidth, chartHeight]);
 
   return (

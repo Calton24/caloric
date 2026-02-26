@@ -5,6 +5,9 @@
  * language change + persistence, format utilities.
  */
 
+/* eslint-disable import/no-named-as-default-member */
+// We intentionally use i18next.t() and i18next.changeLanguage() to test the instance state
+
 // Mock react-i18next — lightweight plugin stub for node env
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import i18next from "i18next";
@@ -91,6 +94,7 @@ describe("initI18n", () => {
       locale: "de-DE",
     }));
 
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { initI18n: initFresh, resetI18n: resetFresh } = require("./index");
     resetFresh();
     await initFresh();

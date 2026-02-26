@@ -173,7 +173,7 @@ Create `.env` in project root:
 ```dotenv
 # Supabase Configuration
 EXPO_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.your-actual-key-here
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key-here
 
 # App Configuration
 EXPO_PUBLIC_APP_PROFILE=default

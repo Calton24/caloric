@@ -18,6 +18,7 @@
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import { getAppConfig } from "../../config";
+import { logger } from "../../logging/logger";
 
 // Translation resources — static imports (bundled)
 import de from "../../locales/de/common.json";
@@ -81,7 +82,9 @@ try {
 let AsyncStorage: any = null;
 try {
   AsyncStorage =
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     require("@react-native-async-storage/async-storage").default ??
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     require("@react-native-async-storage/async-storage");
 } catch {
   AsyncStorage = null;
@@ -95,9 +98,9 @@ type I18nMode = "disabled" | "enabled";
 
 function logBoot(mode: I18nMode, locale?: string, fallback?: string): void {
   if (mode === "disabled") {
-    console.log("[i18n] mode=disabled");
+    logger.log("[i18n] mode=disabled");
   } else {
-    console.log(`[i18n] mode=enabled locale=${locale} fallback=${fallback}`);
+    logger.log(`[i18n] mode=enabled locale=${locale} fallback=${fallback}`);
   }
 }
 
@@ -194,6 +197,7 @@ export async function initI18n(): Promise<void> {
       ? stored
       : matchSupportedLanguage(deviceLocale);
 
+  // eslint-disable-next-line import/no-named-as-default-member
   await i18next.use(initReactI18next).init({
     resources,
     lng: resolved,

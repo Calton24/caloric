@@ -29,6 +29,7 @@ try {
 
 function getAsyncStorage(): any {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     return require("@react-native-async-storage/async-storage").default;
   } catch {
     return null;

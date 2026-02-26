@@ -9,6 +9,7 @@
  */
 
 import { getAppConfig } from "../../config";
+import { logger } from "../../logging/logger";
 import { InAppActivityMonitorClient } from "./InAppActivityMonitorClient";
 import { NoopActivityMonitorClient } from "./NoopActivityMonitorClient";
 import { setActivityMonitorClient } from "./activityMonitor";
@@ -20,7 +21,7 @@ let resolvedClient: ActivityMonitorClient = new NoopActivityMonitorClient();
 type ActivityMode = "disabled_by_config" | "enabled_inapp";
 
 function logMode(mode: ActivityMode): void {
-  console.log(`[Activity] mode=${mode}`);
+  logger.log(`[Activity] mode=${mode}`);
 }
 
 export function initActivityMonitor(): ActivityMonitorClient {

@@ -4,7 +4,7 @@
  * HeartRateCard, SleepChart, WaterTracker.
  */
 
-import { useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet } from "react-native";
 import { ActivityRings } from "../../../src/ui/analytics/ActivityRings";
@@ -21,6 +21,9 @@ import { TText } from "../../../src/ui/primitives/TText";
 
 export default function WidgetsScreen() {
   const router = useRouter();
+
+  // DEV-only gate — all hooks must be called before this
+  if (!__DEV__) return <Redirect href="/(tabs)/mobile-core" />;
 
   return (
     <ScreenShell

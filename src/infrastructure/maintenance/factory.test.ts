@@ -94,7 +94,9 @@ describe("maintenance factory gating", () => {
     const {
       initMaintenance: initAgain,
       resetMaintenance: resetAgain,
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
     } = require("./factory");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { NoopMaintenanceClient: Noop } = require("./NoopMaintenanceClient");
 
     resetAgain();

@@ -9,7 +9,7 @@ export const proxiConfig: AppProfileConfig = {
   // Base configuration (production)
   supabase: {
     url: "https://your-proxi-project.supabase.co",
-    anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", // Replace with actual anon key
+    anonKey: "YOUR_SUPABASE_ANON_KEY", // Replace with actual anon key from Supabase dashboard
   },
 
   firebase: {
@@ -68,6 +68,7 @@ export const proxiConfig: AppProfileConfig = {
     activityMonitor: true,
     liveActivity: true,
     maintenance: true,
+    allowUnsafeClientWrites: false, // SECURITY: Use Edge Function for growth ingestion
   },
 
   app: {
@@ -84,7 +85,7 @@ export const proxiConfig: AppProfileConfig = {
     dev: {
       supabase: {
         url: "https://your-proxi-dev-project.supabase.co",
-        anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", // Dev anon key
+        anonKey: "YOUR_DEV_ANON_KEY", // Replace with dev anon key
       },
       firebase: {
         ios: {
@@ -121,7 +122,7 @@ export const proxiConfig: AppProfileConfig = {
     staging: {
       supabase: {
         url: "https://your-proxi-staging-project.supabase.co",
-        anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", // Staging anon key
+        anonKey: "YOUR_STAGING_ANON_KEY", // Replace with staging anon key
       },
       app: {
         name: "Mobile Core Staging",

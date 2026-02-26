@@ -16,6 +16,7 @@
 
 import Constants from "expo-constants";
 import { getAppConfig } from "../../config";
+import { logger } from "../../logging/logger";
 import {
     loadPersistedOverride,
     maintenance,
@@ -47,7 +48,7 @@ type MaintenanceBootMode =
   | "local_default";
 
 function logMode(mode: MaintenanceBootMode): void {
-  console.log(`[Maintenance] mode=${mode}`);
+  logger.log(`[Maintenance] mode=${mode}`);
 }
 
 export function initMaintenance(): MaintenanceClient {
@@ -97,7 +98,7 @@ export function initMaintenance(): MaintenanceClient {
     monitor = new SupabaseHealthMonitor(supabaseUrl, supabaseKey);
     setHealthMonitor(monitor);
     monitor.start();
-    console.log("[Maintenance] mode=outage_monitor_enabled");
+    logger.log("[Maintenance] mode=outage_monitor_enabled");
   }
 
   // ── Load persisted override asynchronously (non-blocking) ─────────────
@@ -106,7 +107,7 @@ export function initMaintenance(): MaintenanceClient {
   // ── Populate lastResolvedState so isBlocked() works from first tick ───
   // Also logs a seed confirmation so operators can grep for boot proof.
   void maintenance.getState().then(() => {
-    console.log("[Maintenance] seeded=true source=init");
+    logger.log("[Maintenance] seeded=true source=init");
   });
 
   initialized = true;

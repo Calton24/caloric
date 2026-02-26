@@ -4,6 +4,7 @@
 
 import Constants from "expo-constants";
 import { getAppConfig } from "../../config";
+import { logger } from "../../logging/logger";
 import { setGrowthClient } from "./growth";
 import { NoopGrowthClient } from "./providers/NoopGrowthClient";
 import { SupabaseGrowthClient } from "./providers/SupabaseGrowthClient";
@@ -26,7 +27,7 @@ type GrowthMode =
   | "supabase_initialized";
 
 function logMode(mode: GrowthMode): void {
-  console.log(`[Growth] mode=${mode}`);
+  logger.log(`[Growth] mode=${mode}`);
 }
 
 export function initGrowth(): GrowthClient {

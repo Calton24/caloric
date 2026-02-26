@@ -1,8 +1,9 @@
 /**
  * i18n — Dev Debug Screen
- * Accessible from Mobile Core catalog in __DEV__ only.
+ * In production builds, redirects to the catalog home.
  */
 
+import { Redirect } from "expo-router";
 import React from "react";
 import { I18nDebugPanel } from "../../../src/ui/dev/I18nDebugPanel";
 import { Screen } from "../../../src/ui/layout/Screen";
@@ -10,6 +11,7 @@ import { TSpacer } from "../../../src/ui/primitives/TSpacer";
 import { TText } from "../../../src/ui/primitives/TText";
 
 export default function I18nDebugScreen() {
+  if (!__DEV__) return <Redirect href="/(tabs)/mobile-core" />;
   return (
     <Screen scrollable>
       <TSpacer size="lg" />

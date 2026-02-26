@@ -19,7 +19,7 @@ import Animated, {
     useAnimatedProps,
     useSharedValue,
     withRepeat,
-    withTiming
+    withTiming,
 } from "react-native-reanimated";
 import Svg, { ClipPath, Defs, Path, Rect } from "react-native-svg";
 import { useTheme } from "../../theme/useTheme";
@@ -71,6 +71,8 @@ export function WaterTracker({
       duration: 1000,
       easing: Easing.out(Easing.cubic),
     });
+    // fillAnim is a stable useSharedValue ref
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progress]);
 
   // Wave animation
@@ -81,6 +83,8 @@ export function WaterTracker({
       -1,
       false
     );
+    // wave is a stable useSharedValue ref; one-time mount animation
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const dropletH = size;

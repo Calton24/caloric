@@ -11,6 +11,7 @@ import type { HapticsClient, ImpactStyle, NotificationStyle } from "./types";
  */
 let Haptics: any = null;
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   Haptics = require("expo-haptics");
 } catch {
   // Package not installed - this is fine, we'll behave like Noop

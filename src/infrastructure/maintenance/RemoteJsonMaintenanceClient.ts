@@ -20,6 +20,7 @@
  *   - Never throws
  */
 
+import { logger } from "../../logging/logger";
 import {
     DEFAULT_MAINTENANCE_STATE,
     MAINTENANCE_CACHE_KEY,
@@ -33,6 +34,7 @@ import {
 
 function getAsyncStorage(): any {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     return require("@react-native-async-storage/async-storage").default;
   } catch {
     return null;
@@ -63,7 +65,7 @@ export class RemoteJsonMaintenanceClient implements MaintenanceClient {
       clearTimeout(timeout);
 
       if (!response.ok) {
-        console.warn(
+        logger.warn(
           `[Maintenance] Remote fetch failed: HTTP ${response.status}`
         );
         return this.getCachedOrDefault();
@@ -73,7 +75,7 @@ export class RemoteJsonMaintenanceClient implements MaintenanceClient {
       const validated = this.validate(json);
 
       if (!validated) {
-        console.warn("[Maintenance] Remote payload failed validation");
+        logger.warn("[Maintenance] Remote payload failed validation");
         return this.getCachedOrDefault();
       }
 

@@ -331,6 +331,8 @@ export function ReviewModal({
     } else {
       sheet.close();
     }
+    // Only react to visibility changes; props/callbacks captured at open time
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   return null;

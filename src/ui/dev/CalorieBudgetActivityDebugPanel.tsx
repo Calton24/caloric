@@ -55,7 +55,7 @@ export function CalorieBudgetActivityDebugPanel() {
     if (result.status === "started") {
       setActiveId(result.activityId);
     }
-  }, []);
+  }, [mode]);
 
   const handleEat = useCallback(() => {
     if (!activeId) {
@@ -184,7 +184,9 @@ export function CalorieBudgetActivityDebugPanel() {
                 fontSize: 11,
                 fontWeight: mode === "strict" ? "700" : "500",
                 color:
-                  mode === "strict" ? theme.colors.warning : theme.colors.muted,
+                  mode === "strict"
+                    ? theme.colors.warning
+                    : theme.colors.textMuted,
               }}
             >
               Strict
@@ -214,7 +216,7 @@ export function CalorieBudgetActivityDebugPanel() {
                 color:
                   mode === "adaptive"
                     ? theme.colors.success
-                    : theme.colors.muted,
+                    : theme.colors.textMuted,
               }}
             >
               Adaptive

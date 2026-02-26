@@ -10,6 +10,7 @@
  */
 
 import { getAppConfig } from "../../config";
+import { logger } from "../../logging/logger";
 import { AppStatePresenceClient } from "./AppStatePresenceClient";
 import { NoopPresenceClient } from "./NoopPresenceClient";
 import { setPresenceClient } from "./presence";
@@ -21,7 +22,7 @@ let resolvedClient: PresenceClient = new NoopPresenceClient();
 type PresenceMode = "disabled_by_config" | "enabled_appstate";
 
 function logMode(mode: PresenceMode): void {
-  console.log(`[Presence] mode=${mode}`);
+  logger.log(`[Presence] mode=${mode}`);
 }
 
 export function initPresence(): PresenceClient {

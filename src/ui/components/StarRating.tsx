@@ -100,7 +100,6 @@ function StarItem({
   const starValue = index + 1;
   const isFull = rating >= starValue;
   const isHalf = !isFull && rating >= starValue - 0.5;
-  const isEmpty = !isFull && !isHalf;
 
   const handlePress = useCallback(() => {
     if (!interactive || !onChange) return;

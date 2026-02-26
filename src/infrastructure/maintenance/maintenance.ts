@@ -13,6 +13,7 @@
  * Every method wraps in try/catch — maintenance must NEVER crash the app.
  */
 
+import { logger } from "../../logging/logger";
 import { NoopMaintenanceClient } from "./NoopMaintenanceClient";
 import type { SupabaseHealthMonitor } from "./SupabaseHealthMonitor";
 import {
@@ -26,6 +27,7 @@ import {
 
 function getAsyncStorage(): any {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     return require("@react-native-async-storage/async-storage").default;
   } catch {
     return null;
@@ -80,7 +82,7 @@ function logTransition(
       ? next.blockedFeatures.join(",")
       : "none";
 
-  console.log(
+  logger.log(
     `[Maintenance] state_changed mode=${next.mode} reason=${next.reason ?? "none"} blocked=${blocked}`
   );
 }
@@ -189,7 +191,7 @@ export const maintenance = {
       lastResolvedState = state;
       return state;
     } catch (error) {
-      console.warn("[Maintenance] getState failed:", error);
+      logger.warn("[Maintenance] getState failed:", error);
       return { ...DEFAULT_MAINTENANCE_STATE, updatedAt: Date.now() };
     }
   },
@@ -250,7 +252,7 @@ export const maintenance = {
       const resolved = await resolveState();
       notifyListeners(resolved);
     } catch (error) {
-      console.warn("[Maintenance] setLocalOverride failed:", error);
+      logger.warn("[Maintenance] setLocalOverride failed:", error);
     }
   },
 

@@ -56,9 +56,11 @@ describe("liveActivity factory gating", () => {
     const {
       initLiveActivity: initAgain,
       resetLiveActivity: resetAgain,
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
     } = require("./factory");
     const {
       NoopLiveActivityClient: Noop,
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
     } = require("./NoopLiveActivityClient");
 
     resetAgain();

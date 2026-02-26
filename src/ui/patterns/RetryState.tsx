@@ -63,6 +63,8 @@ export function RetryState({
     } else {
       rotation.value = 0;
     }
+    // rotation is a stable useSharedValue ref
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
 
   const spinStyle = useAnimatedStyle(() => ({

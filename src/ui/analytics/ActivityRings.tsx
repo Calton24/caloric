@@ -87,6 +87,8 @@ function Ring({
         easing: Easing.out(Easing.cubic),
       })
     );
+    // animProgress is a stable useSharedValue ref
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progress, delay, duration]);
 
   const animProps = useAnimatedProps(() => ({

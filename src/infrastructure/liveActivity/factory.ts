@@ -15,6 +15,7 @@
  */
 
 import { getAppConfig } from "../../config";
+import { logger } from "../../logging/logger";
 import { ExpoWidgetsLiveActivityClient } from "./ExpoWidgetsLiveActivityClient";
 import { NativeLiveActivityClient } from "./NativeLiveActivityClient";
 import { NoopLiveActivityClient } from "./NoopLiveActivityClient";
@@ -32,7 +33,7 @@ type LiveActivityMode =
   | "enabled_expo_widgets";
 
 function logMode(mode: LiveActivityMode): void {
-  console.log(`[LiveActivity] mode=${mode}`);
+  logger.log(`[LiveActivity] mode=${mode}`);
 }
 
 function isIOS(): boolean {

@@ -5,6 +5,7 @@
  */
 
 import { getAppConfig } from "@/src/config";
+import { logger } from "../../logging/logger";
 
 // Firebase imports are optional - only loaded if installed
 let analytics: any = null;
@@ -35,14 +36,14 @@ export async function initializeFirebase(): Promise<boolean> {
     config.features.performanceMonitoring;
 
   if (!isFirebaseEnabled) {
-    console.log("[Firebase] All Firebase features disabled, skipping init");
+    logger.log("[Firebase] All Firebase features disabled, skipping init");
     isInitialized = true;
     return false;
   }
 
   // Check if Firebase config exists
   if (!config.firebase) {
-    console.warn(
+    logger.warn(
       "[Firebase] Features enabled but no Firebase config found in profile"
     );
     isInitialized = true;
@@ -65,7 +66,7 @@ export async function initializeFirebase(): Promise<boolean> {
     // We just need to verify it's configured correctly
     firebaseApp = firebaseModule.default.app();
 
-    console.log("[Firebase] App initialized:", firebaseApp.name);
+    logger.log("[Firebase] App initialized:", firebaseApp.name);
 
     // Initialize Analytics if enabled
     if (config.features.firebaseAnalytics) {
@@ -75,9 +76,9 @@ export async function initializeFirebase(): Promise<boolean> {
       if (analyticsModule) {
         analytics = analyticsModule.default();
         await analytics.setAnalyticsCollectionEnabled(true);
-        console.log("[Firebase] Analytics enabled");
+        logger.log("[Firebase] Analytics enabled");
       } else {
-        console.warn(
+        logger.warn(
           "[Firebase] Analytics enabled but @react-native-firebase/analytics not installed"
         );
       }
@@ -91,9 +92,9 @@ export async function initializeFirebase(): Promise<boolean> {
       if (crashlyticsModule) {
         crashlytics = crashlyticsModule.default();
         await crashlytics.setCrashlyticsCollectionEnabled(true);
-        console.log("[Firebase] Crashlytics enabled");
+        logger.log("[Firebase] Crashlytics enabled");
       } else {
-        console.warn(
+        logger.warn(
           "[Firebase] Crash reporting enabled but @react-native-firebase/crashlytics not installed"
         );
       }
@@ -108,9 +109,9 @@ export async function initializeFirebase(): Promise<boolean> {
       if (perfModule) {
         perf = perfModule.default();
         await perf.setPerformanceCollectionEnabled(true);
-        console.log("[Firebase] Performance Monitoring enabled");
+        logger.log("[Firebase] Performance Monitoring enabled");
       } else {
-        console.warn(
+        logger.warn(
           "[Firebase] Performance monitoring enabled but @react-native-firebase/perf not installed"
         );
       }
@@ -120,7 +121,7 @@ export async function initializeFirebase(): Promise<boolean> {
     return true;
   } catch (error) {
     initializationError = error as Error;
-    console.error("[Firebase] Initialization failed:", error);
+    logger.error("[Firebase] Initialization failed:", error);
     isInitialized = true;
     return false;
   }
@@ -132,7 +133,7 @@ export async function initializeFirebase(): Promise<boolean> {
  */
 export function getAnalytics() {
   if (!analytics) {
-    console.warn("[Firebase] Analytics not initialized or disabled");
+    logger.warn("[Firebase] Analytics not initialized or disabled");
   }
   return analytics;
 }
@@ -143,7 +144,7 @@ export function getAnalytics() {
  */
 export function getCrashlytics() {
   if (!crashlytics) {
-    console.warn("[Firebase] Crashlytics not initialized or disabled");
+    logger.warn("[Firebase] Crashlytics not initialized or disabled");
   }
   return crashlytics;
 }
@@ -154,7 +155,7 @@ export function getCrashlytics() {
  */
 export function getPerformance() {
   if (!perf) {
-    console.warn(
+    logger.warn(
       "[Firebase] Performance Monitoring not initialized or disabled"
     );
   }

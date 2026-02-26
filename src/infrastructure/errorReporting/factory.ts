@@ -5,6 +5,7 @@
 
 import Constants from "expo-constants";
 import { getAppConfig } from "../../config";
+import { logger } from "../../logging/logger";
 import { NoopErrorReporter } from "./NoopErrorReporter";
 import { SentryErrorReporter } from "./SentryErrorReporter";
 import { ErrorReporter, ErrorReporterConfig } from "./types";
@@ -27,7 +28,7 @@ export function initErrorReporting(): ErrorReporter {
 
   // Check if crash reporting is enabled in config
   if (!config.features.crashReporting) {
-    console.log("[ErrorReporting] mode=disabled_by_config");
+    logger.log("[ErrorReporting] mode=disabled_by_config");
     reporterInstance = new NoopErrorReporter();
     return reporterInstance;
   }
@@ -38,14 +39,14 @@ export function initErrorReporting(): ErrorReporter {
     process.env.EXPO_PUBLIC_SENTRY_DSN;
 
   if (!sentryDsn) {
-    console.log("[ErrorReporting] mode=enabled_missing_dsn");
+    logger.log("[ErrorReporting] mode=enabled_missing_dsn");
     reporterInstance = new NoopErrorReporter();
     return reporterInstance;
   }
 
   // Check if Sentry SDK is available
   if (!SentryErrorReporter.isSdkAvailable()) {
-    console.log("[ErrorReporting] mode=sdk_missing_fallback_noop");
+    logger.log("[ErrorReporting] mode=sdk_missing_fallback_noop");
     reporterInstance = new NoopErrorReporter();
     return reporterInstance;
   }
@@ -69,7 +70,7 @@ export function initErrorReporting(): ErrorReporter {
 
   reporterInstance = new SentryErrorReporter();
   reporterInstance.init(sentryConfig);
-  console.log("[ErrorReporting] mode=sentry_initialized");
+  logger.log("[ErrorReporting] mode=sentry_initialized");
 
   return reporterInstance;
 }
@@ -80,7 +81,7 @@ export function initErrorReporting(): ErrorReporter {
  */
 export function getErrorReporter(): ErrorReporter {
   if (!reporterInstance) {
-    console.warn(
+    logger.warn(
       "[ErrorReporting] Not initialized, returning no-op reporter. Call initErrorReporting() first."
     );
     return new NoopErrorReporter();

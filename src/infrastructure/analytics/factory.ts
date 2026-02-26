@@ -11,6 +11,7 @@
 
 import Constants from "expo-constants";
 import { getAppConfig } from "../../config";
+import { logger } from "../../logging/logger";
 import { setAnalyticsClient } from "./analytics";
 import { NoopAnalyticsClient } from "./NoopAnalyticsClient";
 import { PostHogAnalyticsClient } from "./PostHogAnalyticsClient";
@@ -34,7 +35,7 @@ type AnalyticsMode =
   | "sdk_missing_fallback_noop";
 
 function logMode(mode: AnalyticsMode): void {
-  console.log(`[Analytics] mode=${mode}`);
+  logger.log(`[Analytics] mode=${mode}`);
 }
 
 export function initAnalytics(): AnalyticsClient {

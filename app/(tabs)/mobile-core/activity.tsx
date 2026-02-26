@@ -1,8 +1,9 @@
 /**
  * Activity Monitor — Dev Debug Screen
- * Accessible from Mobile Core catalog in __DEV__ only.
+ * In production builds, redirects to the catalog home.
  */
 
+import { Redirect } from "expo-router";
 import React from "react";
 import { ActivityDebugPanel } from "../../../src/ui/dev/ActivityDebugPanel";
 import { Screen } from "../../../src/ui/layout/Screen";
@@ -10,6 +11,7 @@ import { TSpacer } from "../../../src/ui/primitives/TSpacer";
 import { TText } from "../../../src/ui/primitives/TText";
 
 export default function ActivityDebugScreen() {
+  if (!__DEV__) return <Redirect href="/(tabs)/mobile-core" />;
   return (
     <Screen scrollable>
       <TSpacer size="lg" />

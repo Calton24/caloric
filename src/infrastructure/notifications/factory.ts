@@ -11,6 +11,7 @@
  */
 
 import { getAppConfig } from "../../config";
+import { logger } from "../../logging/logger";
 import { ExpoNotificationsClient } from "./ExpoNotificationsClient";
 import { NoopNotificationsClient } from "./NoopNotificationsClient";
 import { setNotificationsClient } from "./notifications";
@@ -25,7 +26,7 @@ type NotificationsMode =
   | "expo_initialized";
 
 function logMode(mode: NotificationsMode): void {
-  console.log(`[Notifications] mode=${mode}`);
+  logger.log(`[Notifications] mode=${mode}`);
 }
 
 export function initNotifications(): NotificationsClient {

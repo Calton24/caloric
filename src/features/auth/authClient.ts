@@ -127,8 +127,8 @@ export function getAuthClient(): AuthClient {
  * Safe to hold a reference; swapping via setAuthClient() is reflected immediately.
  */
 export const authClient: AuthClient = {
-  signIn: (...args) => authBlocked() ?? client.signIn(...args),
-  signUp: (...args) => authBlocked() ?? client.signUp(...args),
+  signIn: async (...args) => authBlocked() ?? client.signIn(...args),
+  signUp: async (...args) => authBlocked() ?? client.signUp(...args),
   signOut: (...args) => client.signOut(...args),
   resetPasswordForEmail: (...args) => client.resetPasswordForEmail(...args),
   updatePassword: (...args) => client.updatePassword(...args),

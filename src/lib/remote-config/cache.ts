@@ -3,6 +3,7 @@
  * In-memory cache with TTL for remote feature flags
  */
 
+import { logger } from "../../logging/logger";
 import { RemoteConfigRow } from "./client";
 
 interface CacheEntry {
@@ -29,15 +30,15 @@ function getCacheKey(appProfile: string, environment: string): string {
 export function cacheRemoteConfig(
   appProfile: string,
   environment: string,
-  data: RemoteConfigRow,
+  data: RemoteConfigRow
 ): void {
   const key = getCacheKey(appProfile, environment);
   const expiresAt = Date.now() + CACHE_TTL_MS;
 
   cache.set(key, { data, expiresAt });
 
-  console.log(
-    `💾 Cached remote config for ${key} (expires in ${CACHE_TTL_MS / 1000}s)`,
+  logger.log(
+    `Cached remote config for ${key} (expires in ${CACHE_TTL_MS / 1000}s)`
   );
 }
 
@@ -46,7 +47,7 @@ export function cacheRemoteConfig(
  */
 export function getCachedRemoteConfig(
   appProfile: string,
-  environment: string,
+  environment: string
 ): RemoteConfigRow | null {
   const key = getCacheKey(appProfile, environment);
   const entry = cache.get(key);
@@ -58,7 +59,7 @@ export function getCachedRemoteConfig(
   // Check if expired
   if (Date.now() > entry.expiresAt) {
     cache.delete(key);
-    console.log(`🗑️ Cache expired for ${key}`);
+    logger.log(`Cache expired for ${key}`);
     return null;
   }
 
@@ -70,11 +71,11 @@ export function getCachedRemoteConfig(
  */
 export function clearRemoteConfigCache(
   appProfile: string,
-  environment: string,
+  environment: string
 ): void {
   const key = getCacheKey(appProfile, environment);
   cache.delete(key);
-  console.log(`🗑️ Cleared cache for ${key}`);
+  logger.log(`Cleared cache for ${key}`);
 }
 
 /**
@@ -82,5 +83,5 @@ export function clearRemoteConfigCache(
  */
 export function clearAllRemoteConfigCache(): void {
   cache.clear();
-  console.log(`🗑️ Cleared all remote config cache`);
+  logger.log(`Cleared all remote config cache`);
 }

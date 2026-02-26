@@ -50,9 +50,11 @@ describe("notifications factory gating", () => {
     const {
       initNotifications: initAgain,
       resetNotifications: resetAgain,
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
     } = require("./factory");
     const {
       NoopNotificationsClient: Noop,
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
     } = require("./NoopNotificationsClient");
 
     resetAgain();

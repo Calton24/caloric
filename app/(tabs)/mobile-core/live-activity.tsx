@@ -1,8 +1,9 @@
 /**
  * Live Activities — Dev Debug Screen
- * Accessible from Mobile Core catalog in __DEV__ only.
+ * In production builds, redirects to the catalog home.
  */
 
+import { Redirect } from "expo-router";
 import React from "react";
 import { CalorieBudgetActivityDebugPanel } from "../../../src/ui/dev/CalorieBudgetActivityDebugPanel";
 import { FitnessActivityDebugPanel } from "../../../src/ui/dev/FitnessActivityDebugPanel";
@@ -14,6 +15,8 @@ import { TSpacer } from "../../../src/ui/primitives/TSpacer";
 import { TText } from "../../../src/ui/primitives/TText";
 
 export default function LiveActivityDebugScreen() {
+  if (!__DEV__) return <Redirect href="/(tabs)/mobile-core" />;
+
   return (
     <Screen scrollable>
       <TSpacer size="lg" />

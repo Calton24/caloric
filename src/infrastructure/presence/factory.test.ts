@@ -53,7 +53,9 @@ describe("presence factory gating", () => {
     const {
       initPresence: initAgain,
       resetPresence: resetAgain,
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
     } = require("./factory");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { NoopPresenceClient: Noop } = require("./NoopPresenceClient");
 
     resetAgain();

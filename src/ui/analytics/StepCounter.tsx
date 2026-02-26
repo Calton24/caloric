@@ -80,6 +80,8 @@ export function StepCounter({
       duration: 1200,
       easing: Easing.out(Easing.cubic),
     });
+    // animProgress is a stable useSharedValue ref
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progress]);
 
   const animProps = useAnimatedProps(() => ({
@@ -88,14 +90,17 @@ export function StepCounter({
 
   // Goal celebration bounce
   const celebScale = useSharedValue(1);
+  const goalReached = progress >= 1;
   useEffect(() => {
-    if (progress >= 1) {
+    if (goalReached) {
       celebScale.value = withSequence(
         withSpring(1.06, { damping: 4, stiffness: 200 }),
         withSpring(1, { damping: 8, stiffness: 200 })
       );
     }
-  }, [progress >= 1]);
+    // celebScale is a stable useSharedValue ref
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [goalReached]);
 
   const celebStyle = useAnimatedStyle(() => ({
     transform: [{ scale: celebScale.value }],

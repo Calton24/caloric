@@ -173,6 +173,21 @@ export type {
     MaintenanceState
 } from "./infrastructure/maintenance";
 
+// === SECURITY TELEMETRY ===
+export {
+    isServiceRoleJWT,
+    recordAdminBypassAttempt,
+    recordAuthFailure,
+    recordEventSpam,
+    recordRateLimitHit,
+    recordSecurityEvent,
+    reportServiceRoleAttempt
+} from "./infrastructure/security";
+export type {
+    SecurityEvent,
+    SecurityEventType
+} from "./infrastructure/security";
+
 // === DEV UTILITIES ===
 export { ActivityDebugPanel } from "./ui/dev/ActivityDebugPanel";
 export { DevOnly } from "./ui/dev/DevOnly";

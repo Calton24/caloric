@@ -110,6 +110,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // ships a stable plugin. Until then the factory falls back to Noop.
       // See: src/infrastructure/liveActivity/factory.ts
       "./plugins/withLiveActivity",
+      "expo-secure-store",
     ],
 
     experiments: {

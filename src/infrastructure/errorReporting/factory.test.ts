@@ -36,6 +36,7 @@ describe("Error Reporting Factory", () => {
     resetErrorReporting();
 
     // Set up default mock for getAppConfig
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { getAppConfig } = require("../../config");
     mockGetAppConfig = getAppConfig as jest.Mock;
     mockGetAppConfig.mockClear();
@@ -190,12 +191,7 @@ describe("Error Reporting Factory", () => {
   });
 
   describe("Boot Mode Logging", () => {
-    const modes = [
-      "disabled_by_config",
-      "enabled_missing_dsn",
-      "sdk_missing_fallback_noop",
-      "sentry_initialized",
-    ];
+    // Available modes: disabled_by_config, enabled_missing_dsn, sdk_missing_fallback_noop, sentry_initialized
 
     it("should log structured boot mode in format [ErrorReporting] mode=...", () => {
       // Test disabled_by_config

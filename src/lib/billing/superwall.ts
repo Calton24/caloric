@@ -6,6 +6,7 @@
  */
 
 import type { SuperwallConfig } from "../../config/types";
+import { logger } from "../../logging/logger";
 import type { BillingProvider, Entitlement, SubscriptionTier } from "./types";
 
 /**
@@ -25,7 +26,7 @@ export class SuperwallProvider implements BillingProvider {
 
   async initialize(): Promise<void> {
     if (this.initialized) {
-      console.log("[Superwall] Already initialized");
+      logger.log("[Superwall] Already initialized");
       return;
     }
 
@@ -34,7 +35,7 @@ export class SuperwallProvider implements BillingProvider {
       // import Superwall from '@superwall/react-native-superwall';
       // await Superwall.configure(this.config.apiKey);
 
-      console.log(
+      logger.log(
         "[Superwall] Initialized with API key:",
         this.config.apiKey.substring(0, 10) + "..."
       );
@@ -46,7 +47,7 @@ export class SuperwallProvider implements BillingProvider {
 
       this.initialized = true;
     } catch (error) {
-      console.error("[Superwall] Initialization failed:", error);
+      logger.error("[Superwall] Initialization failed:", error);
       throw error;
     }
   }
@@ -71,7 +72,7 @@ export class SuperwallProvider implements BillingProvider {
 
       return mockEntitlement;
     } catch (error) {
-      console.error("[Superwall] Failed to get entitlements:", error);
+      logger.error("[Superwall] Failed to get entitlements:", error);
       throw error;
     }
   }
@@ -83,7 +84,7 @@ export class SuperwallProvider implements BillingProvider {
 
     try {
       const paywallTrigger = trigger || this.getDefaultTrigger();
-      console.log(
+      logger.log(
         "[Superwall] Presenting paywall with trigger:",
         paywallTrigger
       );
@@ -91,7 +92,7 @@ export class SuperwallProvider implements BillingProvider {
       // TODO: Present paywall with Superwall SDK
       // await Superwall.shared.present(paywallTrigger);
     } catch (error) {
-      console.error("[Superwall] Failed to present paywall:", error);
+      logger.error("[Superwall] Failed to present paywall:", error);
       throw error;
     }
   }
@@ -106,7 +107,7 @@ export class SuperwallProvider implements BillingProvider {
     }
 
     try {
-      console.log("[Superwall] Restoring purchases...");
+      logger.log("[Superwall] Restoring purchases...");
 
       // TODO: Restore purchases with Superwall SDK
       // await Superwall.shared.restorePurchases();
@@ -114,7 +115,7 @@ export class SuperwallProvider implements BillingProvider {
       // Notify listeners of potential entitlement change
       await this.notifyEntitlementChange();
     } catch (error) {
-      console.error("[Superwall] Failed to restore purchases:", error);
+      logger.error("[Superwall] Failed to restore purchases:", error);
       throw error;
     }
   }

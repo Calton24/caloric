@@ -53,7 +53,9 @@ describe("analytics factory gating", () => {
     const {
       initAnalytics: initAgain,
       resetAnalytics: resetAgain,
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
     } = require("./factory");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { NoopAnalyticsClient: Noop } = require("./NoopAnalyticsClient");
 
     resetAgain();

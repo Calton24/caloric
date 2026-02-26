@@ -1,7 +1,9 @@
 /**
  * Growth Layer - Catalog Demo
+ * In production builds, redirects to the catalog home.
  */
 
+import { Redirect } from "expo-router";
 import React from "react";
 import { View } from "react-native";
 import { useTheme } from "../../../src/theme/useTheme";
@@ -16,6 +18,9 @@ import { useBottomSheet } from "../../../src/ui/sheets/useBottomSheet";
 export default function GrowthLayerScreen() {
   const { theme } = useTheme();
   const { open } = useBottomSheet();
+
+  // DEV-only gate — all hooks must be called before this
+  if (!__DEV__) return <Redirect href="/(tabs)/mobile-core" />;
 
   const openSheet = () => {
     open(<FeatureRequestSheet />, {

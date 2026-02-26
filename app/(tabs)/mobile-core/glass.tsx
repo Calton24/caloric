@@ -5,7 +5,7 @@
  * GlassSearch, Theme System, Bottom Sheets, Modals.
  */
 
-import { useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { Dimensions, StyleSheet, Switch, View } from "react-native";
 import { useTheme } from "../../../src/theme/useTheme";
@@ -78,6 +78,9 @@ export default function GlassScreen() {
     }),
     [screenHeight]
   );
+
+  // DEV-only gate — all hooks must be called before this
+  if (!__DEV__) return <Redirect href="/(tabs)/mobile-core" />;
 
   const SheetContent = ({ title }: { title: string }) => (
     <View style={{ padding: theme.spacing.lg }}>

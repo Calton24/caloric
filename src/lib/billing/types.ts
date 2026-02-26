@@ -3,6 +3,8 @@
  * Unified entitlement model across all billing providers
  */
 
+import { logger } from "../../logging/logger";
+
 /**
  * Subscription tier
  */
@@ -71,7 +73,7 @@ export interface BillingProvider {
  */
 export class NoBillingProvider implements BillingProvider {
   async initialize(): Promise<void> {
-    console.log("[Billing] No-op provider initialized (billing disabled)");
+    logger.log("[Billing] No-op provider initialized (billing disabled)");
   }
 
   async getEntitlements(): Promise<Entitlement> {
@@ -84,7 +86,7 @@ export class NoBillingProvider implements BillingProvider {
   }
 
   async presentPaywall(_trigger?: string): Promise<void> {
-    console.warn("[Billing] Paywall disabled (billing not enabled)");
+    logger.warn("[Billing] Paywall disabled (billing not enabled)");
   }
 
   onEntitlementsChanged(_callback: (entitlement: Entitlement) => void): void {
@@ -92,7 +94,7 @@ export class NoBillingProvider implements BillingProvider {
   }
 
   async restorePurchases(): Promise<void> {
-    console.warn("[Billing] Restore disabled (billing not enabled)");
+    logger.warn("[Billing] Restore disabled (billing not enabled)");
   }
 
   getProviderName(): string {

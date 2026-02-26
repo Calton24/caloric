@@ -54,9 +54,11 @@ describe("activityMonitor factory gating", () => {
     const {
       initActivityMonitor: initAgain,
       resetActivityMonitor: resetAgain,
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
     } = require("./factory");
     const {
       NoopActivityMonitorClient: Noop,
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
     } = require("./NoopActivityMonitorClient");
 
     resetAgain();

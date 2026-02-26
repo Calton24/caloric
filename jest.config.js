@@ -31,6 +31,7 @@ module.exports = {
     "@react-native-async-storage/async-storage":
       "<rootDir>/__mocks__/@react-native-async-storage/async-storage.ts",
     "expo-constants": "<rootDir>/__mocks__/expo-constants.ts",
+    "expo-secure-store": "<rootDir>/__mocks__/expo-secure-store.ts",
   },
   setupFilesAfterEnv: ["<rootDir>/__tests__/setup.ts"],
   collectCoverageFrom: [
