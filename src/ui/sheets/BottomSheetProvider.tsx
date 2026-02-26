@@ -5,17 +5,17 @@
 
 import type { BottomSheetModal as BottomSheetModalType } from "@gorhom/bottom-sheet";
 import {
-  BottomSheetBackdrop,
-  BottomSheetModal,
-  BottomSheetView,
+    BottomSheetBackdrop,
+    BottomSheetModal,
+    BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import { BlurView } from "expo-blur";
 import React, {
-  createContext,
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
+    createContext,
+    useCallback,
+    useMemo,
+    useRef,
+    useState,
 } from "react";
 import { StyleSheet } from "react-native";
 import { useTheme } from "../../theme/useTheme";
@@ -122,7 +122,9 @@ export function BottomSheetProvider({ children }: BottomSheetProviderProps) {
         }}
       >
         <BottomSheetView style={styles.contentContainer}>
-          {content}
+          <BottomSheetContext.Provider value={value}>
+            {content}
+          </BottomSheetContext.Provider>
         </BottomSheetView>
       </BottomSheetModal>
     </BottomSheetContext.Provider>

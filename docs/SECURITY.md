@@ -1,5 +1,28 @@
 # Security Guide
 
+## ⚠️ HIGH-STAKES PLATFORM SECURITY
+
+**This is production-grade platform infrastructure that will be forked into multiple production apps.** Security is not optional. Any vulnerabilities will propagate to all downstream forks.
+
+**Hard Constraints (Never Violate):**
+
+- 🚫 Never leak secrets or PII to logs
+- 🚫 Never accept service_role JWTs in client code
+- 🚫 Never expose debug screens in production builds
+- 🚫 Never crash the app due to security measures
+- ✅ Security > Convenience (always)
+
+### Quick Reference
+
+| Check             | Command                               | Frequency                      |
+| ----------------- | ------------------------------------- | ------------------------------ |
+| Secret scan       | `npm run mobile-core:security`        | Every commit (pre-commit hook) |
+| All tests         | `npm run validate`                    | Every commit                   |
+| Security tests    | `npm run test -- security.test.ts`    | Every commit                   |
+| Deep verification | `npm run mobile-core:verify:security` | Before merge                   |
+
+---
+
 ## Zero-Trust Architecture
 
 This multi-app system follows a **zero-trust security model** where:
@@ -21,7 +44,7 @@ This multi-app system follows a **zero-trust security model** where:
 // ✅ SAFE: Anon key respects RLS policies
 const supabase = createClient(
   "https://project.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", // Anon key
+  "your-anon-key-here" // Anon key (JWT from Supabase dashboard)
 );
 ```
 
@@ -37,7 +60,7 @@ const supabase = createClient(
 // ❌ NEVER DO THIS
 const supabase = createClient(
   "https://project.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIi...",
+  "your-service-role-key" // ← This is the dangerous one
 );
 ```
 
@@ -146,6 +169,77 @@ Use Edge Functions for:
 - External API calls (OpenAI, Google Vision, etc.)
 - Batch operations
 - Complex business logic that should be server-side
+- **Rate-limited client inserts** (growth/feature requests — see below)
+
+### ⚠️ Growth Ingestion — Known Risk
+
+The `feature_requests` table currently accepts direct client INSERTs. RLS prevents user_id spoofing but **does not rate-limit**. A bot could flood thousands of rows, poisoning data or running up Supabase billing.
+
+**Current state:** Direct `client.from("feature_requests").insert(payload)` with client-side cooldown (convenience only).
+
+**Recommended hardening:** Replace with a Supabase Edge Function:
+
+```typescript
+// supabase/functions/submit-feature-request/index.ts
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const RATE_LIMIT_PER_MIN = 5;
+const rateLimitMap = new Map<string, number[]>();
+
+serve(async (req) => {
+  const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+  const now = Date.now();
+
+  // Per-IP rate limiting
+  const timestamps =
+    rateLimitMap.get(ip)?.filter((t) => now - t < 60_000) ?? [];
+  if (timestamps.length >= RATE_LIMIT_PER_MIN) {
+    return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+      status: 429,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  timestamps.push(now);
+  rateLimitMap.set(ip, timestamps);
+
+  // Validate and insert
+  const body = await req.json();
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+
+  // Allowlist fields — strip anything unexpected
+  const { error } = await supabase.from("feature_requests").insert({
+    title: String(body.title).slice(0, 500),
+    description: body.description
+      ? String(body.description).slice(0, 2000)
+      : null,
+    category: body.category,
+    user_id: body.user_id,
+    anon_id: body.anon_id,
+    platform: body.platform,
+    app_version: body.app_version,
+  });
+
+  if (error)
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+    });
+  return new Response(JSON.stringify({ ok: true }), { status: 200 });
+});
+```
+
+**Client change:**
+
+```typescript
+// In SupabaseGrowthClient.ts — replace:
+//   client.from("feature_requests").insert(payload)
+// with:
+//   client.functions.invoke("submit-feature-request", { body: payload })
+```
 
 ### Example: Admin User Deletion
 
@@ -178,7 +272,7 @@ serve(async (req) => {
   // Get service role client (safe here, runs on Supabase servers)
   const supabaseAdmin = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
   // Get authenticated user from request
@@ -548,6 +642,100 @@ When launching a new app:
    await supabaseAdmin.auth.admin.signOut(userId);
    ```
 3. Review audit logs for suspicious activity
+
+---
+
+## Personally Identifiable Information (PII) Protection
+
+### Email Hashing for Analytics
+
+Raw email addresses must never be sent to analytics services (PostHog, etc.):
+
+```typescript
+// ✅ CORRECT - Hash email before analytics
+import { hashEmail } from "@/src/features/auth/AuthProvider";
+
+const session = await getSession();
+analytics.identify({
+  email_hash: hashEmail(session.user.email), // SHA-256 hash
+});
+
+// ❌ WRONG - Never send raw email
+// analytics.identify({ email: session.user.email });
+```
+
+**Why:**
+
+- Analytics logs are NOT encrypted
+- Raw emails enable user identification and tracking
+- Hash is deterministic (same user = same hash each time)
+- Hash cannot be reversed to recover original email
+
+### Debug Screen Production Gating
+
+All development screens must be inaccessible in production builds. Every debug screen requires this pattern:
+
+```typescript
+// app/(tabs)/mobile-core/[debug-screen].tsx
+import { Redirect } from "expo-router";
+
+export default function DebugScreen() {
+  // ✅ Guards checked at module load time, removed in production
+  if (!__DEV__) return <Redirect href="/(tabs)/mobile-core" />;
+
+  return <View>
+    {/* Debug UI only visible in development */}
+  </View>;
+}
+```
+
+### Logging & Sensitive Data Redaction
+
+Automatic redaction prevents secrets from leaking in logs:
+
+```typescript
+// src/logging/redactor.ts
+import { redactSensitive } from "@/src/logging";
+
+// Automatically redacts:
+// - JWT tokens (eyJ...) → [JWT_REDACTED]
+// - API keys → [KEY_REDACTED]
+// - Authorization headers → Bearer [TOKEN_REDACTED]
+// - Stripe keys → [STRIPE_KEY_REDACTED]
+
+console.log(redactSensitive(`User token: ${jwtToken}`));
+// Result: "User token: [JWT_REDACTED]"
+```
+
+Run security audits before deployment:
+
+```bash
+npm run mobile-core:security  # Scans for leaks and violations
+npm run test -- __tests__/security.test.ts  # 11 in-depth security tests
+```
+
+---
+
+## For Fork Maintainers
+
+### Fork-Safe Design
+
+Mobile-core requires only **environment/profile changes** for secure forks:
+
+```bash
+# ✅ SAFE environment-only approach
+DATABASE_URL=your-prod-db ANON_KEY=your-key npm run build
+
+# ⚠️ UNSAFE - Never modify source code (use .env instead)
+```
+
+Pre-deployment checklist:
+
+```bash
+npm run mobile-core:security          # Secret scan
+npm run mobile-core:verify:security   # Full security verification
+npm run validate                      # All tests pass
+```
 
 ---
 

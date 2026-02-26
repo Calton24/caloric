@@ -6,18 +6,14 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect } from "react";
-import {
-    Pressable,
-    StyleProp,
-    StyleSheet,
-    ViewStyle
-} from "react-native";
+import { Pressable, StyleProp, StyleSheet, ViewStyle } from "react-native";
 import Animated, {
     interpolateColor,
     useAnimatedStyle,
     useSharedValue,
     withTiming,
 } from "react-native-reanimated";
+import { haptics } from "../../infrastructure/haptics";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 import { GlassSurface } from "./GlassSurface";
@@ -98,6 +94,7 @@ export function GlassTogglePill({
   }));
 
   const handleBodyPress = useCallback(() => {
+    haptics.impact("light");
     if (mode === "toggle" || mode === "mixed") {
       onToggle?.();
     } else {

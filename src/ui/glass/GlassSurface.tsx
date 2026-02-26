@@ -31,13 +31,6 @@ interface GlassSurfaceProps {
   reduceTransparency?: boolean;
 }
 
-const VARIANT_RADIUS: Record<GlassVariant, number | undefined> = {
-  card: undefined, // uses theme.radius.lg
-  pill: undefined, // uses theme.radius.full (capped in style)
-  circle: undefined, // uses theme.radius.full
-  overlay: undefined, // uses theme.radius.lg
-};
-
 export function GlassSurface({
   children,
   variant = "card",

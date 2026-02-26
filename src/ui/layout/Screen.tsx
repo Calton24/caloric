@@ -5,11 +5,11 @@
 
 import React from "react";
 import {
-    ScrollView,
-    StyleProp,
-    StyleSheet,
-    View,
-    ViewStyle,
+  ScrollView,
+  StyleProp,
+  StyleSheet,
+  View,
+  ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../theme/useTheme";
@@ -46,12 +46,36 @@ export function Screen({
     {
       backgroundColor: theme.colors.background,
       paddingTop,
-      paddingBottom,
       paddingLeft,
       paddingRight,
+      // For scrollable, paddingBottom goes into contentContainerStyle
+      paddingBottom: scrollable ? 0 : paddingBottom,
     },
     style,
   ];
+
+  if (scrollable) {
+    const scrollContentStyle = [
+      styles.scrollContent,
+      {
+        padding: containerPadding,
+        paddingBottom: paddingBottom + containerPadding + 40,
+      },
+      contentContainerStyle,
+    ];
+
+    return (
+      <View style={containerStyle}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={scrollContentStyle}
+          showsVerticalScrollIndicator={false}
+        >
+          {children}
+        </ScrollView>
+      </View>
+    );
+  }
 
   const innerStyle = [
     styles.content,
@@ -60,20 +84,6 @@ export function Screen({
     },
     contentContainerStyle,
   ];
-
-  if (scrollable) {
-    return (
-      <View style={containerStyle}>
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={innerStyle}
-          showsVerticalScrollIndicator={false}
-        >
-          {children}
-        </ScrollView>
-      </View>
-    );
-  }
 
   return (
     <View style={containerStyle}>
@@ -88,6 +98,9 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   content: {
     flex: 1,

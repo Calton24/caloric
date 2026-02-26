@@ -4,19 +4,27 @@
  */
 
 // Factory
-export { getErrorReporter, initErrorReporting } from "./factory";
+export {
+    getErrorReporter,
+    initErrorReporting,
+    resetErrorReporting
+} from "./factory";
 
 // Error Boundary component
 export { ErrorBoundary } from "./ErrorBoundary";
 
 // Types
 export type {
-    Breadcrumb, ErrorContext,
-    ErrorLevel, ErrorReporter,
-    ErrorReporterConfig, User
+    Breadcrumb,
+    ErrorContext,
+    ErrorLevel,
+    ErrorReporter,
+    ErrorReporterConfig,
+    User
 } from "./types";
 
-// Implementations (rarely needed directly, but exported for advanced use cases)
+// Noop implementation (safe for testing/mocking)
 export { NoopErrorReporter } from "./NoopErrorReporter";
-export { SentryErrorReporter } from "./SentryErrorReporter";
 
+// Note: SentryErrorReporter is NOT exported to avoid static imports of @sentry/react-native
+// It's only used internally by the factory

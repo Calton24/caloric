@@ -97,6 +97,8 @@ export interface FeatureFlags {
   analytics: boolean;
   /** Growth layer (feature requests + milestones) */
   growth: boolean;
+  /** Haptic feedback */
+  haptics: boolean;
   /** Push notifications */
   notifications: boolean;
   /** Firebase Analytics instrumentation */
@@ -107,6 +109,23 @@ export interface FeatureFlags {
   performanceMonitoring: boolean;
   /** Billing / subscription system (includes paywall UI) */
   billing: boolean;
+  /** Internationalisation (i18n) */
+  i18n: boolean;
+  /** App lifecycle presence detection */
+  presence: boolean;
+  /** Activity monitor (in-app / Live Activities) */
+  activityMonitor: boolean;
+  /** Live Activities via expo-widgets (iOS only, alpha) */
+  liveActivity: boolean;
+  /** Maintenance / degraded-mode system */
+  maintenance: boolean;
+  /**
+   * Allow direct client-side writes to growth tables (feature_requests).
+   * Default: false — uses Edge Function with server-side rate limiting.
+   * Set to true only for internal/dev builds that don't face public traffic.
+   * @security Enabling this exposes you to denial-of-wallet attacks.
+   */
+  allowUnsafeClientWrites: boolean;
 }
 
 export interface AppMetadata {

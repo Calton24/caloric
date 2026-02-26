@@ -1,10 +1,14 @@
 /**
  * Toast
- * Ephemeral feedback overlay. Slides in from the bottom, auto-dismisses.
+ * Feedback overlay. Slides in from the bottom.
+ * By default auto-dismisses after 2.5 s. Pass `persistent: true`
+ * to keep it visible until explicitly dismissed.
  *
  * Usage:
  *   const toast = useToast();
  *   toast.show("Saved!", "success");
+ *   toast.show("Offline", "warning", { persistent: true });
+ *   toast.dismiss();
  *
  * Mount <ToastProvider> at app root (inside ThemeProvider).
  */
@@ -24,14 +28,26 @@ import { TText } from "../primitives/TText";
 
 type ToastVariant = "success" | "error" | "info" | "warning";
 
+interface ToastOptions {
+  /** When true the toast stays visible until dismiss() is called. */
+  persistent?: boolean;
+}
+
 interface ToastState {
   message: string;
   variant: ToastVariant;
   id: number;
+  persistent: boolean;
 }
 
 interface ToastContextValue {
-  show: (message: string, variant?: ToastVariant) => void;
+  show: (
+    message: string,
+    variant?: ToastVariant,
+    options?: ToastOptions
+  ) => void;
+  /** Programmatically dismiss the current toast (including persistent ones). */
+  dismiss: () => void;
 }
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
@@ -71,12 +87,18 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   }, [translateY, opacity]);
 
   const show = useCallback(
-    (message: string, variant: ToastVariant = "info") => {
+    (
+      message: string,
+      variant: ToastVariant = "info",
+      options?: ToastOptions
+    ) => {
+      const persistent = options?.persistent ?? false;
+
       // Clear any pending timeout
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
       const id = ++idRef.current;
-      setToast({ message, variant, id });
+      setToast({ message, variant, id, persistent });
 
       // Reset + animate in from bottom
       translateY.setValue(100);
@@ -96,7 +118,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         }),
       ]).start();
 
-      timeoutRef.current = setTimeout(() => dismiss(), TOAST_DURATION);
+      // Persistent toasts stay until dismiss() is called
+      if (!persistent) {
+        timeoutRef.current = setTimeout(() => dismiss(), TOAST_DURATION);
+      }
     },
     [translateY, opacity, dismiss]
   );
@@ -116,7 +141,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <ToastContext.Provider value={{ show }}>
+    <ToastContext.Provider value={{ show, dismiss }}>
       {children}
       {toast && (
         <Animated.View

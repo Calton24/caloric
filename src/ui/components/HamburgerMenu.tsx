@@ -9,14 +9,16 @@
  * - Accepts menuItems array with icon, label, onPress
  * - Section headers for grouping
  * - Semi-transparent backdrop with tap-to-close
+ * - Swipe gesture to dismiss drawer
+ * - Haptic feedback on open/close/item press
  * - Token-driven colors via useTheme()
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-    Dimensions,
     Modal,
+    PanResponder,
     Pressable,
     ScrollView,
     StyleProp,
@@ -27,11 +29,13 @@ import {
 import Animated, {
     Easing,
     interpolate,
+    runOnJS,
     useAnimatedStyle,
     useSharedValue,
-    withTiming
+    withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { haptics } from "../../infrastructure/haptics";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -88,8 +92,6 @@ const DRAWER_TIMING = {
   easing: Easing.bezier(0.25, 0.1, 0.25, 1),
 };
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-
 /* ── Component ─────────────────────────────────────── */
 
 export function HamburgerMenu({
@@ -106,20 +108,62 @@ export function HamburgerMenu({
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
 
+  // ── Flicker fix ──
+  // Keep the Modal mounted while the close animation plays.
+  // `modalVisible` turns ON immediately when `open` becomes true,
+  // but only turns OFF after the exit animation finishes.
+  const [modalVisible, setModalVisible] = useState(open);
+
   // Animation progress: 0 = closed, 1 = open
   const progress = useSharedValue(0);
 
   useEffect(() => {
-    progress.value = withTiming(open ? 1 : 0, DRAWER_TIMING);
+    if (open) {
+      // Show modal first, then animate in
+      setModalVisible(true);
+      haptics.impact("light");
+      progress.value = withTiming(1, DRAWER_TIMING);
+    } else {
+      // Animate out, THEN hide modal
+      progress.value = withTiming(0, DRAWER_TIMING, (finished) => {
+        if (finished) {
+          runOnJS(setModalVisible)(false);
+        }
+      });
+    }
   }, [open, progress]);
 
   const handleClose = useCallback(() => {
+    haptics.impact("light");
     onToggle(false);
   }, [onToggle]);
 
   const handleOpen = useCallback(() => {
+    haptics.impact("light");
     onToggle(true);
   }, [onToggle]);
+
+  // ── Swipe-to-dismiss gesture ──
+  // Left drawer: swipe left to close. Right drawer: swipe right to close.
+  const SWIPE_THRESHOLD = 60;
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_evt, gestureState) => {
+        const { dx, dy } = gestureState;
+        // Only capture horizontal swipes (not vertical scrolls)
+        return Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10;
+      },
+      onPanResponderRelease: (_evt, gestureState) => {
+        const { dx } = gestureState;
+        if (side === "left" && dx < -SWIPE_THRESHOLD) {
+          handleClose();
+        } else if (side === "right" && dx > SWIPE_THRESHOLD) {
+          handleClose();
+        }
+      },
+    })
+  ).current;
 
   // Hamburger icon animated bars → X
   const topBarStyle = useAnimatedStyle(() => ({
@@ -165,6 +209,7 @@ export function HamburgerMenu({
   const handleItemPress = useCallback(
     (item: MenuItem) => {
       if (item.disabled) return;
+      haptics.selection();
       onToggle(false);
       // Delay action until drawer close animation starts
       setTimeout(() => item.onPress?.(), 100);
@@ -211,7 +256,7 @@ export function HamburgerMenu({
   /* ── Drawer Overlay ── */
   const drawer = (
     <Modal
-      visible={open}
+      visible={modalVisible}
       transparent
       animationType="none"
       statusBarTranslucent
@@ -230,6 +275,7 @@ export function HamburgerMenu({
 
       {/* Drawer panel */}
       <Animated.View
+        {...panResponder.panHandlers}
         style={[
           styles.drawer,
           {

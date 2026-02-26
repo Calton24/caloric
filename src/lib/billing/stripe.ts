@@ -9,6 +9,7 @@
  */
 
 import type { StripeConfig } from "../../config/types";
+import { logger } from "../../logging/logger";
 import { getSupabaseClient } from "../supabase";
 import type { BillingProvider, Entitlement, SubscriptionTier } from "./types";
 
@@ -37,7 +38,7 @@ export class StripeProvider implements BillingProvider {
 
   async initialize(): Promise<void> {
     if (this.initialized) {
-      console.log("[Stripe] Already initialized");
+      logger.log("[Stripe] Already initialized");
       return;
     }
 
@@ -52,14 +53,14 @@ export class StripeProvider implements BillingProvider {
       }
 
       this.userId = user.id;
-      console.log("[Stripe] Initialized for user:", user.id);
+      logger.log("[Stripe] Initialized for user:", user.id);
 
       // Set up real-time listener for subscription changes
       this.setupSubscriptionListener();
 
       this.initialized = true;
     } catch (error) {
-      console.error("[Stripe] Initialization failed:", error);
+      logger.error("[Stripe] Initialization failed:", error);
       throw error;
     }
   }
@@ -127,7 +128,7 @@ export class StripeProvider implements BillingProvider {
         productId: data.stripe_price_id,
       };
     } catch (error) {
-      console.error("[Stripe] Failed to get entitlements:", error);
+      logger.error("[Stripe] Failed to get entitlements:", error);
       throw error;
     }
   }
@@ -170,7 +171,7 @@ export class StripeProvider implements BillingProvider {
         );
       }
 
-      console.log("[Stripe] Creating checkout session for price:", priceId);
+      logger.log("[Stripe] Creating checkout session for price:", priceId);
 
       // Create checkout session via Supabase Edge Function
       // Webhooks are handled by Supabase (mobile apps cannot be webhook endpoints)
@@ -191,12 +192,12 @@ export class StripeProvider implements BillingProvider {
 
       // Open checkout URL
       const checkoutUrl = data.url;
-      console.log("[Stripe] Checkout URL:", checkoutUrl);
+      logger.log("[Stripe] Checkout URL:", checkoutUrl);
 
       // TODO: Open checkout URL in browser
       // await openBrowserAsync(checkoutUrl);
     } catch (error) {
-      console.error("[Stripe] Failed to present paywall:", error);
+      logger.error("[Stripe] Failed to present paywall:", error);
       throw error;
     }
   }
@@ -211,7 +212,7 @@ export class StripeProvider implements BillingProvider {
     }
 
     try {
-      console.log("[Stripe] Syncing subscription status...");
+      logger.log("[Stripe] Syncing subscription status...");
 
       // Fetch latest entitlements from database
       // Stripe webhook already updated database
@@ -220,9 +221,9 @@ export class StripeProvider implements BillingProvider {
       // Notify listeners
       this.entitlementCallbacks.forEach((callback) => callback(entitlement));
 
-      console.log("[Stripe] Subscription synced");
+      logger.log("[Stripe] Subscription synced");
     } catch (error) {
-      console.error("[Stripe] Failed to restore purchases:", error);
+      logger.error("[Stripe] Failed to restore purchases:", error);
       throw error;
     }
   }
@@ -250,7 +251,7 @@ export class StripeProvider implements BillingProvider {
           filter: `user_id=eq.${this.userId}`,
         },
         async (payload) => {
-          console.log("[Stripe] Subscription changed:", payload);
+          logger.log("[Stripe] Subscription changed:", payload);
 
           // Fetch updated entitlements
           const entitlement = await this.getEntitlements();

@@ -9,6 +9,8 @@ module.exports = defineConfig([
       'dist/*',
       // Supabase Edge Functions use Deno, not Node - ESLint can't resolve their imports
       'supabase/functions/**/*',
+      // Scripts folder contains CommonJS node scripts
+      'scripts/*',
     ],
   },
   {

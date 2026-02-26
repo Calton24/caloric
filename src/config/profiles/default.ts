@@ -11,8 +11,7 @@ export const defaultConfig: AppProfileConfig = {
       process.env.EXPO_PUBLIC_SUPABASE_URL ||
       "https://your-mobile-core-project.supabase.co",
     anonKey:
-      process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", // Replace with actual anon key
+      process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "YOUR_SUPABASE_ANON_KEY", // Replace with actual anon key from Supabase dashboard
   },
 
   firebase: {
@@ -60,11 +59,18 @@ export const defaultConfig: AppProfileConfig = {
     habit: true,
     analytics: true,
     growth: false,
+    haptics: true,
     notifications: true,
     firebaseAnalytics: false, // Firebase not installed in mobile-core
     crashReporting: false, // Firebase not installed in mobile-core
     performanceMonitoring: false, // Firebase not installed in mobile-core
     billing: true, // Enable billing system (includes paywall UI)
+    i18n: true,
+    presence: true,
+    activityMonitor: true,
+    liveActivity: true,
+    maintenance: true,
+    allowUnsafeClientWrites: false, // SECURITY: Use Edge Function for growth ingestion
   },
 
   app: {
@@ -115,7 +121,7 @@ export const defaultConfig: AppProfileConfig = {
     staging: {
       supabase: {
         url: "https://your-mobile-core-staging-project.supabase.co",
-        anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", // Staging anon key
+        anonKey: "YOUR_STAGING_ANON_KEY", // Replace with staging anon key
       },
       app: {
         name: "Mobile Core Staging",

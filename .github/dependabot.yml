@@ -1,0 +1,75 @@
+version: 2
+updates:
+  # npm dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "security"
+    # Group minor/patch updates to reduce PR noise
+    groups:
+      expo-ecosystem:
+        patterns:
+          - "expo"
+          - "expo-*"
+          - "@expo/*"
+        update-types:
+          - "minor"
+          - "patch"
+      react-native:
+        patterns:
+          - "react-native"
+          - "react-native-*"
+          - "@react-native/*"
+          - "@react-native-community/*"
+        update-types:
+          - "minor"
+          - "patch"
+      supabase:
+        patterns:
+          - "@supabase/*"
+        update-types:
+          - "minor"
+          - "patch"
+      testing:
+        patterns:
+          - "jest"
+          - "@types/jest"
+          - "detox"
+          - "@testing-library/*"
+        update-types:
+          - "minor"
+          - "patch"
+    # Sensitive packages require manual review (auth, billing, storage, crypto)
+    # These are NEVER grouped — each gets its own PR for careful review
+    ignore:
+      # Don't group these — they need individual review
+      - dependency-name: "@supabase/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "expo-secure-store"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@stripe/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@superwall/*"
+        update-types: ["version-update:semver-major"]
+    # Security updates should bypass grouping
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps(dev)"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "ci"
+    open-pull-requests-limit: 5

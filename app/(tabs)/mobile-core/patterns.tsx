@@ -5,10 +5,9 @@
  * ReviewSheet.
  */
 
-import { useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { useTheme } from "../../../src/theme/useTheme";
 import { Carousel } from "../../../src/ui/components/Carousel";
 import { HamburgerMenu } from "../../../src/ui/components/HamburgerMenu";
 import { useReviewSheet } from "../../../src/ui/components/ReviewModal";
@@ -33,7 +32,6 @@ import { TSpacer } from "../../../src/ui/primitives/TSpacer";
 import { TText } from "../../../src/ui/primitives/TText";
 
 export default function PatternsScreen() {
-  const { theme } = useTheme();
   const router = useRouter();
   const toast = useToast();
   const openReview = useReviewSheet({
@@ -49,6 +47,9 @@ export default function PatternsScreen() {
   const [notifEnabled, setNotifEnabled] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [faceIdEnabled, setFaceIdEnabled] = useState(true);
+
+  // DEV-only gate — all hooks must be called before this
+  if (!__DEV__) return <Redirect href="/(tabs)/mobile-core" />;
 
   return (
     <ScreenShell

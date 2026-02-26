@@ -17,6 +17,7 @@ import Animated, {
     useSharedValue,
     withTiming,
 } from "react-native-reanimated";
+import { haptics } from "../../infrastructure/haptics";
 import { useTheme } from "../../theme/useTheme";
 
 export interface SliderProps {
@@ -75,6 +76,12 @@ export function Slider({
     error: theme.colors.error,
   }[tone];
 
+  const lastSnapped = useSharedValue(value);
+
+  const fireHaptic = useCallback(() => {
+    haptics.selection();
+  }, []);
+
   const emitChange = useCallback(
     (v: number) => {
       onChange(v);
@@ -101,6 +108,10 @@ export function Slider({
       );
       const snapped = snap(raw, step);
       thumbX.value = snapped * trackWidth.value;
+      if (snapped !== lastSnapped.value) {
+        lastSnapped.value = snapped;
+        runOnJS(fireHaptic)();
+      }
       runOnJS(emitChange)(snapped);
     })
     .onEnd(() => {

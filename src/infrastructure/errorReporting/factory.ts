@@ -4,6 +4,8 @@
  */
 
 import Constants from "expo-constants";
+import { getAppConfig } from "../../config";
+import { logger } from "../../logging/logger";
 import { NoopErrorReporter } from "./NoopErrorReporter";
 import { SentryErrorReporter } from "./SentryErrorReporter";
 import { ErrorReporter, ErrorReporterConfig } from "./types";
@@ -17,17 +19,39 @@ let reporterInstance: ErrorReporter | null = null;
  */
 export function initErrorReporting(): ErrorReporter {
   if (reporterInstance) {
-    console.warn(
-      "[ErrorReporting] Already initialized, returning existing instance"
-    );
     return reporterInstance;
   }
 
-  // Get configuration from environment
+  // Get configuration
+  const config = getAppConfig();
+  const isDev = __DEV__;
+
+  // Check if crash reporting is enabled in config
+  if (!config.features.crashReporting) {
+    logger.log("[ErrorReporting] mode=disabled_by_config");
+    reporterInstance = new NoopErrorReporter();
+    return reporterInstance;
+  }
+
+  // Get Sentry DSN from environment
   const sentryDsn =
     Constants.expoConfig?.extra?.sentryDsn ||
     process.env.EXPO_PUBLIC_SENTRY_DSN;
 
+  if (!sentryDsn) {
+    logger.log("[ErrorReporting] mode=enabled_missing_dsn");
+    reporterInstance = new NoopErrorReporter();
+    return reporterInstance;
+  }
+
+  // Check if Sentry SDK is available
+  if (!SentryErrorReporter.isSdkAvailable()) {
+    logger.log("[ErrorReporting] mode=sdk_missing_fallback_noop");
+    reporterInstance = new NoopErrorReporter();
+    return reporterInstance;
+  }
+
+  // Initialize Sentry
   const enableInDev =
     Constants.expoConfig?.extra?.enableSentryInDev ||
     process.env.EXPO_PUBLIC_ENABLE_SENTRY_IN_DEV === "true";
@@ -35,25 +59,18 @@ export function initErrorReporting(): ErrorReporter {
   const environment =
     Constants.expoConfig?.extra?.environment ||
     process.env.EXPO_PUBLIC_APP_ENV ||
-    (__DEV__ ? "development" : "production");
+    (isDev ? "development" : "production");
 
-  // Decide which reporter to use
-  if (sentryDsn) {
-    const config: ErrorReporterConfig = {
-      dsn: sentryDsn,
-      environment,
-      enableInDevelopment: enableInDev,
-      debug: __DEV__,
-    };
+  const sentryConfig: ErrorReporterConfig = {
+    dsn: sentryDsn,
+    environment,
+    enableInDevelopment: enableInDev,
+    debug: isDev,
+  };
 
-    reporterInstance = new SentryErrorReporter();
-    reporterInstance.init(config);
-  } else {
-    console.log(
-      "[ErrorReporting] No SENTRY_DSN configured - error reporting disabled"
-    );
-    reporterInstance = new NoopErrorReporter();
-  }
+  reporterInstance = new SentryErrorReporter();
+  reporterInstance.init(sentryConfig);
+  logger.log("[ErrorReporting] mode=sentry_initialized");
 
   return reporterInstance;
 }
@@ -64,7 +81,7 @@ export function initErrorReporting(): ErrorReporter {
  */
 export function getErrorReporter(): ErrorReporter {
   if (!reporterInstance) {
-    console.warn(
+    logger.warn(
       "[ErrorReporting] Not initialized, returning no-op reporter. Call initErrorReporting() first."
     );
     return new NoopErrorReporter();

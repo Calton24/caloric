@@ -3,6 +3,7 @@
  * Creates the appropriate billing provider based on active config
  */
 
+import { logger } from "../../logging/logger";
 import { getActiveConfig } from "../config";
 import { StripeProvider } from "./stripe";
 import { SuperwallProvider } from "./superwall";
@@ -31,7 +32,7 @@ export function getBillingProvider(): BillingProvider {
   // Check if billing is enabled via feature flag
   const billingEnabled = config.features.billing;
   if (!billingEnabled) {
-    console.log("[Billing] Billing disabled via feature flag");
+    logger.log("[Billing] Billing disabled via feature flag");
     cachedProvider = new NoBillingProvider();
     return cachedProvider;
   }
@@ -51,7 +52,7 @@ export function getBillingProvider(): BillingProvider {
       );
     }
 
-    console.warn(
+    logger.warn(
       "[Billing] Billing enabled but no billing config found, using no-op provider"
     );
     cachedProvider = new NoBillingProvider();
@@ -61,7 +62,7 @@ export function getBillingProvider(): BillingProvider {
   // Create provider based on config
   switch (config.billing.provider) {
     case "superwall":
-      console.log("[Billing] Using Superwall provider");
+      logger.log("[Billing] Using Superwall provider");
       if (!config.billing.superwall) {
         throw new Error(
           "[Billing] Superwall provider selected but no superwall config found"
@@ -71,7 +72,7 @@ export function getBillingProvider(): BillingProvider {
       break;
 
     case "stripe":
-      console.log("[Billing] Using Stripe provider");
+      logger.log("[Billing] Using Stripe provider");
       if (!config.billing.stripe) {
         throw new Error(
           "[Billing] Stripe provider selected but no stripe config found"
@@ -81,7 +82,7 @@ export function getBillingProvider(): BillingProvider {
       break;
 
     default:
-      console.error(
+      logger.error(
         "[Billing] Unknown provider:",
         (config.billing as any).provider
       );
@@ -106,9 +107,9 @@ export async function initializeBilling(): Promise<void> {
   try {
     const provider = getBillingProvider();
     await provider.initialize();
-    console.log(`[Billing] ${provider.getProviderName()} initialized`);
+    logger.log(`[Billing] ${provider.getProviderName()} initialized`);
   } catch (error) {
-    console.error("[Billing] Initialization failed:", error);
+    logger.error("[Billing] Initialization failed:", error);
     throw error;
   }
 }

@@ -62,3 +62,8 @@ export const logger = {
     }
   },
 };
+/**
+ * Re-export redaction utilities for use throughout the app
+ */
+export { redactObjectSensitiveFields, redactSensitive } from "./redactor";
+

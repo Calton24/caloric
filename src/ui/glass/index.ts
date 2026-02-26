@@ -24,4 +24,6 @@ export { GlassTogglePill } from "./GlassTogglePill";
 // Search
 export { GlassSearch } from "./GlassSearch";
 export type { GlassSearchProps } from "./GlassSearch";
+export { GlassSearchMinimal } from "./GlassSearchMinimal";
+export type { GlassSearchMinimalProps } from "./GlassSearchMinimal";
 

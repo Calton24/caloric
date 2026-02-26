@@ -56,7 +56,9 @@ describe("growth factory gating", () => {
     const {
       initGrowth: initAgain,
       resetGrowth: resetAgain,
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
     } = require("./factory");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { NoopGrowthClient: Noop } = require("./providers/NoopGrowthClient");
 
     resetAgain();

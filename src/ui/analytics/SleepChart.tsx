@@ -84,7 +84,6 @@ function SleepBar({
   index: number;
 }) {
   const { theme } = useTheme();
-  const total = deep + light + rem + awake;
   const scale = useSharedValue(0);
 
   useEffect(() => {
@@ -92,6 +91,8 @@ function SleepBar({
       index * 80,
       withTiming(1, { duration: 600, easing: Easing.out(Easing.cubic) })
     );
+    // One-time mount animation; scale is a stable ref
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const barAnimStyle = useAnimatedStyle(() => ({

@@ -1,10 +1,10 @@
 /**
  * Error Reporting - Sentry Implementation
- * Only imports Sentry SDK - isolated from rest of app
+ * Uses dynamic require to avoid bundler crashes when @sentry/react-native is not installed
  */
 
-import * as Sentry from "@sentry/react-native";
 import { Platform } from "react-native";
+import { logger } from "../../logging/logger";
 import {
     Breadcrumb,
     ErrorContext,
@@ -15,15 +15,36 @@ import {
 } from "./types";
 
 /**
+ * Dynamically load Sentry SDK
+ * Returns null if SDK is not installed (e.g., in forks that don't need Sentry)
+ */
+let Sentry: any = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  Sentry = require("@sentry/react-native");
+} catch {
+  // SDK not installed - this is fine, we'll behave like Noop
+  Sentry = null;
+}
+
+/**
  * Sentry-based error reporter
- * Only this file imports @sentry/react-native
+ * Gracefully degrades to noop if SDK is not installed
  */
 export class SentryErrorReporter implements ErrorReporter {
   private enabled = false;
 
   init(config: ErrorReporterConfig): void {
+    // Check if Sentry SDK is available
+    if (!Sentry) {
+      logger.warn(
+        "[SentryErrorReporter] @sentry/react-native not installed - error reporting disabled"
+      );
+      return;
+    }
+
     if (!config.dsn) {
-      console.warn(
+      logger.warn(
         "[SentryErrorReporter] No DSN provided - error reporting disabled"
       );
       return;
@@ -34,7 +55,7 @@ export class SentryErrorReporter implements ErrorReporter {
     const enableInDev = config.enableInDevelopment ?? false;
 
     if (isDev && !enableInDev) {
-      console.log(
+      logger.log(
         "[SentryErrorReporter] Disabled in development (set EXPO_PUBLIC_ENABLE_SENTRY_IN_DEV=true to enable)"
       );
       return;
@@ -62,7 +83,7 @@ export class SentryErrorReporter implements ErrorReporter {
           }),
         ],
         beforeSend: config.beforeSend
-          ? (event, hint) => {
+          ? (event: any, hint: any) => {
               // Call custom filter with error object
               const error = hint.originalException as Error;
               const shouldSend = config.beforeSend!(error, event.contexts);
@@ -76,11 +97,11 @@ export class SentryErrorReporter implements ErrorReporter {
       Sentry.setTag("platform.version", Platform.Version.toString());
 
       this.enabled = true;
-      console.log(
+      logger.log(
         `[SentryErrorReporter] Initialized (env: ${config.environment || "production"})`
       );
     } catch (error) {
-      console.error("[SentryErrorReporter] Initialization failed:", error);
+      logger.error("[SentryErrorReporter] Initialization failed:", error);
     }
   }
 
@@ -92,7 +113,7 @@ export class SentryErrorReporter implements ErrorReporter {
         contexts: context,
       });
     } catch (err) {
-      console.error("[SentryErrorReporter] Failed to capture exception:", err);
+      logger.error("[SentryErrorReporter] Failed to capture exception:", err);
     }
   }
 
@@ -105,11 +126,11 @@ export class SentryErrorReporter implements ErrorReporter {
 
     try {
       Sentry.captureMessage(message, {
-        level: level as Sentry.SeverityLevel,
+        level: level as any, // Sentry.SeverityLevel (SDK is dynamically loaded)
         contexts: context,
       });
     } catch (err) {
-      console.error("[SentryErrorReporter] Failed to capture message:", err);
+      logger.error("[SentryErrorReporter] Failed to capture message:", err);
     }
   }
 
@@ -119,7 +140,7 @@ export class SentryErrorReporter implements ErrorReporter {
     try {
       Sentry.setUser(user);
     } catch (err) {
-      console.error("[SentryErrorReporter] Failed to set user:", err);
+      logger.error("[SentryErrorReporter] Failed to set user:", err);
     }
   }
 
@@ -129,7 +150,7 @@ export class SentryErrorReporter implements ErrorReporter {
     try {
       Sentry.setTag(key, value);
     } catch (err) {
-      console.error("[SentryErrorReporter] Failed to set tag:", err);
+      logger.error("[SentryErrorReporter] Failed to set tag:", err);
     }
   }
 
@@ -140,16 +161,24 @@ export class SentryErrorReporter implements ErrorReporter {
       Sentry.addBreadcrumb({
         message: breadcrumb.message,
         category: breadcrumb.category,
-        level: breadcrumb.level as Sentry.SeverityLevel,
+        level: breadcrumb.level as any, // Sentry.SeverityLevel (SDK is dynamically loaded)
         data: breadcrumb.data,
         timestamp: breadcrumb.timestamp,
       });
     } catch (err) {
-      console.error("[SentryErrorReporter] Failed to add breadcrumb:", err);
+      logger.error("[SentryErrorReporter] Failed to add breadcrumb:", err);
     }
   }
 
   isEnabled(): boolean {
     return this.enabled;
+  }
+
+  /**
+   * Check if Sentry SDK is available
+   * @returns true if @sentry/react-native is installed
+   */
+  static isSdkAvailable(): boolean {
+    return Sentry !== null;
   }
 }

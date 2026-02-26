@@ -1,0 +1,65 @@
+name: Dependabot Auto-Merge
+
+on: pull_request
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  dependabot-auto-merge:
+    name: Auto-merge safe Dependabot PRs
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Check if safe to auto-merge
+        id: check
+        run: |
+          # Only auto-merge patch updates
+          if [ "${{ steps.metadata.outputs.update-type }}" != "version-update:semver-patch" ]; then
+            echo "Not a patch update, requires manual review"
+            echo "safe=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Never auto-merge sensitive packages
+          SENSITIVE_PACKAGES="@supabase|expo-secure-store|@stripe|superwall|react-native-keychain"
+          if echo "${{ steps.metadata.outputs.dependency-names }}" | grep -qE "$SENSITIVE_PACKAGES"; then
+            echo "Sensitive package, requires manual review"
+            echo "safe=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "Safe to auto-merge"
+          echo "safe=true" >> $GITHUB_OUTPUT
+
+      - name: Wait for CI to pass
+        if: steps.check.outputs.safe == 'true'
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          check-name: "All Checks Passed ✅"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 30
+
+      - name: Enable auto-merge
+        if: steps.check.outputs.safe == 'true'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add label for manual review
+        if: steps.check.outputs.safe == 'false'
+        run: |
+          gh pr edit "$PR_URL" --add-label "needs-review"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

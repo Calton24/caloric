@@ -1,0 +1,31 @@
+# CODEOWNERS - Security-sensitive areas require explicit review
+#
+# These paths require approval from designated owners before merge.
+# See docs/BRANCH-PROTECTION.md for full configuration.
+
+# Security-critical infrastructure
+/src/features/auth/             @Calton24
+/src/lib/billing/               @Calton24
+/src/lib/supabase/              @Calton24
+/src/lib/firebase/              @Calton24
+/src/lib/remote-config/         @Calton24
+/src/infrastructure/security/   @Calton24
+/src/infrastructure/storage/    @Calton24
+/src/infrastructure/errorReporting/ @Calton24
+
+# Security configuration and gates
+/scripts/security-audit.js      @Calton24
+/.github/workflows/             @Calton24
+/.github/dependabot.yml         @Calton24
+
+# Configuration profiles (can affect security defaults)
+/src/config/profiles/           @Calton24
+/src/config/types.ts            @Calton24
+/app.config.ts                  @Calton24
+/.env*                          @Calton24
+
+# Edge Functions (server-side trust boundary)
+/supabase/functions/            @Calton24
+
+# Default owner for everything else
+*                               @Calton24

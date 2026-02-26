@@ -67,6 +67,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ios: {
       supportsTablet: true,
       bundleIdentifier: appConfig.bundleIdentifier,
+      infoPlist: {
+        NSMotionUsageDescription:
+          "This app uses the pedometer to track your steps, distance, and floors climbed for the Live Activity.",
+      },
     },
 
     android: {
@@ -96,13 +100,17 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         },
       ],
       [
-        "@sentry/react-native/expo",
+        "expo-notifications",
         {
-          organization: process.env.SENTRY_ORG,
-          project: process.env.SENTRY_PROJECT,
-          url: "https://sentry.io/",
+          icon: "./assets/images/icon.png",
+          color: "#ffffff",
         },
       ],
+      // expo-widgets config plugin will be added here once the package
+      // ships a stable plugin. Until then the factory falls back to Noop.
+      // See: src/infrastructure/liveActivity/factory.ts
+      "./plugins/withLiveActivity",
+      "expo-secure-store",
     ],
 
     experiments: {

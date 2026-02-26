@@ -13,9 +13,8 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
-    Dimensions,
     FlatList,
     Image,
     Modal,
@@ -73,7 +72,6 @@ export interface StoriesProps {
 
 /* ── Constants ─────────────────────────────────────── */
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 const DEFAULT_DURATION = 5000;
 
 /* ── Avatar Circle ─────────────────────────────────── */
@@ -144,7 +142,6 @@ function ProgressBar({
   paused: boolean;
   onFinish: () => void;
 }) {
-  const { theme } = useTheme();
   const progress = useSharedValue(completed ? 1 : 0);
 
   useEffect(() => {
@@ -207,7 +204,6 @@ function StoryViewer({
   const { theme } = useTheme();
   const [storyIndex, setStoryIndex] = useState(0);
   const [paused, setPaused] = useState(false);
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Reset index when user changes
   useEffect(() => {

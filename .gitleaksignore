@@ -1,0 +1,14 @@
+# gitleaks ignore file
+# These are truncated placeholder JWT strings from config profile templates.
+# They are NOT real secrets — they end with "..." and have empty payloads.
+# Fixed in working tree by replacing with non-JWT placeholders.
+
+de66d54d5fbe728259abf21a492fbc2c6049c50f:src/config/profiles/default.ts:generic-api-key:11
+de66d54d5fbe728259abf21a492fbc2c6049c50f:src/config/profiles/default.ts:generic-api-key:79
+de66d54d5fbe728259abf21a492fbc2c6049c50f:src/config/profiles/default.ts:generic-api-key:115
+b4138ac7d0abf16306b5d6a5f6d54b3bb84412d3:src/config/profiles/intake.ts:generic-api-key:12
+b4138ac7d0abf16306b5d6a5f6d54b3bb84412d3:src/config/profiles/intake.ts:generic-api-key:64
+b4138ac7d0abf16306b5d6a5f6d54b3bb84412d3:src/config/profiles/intake.ts:generic-api-key:101
+b4138ac7d0abf16306b5d6a5f6d54b3bb84412d3:src/config/profiles/proxi.ts:generic-api-key:12
+b4138ac7d0abf16306b5d6a5f6d54b3bb84412d3:src/config/profiles/proxi.ts:generic-api-key:64
+b4138ac7d0abf16306b5d6a5f6d54b3bb84412d3:src/config/profiles/proxi.ts:generic-api-key:100

@@ -67,5 +67,132 @@ export type {
     User
 } from "./features/auth/authClient";
 
+// === NOTIFICATIONS ===
+export {
+    NoopNotificationsClient,
+    initNotifications,
+    notifications,
+    resetNotifications
+} from "./infrastructure/notifications";
+export type {
+    NotificationsClient,
+    PermissionStatus,
+    ScheduleLocalOpts,
+    SendTestRemoteOpts
+} from "./infrastructure/notifications";
+
+// === I18N ===
+export {
+    LANGUAGE_LABELS,
+    SUPPORTED_LANGUAGES,
+    clearPersistedLanguage,
+    formatCurrency,
+    formatDate,
+    formatNumber,
+    initI18n,
+    useAppTranslation
+} from "./infrastructure/i18n";
+export type { SupportedLanguage } from "./infrastructure/i18n";
+
+// === PRESENCE ===
+export {
+    NoopPresenceClient,
+    initPresence,
+    presence,
+    resetPresence
+} from "./infrastructure/presence";
+export type {
+    AppLifecycleState,
+    PresenceChangeCallback,
+    PresenceClient,
+    Unsubscribe as PresenceUnsubscribe
+} from "./infrastructure/presence";
+
+// === ACTIVITY MONITOR ===
+export {
+    InAppActivityMonitorClient,
+    NoopActivityMonitorClient,
+    activityMonitor,
+    activityStore,
+    initActivityMonitor,
+    resetActivityMonitor
+} from "./infrastructure/activityMonitor";
+export type {
+    EndResult as ActivityEndResult,
+    ActivityMonitorClient,
+    ActivityPayload,
+    StartResult as ActivityStartResult,
+    ActivityState,
+    UpdateResult as ActivityUpdateResult,
+    EtaPayload,
+    ProgressPayload,
+    StepsPayload,
+    TimerPayload
+} from "./infrastructure/activityMonitor";
+
+// === LIVE ACTIVITY (Native ActivityKit + expo-widgets fallback) ===
+export {
+    ExpoWidgetsLiveActivityClient,
+    NativeLiveActivityClient,
+    NoopLiveActivityClient,
+    initLiveActivity,
+    liveActivity,
+    resetLiveActivity
+} from "./infrastructure/liveActivity";
+export type {
+    LAEndResult,
+    LAStartResult,
+    LAUpdateResult,
+    LiveActivityClient,
+    LiveActivityProps
+} from "./infrastructure/liveActivity";
+
+// === MAINTENANCE / DEGRADED-MODE ===
+export {
+    DEFAULT_MAINTENANCE_STATE,
+    IMPLICIT_SUPABASE_BLOCKS,
+    MAINTENANCE_CACHE_KEY,
+    MAINTENANCE_OVERRIDE_KEY,
+    MaintenanceGate,
+    NoopMaintenanceClient,
+    PostHogMaintenanceClient,
+    RemoteJsonMaintenanceClient,
+    SupabaseHealthMonitor,
+    VALID_MODES,
+    VALID_REASONS,
+    getHealthMonitor,
+    initMaintenance,
+    maintenance,
+    resetMaintenance,
+    useMaintenanceState
+} from "./infrastructure/maintenance";
+export type {
+    MaintenanceClient,
+    MaintenanceMode,
+    MaintenanceReason,
+    MaintenanceState
+} from "./infrastructure/maintenance";
+
+// === SECURITY TELEMETRY ===
+export {
+    isServiceRoleJWT,
+    recordAdminBypassAttempt,
+    recordAuthFailure,
+    recordEventSpam,
+    recordRateLimitHit,
+    recordSecurityEvent,
+    reportServiceRoleAttempt
+} from "./infrastructure/security";
+export type {
+    SecurityEvent,
+    SecurityEventType
+} from "./infrastructure/security";
+
 // === DEV UTILITIES ===
+export { ActivityDebugPanel } from "./ui/dev/ActivityDebugPanel";
 export { DevOnly } from "./ui/dev/DevOnly";
+export { LiveActivityDebugPanel } from "./ui/dev/LiveActivityDebugPanel";
+export { MaintenanceDebugPanel } from "./ui/dev/MaintenanceDebugPanel";
+export { PresenceDebugPanel } from "./ui/dev/PresenceDebugPanel";
+export { PushDebugPanel } from "./ui/dev/PushDebugPanel";
+

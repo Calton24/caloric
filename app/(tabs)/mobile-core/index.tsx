@@ -6,7 +6,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Animated, {
     useAnimatedStyle,
     useSharedValue,
@@ -37,6 +37,60 @@ const GROWTH_ENTRY: CatalogEntry = {
   subtitle: "Feature request sheet + milestone tracking",
   icon: "rocket-outline",
   count: 1,
+};
+
+const PUSH_ENTRY: CatalogEntry = {
+  key: "push",
+  route: "/(tabs)/mobile-core/push",
+  title: "Push Notifications",
+  subtitle: "Permissions, token, local test, badge clear",
+  icon: "notifications-outline",
+  count: 4,
+};
+
+const I18N_ENTRY: CatalogEntry = {
+  key: "i18n",
+  route: "/(tabs)/mobile-core/i18n",
+  title: "Internationalisation",
+  subtitle: "Language switching, translations, formatting",
+  icon: "language-outline",
+  count: 6,
+};
+
+const PRESENCE_ENTRY: CatalogEntry = {
+  key: "presence",
+  route: "/(tabs)/mobile-core/presence",
+  title: "Presence / Lifecycle",
+  subtitle: "AppState lifecycle detection, transition log",
+  icon: "pulse-outline",
+  count: 2,
+};
+
+const ACTIVITY_ENTRY: CatalogEntry = {
+  key: "activity",
+  route: "/(tabs)/mobile-core/activity",
+  title: "Activity Monitor",
+  subtitle: "In-app activities: steps, ETA, timer, progress",
+  icon: "fitness-outline",
+  count: 4,
+};
+
+const LIVE_ACTIVITY_ENTRY: CatalogEntry = {
+  key: "live-activity",
+  route: "/(tabs)/mobile-core/live-activity",
+  title: "Live Activities",
+  subtitle: "expo-widgets: start, update, end Live Activities (iOS)",
+  icon: "flash-outline",
+  count: 3,
+};
+
+const MAINTENANCE_ENTRY: CatalogEntry = {
+  key: "maintenance",
+  route: "/(tabs)/mobile-core/maintenance",
+  title: "Maintenance",
+  subtitle: "Degraded-mode states, overrides, outage monitor",
+  icon: "construct-outline",
+  count: 6,
 };
 
 const CATALOG: CatalogEntry[] = [
@@ -76,7 +130,17 @@ const CATALOG: CatalogEntry[] = [
     icon: "bar-chart-outline",
     count: 6,
   },
-  ...(__DEV__ ? [GROWTH_ENTRY] : []),
+  ...(__DEV__
+    ? [
+        GROWTH_ENTRY,
+        PUSH_ENTRY,
+        I18N_ENTRY,
+        PRESENCE_ENTRY,
+        ACTIVITY_ENTRY,
+        LIVE_ACTIVITY_ENTRY,
+        MAINTENANCE_ENTRY,
+      ]
+    : []),
 ];
 
 export default function MobileCoreMenu() {
@@ -119,62 +183,70 @@ export default function MobileCoreMenu() {
       <TSpacer size="lg" />
 
       {/* Catalog cards */}
-      {CATALOG.map((entry) => (
-        <Pressable
-          key={entry.key}
-          onPress={() => router.push(entry.route as never)}
-          style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
-        >
-          <GlassCard
-            padding="md"
-            style={[
-              styles.card,
-              { borderColor: theme.colors.borderSecondary, borderWidth: 1 },
-            ]}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {CATALOG.map((entry) => (
+          <Pressable
+            key={entry.key}
+            onPress={() => router.push(entry.route as never)}
+            style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
           >
-            <View style={styles.cardRow}>
-              <View
-                style={[
-                  styles.iconBox,
-                  { backgroundColor: theme.colors.primary + "15" },
-                ]}
-              >
-                <Ionicons
-                  name={entry.icon}
-                  size={24}
-                  color={theme.colors.primary}
-                />
-              </View>
-              <View style={styles.cardText}>
-                <TText style={styles.cardTitle}>{entry.title}</TText>
-                <TText color="muted" style={styles.cardSub}>
-                  {entry.subtitle}
-                </TText>
-              </View>
-              <View style={styles.countChevron}>
+            <GlassCard
+              padding="md"
+              style={[
+                styles.card,
+                { borderColor: theme.colors.borderSecondary, borderWidth: 1 },
+              ]}
+            >
+              <View style={styles.cardRow}>
                 <View
                   style={[
-                    styles.countBadge,
-                    { backgroundColor: theme.colors.primary + "18" },
+                    styles.iconBox,
+                    { backgroundColor: theme.colors.primary + "15" },
                   ]}
                 >
-                  <TText
-                    style={[styles.countText, { color: theme.colors.primary }]}
-                  >
-                    {entry.count}
+                  <Ionicons
+                    name={entry.icon}
+                    size={24}
+                    color={theme.colors.primary}
+                  />
+                </View>
+                <View style={styles.cardText}>
+                  <TText style={styles.cardTitle}>{entry.title}</TText>
+                  <TText color="muted" style={styles.cardSub}>
+                    {entry.subtitle}
                   </TText>
                 </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={18}
-                  color={theme.colors.textMuted}
-                />
+                <View style={styles.countChevron}>
+                  <View
+                    style={[
+                      styles.countBadge,
+                      { backgroundColor: theme.colors.primary + "18" },
+                    ]}
+                  >
+                    <TText
+                      style={[
+                        styles.countText,
+                        { color: theme.colors.primary },
+                      ]}
+                    >
+                      {entry.count}
+                    </TText>
+                  </View>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={theme.colors.textMuted}
+                  />
+                </View>
               </View>
-            </View>
-          </GlassCard>
-          <TSpacer size="sm" />
-        </Pressable>
-      ))}
+            </GlassCard>
+            <TSpacer size="sm" />
+          </Pressable>
+        ))}
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -183,6 +255,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 16,
+  },
+  scrollContent: {
+    paddingBottom: 120,
   },
   header: {
     flexDirection: "row",

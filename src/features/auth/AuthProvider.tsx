@@ -14,6 +14,20 @@ import {
     User,
 } from "./authClient";
 
+/**
+ * Hash an email to a non-reversible identifier for analytics.
+ * Uses a simple DJB2 hash — NOT crypto-grade, but sufficient to
+ * avoid sending raw PII to third-party analytics.
+ */
+function hashEmail(email: string | undefined): string | undefined {
+  if (!email) return undefined;
+  let hash = 5381;
+  for (let i = 0; i < email.length; i++) {
+    hash = ((hash << 5) + hash + email.charCodeAt(i)) | 0;
+  }
+  return `hashed_${(hash >>> 0).toString(36)}`;
+}
+
 export interface AuthContextValue {
   user: User | null;
   session: Session | null;
@@ -47,7 +61,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setSession(initialSession);
         setUser(initialSession.user);
         analytics.identify(initialSession.user.id, {
-          email: initialSession.user.email,
+          email_hash: hashEmail(initialSession.user.email),
         });
         growth.setUser({ userId: initialSession.user.id });
       }
@@ -66,7 +80,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (newSession?.user) {
         // New authenticated session — identify
         analytics.identify(newSession.user.id, {
-          email: newSession.user.email,
+          email_hash: hashEmail(newSession.user.email),
         });
         growth.setUser({ userId: newSession.user.id });
       } else if (prevUser && !newSession?.user) {
@@ -77,6 +91,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     });
 
     return unsubscribe;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {

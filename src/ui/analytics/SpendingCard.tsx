@@ -22,7 +22,7 @@ import Svg, {
     LinearGradient,
     Path,
     Stop,
-    Text as SvgText
+    Text as SvgText,
 } from "react-native-svg";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
@@ -91,6 +91,8 @@ export function SpendingCard({
       d += ` L ${toX(i)} ${toY(data[i])}`;
     }
     return d;
+    // toX/toY depend on maxVal/plotW/plotH which are already captured
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, maxVal, plotW, plotH]);
 
   // Build area fill path (actual data)
@@ -103,6 +105,8 @@ export function SpendingCard({
     }
     d += ` L ${toX(data.length - 1)} ${baseline} Z`;
     return d;
+    // toX/toY depend on maxVal/plotW/plotH which are already captured
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, maxVal, plotW, plotH]);
 
   // Build projected path (dashed)
@@ -114,6 +118,8 @@ export function SpendingCard({
       d += ` L ${toX(startIdx + 1 + i)} ${toY(projectedData[i])}`;
     }
     return d;
+    // toX/toY depend on maxVal/plotW/plotH which are already captured
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, projectedData, maxVal, plotW, plotH]);
 
   // Projected area fill
@@ -128,6 +134,8 @@ export function SpendingCard({
     }
     d += ` L ${toX(startIdx + projectedData.length)} ${baseline} Z`;
     return d;
+    // toX/toY depend on maxVal/plotW/plotH which are already captured
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, projectedData, maxVal, plotW, plotH]);
 
   // Period label positions

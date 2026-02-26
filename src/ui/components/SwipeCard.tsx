@@ -319,8 +319,6 @@ export const SwipeCard = React.forwardRef<SwipeCardRef, SwipeCardProps>(
             </View>
           ) : (
             visibleCards.map((item, i) => {
-              const realIndex =
-                i + (data.length - currentIndex.current - visibleCards.length);
               const isTop = i === visibleCards.length - 1;
               return isTop ? (
                 <GestureDetector key={item.key} gesture={panGesture}>

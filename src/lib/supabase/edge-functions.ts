@@ -4,6 +4,7 @@
  */
 
 import { getAppConfig } from "../../config";
+import { logger } from "../../logging/logger";
 import { getSupabaseClient } from "./client";
 
 export interface EdgeFunctionOptions {
@@ -34,13 +35,13 @@ export interface EdgeFunctionResponse<T = any> {
  * ```
  */
 export async function callEdgeFunction<T = any>(
-  options: EdgeFunctionOptions,
+  options: EdgeFunctionOptions
 ): Promise<EdgeFunctionResponse<T>> {
   try {
     const client = getSupabaseClient();
     const config = getAppConfig();
 
-    console.log(`📡 Calling Edge Function: ${options.name}`);
+    logger.log(`Calling Edge Function: ${options.name}`);
 
     // Get the functions URL (use custom or default)
     const functionsUrl =
@@ -77,11 +78,11 @@ export async function callEdgeFunction<T = any>(
 
     const data = await response.json();
 
-    console.log(`✅ Edge Function ${options.name} completed`);
+    logger.log(`Edge Function ${options.name} completed`);
 
     return { data, error: null };
   } catch (error) {
-    console.error(`❌ Edge Function ${options.name} failed:`, error);
+    logger.error(`Edge Function ${options.name} failed:`, error);
     return {
       data: null,
       error: error instanceof Error ? error : new Error("Unknown error"),
@@ -94,7 +95,7 @@ export async function callEdgeFunction<T = any>(
  * Throws error if user is not authenticated
  */
 export async function callAuthenticatedEdgeFunction<T = any>(
-  options: EdgeFunctionOptions,
+  options: EdgeFunctionOptions
 ): Promise<EdgeFunctionResponse<T>> {
   const client = getSupabaseClient();
   const {
@@ -126,7 +127,7 @@ export async function callAuthenticatedEdgeFunction<T = any>(
 export async function callTypedEdgeFunction<TResponse = any, TBody = any>(
   functionName: string,
   body?: TBody,
-  authenticated = false,
+  authenticated = false
 ): Promise<EdgeFunctionResponse<TResponse>> {
   const caller = authenticated
     ? callAuthenticatedEdgeFunction

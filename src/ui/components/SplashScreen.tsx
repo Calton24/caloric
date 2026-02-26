@@ -23,12 +23,11 @@ import React, {
 } from "react";
 import {
     ActivityIndicator,
-    Dimensions,
     Image,
     ImageSourcePropType,
     StyleProp,
     StyleSheet,
-    ViewStyle
+    ViewStyle,
 } from "react-native";
 import Animated, {
     Easing,
@@ -37,7 +36,7 @@ import Animated, {
     useAnimatedStyle,
     useSharedValue,
     withDelay,
-    withTiming
+    withTiming,
 } from "react-native-reanimated";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
@@ -85,10 +84,6 @@ export interface SplashScreenProps {
   /** Container style */
   style?: StyleProp<ViewStyle>;
 }
-
-/* ── Constants ─────────────────────────────────────── */
-
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 
 /* ── Component ─────────────────────────────────────── */
 

@@ -5,6 +5,7 @@
  */
 
 import { FeatureFlags, getAppConfig } from "../../config";
+import { logger } from "../../logging/logger";
 import { getSupabaseClient } from "../supabase";
 import {
     cacheRemoteConfig,
@@ -69,14 +70,14 @@ export async function fetchRemoteConfig(): Promise<FeatureFlags> {
     const config = getAppConfig();
     const client = getSupabaseClient();
 
-    console.log(
-      `🌐 Fetching remote config for ${config.profile}:${config.environment}`,
+    logger.log(
+      `Fetching remote config for ${config.profile}:${config.environment}`
     );
 
     // Check cache first (5 minute TTL)
     const cached = getCachedRemoteConfig(config.profile, config.environment);
     if (cached) {
-      console.log(`✅ Using cached remote config (version ${cached.version})`);
+      logger.log(`Using cached remote config (version ${cached.version})`);
       return { ...config.features, ...cached.feature_flags };
     }
 
@@ -90,19 +91,19 @@ export async function fetchRemoteConfig(): Promise<FeatureFlags> {
       .single<RemoteConfigRow>();
 
     if (error) {
-      console.warn(
-        `⚠️ Failed to fetch remote config, using local config:`,
-        error.message,
+      logger.warn(
+        `Failed to fetch remote config, using local config:`,
+        error.message
       );
       return config.features;
     }
 
     if (!data) {
-      console.log(`ℹ️ No remote config found, using local config`);
+      logger.log(`No remote config found, using local config`);
       return config.features;
     }
 
-    console.log(`✅ Remote config fetched (version ${data.version})`);
+    logger.log(`Remote config fetched (version ${data.version})`);
 
     // Cache the result
     cacheRemoteConfig(config.profile, config.environment, data);
@@ -156,7 +157,7 @@ export async function refreshRemoteConfig(): Promise<FeatureFlags> {
  * ```
  */
 export async function isFeatureEnabled(
-  feature: keyof FeatureFlags,
+  feature: keyof FeatureFlags
 ): Promise<boolean> {
   const flags = await getFeatureFlags();
   return flags[feature] || false;

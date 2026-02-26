@@ -1,6 +1,36 @@
 /**
  * SupabaseGrowthClient
- * Stores feature requests in Supabase.
+ * Stores feature requests in Supabase via Edge Function (default) or direct insert.
+ *
+ * 🔒 SECURITY — Edge Function Default (recommended)
+ *   By default, requests go through `submit-feature-request` Edge Function which:
+ *   - Rate-limits per IP and per user_id (e.g., 5 req/min)
+ *   - Validates/sanitizes payload server-side
+ *   - Strips unexpected fields before inserting
+ *   - Returns 429 on abuse instead of silently inserting
+ *
+ *   Edge Function path: supabase/functions/submit-feature-request/index.ts
+ *
+ * ⚠️ UNSAFE MODE — Direct Client Insert (opt-in only)
+ *   Set `features.allowUnsafeClientWrites = true` in your profile to use direct insert.
+ *   Client-side cooldown/dedup are convenience guards only.
+ *
+ *   **What RLS does:**
+ *     - Prevents user_id spoofing (INSERT WITH CHECK on auth.uid())
+ *     - Prevents reading other users' requests
+ *
+ *   **What RLS does NOT do:**
+ *     - Rate limit requests (a bot can flood thousands of rows)
+ *     - Validate payload content (data poisoning)
+ *     - Protect against denial-of-wallet (Supabase bills by row count)
+ *
+ *   RLS Policy Required:
+ *     CREATE POLICY "Users can insert their own requests"
+ *       ON feature_requests FOR INSERT
+ *       WITH CHECK (
+ *         user_id IS NULL                    -- allow anonymous
+ *         OR user_id = auth.uid()::text      -- enforce match for logged-in
+ *       );
  */
 
 import Constants from "expo-constants";
@@ -118,9 +148,26 @@ export class SupabaseGrowthClient implements GrowthClient {
     };
 
     const client = getSupabaseClient();
-    const { error } = await client.from("feature_requests").insert(payload);
-    if (error) {
-      throw new GrowthRequestError("unknown", error.message);
+
+    // SECURITY: Use Edge Function by default for server-side rate limiting.
+    // Direct insert only allowed when explicitly opted in via allowUnsafeClientWrites.
+    if (config.features.allowUnsafeClientWrites) {
+      // Direct insert — only for internal/dev builds not facing public traffic
+      const { error } = await client.from("feature_requests").insert(payload);
+      if (error) {
+        throw new GrowthRequestError("unknown", error.message);
+      }
+    } else {
+      // Edge Function — rate-limited, validated server-side (recommended)
+      const { error } = await client.functions.invoke(
+        "submit-feature-request",
+        {
+          body: payload,
+        }
+      );
+      if (error) {
+        throw new GrowthRequestError("unknown", error.message);
+      }
     }
 
     await storage.setItem(COOLDOWN_KEY, now.toString());

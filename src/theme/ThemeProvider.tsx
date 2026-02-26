@@ -10,7 +10,8 @@ import React, {
     useMemo,
     useState,
 } from "react";
-import { useColorScheme } from "react-native";
+import { Appearance, useColorScheme } from "react-native";
+import { haptics } from "../infrastructure/haptics";
 import { ColorMode, generatePalette } from "./colors";
 import { themeStorage } from "./storage";
 import { ThemeTokens, radius, spacing, typography } from "./tokens";
@@ -78,6 +79,13 @@ export function ThemeProvider({
     [brandHue, mode]
   );
 
+  // Sync the native UIKit appearance to match the app's theme mode.
+  // This ensures native components (e.g. liquid-glass tab bar) render
+  // in the correct color scheme even when the device setting differs.
+  useEffect(() => {
+    Appearance.setColorScheme(mode);
+  }, [mode]);
+
   const setMode = useCallback((newMode: ColorMode) => {
     setModeState(newMode);
     themeStorage.setMode(newMode);
@@ -89,6 +97,7 @@ export function ThemeProvider({
   }, []);
 
   const toggleMode = useCallback(() => {
+    haptics.impact("medium");
     setMode(mode === "light" ? "dark" : "light");
   }, [mode, setMode]);
 

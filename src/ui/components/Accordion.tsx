@@ -24,6 +24,7 @@ import Animated, {
     useSharedValue,
     withTiming,
 } from "react-native-reanimated";
+import { haptics } from "../../infrastructure/haptics";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -83,6 +84,7 @@ export function Accordion({
 
   const handleToggle = useCallback(() => {
     if (disabled) return;
+    haptics.selection();
     const next = !isExpanded;
     if (!isControlled) setInternalExpanded(next);
     onToggle?.(next);

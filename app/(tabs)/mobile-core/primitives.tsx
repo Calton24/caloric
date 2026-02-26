@@ -6,7 +6,7 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { useTheme } from "../../../src/theme/useTheme";
@@ -45,6 +45,9 @@ export default function PrimitivesScreen() {
   const [checkA, setCheckA] = useState(false);
   const [checkB, setCheckB] = useState(true);
   const [checkGroup, setCheckGroup] = useState<string[]>(["notifications"]);
+
+  // DEV-only gate — all hooks must be called before this
+  if (!__DEV__) return <Redirect href="/(tabs)/mobile-core" />;
 
   return (
     <ScreenShell

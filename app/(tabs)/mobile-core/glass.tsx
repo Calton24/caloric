@@ -5,7 +5,7 @@
  * GlassSearch, Theme System, Bottom Sheets, Modals.
  */
 
-import { useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { Dimensions, StyleSheet, Switch, View } from "react-native";
 import { useTheme } from "../../../src/theme/useTheme";
@@ -14,7 +14,7 @@ import { useToast } from "../../../src/ui/components/Toast";
 import { GlassCard } from "../../../src/ui/glass/GlassCard";
 import { GlassIconButton } from "../../../src/ui/glass/GlassIconButton";
 import { GlassMiniCard } from "../../../src/ui/glass/GlassMiniCard";
-import { GlassSearch } from "../../../src/ui/glass/GlassSearch";
+import { GlassSearchMinimal } from "../../../src/ui/glass/GlassSearchMinimal";
 import { GlassSegmentedControl } from "../../../src/ui/glass/GlassSegmentedControl";
 import { GlassSliderVertical } from "../../../src/ui/glass/GlassSliderVertical";
 import { GlassStatusChip } from "../../../src/ui/glass/GlassStatusChip";
@@ -78,6 +78,9 @@ export default function GlassScreen() {
     }),
     [screenHeight]
   );
+
+  // DEV-only gate — all hooks must be called before this
+  if (!__DEV__) return <Redirect href="/(tabs)/mobile-core" />;
 
   const SheetContent = ({ title }: { title: string }) => (
     <View style={{ padding: theme.spacing.lg }}>
@@ -427,15 +430,17 @@ export default function GlassScreen() {
 
       <TSpacer size="lg" />
 
-      {/* ── GlassSearch ── */}
+      {/* ── GlassSearchMinimal ── */}
       <GlassCard style={s.section}>
-        <TText variant="heading">GlassSearch</TText>
+        <TText variant="heading">GlassSearchMinimal</TText>
+        <TSpacer size="xs" />
+        <TText color="muted">No cancel button — for inline use</TText>
         <TSpacer size="sm" />
-        <GlassSearch
+        <GlassSearchMinimal
           value={searchText}
           onChangeText={setSearchText}
-          placeholder="Search anything…"
-          onSubmit={(t) => toast.show(`Searched: ${t}`, "info")}
+          placeholder="Filter…"
+          onSubmit={(t) => toast.show(`Filtered: ${t}`, "info")}
         />
       </GlassCard>
 

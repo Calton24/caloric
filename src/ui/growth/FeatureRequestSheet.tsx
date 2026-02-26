@@ -4,7 +4,7 @@
  */
 
 import React, { useMemo, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import {
     COOLDOWN_MS,
     growth,
@@ -146,7 +146,12 @@ export function FeatureRequestSheet() {
   }
 
   return (
-    <View style={[styles.container, { padding: theme.spacing.lg }]}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ padding: theme.spacing.lg, paddingBottom: 48 }}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+    >
       <TText variant="heading">Feature request</TText>
       <TSpacer size="xs" />
       <TText color="secondary">
@@ -169,7 +174,7 @@ export function FeatureRequestSheet() {
       <TSpacer size="md" />
 
       <TText style={{ fontSize: theme.typography.fontSize.sm }}>
-        Description (optional)
+        Description
       </TText>
       <TSpacer size="xs" />
       <TInput
@@ -237,7 +242,7 @@ export function FeatureRequestSheet() {
       >
         Submit request
       </TButton>
-    </View>
+    </ScrollView>
   );
 }
 

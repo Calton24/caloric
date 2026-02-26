@@ -13,6 +13,38 @@ export const AppProfileSchema = z.enum(["intake", "default"], {
   message: "APP_PROFILE must be one of: intake, default",
 });
 
+/**
+ * Decode a JWT payload without verification (we only need to inspect the role claim).
+ * Returns null if the token is malformed or not a valid JWT.
+ */
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    // Base64url → Base64 → decode
+    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const json = atob(base64);
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Returns true if the JWT carries a role OTHER than "anon".
+ * Catches service_role, authenticated, or any future privileged role.
+ */
+function isPrivilegedJwt(key: string): boolean {
+  // Quick literal check (catches copy-paste of the label itself)
+  if (key.includes("service_role")) return true;
+
+  const payload = decodeJwtPayload(key);
+  if (!payload) return false; // Not a valid JWT — let other validations catch it
+
+  const role = payload.role;
+  return typeof role === "string" && role !== "anon";
+}
+
 export const SupabaseConfigSchema = z.object({
   url: z
     .string()
@@ -23,9 +55,9 @@ export const SupabaseConfigSchema = z.object({
   anonKey: z
     .string()
     .min(20, "Supabase anon key appears invalid (too short)")
-    .refine((key) => !key.includes("service_role"), {
+    .refine((key) => !isPrivilegedJwt(key), {
       message:
-        "SECURITY ERROR: service_role key detected in client config. Use anon key only!",
+        "SECURITY ERROR: Privileged key detected in client config (role ≠ anon). Use anon key only!",
     }),
   functionsUrl: z.string().url().optional(),
 });
@@ -126,11 +158,16 @@ export const FeatureFlagsSchema = z.object({
   habit: z.boolean(),
   analytics: z.boolean(),
   growth: z.boolean(),
+  haptics: z.boolean(),
   notifications: z.boolean(),
   firebaseAnalytics: z.boolean(),
   crashReporting: z.boolean(),
   performanceMonitoring: z.boolean(),
   billing: z.boolean(),
+  i18n: z.boolean(),
+  presence: z.boolean(),
+  activityMonitor: z.boolean(),
+  liveActivity: z.boolean(),
 });
 
 export const AppMetadataSchema = z.object({
