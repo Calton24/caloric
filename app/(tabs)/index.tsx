@@ -1,80 +1,305 @@
+/**
+ * Home Dashboard (Today Screen)
+ *
+ * Main tab screen showing:
+ * - Day selector (M T W T F S S)
+ * - Calorie ring with remaining count
+ * - Macro cards (Protein, Carbs, Fat)
+ * - Meals list
+ * - Floating "+" button to tracking launcher
+ */
+
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import React from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import Animated, {
+    FadeIn,
+    FadeInDown,
+    FadeInUp,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useHomeData } from "../../src/features/home/use-home-data";
+import { useNutritionStore } from "../../src/features/nutrition/nutrition.store";
 import { useTheme } from "../../src/theme/useTheme";
-import { GlassCard } from "../../src/ui/glass/GlassCard";
+import { DaySelector } from "../../src/ui/components/DaySelector";
+import { MacroCard } from "../../src/ui/components/MacroCard";
+import { MealCard } from "../../src/ui/components/MealCard";
+import { ProgressRing } from "../../src/ui/components/ProgressRing";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 
+/** Macro accent colors */
+const MACRO_COLORS = {
+  protein: "#60A5FA",
+  carbs: "#FBBF24",
+  fat: "#F87171",
+};
+
 export default function HomeScreen() {
   const { theme } = useTheme();
+  const router = useRouter();
+
+  // ── Derived data from stores ──
+  const {
+    selectedDayIndex,
+    handleDaySelect,
+    activeDays,
+    dateHeader,
+    latestWeight,
+    calorieBudget,
+    dailySummary,
+    calorieProgress,
+    proteinTarget,
+    carbsTarget,
+    fatTarget,
+  } = useHomeData();
+
+  const removeMeal = useNutritionStore((s) => s.removeMeal);
+
+  const todayMeals = dailySummary.meals;
+  const totals = {
+    calories: dailySummary.totalCalories,
+    protein: dailySummary.totalProtein,
+    carbs: dailySummary.totalCarbs,
+    fat: dailySummary.totalFat,
+  };
+  const targetCalories = calorieBudget;
+  const displayWeight = latestWeight ?? 0;
 
   return (
-    <SafeAreaView
+    <View
       style={[styles.container, { backgroundColor: theme.colors.background }]}
-      edges={["top"]}
     >
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+      <SafeAreaView style={styles.safe} edges={["top"]}>
         {/* Header */}
-        <View style={styles.header}>
-          <TText variant="heading" style={styles.title}>
-            Mobile Core
-          </TText>
-          <TText color="secondary" style={styles.subtitle}>
-            Component Library
-          </TText>
-        </View>
-
-        <TSpacer size="md" />
-
-        {/* Welcome Card */}
-        <GlassCard style={styles.card}>
-          <TText variant="heading" style={styles.cardTitle}>
-            Welcome
-          </TText>
-          <TSpacer size="sm" />
-          <TText color="secondary" style={styles.cardText}>
-            This is a reusable component library built with Expo and React
-            Native. Explore the Playground tab to see all available components.
-          </TText>
-        </GlassCard>
-
-        <TSpacer size="md" />
-
-        {/* Quick Stats */}
-        <View style={styles.statsGrid}>
-          {[
-            { emoji: "🎨", value: "14", label: "Components" },
-            { emoji: "⚡", value: "Swift UI", label: "Inspired" },
-            { emoji: "📦", value: "@expo/ui", label: "Powered" },
-            { emoji: "🚀", value: "Ready", label: "For Use" },
-          ].map((stat) => (
-            <GlassCard key={stat.label} style={styles.statCard}>
-              <TText style={styles.statEmoji}>{stat.emoji}</TText>
-              <TText color="primary" style={styles.statValue}>
-                {stat.value}
+        <Animated.View entering={FadeIn.duration(400)} style={styles.header}>
+          <View>
+            <TText
+              variant="heading"
+              style={[styles.greeting, { color: theme.colors.text }]}
+            >
+              Today
+            </TText>
+            <TText style={[styles.date, { color: theme.colors.textMuted }]}>
+              {dateHeader}
+            </TText>
+          </View>
+          <View style={styles.headerRight}>
+            <Pressable
+              onPress={() => router.push("/progress" as any)}
+              style={[
+                styles.weightPill,
+                { backgroundColor: theme.colors.surfaceSecondary },
+              ]}
+            >
+              <Ionicons
+                name="trending-down"
+                size={14}
+                color={theme.colors.success}
+              />
+              <TText style={[styles.weightText, { color: theme.colors.text }]}>
+                {displayWeight} lbs
               </TText>
-              <TText color="secondary" style={styles.statLabel}>
-                {stat.label}
+            </Pressable>
+            <Pressable
+              onPress={() => router.push("/settings" as any)}
+              hitSlop={12}
+            >
+              <Ionicons
+                name="settings-outline"
+                size={22}
+                color={theme.colors.textMuted}
+              />
+            </Pressable>
+          </View>
+        </Animated.View>
+
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <TSpacer size="md" />
+
+          {/* Day selector */}
+          <Animated.View entering={FadeInDown.duration(400).delay(100)}>
+            <DaySelector
+              selectedIndex={selectedDayIndex}
+              onSelect={handleDaySelect}
+              activeDays={activeDays}
+            />
+          </Animated.View>
+
+          <TSpacer size="lg" />
+
+          {/* Calorie ring */}
+          <Animated.View
+            entering={FadeInDown.duration(500).delay(200)}
+            style={styles.ringSection}
+          >
+            <View
+              style={[
+                styles.ringCard,
+                { backgroundColor: theme.colors.surfaceSecondary },
+              ]}
+            >
+              <ProgressRing
+                consumed={totals.calories}
+                target={targetCalories}
+                size={190}
+                strokeWidth={14}
+              />
+              <TSpacer size="sm" />
+              <View style={styles.ringFooter}>
+                <View style={styles.ringFooterItem}>
+                  <TText
+                    style={[
+                      styles.ringFooterValue,
+                      { color: theme.colors.text },
+                    ]}
+                  >
+                    {Math.round(totals.calories)}
+                  </TText>
+                  <TText
+                    style={[
+                      styles.ringFooterLabel,
+                      { color: theme.colors.textMuted },
+                    ]}
+                  >
+                    consumed
+                  </TText>
+                </View>
+                <View
+                  style={[
+                    styles.ringDivider,
+                    { backgroundColor: theme.colors.border },
+                  ]}
+                />
+                <View style={styles.ringFooterItem}>
+                  <TText
+                    style={[
+                      styles.ringFooterValue,
+                      { color: theme.colors.text },
+                    ]}
+                  >
+                    {targetCalories}
+                  </TText>
+                  <TText
+                    style={[
+                      styles.ringFooterLabel,
+                      { color: theme.colors.textMuted },
+                    ]}
+                  >
+                    budget
+                  </TText>
+                </View>
+              </View>
+            </View>
+          </Animated.View>
+
+          <TSpacer size="md" />
+
+          {/* Macro cards */}
+          <Animated.View
+            entering={FadeInUp.duration(500).delay(300)}
+            style={styles.macroRow}
+          >
+            <MacroCard
+              label="Protein"
+              consumedG={totals.protein}
+              targetG={proteinTarget}
+              color={MACRO_COLORS.protein}
+            />
+            <MacroCard
+              label="Carbs"
+              consumedG={totals.carbs}
+              targetG={carbsTarget}
+              color={MACRO_COLORS.carbs}
+            />
+            <MacroCard
+              label="Fat"
+              consumedG={totals.fat}
+              targetG={fatTarget}
+              color={MACRO_COLORS.fat}
+            />
+          </Animated.View>
+
+          <TSpacer size="lg" />
+
+          {/* Meals section */}
+          <Animated.View entering={FadeInUp.duration(500).delay(400)}>
+            <View style={styles.mealsHeader}>
+              <TText
+                variant="subheading"
+                style={[styles.sectionTitle, { color: theme.colors.text }]}
+              >
+                Meals
               </TText>
-            </GlassCard>
-          ))}
-        </View>
+              <TText
+                style={[
+                  styles.mealCount,
+                  { color: theme.colors.textSecondary },
+                ]}
+              >
+                {todayMeals.length} logged
+              </TText>
+            </View>
+            <TSpacer size="sm" />
+            <View style={styles.mealsList}>
+              {todayMeals.map((meal) => (
+                <MealCard
+                  key={meal.id}
+                  icon={meal.emoji}
+                  title={meal.title}
+                  time={meal.loggedAt.split("T")[1]?.slice(0, 5)}
+                  calories={meal.calories}
+                  protein={meal.protein}
+                  carbs={meal.carbs}
+                  fat={meal.fat}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(modals)/edit-meal" as any,
+                      params: { mealId: meal.id },
+                    })
+                  }
+                  onDelete={() => removeMeal(meal.id)}
+                />
+              ))}
+            </View>
+          </Animated.View>
 
-        <TSpacer size="md" />
+          {/* Bottom spacing for FAB */}
+          <TSpacer size="xxl" />
+          <TSpacer size="xxl" />
+        </ScrollView>
+      </SafeAreaView>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <TText color="primary" style={styles.footerText}>
-            Check out the Playground tab to explore components →
-          </TText>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      {/* Floating Add button */}
+      <Animated.View
+        entering={FadeInUp.duration(400).delay(600)}
+        style={styles.fabContainer}
+      >
+        <Pressable
+          onPress={() => router.push("/(modals)/tracking" as any)}
+          style={({ pressed }) => [
+            styles.fab,
+            {
+              transform: [{ scale: pressed ? 0.92 : 1 }],
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={[theme.colors.primary, theme.colors.accent]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.fabGradient}
+          >
+            <Ionicons name="add" size={30} color={theme.colors.textInverse} />
+          </LinearGradient>
+        </Pressable>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -82,66 +307,119 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollView: {
+  safe: {
     flex: 1,
   },
-  content: {
-    padding: 16,
-    paddingBottom: 100,
-  },
   header: {
-    alignItems: "center",
-    paddingVertical: 20,
-  },
-  title: {
-    fontSize: 36,
-    fontWeight: "bold",
-  },
-  subtitle: {
-    fontSize: 18,
-    marginTop: 8,
-  },
-  card: {
-    padding: 20,
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-  },
-  cardText: {
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  statsGrid: {
     flexDirection: "row",
-    flexWrap: "wrap",
     justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: 8,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
-  statCard: {
-    width: "47%",
-    padding: 16,
-    alignItems: "center",
+  greeting: {
+    fontSize: 28,
+    fontWeight: "700",
+    letterSpacing: -0.3,
   },
-  statEmoji: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  statLabel: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-  footer: {
-    alignItems: "center",
-    paddingVertical: 24,
-  },
-  footerText: {
+  date: {
     fontSize: 14,
+    fontWeight: "400",
+    marginTop: 2,
+  },
+  weightPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+  },
+  weightText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+  },
+  ringSection: {
+    alignItems: "center",
+  },
+  ringCard: {
+    width: "100%",
+    borderRadius: 20,
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    alignItems: "center",
+  },
+  ringFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 24,
+    marginTop: 8,
+  },
+  ringFooterItem: {
+    alignItems: "center",
+  },
+  ringFooterValue: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  ringFooterLabel: {
+    fontSize: 12,
+    fontWeight: "400",
+    marginTop: 2,
+  },
+  ringDivider: {
+    height: 24,
+    width: 1,
+  },
+  macroRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  mealsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  mealCount: {
+    fontSize: 13,
     fontWeight: "500",
+  },
+  mealsList: {
+    gap: 8,
+  },
+  fabContainer: {
+    position: "absolute",
+    bottom: 100,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+  },
+  fab: {
+    borderRadius: 28,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  fabGradient: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

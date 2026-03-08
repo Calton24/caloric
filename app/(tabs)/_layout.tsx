@@ -46,9 +46,9 @@ const TABS = [
     ionicon: "sparkles",
   },
   {
-    name: "mobile-core",
-    flag: FeatureFlags.SHOW_MOBILE_CORE,
-    label: "Mobile Core",
+    name: "caloric",
+    flag: FeatureFlags.SHOW_CALORIC,
+    label: "Caloric",
     sf: "hammer.fill",
     ionicon: "hammer",
   },

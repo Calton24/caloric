@@ -1,4 +1,4 @@
-# Threat Model: Mobile Core
+# Threat Model: Caloric
 
 > **Purpose:** Define what attackers want, where they can touch the system, and
 > what "catastrophic" looks like. This is the reference for prioritizing
@@ -204,7 +204,7 @@ access without paying.
 
 - **Monthly:** Review Dependabot PRs, npm audit output
 - **Quarterly:** Re-assess threat catalog, update residual risk ratings
-- **Per-release:** Run `npm run mobile-core:verify:security` (blocking)
+- **Per-release:** Run `npm run caloric:verify:security` (blocking)
 
 ---
 

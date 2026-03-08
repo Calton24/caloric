@@ -93,7 +93,7 @@ src/examples/
 
 ```bash
 # 1. Clone repo
-git clone https://github.com/your-org/mobile-core.git mynewapp
+git clone https://github.com/your-org/caloric.git mynewapp
 
 # 2. Create profile
 cp src/config/profiles/intake.ts src/config/profiles/mynewapp.ts
@@ -379,7 +379,7 @@ Comprehensive guides included:
 ### Publisher Workflow
 
 ```
-1. Clone mobile-core
+1. Clone caloric
 2. Create new profile (15 min)
 3. Set 2 env vars
 4. Build with EAS

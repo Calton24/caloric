@@ -17,7 +17,7 @@ docs/ERROR_REPORTING.md       # Full documentation
 ## 🔧 Files Modified
 
 - `package.json` → Added `@sentry/react-native: ~6.5.0`
-- `src/MobileCoreProviders.tsx` → Added ErrorBoundary + `initErrorReporting()`
+- `src/CaloricProviders.tsx` → Added ErrorBoundary + `initErrorReporting()`
 - `app.config.ts` → Added Sentry plugin + `extra` config
 - `.env.example` → Added Sentry env var examples
 
@@ -76,7 +76,7 @@ npm test           # ✅ 128 tests pass
 - **Auto-disabled in dev** - Opt-in for development
 - **Provider agnostic** - Easy to swap providers
 - **Error Boundary** - Catches React errors automatically
-- **No code changes needed** - Already integrated in MobileCoreProviders
+- **No code changes needed** - Already integrated in CaloricProviders
 
 ## 📚 Documentation
 

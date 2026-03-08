@@ -17,7 +17,7 @@ type FlagName =
   | "SHOW_NOTES"
   | "SHOW_AUTH"
   | "SHOW_PLAYGROUND"
-  | "SHOW_MOBILE_CORE";
+  | "SHOW_CALORIC";
 
 type Flags = Record<FlagName, boolean>;
 
@@ -34,8 +34,8 @@ export const FeatureFlags: Flags = {
   /** Playground tab — dev + E2E only */
   SHOW_PLAYGROUND: __DEV__ || isE2E,
 
-  /** Mobile Core dev tools — dev only */
-  SHOW_MOBILE_CORE: __DEV__,
+  /** Caloric dev tools — dev only */
+  SHOW_CALORIC: __DEV__,
 };
 
 export type FeatureFlag = keyof typeof FeatureFlags;

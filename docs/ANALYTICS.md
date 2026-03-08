@@ -1,6 +1,6 @@
 # Analytics
 
-mobile-core ships a **vendor-agnostic analytics abstraction**. Feature code
+caloric ships a **vendor-agnostic analytics abstraction**. Feature code
 calls `analytics.track()` / `.screen()` / `.identify()` / `.reset()` and
 never touches a provider SDK directly.
 
@@ -65,13 +65,13 @@ extra: {
 }
 ```
 
-### 3. Install the provider SDK in your **fork** (not mobile-core)
+### 3. Install the provider SDK in your **fork** (not caloric)
 
 ```bash
 npm install posthog-react-native
 ```
 
-> mobile-core does **not** hard-install `posthog-react-native`.
+> caloric does **not** hard-install `posthog-react-native`.
 > The `PostHogAnalyticsClient` uses `require("posthog-react-native")`
 > inside a try/catch — if the package is missing it gracefully falls back
 > to `NoopAnalyticsClient`.
@@ -85,7 +85,7 @@ features: {
 }
 ```
 
-That's it. `initAnalytics()` runs automatically in `MobileCoreProviders`.
+That's it. `initAnalytics()` runs automatically in `CaloricProviders`.
 
 ## Auto screen tracking
 

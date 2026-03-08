@@ -1,6 +1,6 @@
 # Liquid Glass Widget Kit
 
-Reusable iOS Control Center–style glass components for `mobile-core`.
+Reusable iOS Control Center–style glass components for `caloric`.
 
 ---
 
@@ -81,7 +81,7 @@ All values are derived from the existing palette generator (`generatePalette`). 
 
 ## Catalog
 
-The **Mobile Core** tab includes a full interactive catalog with knobs:
+The **Caloric** tab includes a full interactive catalog with knobs:
 - Glass on/off toggle
 - Blur intensity picker (named + numeric)
 - Reduce Transparency simulation toggle

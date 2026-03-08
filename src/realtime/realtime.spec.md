@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the validated pattern for using Supabase Realtime channels for chat/messaging features in Mobile Core.
+This document describes the validated pattern for using Supabase Realtime channels for chat/messaging features in Caloric.
 
 ## Core Concepts
 

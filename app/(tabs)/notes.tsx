@@ -1,6 +1,6 @@
 /**
  * Notes Tab
- * Realtime notes feed - validates Mobile Core infrastructure
+ * Realtime notes feed - validates Caloric infrastructure
  */
 
 import { NotesScreen } from "@/src/features/notes";

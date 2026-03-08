@@ -2,7 +2,7 @@
 
 ## Overview
 
-This mobile-core repository uses a **profile-based configuration system** that allows you to:
+This caloric repository uses a **profile-based configuration system** that allows you to:
 
 - Clone the repo and launch multiple apps from the same codebase
 - Switch between apps by changing one environment variable: `EXPO_PUBLIC_APP_PROFILE`
@@ -16,7 +16,7 @@ This mobile-core repository uses a **profile-based configuration system** that a
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-org/mobile-core.git my-new-app
+git clone https://github.com/your-org/caloric.git my-new-app
 cd my-new-app
 
 # Create a new profile
@@ -548,7 +548,7 @@ Available profiles: intake, proxi
 
 ## Cloning Checklist
 
-When cloning mobile-core for a new app:
+When cloning caloric for a new app:
 
 - [ ] 1. Create new profile in `src/config/profiles/mynewapp.ts`
 - [ ] 2. Add profile to `src/config/profiles/index.ts`

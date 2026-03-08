@@ -7,8 +7,8 @@
 import { getStorage } from "../infrastructure/storage";
 import { ColorMode } from "./colors";
 
-const THEME_MODE_KEY = "@mobile-core/theme-mode";
-const BRAND_HUE_KEY = "@mobile-core/brand-hue";
+const THEME_MODE_KEY = "@caloric/theme-mode";
+const BRAND_HUE_KEY = "@caloric/brand-hue";
 
 export interface ThemePreferences {
   mode: ColorMode;

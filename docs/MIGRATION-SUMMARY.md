@@ -131,7 +131,7 @@ git push origin your-branch
 ### Where to See Results
 
 1. **EAS Dashboard:**  
-   `https://expo.dev/accounts/[your-account]/projects/mobile-core/workflows`
+   `https://expo.dev/accounts/[your-account]/projects/caloric/workflows`
 
 2. **Workflow Run Details:**
    - Build status and logs

@@ -4,7 +4,7 @@
  * Bridges iOS ActivityKit to JavaScript via Expo Modules.
  * Provides start, update, end, and query functions for Live Activities.
  *
- * The MobileCoreActivityAttributes struct is shared with the widget extension
+ * The CaloricActivityAttributes struct is shared with the widget extension
  * (copied there by the config plugin during prebuild).
  *
  * Requires iOS 16.2+ and a device that supports Live Activities.
@@ -39,8 +39,8 @@ public class LiveActivityModule: Module {
             guard #available(iOS 16.2, *) else { return nil }
             guard ActivityAuthorizationInfo().areActivitiesEnabled else { return nil }
 
-            let attributes = MobileCoreActivityAttributes(name: name, icon: icon)
-            let state = MobileCoreActivityAttributes.ContentState(
+            let attributes = CaloricActivityAttributes(name: name, icon: icon)
+            let state = CaloricActivityAttributes.ContentState(
                 title: title,
                 value: value,
                 progress: progress,
@@ -68,9 +68,9 @@ public class LiveActivityModule: Module {
             guard #available(iOS 16.2, *) else { return nil }
             guard ActivityAuthorizationInfo().areActivitiesEnabled else { return nil }
 
-            let attributes = MobileCoreActivityAttributes(name: name, icon: icon)
+            let attributes = CaloricActivityAttributes(name: name, icon: icon)
             let endTime = Date(timeIntervalSince1970: endTimeInterval)
-            let state = MobileCoreActivityAttributes.ContentState(
+            let state = CaloricActivityAttributes.ContentState(
                 title: title,
                 value: value,
                 progress: nil,
@@ -97,7 +97,7 @@ public class LiveActivityModule: Module {
 
             guard #available(iOS 16.2, *) else { return false }
 
-            let state = MobileCoreActivityAttributes.ContentState(
+            let state = CaloricActivityAttributes.ContentState(
                 title: title,
                 value: value,
                 progress: progress,
@@ -106,7 +106,7 @@ public class LiveActivityModule: Module {
             )
 
             Task {
-                for activity in Activity<MobileCoreActivityAttributes>.activities {
+                for activity in Activity<CaloricActivityAttributes>.activities {
                     if activity.id == activityId {
                         await activity.update(
                             ActivityContent(state: state, staleDate: nil)
@@ -126,7 +126,7 @@ public class LiveActivityModule: Module {
             guard #available(iOS 16.2, *) else { return false }
 
             let endTime = Date(timeIntervalSince1970: endTimeInterval)
-            let state = MobileCoreActivityAttributes.ContentState(
+            let state = CaloricActivityAttributes.ContentState(
                 title: title,
                 value: value,
                 progress: nil,
@@ -135,7 +135,7 @@ public class LiveActivityModule: Module {
             )
 
             Task {
-                for activity in Activity<MobileCoreActivityAttributes>.activities {
+                for activity in Activity<CaloricActivityAttributes>.activities {
                     if activity.id == activityId {
                         await activity.update(
                             ActivityContent(state: state, staleDate: nil)
@@ -153,7 +153,7 @@ public class LiveActivityModule: Module {
             guard #available(iOS 16.2, *) else { return false }
 
             Task {
-                for activity in Activity<MobileCoreActivityAttributes>.activities {
+                for activity in Activity<CaloricActivityAttributes>.activities {
                     if activity.id == activityId {
                         await activity.end(nil, dismissalPolicy: .default)
                         return
@@ -174,7 +174,7 @@ public class LiveActivityModule: Module {
             self?.pedometerStartTime = nil
 
             Task {
-                for activity in Activity<MobileCoreActivityAttributes>.activities {
+                for activity in Activity<CaloricActivityAttributes>.activities {
                     await activity.end(nil, dismissalPolicy: .default)
                 }
                 for activity in Activity<FitnessActivityAttributes>.activities {
@@ -196,7 +196,7 @@ public class LiveActivityModule: Module {
             guard #available(iOS 16.2, *) else { return [] }
 
             var result: [[String: String]] = []
-            for activity in Activity<MobileCoreActivityAttributes>.activities {
+            for activity in Activity<CaloricActivityAttributes>.activities {
                 result.append([
                     "id": activity.id,
                     "type": "status",
@@ -243,7 +243,7 @@ public class LiveActivityModule: Module {
         // ── Get count of all active activities ──
         Function("getActiveCount") { () -> Int in
             guard #available(iOS 16.2, *) else { return 0 }
-            return Activity<MobileCoreActivityAttributes>.activities.count
+            return Activity<CaloricActivityAttributes>.activities.count
                  + Activity<FitnessActivityAttributes>.activities.count
                  + Activity<PedometerActivityAttributes>.activities.count
                  + Activity<CalorieBudgetActivityAttributes>.activities.count

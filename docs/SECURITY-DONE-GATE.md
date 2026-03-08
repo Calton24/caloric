@@ -1,6 +1,6 @@
 # Security Done Gate
 
-> **What must be green before any fork of `mobile-core` ships.**
+> **What must be green before any fork of `caloric` ships.**
 
 This document defines the non-negotiable security gates that every fork must
 pass before merging to `main` or shipping to production. It is not aspirational.
@@ -11,7 +11,7 @@ If a gate is red, the build does not ship.
 ## Merge Gate Command
 
 ```bash
-npm run mobile-core:verify:security
+npm run caloric:verify:security
 ```
 
 Every fork repository **must** run this as a required CI check on every pull
@@ -22,7 +22,7 @@ Add to your CI (GitHub Actions example):
 
 ```yaml
 - name: Security gate
-  run: npm run mobile-core:verify:security
+  run: npm run caloric:verify:security
 ```
 
 If this step fails, the PR cannot merge. No exceptions.
@@ -47,7 +47,7 @@ service-role JWT (role claim = `service_role`) is embedded in client code.
 
 ### C) Debug Screen Production Gating
 
-Every screen under `app/(tabs)/mobile-core/` must be wrapped in a `__DEV__`
+Every screen under `app/(tabs)/caloric/` must be wrapped in a `__DEV__`
 guard or equivalent feature flag that prevents it from rendering in production
 builds.
 

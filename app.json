@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "mobilecore",
-    "slug": "mobile-core",
+    "name": "caloric",
+    "slug": "caloric",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile-core",
+    "scheme": "caloric",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.calton24.mobilecore"
+      "bundleIdentifier": "com.calton24.caloric"
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +21,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.calton24.mobilecore"
+      "package": "com.calton24.caloric"
     },
     "web": {
       "output": "static",

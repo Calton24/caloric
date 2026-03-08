@@ -4,7 +4,7 @@
  * Determines which auth providers are available for this app.
  * Email/password is always on. OAuth providers are opt-in via env vars.
  *
- * mobile-core owns the screens/flows; each app owns the config.
+ * caloric owns the screens/flows; each app owns the config.
  * Fork an app → set env vars → same auth code, new credentials.
  */
 

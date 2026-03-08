@@ -70,6 +70,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       infoPlist: {
         NSMotionUsageDescription:
           "This app uses the pedometer to track your steps, distance, and floors climbed for the Live Activity.",
+        NSMicrophoneUsageDescription:
+          "Allow Caloric to use the microphone for voice meal logging.",
+        NSSpeechRecognitionUsageDescription:
+          "Allow Caloric to use speech recognition to convert your voice to food entries.",
+        NSCameraUsageDescription:
+          "Allow Caloric to use the camera to scan and identify food for calorie tracking.",
       },
     },
 
@@ -89,6 +95,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
 
     plugins: [
+      [
+        "expo-build-properties",
+        {
+          ios: {
+            deploymentTarget: "16.0",
+          },
+        },
+      ],
       "expo-router",
       [
         "expo-splash-screen",
@@ -111,6 +125,23 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // See: src/infrastructure/liveActivity/factory.ts
       "./plugins/withLiveActivity",
       "expo-secure-store",
+      [
+        "expo-speech-recognition",
+        {
+          microphonePermission:
+            "Allow Caloric to use the microphone for voice meal logging.",
+          speechRecognitionPermission:
+            "Allow Caloric to use speech recognition to convert your voice to food entries.",
+        },
+      ],
+      "llama.rn",
+      [
+        "react-native-vision-camera",
+        {
+          cameraPermissionText:
+            "Allow Caloric to use the camera to scan and identify food for calorie tracking.",
+        },
+      ],
     ],
 
     experiments: {

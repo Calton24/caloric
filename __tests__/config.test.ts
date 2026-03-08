@@ -20,9 +20,9 @@ describe("Config System", () => {
 
       const config = getAppConfig();
 
-      expect(config.app.name).toBe("Mobile Core");
-      expect(config.app.slug).toBe("mobile-core");
-      expect(config.app.bundleIdentifier).toContain("mobilecore");
+      expect(config.app.name).toBe("Caloric");
+      expect(config.app.slug).toBe("caloric");
+      expect(config.app.bundleIdentifier).toContain("caloric");
     });
 
     it("should load default profile when EXPO_PUBLIC_APP_PROFILE=default", () => {
@@ -32,9 +32,9 @@ describe("Config System", () => {
 
       const config = getAppConfig();
 
-      expect(config.app.name).toBe("Mobile Core");
-      expect(config.app.slug).toBe("mobile-core");
-      expect(config.app.bundleIdentifier).toContain("mobilecore");
+      expect(config.app.name).toBe("Caloric");
+      expect(config.app.slug).toBe("caloric");
+      expect(config.app.bundleIdentifier).toContain("caloric");
     });
 
     it("should throw error for unknown profile", () => {
@@ -50,7 +50,7 @@ describe("Config System", () => {
 
       const config = getAppConfig();
 
-      expect(config.app.name).toBe("Mobile Core");
+      expect(config.app.name).toBe("Caloric");
     });
   });
 
@@ -238,7 +238,7 @@ describe("Config System", () => {
 
       // Still returns intake because cached
       expect(config1).toBe(config2);
-      expect(config2.app.name).toBe("Mobile Core");
+      expect(config2.app.name).toBe("Caloric");
     });
 
     it("should reload config after cache clear", () => {
@@ -251,8 +251,8 @@ describe("Config System", () => {
       const config2 = getAppConfig();
 
       expect(config1).not.toBe(config2);
-      expect(config1.app.name).toBe("Mobile Core");
-      expect(config2.app.name).toBe("Mobile Core");
+      expect(config1.app.name).toBe("Caloric");
+      expect(config2.app.name).toBe("Caloric");
     });
   });
 

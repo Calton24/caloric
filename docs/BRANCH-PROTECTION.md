@@ -38,7 +38,7 @@ Unit Tests
 All Checks Passed ✅
 ```
 
-**Critical:** The "Security Gate" job runs `npm run mobile-core:verify:security` which includes:
+**Critical:** The "Security Gate" job runs `npm run caloric:verify:security` which includes:
 
 - 21+ security checks
 - npm audit for runtime vulnerabilities

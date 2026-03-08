@@ -2,7 +2,7 @@
 
 ## ✅ Implementation Complete
 
-Optional error reporting subsystem with Sentry integration added to mobile-core. Zero coupling, safe no-op when not configured.
+Optional error reporting subsystem with Sentry integration added to caloric. Zero coupling, safe no-op when not configured.
 
 ---
 
@@ -33,7 +33,7 @@ docs/
 "@sentry/react-native": "~6.5.0"
 ```
 
-### 2. `src/MobileCoreProviders.tsx`
+### 2. `src/CaloricProviders.tsx`
 
 **Changes:**
 
@@ -188,15 +188,15 @@ npm run lint
 1. **Zero Coupling**: Only `SentryErrorReporter.ts` imports Sentry SDK
 2. **Provider Agnostic**: Interface allows swapping providers (Bugsnag, Rollbar, etc.)
 3. **Safe No-op**: Missing config = no errors, just silent no-op
-4. **Automatic Init**: Called in `MobileCoreProviders`, no manual setup needed
+4. **Automatic Init**: Called in `CaloricProviders`, no manual setup needed
 5. **Error Boundary**: Catches React errors automatically
 6. **Environment Aware**: Disabled in dev by default, respects `__DEV__`
 
 ---
 
-## 📦 For Future Apps (Forking mobile-core)
+## 📦 For Future Apps (Forking caloric)
 
-When you clone/fork mobile-core for a new app:
+When you clone/fork caloric for a new app:
 
 1. **No code changes needed** ✅
 2. Add `EXPO_PUBLIC_SENTRY_DSN` to `.env` (or leave unset to disable)
@@ -219,13 +219,13 @@ That's it! Error reporting works immediately.
 
 ## 📚 Documentation
 
-- **Full Guide**: [`docs/ERROR_REPORTING.md`](/Users/calton/Coding/Mobile/mobile-core/docs/ERROR_REPORTING.md)
-- **Environment Setup**: [`.env.example`](/Users/calton/Coding/Mobile/mobile-core/.env.example)
+- **Full Guide**: [`docs/ERROR_REPORTING.md`](/Users/calton/Coding/Mobile/caloric/docs/ERROR_REPORTING.md)
+- **Environment Setup**: [`.env.example`](/Users/calton/Coding/Mobile/caloric/.env.example)
 
 ---
 
 ## 🎉 Done!
 
-Error reporting is now fully integrated and ready for production use in mobile-core and all future apps.
+Error reporting is now fully integrated and ready for production use in caloric and all future apps.
 
 Safe defaults, zero coupling, opt-in functionality. ✨

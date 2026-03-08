@@ -6,7 +6,7 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { liveActivity } from "../../infrastructure/liveActivity";
 import type { LAStartResult } from "../../infrastructure/liveActivity/types";
@@ -23,7 +23,7 @@ export function LiveActivityDebugPanel() {
 
   const handleStart = useCallback(() => {
     const result: LAStartResult = liveActivity.start("StatusWidget", {
-      title: "Mobile Core Demo",
+      title: "Caloric Demo",
       status: "Running",
       progress: 0.3,
     });
@@ -39,7 +39,7 @@ export function LiveActivityDebugPanel() {
       return;
     }
     const result = liveActivity.update(activeId, "StatusWidget", {
-      title: "Mobile Core Demo",
+      title: "Caloric Demo",
       status: "Updated!",
       progress: 0.75,
     });

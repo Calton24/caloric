@@ -9,27 +9,27 @@
 const APP_PROFILES = {
   default: {
     app: {
-      name: "Mobile Core",
-      slug: "mobile-core",
-      bundleIdentifier: "com.calton24.mobilecore",
-      androidPackage: "com.calton24.mobilecore",
+      name: "Caloric",
+      slug: "caloric",
+      bundleIdentifier: "com.calton24.caloric",
+      androidPackage: "com.calton24.caloric",
       version: "1.0.0",
-      scheme: "mobilecore",
+      scheme: "caloric",
     },
     environments: {
       dev: {
         app: {
-          name: "Mobile Core Dev",
-          slug: "mobile-core-dev",
-          bundleIdentifier: "com.calton24.mobilecore.dev",
-          androidPackage: "com.calton24.mobilecore.dev",
+          name: "Caloric Dev",
+          slug: "caloric-dev",
+          bundleIdentifier: "com.calton24.caloric.dev",
+          androidPackage: "com.calton24.caloric.dev",
         },
       },
       staging: {
         app: {
-          name: "Mobile Core Staging",
-          bundleIdentifier: "com.calton24.mobilecore.staging",
-          androidPackage: "com.calton24.mobilecore.staging",
+          name: "Caloric Staging",
+          bundleIdentifier: "com.calton24.caloric.staging",
+          androidPackage: "com.calton24.caloric.staging",
         },
       },
       prod: {},
@@ -38,20 +38,20 @@ const APP_PROFILES = {
 
   intake: {
     app: {
-      name: "Mobile Core",
-      slug: "mobile-core",
-      bundleIdentifier: "com.calton24.mobilecore",
-      androidPackage: "com.calton24.mobilecore",
+      name: "Caloric",
+      slug: "caloric",
+      bundleIdentifier: "com.calton24.caloric",
+      androidPackage: "com.calton24.caloric",
       version: "1.0.0",
-      scheme: "intake",
+      scheme: "caloric",
     },
     environments: {
       dev: {
         app: {
-          name: "Mobile Core",
-          slug: "mobile-core-dev",
-          bundleIdentifier: "com.calton24.mobilecore.dev",
-          androidPackage: "com.calton24.mobilecore.dev",
+          name: "Caloric",
+          slug: "caloric-dev",
+          bundleIdentifier: "com.calton24.caloric.dev",
+          androidPackage: "com.calton24.caloric.dev",
         },
       },
       staging: {

@@ -1,8 +1,8 @@
-# Mobile Core Architecture Hardening - Summary
+# Caloric Architecture Hardening - Summary
 
 ## Overview
 
-Comprehensive audit and hardening of Mobile Core UI layer to ensure production-grade quality, correctness, and portability.
+Comprehensive audit and hardening of Caloric UI layer to ensure production-grade quality, correctness, and portability.
 
 ---
 
@@ -296,7 +296,7 @@ export function DevOnly({ children }: DevOnlyProps) {
 
 **What's Exported Now:**
 
-- ✅ Providers (MobileCoreProviders, ThemeProvider, etc.)
+- ✅ Providers (CaloricProviders, ThemeProvider, etc.)
 - ✅ Hooks (useTheme, useAuth, useBottomSheet)
 - ✅ Theme utilities and types
 - ✅ Public components (GlassSurface, GlassCard, GlassTabBar, primitives)
@@ -331,7 +331,7 @@ export function invariant(
 ): asserts condition {
   if (__DEV__) {
     if (!condition) {
-      throw new Error(`[Mobile Core] Invariant violation: ${message}`);
+      throw new Error(`[Caloric] Invariant violation: ${message}`);
     }
   }
 }
@@ -357,7 +357,7 @@ if (!context) {
 ```tsx
 invariant(
   context !== undefined,
-  "useTheme must be used within a ThemeProvider. Did you forget to wrap your app with <MobileCoreProviders>?"
+  "useTheme must be used within a ThemeProvider. Did you forget to wrap your app with <CaloricProviders>?"
 );
 ```
 
@@ -451,17 +451,17 @@ invariant(
 
    ```tsx
    // Old
-   import { DevMenuScreen } from "@mobile-core";
+   import { DevMenuScreen } from "@caloric";
 
    // New
-   import { DevMenuScreen } from "@mobile-core/screens/dev/DevMenuScreen";
+   import { DevMenuScreen } from "@caloric/screens/dev/DevMenuScreen";
    // Or copy to your own screens/
    ```
 
 4. **Wrap Dev UI:**
 
    ```tsx
-   import { DevOnly } from "@mobile-core";
+   import { DevOnly } from "@caloric";
 
    <DevOnly>
      <YourDevComponent />
@@ -472,7 +472,7 @@ invariant(
 
 ## Conclusion
 
-The Mobile Core UI layer is now production-hardened with:
+The Caloric UI layer is now production-hardened with:
 
 - **Better performance** through memoization
 - **Better stability** through proper cleanup

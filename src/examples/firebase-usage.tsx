@@ -282,7 +282,7 @@ export function CompleteAppSetup() {
       }
 
       // 3. Analytics is initialized separately via initAnalytics()
-      //    in MobileCoreProviders — no manual setup needed here.
+      //    in CaloricProviders — no manual setup needed here.
       analytics.track("app_open", {
         platform: "ios",
         version: "1.0.0",

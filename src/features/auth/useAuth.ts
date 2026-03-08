@@ -11,7 +11,7 @@ export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext);
   invariant(
     context !== undefined,
-    "useAuth must be used within an AuthProvider. Did you forget to wrap your app with <MobileCoreProviders>?"
+    "useAuth must be used within an AuthProvider. Did you forget to wrap your app with <CaloricProviders>?"
   );
   return context!;
 }

@@ -15,7 +15,7 @@
 
 > **Required for all PRs targeting `main` or `develop`.**
 
-- [ ] **Security gate passes:** `npm run mobile-core:verify:security` exits 0
+- [ ] **Security gate passes:** `npm run caloric:verify:security` exits 0
 - [ ] No new `console.log/warn/error` added outside of `src/logging/logger.ts`
 - [ ] No hardcoded secrets, API keys, or JWTs
 - [ ] No new direct Supabase inserts without RLS documentation

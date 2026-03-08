@@ -10,7 +10,7 @@ Auto screen tracking is handled by `useScreenTracking()` in
 
    ```
    /(tabs)/home           → raw from router
-   /(tabs)/mobile-core/primitives
+   /(tabs)/caloric/primitives
    /auth/forgot-password
    /modal
    ```
@@ -25,7 +25,7 @@ Auto screen tracking is handled by `useScreenTracking()` in
 
    ```
    /(tabs)/home                    → /home
-   /(tabs)/mobile-core/primitives  → /mobile-core/primitives
+   /(tabs)/caloric/primitives  → /caloric/primitives
    /auth/forgot-password           → /auth/forgot-password
    /modal                          → /modal
    /(tabs)/                        → /

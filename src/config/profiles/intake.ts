@@ -58,9 +58,9 @@ export const intakeConfig: AppProfileConfig = {
     growth: false,
     haptics: true,
     notifications: true,
-    firebaseAnalytics: false, // Firebase not installed in mobile-core
-    crashReporting: false, // Firebase not installed in mobile-core
-    performanceMonitoring: false, // Firebase not installed in mobile-core
+    firebaseAnalytics: false, // Firebase not installed in caloric
+    crashReporting: false, // Firebase not installed in caloric
+    performanceMonitoring: false, // Firebase not installed in caloric
     billing: true, // Enable billing system (includes paywall UI)
     i18n: true,
     presence: true,
@@ -71,12 +71,12 @@ export const intakeConfig: AppProfileConfig = {
   },
 
   app: {
-    name: "Mobile Core",
-    slug: "mobile-core",
-    bundleIdentifier: "com.calton24.mobilecore",
-    androidPackage: "com.calton24.mobilecore",
+    name: "Caloric",
+    slug: "caloric",
+    bundleIdentifier: "com.calton24.caloric",
+    androidPackage: "com.calton24.caloric",
     version: "1.0.0",
-    scheme: "mobile-core",
+    scheme: "caloric",
   },
 
   // Environment-specific overrides
@@ -110,18 +110,18 @@ export const intakeConfig: AppProfileConfig = {
         billing: false, // Disable billing in dev (use test mode in staging)
       },
       app: {
-        name: "Mobile Core",
-        slug: "mobile-core-dev",
-        bundleIdentifier: "com.calton24.mobilecore.dev",
-        androidPackage: "com.calton24.mobilecore.dev",
+        name: "Caloric",
+        slug: "caloric-dev",
+        bundleIdentifier: "com.calton24.caloric.dev",
+        androidPackage: "com.calton24.caloric.dev",
       },
     },
     staging: {
       // Supabase config comes from env vars (base config)
       app: {
-        name: "Mobile Core Staging",
-        bundleIdentifier: "com.yourcompany.mobilecore.staging",
-        androidPackage: "com.yourcompany.mobilecore.staging",
+        name: "Caloric Staging",
+        bundleIdentifier: "com.yourcompany.caloric.staging",
+        androidPackage: "com.yourcompany.caloric.staging",
       },
     },
     prod: {

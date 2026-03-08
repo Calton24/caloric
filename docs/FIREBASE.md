@@ -679,7 +679,7 @@ useEffect(() => {
 
 ## Clone Checklist
 
-When cloning mobile-core for a new app with Firebase:
+When cloning caloric for a new app with Firebase:
 
 ### 1. Create Firebase Projects
 

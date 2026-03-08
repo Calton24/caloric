@@ -180,7 +180,7 @@ describe("translations", () => {
     );
     resetI18n();
     await initI18n();
-    expect(i18next.t("app.title", { ns: "common" })).toBe("Mobile Core");
+    expect(i18next.t("app.title", { ns: "common" })).toBe("Caloric");
     expect(i18next.t("auth.signIn", { ns: "common" })).toBe("Sign In");
   });
 

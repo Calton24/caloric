@@ -6,8 +6,8 @@
  *
  * What it does during `npx expo prebuild`:
  *   1. Sets NSSupportsLiveActivities = true in the main app's Info.plist
- *   2. Copies Swift widget sources into ios/MobileCoreWidget/
- *   3. Creates a new "MobileCoreWidget" app-extension target in the Xcode project
+ *   2. Copies Swift widget sources into ios/CaloricWidget/
+ *   3. Creates a new "CaloricWidget" app-extension target in the Xcode project
  *   4. Configures build settings, embed phase, and framework dependencies
  *
  * Uses direct PBX hash manipulation for reliability — the `xcode` library's
@@ -23,13 +23,13 @@ const {
 const path = require("path");
 const fs = require("fs");
 
-const WIDGET_NAME = "MobileCoreWidget";
+const WIDGET_NAME = "CaloricWidget";
 
 // Swift source files for the widget extension
 const WIDGET_SWIFT_FILES = [
-  "MobileCoreActivity.swift",
-  "MobileCoreWidgetBundle.swift",
-  "MobileCoreWidgetLiveActivity.swift",
+  "CaloricActivity.swift",
+  "CaloricWidgetBundle.swift",
+  "CaloricWidgetLiveActivity.swift",
   "FitnessLiveActivity.swift",
   "PedometerLiveActivity.swift",
   "CalorieBudgetLiveActivity.swift",
@@ -488,7 +488,7 @@ function resolveMainBundleId(objects, appName) {
     const bid = configs[key]?.buildSettings?.PRODUCT_BUNDLE_IDENTIFIER;
     if (bid && !bid.includes("$(")) return bid.replace(/"/g, "");
   }
-  return "com.calton24.mobilecore";
+  return "com.calton24.caloric";
 }
 
 function resolveDevTeam(objects) {

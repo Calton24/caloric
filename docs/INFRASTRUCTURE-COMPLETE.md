@@ -1,8 +1,8 @@
-# Mobile Core Infrastructure - Implementation Complete
+# Caloric Infrastructure - Implementation Complete
 
 ## Overview
 
-Mobile Core infrastructure hardening complete. All 4 phases implemented with comprehensive tests.
+Caloric infrastructure hardening complete. All 4 phases implemented with comprehensive tests.
 
 ## File Structure
 
@@ -111,7 +111,7 @@ export class PostHogAnalyticsClient implements AnalyticsClient {
 ```typescript
 import { analytics } from "@/src/infrastructure/analytics";
 
-// Analytics is auto-initialized by MobileCoreProviders.
+// Analytics is auto-initialized by CaloricProviders.
 // Set EXPO_PUBLIC_POSTHOG_API_KEY in .env to enable PostHog.
 
 // Use anywhere
@@ -376,7 +376,7 @@ This enables co-located tests with source files while maintaining backward compa
 2. Set `features.analytics: true` in your config profile
 3. Install in your fork: `npm install posthog-react-native`
 
-Analytics is auto-initialized by `MobileCoreProviders`. No manual setup needed.
+Analytics is auto-initialized by `CaloricProviders`. No manual setup needed.
 
 ```typescript
 import { analytics } from "@/src/infrastructure/analytics";

@@ -1,5 +1,5 @@
 /**
- * Security Tests for Mobile Core
+ * Security Tests for Caloric
  *
  * Verifies:
  * - Service role JWTs are rejected
@@ -154,9 +154,9 @@ describe("Security: Code Pattern Verification", () => {
 
   it("should have __DEV__ guards on debug screens", () => {
     const screens = [
-      "app/(tabs)/mobile-core/maintenance.tsx",
-      "app/(tabs)/mobile-core/growth.tsx",
-      "app/(tabs)/mobile-core/patterns.tsx",
+      "app/(tabs)/caloric/maintenance.tsx",
+      "app/(tabs)/caloric/growth.tsx",
+      "app/(tabs)/caloric/patterns.tsx",
     ];
 
     for (const screen of screens) {

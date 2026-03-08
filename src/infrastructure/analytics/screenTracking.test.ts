@@ -15,8 +15,8 @@ describe("normalisePathname", () => {
   });
 
   it("handles nested groups with remaining segments", () => {
-    expect(normalisePathname("/(tabs)/mobile-core/primitives")).toBe(
-      "/mobile-core/primitives"
+    expect(normalisePathname("/(tabs)/caloric/primitives")).toBe(
+      "/caloric/primitives"
     );
   });
 

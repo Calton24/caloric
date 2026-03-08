@@ -89,7 +89,7 @@ export function DevMenuScreen() {
             marginBottom: theme.spacing.xl,
           }}
         >
-          Mobile Core UI Components
+          Caloric UI Components
         </TText>
 
         {user && (

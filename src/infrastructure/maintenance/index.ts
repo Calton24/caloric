@@ -10,7 +10,7 @@ export {
     setMaintenanceClient
 } from "./maintenance";
 
-// ── Bootstrap (called once in MobileCoreProviders) ──
+// ── Bootstrap (called once in CaloricProviders) ──
 export { getMonitor, initMaintenance, resetMaintenance } from "./factory";
 
 // ── Health monitor ──

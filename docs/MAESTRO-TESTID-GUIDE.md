@@ -122,7 +122,7 @@ maestro --version
 ### 2. Run Full CI Flow (Local)
 
 ```bash
-cd /Users/calton/Coding/Mobile/mobile-core
+cd /Users/calton/Coding/Mobile/caloric
 
 UDID=$(xcrun simctl list devices available | grep -m 1 -E "iPhone 15 Pro" | sed -E 's/.*\(([0-9A-F-]+)\).*/\1/')
 
@@ -139,7 +139,7 @@ SIMULATOR_UDID=$UDID npm run maestro:ci:ios
 🏗️ Building iOS...
 ** BUILD SUCCEEDED **
 📲 Installing iOS app...
-✅ Installed: MobileCoreDev.app
+✅ Installed: Caloric.app
 🧪 Running Maestro...
 ✅ Maestro passed.
 ```
@@ -162,12 +162,12 @@ SIMULATOR_UDID=$UDID npm run maestro:ci:ios
 
 ```yaml
 # 1. Stop app + clear all state (no contamination from previous runs)
-- stopApp: com.calton24.mobilecore.dev
-- clearState: com.calton24.mobilecore.dev
+- stopApp: com.calton24.caloric.dev
+- clearState: com.calton24.caloric.dev
 
 # 2. Launch app fresh
 - launchApp:
-    appId: com.calton24.mobilecore.dev
+    appId: com.calton24.caloric.dev
 
 # 3. Assert: App initialized and React Native bridge is up
 - assertVisible:
@@ -211,7 +211,7 @@ SIMULATOR_UDID=$UDID npm run maestro:ci:ios
 ### ✅ **New (Good) Smoke Test:**
 
 ```yaml
-- clearState: com.calton24.mobilecore
+- clearState: com.calton24.caloric
 - assertVisible:
     id: "app-ready" # Controlled sentinel, only true when app is ready
     timeout: 30000
@@ -260,7 +260,7 @@ xcrun simctl erase all
 Or in smoke test (already included):
 
 ```yaml
-- clearState: com.calton24.mobilecore
+- clearState: com.calton24.caloric
 ```
 
 ---

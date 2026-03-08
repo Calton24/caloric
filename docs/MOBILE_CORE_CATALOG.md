@@ -1,11 +1,11 @@
-# Mobile Core Catalog
+# Caloric Catalog
 
-The **Mobile Core** tab is a live playground for every UI component in the library. It's structured as a multi-screen catalog so demos stay manageable as the component count grows.
+The **Caloric** tab is a live playground for every UI component in the library. It's structured as a multi-screen catalog so demos stay manageable as the component count grows.
 
 ## Architecture
 
 ```
-app/(tabs)/mobile-core/
+app/(tabs)/caloric/
 ├── _layout.tsx        # Stack navigator (headerShown: false)
 ├── index.tsx          # Category menu — 4 cards linking to sub-screens
 ├── primitives.tsx     # Core building blocks demos
@@ -14,7 +14,7 @@ app/(tabs)/mobile-core/
 └── widgets.tsx        # Analytics / data-vis widget demos
 ```
 
-The tab name in `app/(tabs)/_layout.tsx` is `"mobile-core"`, which resolves to the directory automatically via Expo Router.
+The tab name in `app/(tabs)/_layout.tsx` is `"caloric"`, which resolves to the directory automatically via Expo Router.
 
 ## Adding a New Demo
 
@@ -85,7 +85,7 @@ export default function XScreen() {
 
 ## Adding a Brand-New Category
 
-1. Create `app/(tabs)/mobile-core/my-category.tsx`.
+1. Create `app/(tabs)/caloric/my-category.tsx`.
 2. Add the screen to `_layout.tsx`:
    ```tsx
    <Stack.Screen name="my-category" />

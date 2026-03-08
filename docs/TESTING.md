@@ -1,6 +1,6 @@
 # Testing Guide
 
-Comprehensive testing setup for mobile-core with Jest, TypeScript, and React Native Testing Library.
+Comprehensive testing setup for caloric with Jest, TypeScript, and React Native Testing Library.
 
 ## Quick Start
 
@@ -27,7 +27,7 @@ npm run validate
 ## Test Structure
 
 ```
-mobile-core/
+caloric/
 ├── __tests__/           # Test files
 │   ├── setup.ts         # Jest setup
 │   ├── config.test.ts   # Config system tests

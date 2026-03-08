@@ -1,4 +1,4 @@
-# Mobile Core Constitution (v1)
+# Caloric Constitution (v1)
 
 Five rules. Non-negotiable. Enforced by ESLint + PR review.
 
