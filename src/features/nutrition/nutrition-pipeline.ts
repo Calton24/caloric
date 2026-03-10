@@ -16,8 +16,8 @@
 import type { MealEstimate } from "./estimation/estimation.types";
 import { estimateMeal } from "./estimation/portion-estimator.service";
 import {
-  matchFoodItemLocally,
-  matchFoodItems,
+    matchFoodItemLocally,
+    matchFoodItems,
 } from "./matching/food-matcher.service";
 import type { MatchedFoodItem } from "./matching/matching.types";
 import type { MealDraft } from "./nutrition.draft.types";
@@ -150,22 +150,15 @@ export async function runNutritionPipeline(
  * This bridges the new pipeline output into the existing draft → confirm flow.
  */
 export function mealEstimateToDraft(estimate: MealEstimate): MealDraft {
-  // Build a title from the canonical matched names (not raw voice transcription)
+  // Build a title from the user's parsed input (what they actually said/typed).
+  // matchedName is used for nutrition lookup only — it may differ significantly
+  // (e.g., "pavlova milkshake" matched to "chocolate milkshake" in the DB).
   const title =
     estimate.items.length > 0
       ? estimate.items
           .map((i) => {
             const qty = i.parsed.quantity !== 1 ? `${i.parsed.quantity} ` : "";
-            // Prefer parsed.name when it's a recognizable variant of the match
-            // (e.g. plurals like "eggs" for "egg"). Use matchedName when
-            // parsed.name looks like ASR noise (doesn't resemble the match).
-            const pn = i.parsed.name.toLowerCase();
-            const mn = (i.matchedName ?? "").toLowerCase();
-            const nameIsVariant = !mn || pn.includes(mn) || mn.includes(pn);
-            const name = nameIsVariant
-              ? i.parsed.name
-              : i.matchedName || i.parsed.name;
-            return `${qty}${name}`;
+            return `${qty}${i.parsed.name}`;
           })
           .join(", ")
       : estimate.rawInput;

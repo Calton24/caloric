@@ -125,7 +125,7 @@ export default function TrackingLauncherScreen() {
               <TrackingPromptCard
                 key={i}
                 words={prompt.words}
-                onPress={() => router.push("/tracking/voice" as any)}
+                onPress={() => router.push("/(modals)/voice-log" as any)}
               />
             ))}
           </Animated.View>
@@ -165,7 +165,7 @@ export default function TrackingLauncherScreen() {
 
             {/* Mic — primary CTA */}
             <Pressable
-              onPress={() => router.push("/tracking/voice" as any)}
+              onPress={() => router.push("/(modals)/voice-log" as any)}
               style={({ pressed }) => [
                 styles.micBtn,
                 { transform: [{ scale: pressed ? 0.95 : 1 }] },

@@ -148,6 +148,85 @@ const CATEGORY_RULES: {
     patterns: [/sushi|sashimi|maki|nigiri/i],
     isPackaged: false,
   },
+  // ─── Expanded categories for image accuracy ───────
+  {
+    category: "asian",
+    patterns: [
+      /ramen|pho|noodle|dim\s*sum|wonton|bao|gyoza|teriyaki|tempura|pad\s*thai|fried\s*rice|dumplings?|spring\s*roll/i,
+    ],
+    isPackaged: false,
+  },
+  {
+    category: "mexican",
+    patterns: [
+      /taco|burrito|quesadilla|nachos|enchilada|empanada|churro|elote|tamale|chimichanga/i,
+    ],
+    isPackaged: false,
+  },
+  {
+    category: "middle eastern",
+    patterns: [
+      /kebab|doner|shawarma|falafel|hummus|baklava|tabbouleh|pita|kibbeh/i,
+    ],
+    isPackaged: false,
+  },
+  {
+    category: "bowl",
+    patterns: [
+      /poke\s*bowl|buddha\s*bowl|grain\s*bowl|acai\s*bowl|smoothie\s*bowl|burrito\s*bowl/i,
+    ],
+    isPackaged: false,
+  },
+  {
+    category: "dessert",
+    patterns: [
+      /cake|cupcake|brownie|cheesecake|tiramisu|pavlova|mousse|éclair|tart|crème\s*brûlée/i,
+    ],
+    isPackaged: false,
+  },
+  {
+    category: "bakery",
+    patterns: [
+      /croissant|danish|pain\s*au\s*choc|scone|muffin|cinnamon\s*roll|focaccia|ciabatta|pretzel|bagel/i,
+    ],
+    isPackaged: false,
+  },
+  {
+    category: "wings",
+    patterns: [/chicken\s*wings?|buffalo\s*wings|hot\s*wings|bbq\s*wings/i],
+    isPackaged: false,
+  },
+  {
+    category: "seafood",
+    patterns: [
+      /prawn|shrimp|lobster|crab|calamari|oyster|mussel|clam|scallop/i,
+    ],
+    isPackaged: false,
+  },
+  {
+    category: "african",
+    patterns: [/jollof|injera|bobotie|plantain|fufu|egusi|piri\s*piri/i],
+    isPackaged: false,
+  },
+  {
+    category: "european",
+    patterns: [
+      /schnitzel|rosti|goulash|moussaka|pierogi|bratwurst|paella|risotto|quiche/i,
+    ],
+    isPackaged: false,
+  },
+  {
+    category: "comfort food",
+    patterns: [
+      /mac\s*(?:and|&|n)\s*cheese|grilled\s*cheese|corn\s*dog|pulled\s*pork|hot\s*dog|mashed\s*potato/i,
+    ],
+    isPackaged: false,
+  },
+  {
+    category: "condiment",
+    patterns: [/guacamole|salsa|pesto|tzatziki|dressing|gravy/i],
+    isPackaged: true,
+  },
 ];
 
 // ─── Public API ──────────────────────────────────────────────────────────────

@@ -15,6 +15,8 @@ export {
 } from "./extraction/packaged-product-extractor";
 export { classifyFood } from "./extraction/vision-classifier.service";
 export { matchPackagedProduct } from "./matching/packaged-product-matcher";
+export { labelFoodImage } from "./ocr/image-labeling.service";
+export { mapLabelsToFood } from "./ocr/label-food-mapper";
 export { extractTextFromImage } from "./ocr/text-recognition.service";
 export { analyzeImage } from "./pipeline";
 export { chooseMatchRoute } from "./routing/source-router.service";

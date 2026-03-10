@@ -257,6 +257,13 @@ async function searchOffEndpoint(
   }
 }
 
+// Simple in-memory barcode cache to avoid redundant network calls
+const barcodeCache = new Map<
+  string,
+  { result: FoodMatch | null; ts: number }
+>();
+const BARCODE_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
 /**
  * Look up a specific product by barcode.
  *
@@ -266,7 +273,17 @@ async function searchOffEndpoint(
 export async function lookupBarcode(
   barcode: string
 ): Promise<FoodMatch | null> {
+  // Check cache first
+  const cached = barcodeCache.get(barcode);
+  if (cached && Date.now() - cached.ts < BARCODE_CACHE_TTL) {
+    return cached.result;
+  }
+
   const url = `${BASE_URL}/api/v2/product/${encodeURIComponent(barcode)}`;
+
+  // 5-second timeout to avoid hanging on slow networks
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
 
   try {
     const response = await fetch(url, {
@@ -275,6 +292,7 @@ export async function lookupBarcode(
         Accept: "application/json",
         "User-Agent": USER_AGENT,
       },
+      signal: controller.signal,
     });
 
     if (!response.ok) return null;
@@ -290,7 +308,7 @@ export async function lookupBarcode(
     const servingSize = parseServingSize(product);
     const scale = servingSize / 100;
 
-    return {
+    const result: FoodMatch = {
       source: "openfoodfacts",
       sourceId: barcode,
       name: product.product_name ?? `Product ${barcode}`,
@@ -318,8 +336,13 @@ export async function lookupBarcode(
       servingDescription: product.serving_size ?? `${servingSize}g`,
       matchScore: 1.0, // barcode lookup is exact
     };
+
+    barcodeCache.set(barcode, { result, ts: Date.now() });
+    return result;
   } catch (err) {
     console.warn("OFF barcode lookup failed:", err);
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }

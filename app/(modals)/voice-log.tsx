@@ -1,18 +1,19 @@
 /**
  * Voice Logging Screen
  *
- * Pulsing mic button, live transcription area, and confirm flow.
- * Uses expo-speech-recognition to capture meal descriptions.
+ * Seamless voice capture: auto-starts listening on mount,
+ * auto-processes the transcript when speech ends, and navigates
+ * straight to confirm-meal with results. Zero taps needed.
+ *
+ * Flow: Open → Listening → Processing → Confirm Meal
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
     FadeIn,
-    FadeInUp,
     useAnimatedStyle,
     useSharedValue,
     withRepeat,
@@ -30,6 +31,7 @@ export default function VoiceLoggingScreen() {
   const router = useRouter();
   const { startFromInput } = useLoggingFlow();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingError, setProcessingError] = useState<string | null>(null);
   const {
     status,
     transcript,
@@ -41,24 +43,63 @@ export default function VoiceLoggingScreen() {
     retry,
   } = useVoiceCapture();
 
-  // Reset voice state on mount so each session starts fresh
-  const hasReset = useRef(false);
+  // ── Reset store on mount so stale transcript doesn't leak ──────────
+  const hasListenedThisSession = useRef(false);
   useEffect(() => {
-    if (!hasReset.current) {
-      hasReset.current = true;
-      retry(); // calls store.reset()
-    }
+    retry(); // calls store.reset() — clears transcript, status, error
   }, [retry]);
 
-  // Derive the three display states from voice status
-  const displayState =
-    status === "listening" || status === "finalizing"
-      ? "recording"
-      : status === "done"
-        ? "done"
-        : "idle";
+  // ── Auto-start listening on mount ─────────────────────────────────────
+  const hasStarted = useRef(false);
+  useEffect(() => {
+    if (hasStarted.current) return;
+    hasStarted.current = true;
+    // Small delay so the screen animates in and reset completes
+    const t = setTimeout(() => startListening(), 400);
+    return () => clearTimeout(t);
+  }, [startListening]);
 
-  // Pulse animation for recording indicator
+  // Track when listening actually starts in THIS session
+  useEffect(() => {
+    if (isListening) {
+      hasListenedThisSession.current = true;
+    }
+  }, [isListening]);
+
+  // ── Auto-process when speech recognition completes ────────────────────
+  // Only fires after we've listened at least once this session,
+  // preventing stale "done" state from previous sessions from triggering.
+  const hasProcessed = useRef(false);
+  useEffect(() => {
+    if (!hasListenedThisSession.current) return;
+    if (status !== "done" || !transcript.trim() || hasProcessed.current) return;
+    hasProcessed.current = true;
+
+    (async () => {
+      setIsProcessing(true);
+      setProcessingError(null);
+      try {
+        await startFromInput(transcript, "voice");
+      } catch {
+        setIsProcessing(false);
+        setProcessingError("Couldn't look up nutrition. Tap retry.");
+        hasProcessed.current = false;
+      }
+    })();
+  }, [status, transcript, startFromInput]);
+
+  // Derive display state
+  const displayState = isProcessing
+    ? "processing"
+    : processingError
+      ? "error"
+      : status === "listening" || status === "finalizing"
+        ? "listening"
+        : status === "done"
+          ? "processing" // brief moment before auto-process kicks in
+          : "listening"; // idle → we're about to auto-start
+
+  // ── Pulse animation ───────────────────────────────────────────────────
   const pulseScale = useSharedValue(1);
   const pulseOpacity = useSharedValue(0.4);
 
@@ -67,16 +108,15 @@ export default function VoiceLoggingScreen() {
     opacity: pulseOpacity.value,
   }));
 
-  // Drive pulse animation based on listening state
   useEffect(() => {
     if (isListening) {
       pulseScale.value = withRepeat(
-        withTiming(1.3, { duration: 1000 }),
+        withTiming(1.5, { duration: 1000 }),
         -1,
         true
       );
       pulseOpacity.value = withRepeat(
-        withTiming(0.15, { duration: 1000 }),
+        withTiming(0.1, { duration: 1000 }),
         -1,
         true
       );
@@ -86,32 +126,24 @@ export default function VoiceLoggingScreen() {
     }
   }, [isListening, pulseScale, pulseOpacity]);
 
-  const handleMicPress = useCallback(() => {
-    if (displayState === "recording") {
-      stopListening();
-    } else {
-      startListening();
-    }
-  }, [displayState, startListening, stopListening]);
-
-  const handleConfirm = useCallback(async () => {
-    if (!transcript.trim() || isProcessing) return;
-    setIsProcessing(true);
-    try {
-      await startFromInput(transcript, "voice");
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [transcript, startFromInput, isProcessing]);
-
+  // ── Actions ───────────────────────────────────────────────────────────
   const handleRetry = useCallback(() => {
+    setIsProcessing(false);
+    setProcessingError(null);
+    hasProcessed.current = false;
     retry();
-  }, [retry]);
+    // Re-start listening after a brief reset
+    setTimeout(() => startListening(), 200);
+  }, [retry, startListening]);
 
   const handleClose = useCallback(() => {
     cancelListening();
     router.back();
   }, [cancelListening, router]);
+
+  const handleStopEarly = useCallback(() => {
+    stopListening();
+  }, [stopListening]);
 
   return (
     <View
@@ -127,37 +159,47 @@ export default function VoiceLoggingScreen() {
             variant="heading"
             style={[styles.headerTitle, { color: theme.colors.text }]}
           >
-            Voice Log
+            {displayState === "processing" ? "Looking it up…" : "Listening"}
           </TText>
           <View style={{ width: 24 }} />
         </View>
 
-        {/* Transcript area */}
+        {/* Main content area */}
         <View style={styles.transcriptArea}>
-          {displayState === "idle" && (
-            <Animated.View entering={FadeIn.duration(400)}>
-              {error ? (
-                <TText
-                  style={[styles.placeholder, { color: theme.colors.error }]}
-                >
-                  {error}
-                  {"\n\n"}Tap the mic to try again
-                </TText>
-              ) : (
-                <TText
+          {/* Listening state — pulsing mic + live transcript */}
+          {displayState === "listening" && (
+            <Animated.View
+              entering={FadeIn.duration(300)}
+              style={styles.listeningContent}
+            >
+              {/* Animated pulse ring + mic icon */}
+              <View style={styles.micArea}>
+                <Animated.View
                   style={[
-                    styles.placeholder,
-                    { color: theme.colors.textMuted },
+                    styles.pulseRing,
+                    { backgroundColor: theme.colors.primary },
+                    pulseStyle,
                   ]}
-                >
-                  Tap the mic and describe{"\n"}what you ate
-                </TText>
-              )}
-            </Animated.View>
-          )}
+                />
+                <Pressable onPress={handleStopEarly} style={styles.micCircle}>
+                  <View
+                    style={[
+                      styles.micCircleInner,
+                      { backgroundColor: theme.colors.primary },
+                    ]}
+                  >
+                    <Ionicons
+                      name="mic"
+                      size={32}
+                      color={theme.colors.textInverse}
+                    />
+                  </View>
+                </Pressable>
+              </View>
 
-          {displayState === "recording" && (
-            <Animated.View entering={FadeIn.duration(300)}>
+              <TSpacer size="lg" />
+
+              {/* Recording dot + label */}
               <View style={styles.recordingIndicator}>
                 <View
                   style={[
@@ -168,16 +210,24 @@ export default function VoiceLoggingScreen() {
                 <TText
                   style={[styles.recordingLabel, { color: theme.colors.error }]}
                 >
-                  Listening...
+                  Listening
                 </TText>
               </View>
+
               <TSpacer size="md" />
+
+              {/* Live transcript or "speak now" */}
               {transcript ? (
-                <TText
-                  style={[styles.transcriptText, { color: theme.colors.text }]}
-                >
-                  {transcript}
-                </TText>
+                <Animated.View entering={FadeIn.duration(200)}>
+                  <TText
+                    style={[
+                      styles.transcriptText,
+                      { color: theme.colors.text },
+                    ]}
+                  >
+                    {transcript}
+                  </TText>
+                </Animated.View>
               ) : (
                 <TText
                   style={[
@@ -185,20 +235,26 @@ export default function VoiceLoggingScreen() {
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  Speak now...
+                  Describe what you ate…
                 </TText>
               )}
+
+              <TSpacer size="xl" />
+
+              <TText
+                style={[styles.micHint, { color: theme.colors.textMuted }]}
+              >
+                Tap mic to finish early
+              </TText>
             </Animated.View>
           )}
 
-          {displayState === "done" && transcript && (
-            <Animated.View entering={FadeIn.duration(300)}>
-              <TText
-                style={[styles.doneLabel, { color: theme.colors.success }]}
-              >
-                Food detected
-              </TText>
-              <TSpacer size="md" />
+          {/* Processing state — looking up nutrition */}
+          {displayState === "processing" && (
+            <Animated.View
+              entering={FadeIn.duration(300)}
+              style={styles.processingContent}
+            >
               <View
                 style={[
                   styles.transcriptCard,
@@ -211,23 +267,38 @@ export default function VoiceLoggingScreen() {
                   {transcript}
                 </TText>
               </View>
+
+              <TSpacer size="lg" />
+
+              <ActivityIndicator size="large" color={theme.colors.primary} />
               <TSpacer size="md" />
               <TText
-                style={[styles.micHintDone, { color: theme.colors.textMuted }]}
+                style={[
+                  styles.processingLabel,
+                  { color: theme.colors.textMuted },
+                ]}
               >
-                Review your description and tap Confirm
+                Looking up nutrition…
               </TText>
             </Animated.View>
           )}
-        </View>
 
-        {/* Bottom controls */}
-        <Animated.View
-          entering={FadeInUp.duration(400).delay(200)}
-          style={styles.controls}
-        >
-          {displayState === "done" ? (
-            <View style={styles.doneActions}>
+          {/* Error state — retry or close */}
+          {displayState === "error" && (
+            <Animated.View
+              entering={FadeIn.duration(300)}
+              style={styles.errorContent}
+            >
+              <Ionicons
+                name="alert-circle-outline"
+                size={48}
+                color={theme.colors.error}
+              />
+              <TSpacer size="md" />
+              <TText style={[styles.errorTitle, { color: theme.colors.text }]}>
+                {error || processingError || "Something went wrong"}
+              </TText>
+              <TSpacer size="lg" />
               <Pressable
                 onPress={handleRetry}
                 style={[
@@ -237,83 +308,12 @@ export default function VoiceLoggingScreen() {
               >
                 <Ionicons name="refresh" size={20} color={theme.colors.text} />
                 <TText style={[styles.retryText, { color: theme.colors.text }]}>
-                  Retry
+                  Try again
                 </TText>
               </Pressable>
-
-              <Pressable
-                onPress={handleConfirm}
-                disabled={isProcessing}
-                style={[styles.confirmBtn, isProcessing && { opacity: 0.6 }]}
-              >
-                <LinearGradient
-                  colors={[theme.colors.primary, theme.colors.accent]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.confirmGradient}
-                >
-                  {isProcessing ? (
-                    <ActivityIndicator
-                      size="small"
-                      color={theme.colors.textInverse}
-                    />
-                  ) : (
-                    <Ionicons
-                      name="checkmark"
-                      size={20}
-                      color={theme.colors.textInverse}
-                    />
-                  )}
-                  <TText
-                    style={[
-                      styles.confirmText,
-                      { color: theme.colors.textInverse },
-                    ]}
-                  >
-                    {isProcessing ? "Processing..." : "Confirm"}
-                  </TText>
-                </LinearGradient>
-              </Pressable>
-            </View>
-          ) : (
-            <View style={styles.micArea}>
-              {/* Pulse ring */}
-              {displayState === "recording" && (
-                <Animated.View
-                  style={[
-                    styles.pulseRing,
-                    { backgroundColor: theme.colors.primary },
-                    pulseStyle,
-                  ]}
-                />
-              )}
-              <Pressable onPress={handleMicPress} style={styles.micBtn}>
-                <LinearGradient
-                  colors={
-                    displayState === "recording"
-                      ? [theme.colors.error, "#FF4444"]
-                      : [theme.colors.primary, theme.colors.accent]
-                  }
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.micGradient}
-                >
-                  <Ionicons
-                    name={displayState === "recording" ? "stop" : "mic"}
-                    size={36}
-                    color={theme.colors.textInverse}
-                  />
-                </LinearGradient>
-              </Pressable>
-              <TSpacer size="sm" />
-              <TText
-                style={[styles.micHint, { color: theme.colors.textMuted }]}
-              >
-                {displayState === "recording" ? "Tap to stop" : "Tap to speak"}
-              </TText>
-            </View>
+            </Animated.View>
           )}
-        </Animated.View>
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -343,11 +343,33 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  placeholder: {
-    fontSize: 18,
-    textAlign: "center",
-    lineHeight: 28,
-    fontWeight: "500",
+  // ── Listening ──
+  listeningContent: {
+    alignItems: "center",
+    width: "100%",
+  },
+  micArea: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: 100,
+    height: 100,
+  },
+  pulseRing: {
+    position: "absolute",
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+  micCircle: {
+    borderRadius: 40,
+    overflow: "hidden",
+  },
+  micCircleInner: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: "center",
+    justifyContent: "center",
   },
   recordingIndicator: {
     flexDirection: "row",
@@ -364,89 +386,56 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
+  placeholder: {
+    fontSize: 18,
+    textAlign: "center",
+    lineHeight: 28,
+    fontWeight: "500",
+  },
   transcriptText: {
     fontSize: 18,
     textAlign: "center",
     lineHeight: 28,
     fontWeight: "500",
   },
-  doneLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-    textAlign: "center",
+  micHint: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  // ── Processing ──
+  processingContent: {
+    alignItems: "center",
+    width: "100%",
   },
   transcriptCard: {
     borderRadius: 16,
     padding: 20,
     width: "100%",
   },
-  micHintDone: {
-    fontSize: 13,
-    fontWeight: "500",
-    textAlign: "center",
-  },
-  controls: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    alignItems: "center",
-  },
-  micArea: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  pulseRing: {
-    position: "absolute",
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-  },
-  micBtn: {
-    borderRadius: 44,
-    overflow: "hidden",
-  },
-  micGradient: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  micHint: {
-    fontSize: 13,
+  processingLabel: {
+    fontSize: 15,
     fontWeight: "500",
   },
-  doneActions: {
-    flexDirection: "row",
-    gap: 12,
+  // ── Error ──
+  errorContent: {
+    alignItems: "center",
     width: "100%",
   },
+  errorTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+  },
   retryBtn: {
-    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    paddingVertical: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
     borderRadius: 14,
   },
   retryText: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  confirmBtn: {
-    flex: 2,
-    borderRadius: 14,
-    overflow: "hidden",
-  },
-  confirmGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 16,
-    borderRadius: 14,
-  },
-  confirmText: {
     fontSize: 16,
     fontWeight: "600",
   },
