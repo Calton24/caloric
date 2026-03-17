@@ -5,40 +5,40 @@
  */
 
 import {
-    buildConfidenceInsight,
-    buildItemConfidence,
-    computeOverallConfidence,
-    CONFIDENCE_HIGH,
-    CONFIDENCE_LOW,
-    CONFIDENCE_NEEDS_REVIEW,
-    getAmbiguityReason,
-    scoreParserConfidence,
-    scorePortionConfidence,
+  buildConfidenceInsight,
+  buildItemConfidence,
+  computeOverallConfidence,
+  CONFIDENCE_HIGH,
+  CONFIDENCE_LOW,
+  CONFIDENCE_NEEDS_REVIEW,
+  getAmbiguityReason,
+  scoreParserConfidence,
+  scorePortionConfidence,
 } from "../src/features/nutrition/estimation/confidence.service";
 import {
-    estimateFoodItem,
-    estimateMeal,
+  estimateFoodItem,
+  estimateMeal,
 } from "../src/features/nutrition/estimation/portion-estimator.service";
 import { rankCandidates } from "../src/features/nutrition/matching/candidate-ranker";
 import {
-    isCaloriePlausibleForFood,
-    matchFoodItemLocally,
-    singularize,
+  isCaloriePlausibleForFood,
+  matchFoodItemLocally,
+  singularize,
 } from "../src/features/nutrition/matching/food-matcher.service";
 import type {
-    FoodMatch,
-    MatchedFoodItem,
+  FoodMatch,
+  MatchedFoodItem,
 } from "../src/features/nutrition/matching/matching.types";
 import {
-    buildOntologyMatch,
-    routeSource,
+  buildOntologyMatch,
+  routeSource,
 } from "../src/features/nutrition/matching/source-router";
 import { mealEstimateToDraft } from "../src/features/nutrition/nutrition-pipeline";
 import { buildMealEntryFromDraft } from "../src/features/nutrition/nutrition.helpers";
 import {
-    detectBrandedIntent,
-    detectModifiers,
-    lookupOntology,
+  detectBrandedIntent,
+  detectModifiers,
+  lookupOntology,
 } from "../src/features/nutrition/ontology/food-ontology";
 import type { ParsedFoodItem } from "../src/features/nutrition/parsing/food-candidate.schema";
 import { groupFoodPhrases } from "../src/features/nutrition/parsing/phrase-grouper";
@@ -48,8 +48,8 @@ import { cleanTranscript } from "../src/features/nutrition/parsing/transcript-cl
 // ─── Recipe Templates ────────────────────────────────────────────────────────
 
 import {
-    buildRecipeMatch,
-    lookupRecipeTemplate,
+  buildRecipeMatch,
+  lookupRecipeTemplate,
 } from "../src/features/nutrition/ontology/recipe-templates";
 
 // ─── Food Aliases (Multilingual) ─────────────────────────────────────────────
@@ -59,8 +59,8 @@ import { translateFoodAlias } from "../src/features/nutrition/ontology/food-alia
 // ─── Food Emoji ──────────────────────────────────────────────────────────────
 
 import {
-    getFoodEmoji,
-    getMealEmoji,
+  getFoodEmoji,
+  getMealEmoji,
 } from "../src/features/nutrition/ontology/food-emoji";
 
 // ─── Regex Parser ────────────────────────────────────────────────────────────
@@ -1376,7 +1376,7 @@ describe("recipe templates", () => {
   });
 
   it("covers common regional dishes", () => {
-    const dishes = [
+    [
       "goulash",
       "moussaka",
       "biryani",

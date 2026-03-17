@@ -11,6 +11,7 @@
 import AppleHealthKit, {
     HealthInputOptions,
     HealthKitPermissions,
+    HealthUnit,
     HealthValue,
 } from "react-native-health";
 
@@ -24,11 +25,11 @@ const PERMISSIONS: HealthKitPermissions = {
   permissions: {
     read: [
       AppleHealthKit.Constants.Permissions.Weight,
-      AppleHealthKit.Constants.Permissions.DietaryEnergyConsumed,
+      AppleHealthKit.Constants.Permissions.EnergyConsumed,
     ],
     write: [
       AppleHealthKit.Constants.Permissions.Weight,
-      AppleHealthKit.Constants.Permissions.DietaryEnergyConsumed,
+      AppleHealthKit.Constants.Permissions.EnergyConsumed,
     ],
   },
 };
@@ -94,7 +95,7 @@ export class AppleHealthService implements HealthService {
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
       ascending: true,
-      unit: "pound",
+      unit: HealthUnit.pound,
     };
 
     const samples = await promisify<HealthValue[]>(
@@ -105,7 +106,7 @@ export class AppleHealthService implements HealthService {
     return samples.map((s) => ({
       startDate: s.startDate,
       value: s.value,
-      sourceName: (s as Record<string, unknown>).sourceName as
+      sourceName: (s as unknown as Record<string, unknown>).sourceName as
         | string
         | undefined,
     }));
@@ -116,7 +117,7 @@ export class AppleHealthService implements HealthService {
 
     return new Promise((resolve, reject) => {
       AppleHealthKit.saveWeight(
-        { value: weightLbs, unit: "pound" },
+        { value: weightLbs, unit: HealthUnit.pound },
         (err: string) => {
           if (err) reject(new Error(err));
           else resolve();
@@ -164,7 +165,7 @@ export class AppleHealthService implements HealthService {
           startDate: startDate.toISOString(),
           // roact-native-health types don't expose all options, cast
         } as Record<string, unknown>,
-        (err: Object, _result: HealthValue) => {
+        (err: string, _result: HealthValue) => {
           if (err) reject(new Error(String(err)));
           else resolve();
         }

@@ -109,7 +109,7 @@ function GlassTabLayout() {
         tabBar={(props) => <GlassTabBar {...props} />}
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: theme.colors.background },
+          sceneStyle: { backgroundColor: theme.colors.background },
         }}
       >
         {TABS.map((t) => (

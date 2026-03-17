@@ -86,10 +86,7 @@ describe("Pipeline Efficiency — skipLlm option", () => {
   });
 
   it("still calls LLM for voice input", async () => {
-    const result = await parseNutritionInput(
-      "I had a chicken sandwich",
-      "voice"
-    );
+    await parseNutritionInput("I had a chicken sandwich", "voice");
 
     expect(mockParseWithLocalLlm).toHaveBeenCalledTimes(1);
   });

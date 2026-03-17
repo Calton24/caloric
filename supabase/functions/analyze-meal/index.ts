@@ -195,7 +195,7 @@ serve(async (req: Request) => {
     return jsonResponse({ error: "Method not allowed" }, 405);
   }
 
-  const startTime = Date.now();
+  const _startTime = Date.now();
 
   try {
     // ── Auth ──
