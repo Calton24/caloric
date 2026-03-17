@@ -19,9 +19,16 @@ export { labelFoodImage } from "./ocr/image-labeling.service";
 export { mapLabelsToFood } from "./ocr/label-food-mapper";
 export { extractTextFromImage } from "./ocr/text-recognition.service";
 export { analyzeImage } from "./pipeline";
+export { rerankCandidates } from "./reranking/constrained-reranker.service";
 export { chooseMatchRoute } from "./routing/source-router.service";
 export { triageImage } from "./triage/image-triage.service";
+export { runVisionPipeline } from "./vision-pipeline";
 
+export type {
+    ConfidenceLevel,
+    ConstrainedRankingResult,
+    RankedCandidate
+} from "./reranking/constrained-reranker.service";
 export type {
     EvidenceBundle,
     ImageAnalysisResult,
@@ -35,3 +42,4 @@ export type {
     VisualClassification
 } from "./types";
 
+export type { VisionCandidate, VisionPipelineResult } from "./vision-pipeline";

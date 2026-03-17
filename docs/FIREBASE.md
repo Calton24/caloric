@@ -353,14 +353,14 @@ Add build hooks to each profile:
   "build": {
     "intake-dev": {
       "env": {
-        "EXPO_PUBLIC_APP_PROFILE": "intake",
+        "EXPO_PUBLIC_APP_PROFILE": "caloric",
         "EXPO_PUBLIC_APP_ENV": "dev"
       },
       "prebuildCommand": "./scripts/eas-build-firebase-setup.sh"
     },
     "intake-prod": {
       "env": {
-        "EXPO_PUBLIC_APP_PROFILE": "intake",
+        "EXPO_PUBLIC_APP_PROFILE": "caloric",
         "EXPO_PUBLIC_APP_ENV": "prod"
       },
       "prebuildCommand": "./scripts/eas-build-firebase-setup.sh"
@@ -435,7 +435,7 @@ Your `eas.json` should look like this:
     "intake-dev": {
       "extends": "development",
       "env": {
-        "EXPO_PUBLIC_APP_PROFILE": "intake",
+        "EXPO_PUBLIC_APP_PROFILE": "caloric",
         "EXPO_PUBLIC_APP_ENV": "dev"
       },
       "prebuildCommand": "./scripts/eas-build-firebase-setup.sh",
@@ -450,7 +450,7 @@ Your `eas.json` should look like this:
     "intake-staging": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_APP_PROFILE": "intake",
+        "EXPO_PUBLIC_APP_PROFILE": "caloric",
         "EXPO_PUBLIC_APP_ENV": "staging"
       },
       "prebuildCommand": "./scripts/eas-build-firebase-setup.sh"
@@ -459,7 +459,7 @@ Your `eas.json` should look like this:
     "intake-prod": {
       "distribution": "store",
       "env": {
-        "EXPO_PUBLIC_APP_PROFILE": "intake",
+        "EXPO_PUBLIC_APP_PROFILE": "caloric",
         "EXPO_PUBLIC_APP_ENV": "prod"
       },
       "prebuildCommand": "./scripts/eas-build-firebase-setup.sh",

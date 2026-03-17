@@ -35,6 +35,7 @@ export interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<{ error: Error | null }>;
+  deleteAccount: () => Promise<{ error: Error | null }>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
   updatePassword: (newPassword: string) => Promise<{ error: Error | null }>;
   exchangeCodeForSession: (code: string) => Promise<{ error: Error | null }>;
@@ -139,6 +140,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return { error };
   }, []);
 
+  const deleteAccount = useCallback(async () => {
+    analytics.track("account_deleted");
+    const { error } = await authClient.deleteAccount();
+    if (!error) {
+      setUser(null);
+      setSession(null);
+    }
+    return { error };
+  }, []);
+
   const resetPassword = useCallback(async (email: string) => {
     return await authClient.resetPasswordForEmail(email);
   }, []);
@@ -162,6 +173,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     signIn,
     signUp,
     signOut,
+    deleteAccount,
     resetPassword,
     updatePassword,
     exchangeCodeForSession,

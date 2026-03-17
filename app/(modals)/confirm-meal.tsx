@@ -11,8 +11,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+    Modal,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -25,6 +26,13 @@ import Animated, {
     FadeInUp,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import {
+    getLastScanEventId,
+    markScanConfirmed,
+    recordScanEvent,
+    submitScanCorrection,
+    type ScanSource,
+} from "../../src/features/feedback/scan-feedback.service";
 import { calculatePortionNutrients } from "../../src/features/image-analysis";
 import type {
     ImageAnalysisResult,
@@ -35,19 +43,152 @@ import {
     CONFIDENCE_NEEDS_REVIEW,
 } from "../../src/features/nutrition/estimation/confidence.service";
 import type { EstimatedFoodItem } from "../../src/features/nutrition/estimation/estimation.types";
+import {
+    MEALTIME_ICONS,
+    MEALTIME_LABELS,
+    detectMealTime,
+    type MealTime,
+} from "../../src/features/nutrition/mealtime";
+import {
+    captureOriginalEstimate,
+    clearOriginalEstimate,
+    trackCorrection,
+} from "../../src/features/nutrition/memory/correction-tracker";
+import { displayName } from "../../src/features/nutrition/nutrition-pipeline";
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
 import { useTheme } from "../../src/theme/useTheme";
+import { ReportFoodSheet } from "../../src/ui/feedback/ReportFoodSheet";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+import { useBottomSheet } from "../../src/ui/sheets/useBottomSheet";
 
 export default function ConfirmMealScreen() {
   const { theme } = useTheme();
   const router = useRouter();
   const { draft, updateDraft, saveDraftAsMeal, clearDraft } = useLoggingFlow();
+  const { open: openSheet } = useBottomSheet();
+
+  // More menu visibility
+  const [showMenu, setShowMenu] = useState(false);
+
+  // Track scan event ID for linking reports/corrections
+  const scanEventIdRef = useRef<string | null>(null);
+
+  // Initialize mealtime from draft or auto-detect
+  const [mealTime, setMealTime] = useState<MealTime>(
+    () => draft?.mealTime ?? detectMealTime()
+  );
+
+  // Sync mealTime changes back to draft
+  const handleMealTimeChange = useCallback(
+    (mt: MealTime) => {
+      setMealTime(mt);
+      updateDraft({ mealTime: mt });
+    },
+    [updateDraft]
+  );
+
+  // Set mealTime on draft if not already set
+  useEffect(() => {
+    if (draft && !draft.mealTime) {
+      updateDraft({ mealTime: mealTime });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Capture the pipeline's original estimate when screen loads
+  // and record a scan event for the feedback loop
+  const hasCaptured = useRef(false);
+  useEffect(() => {
+    if (draft && !hasCaptured.current) {
+      captureOriginalEstimate(draft);
+      hasCaptured.current = true;
+
+      // Fire-and-forget: record this scan for the feedback loop
+      recordScanEvent({
+        source: (draft.source ?? "text") as ScanSource,
+        rawInput: draft.rawInput,
+        matchedResult: draft.estimatedItems?.[0]
+          ? {
+              matchedName: draft.estimatedItems[0].matchedName,
+              matchSource: draft.estimatedItems[0].matchSource,
+              matchId: draft.estimatedItems[0].matchId,
+            }
+          : undefined,
+        finalFoodName: draft.title,
+        finalCalories: draft.calories,
+        finalProtein: draft.protein,
+        finalCarbs: draft.carbs,
+        finalFat: draft.fat,
+        confidence: draft.confidence,
+      }).then((id) => {
+        scanEventIdRef.current = id;
+      });
+    }
+    return () => {
+      // If user dismisses without confirming, clear the snapshot
+      if (hasCaptured.current) clearOriginalEstimate();
+    };
+  }, [draft]);
 
   const handleConfirm = useCallback(() => {
+    // Track any corrections before saving
+    const correction = draft ? trackCorrection(draft) : null;
+
+    // Persist confirmation + corrections to Supabase (fire-and-forget)
+    const eventId = scanEventIdRef.current ?? getLastScanEventId();
+    if (eventId) {
+      markScanConfirmed(eventId, correction?.wasEdited ?? false, {
+        foodName: draft?.title ?? "",
+        calories: draft?.calories ?? 0,
+        protein: draft?.protein ?? 0,
+        carbs: draft?.carbs ?? 0,
+        fat: draft?.fat ?? 0,
+      });
+
+      // If user edited values, store the correction as ground truth
+      if (correction?.wasEdited) {
+        submitScanCorrection({
+          scanEventId: eventId,
+          originalFoodName: correction.original.title,
+          originalMacros: {
+            calories: correction.original.calories,
+            protein: correction.original.protein,
+            carbs: correction.original.carbs,
+            fat: correction.original.fat,
+          },
+          correctedFoodName: correction.confirmed.title,
+          correctedMacros: {
+            calories: correction.confirmed.calories,
+            protein: correction.confirmed.protein,
+            carbs: correction.confirmed.carbs,
+            fat: correction.confirmed.fat,
+          },
+        });
+      }
+    }
+
     saveDraftAsMeal();
-  }, [saveDraftAsMeal]);
+  }, [saveDraftAsMeal, draft]);
+
+  /** Open the Report Food bottom sheet */
+  const handleReportFood = useCallback(() => {
+    setShowMenu(false);
+    openSheet(
+      <ReportFoodSheet
+        scanEventId={scanEventIdRef.current ?? undefined}
+        foodName={draft?.title}
+      />,
+      { snapPoints: ["65%"] }
+    );
+  }, [openSheet, draft?.title]);
+
+  /** Delete food and dismiss */
+  const handleDeleteFood = useCallback(() => {
+    setShowMenu(false);
+    clearDraft();
+    router.dismiss();
+  }, [clearDraft, router]);
 
   /**
    * Update a single item's nutrients and recalculate totals.
@@ -115,8 +256,10 @@ export default function ConfirmMealScreen() {
           ? updatedItems
               .map((i) => {
                 const qty =
-                  i.parsed.quantity !== 1 ? `${i.parsed.quantity} ` : "";
-                return `${qty}${i.parsed.name}`;
+                  (i.parsed?.quantity ?? 1) !== 1
+                    ? `${i.parsed?.quantity} `
+                    : "";
+                return `${qty}${displayName(i)}`;
               })
               .join(", ")
           : draft.title;
@@ -252,6 +395,140 @@ export default function ConfirmMealScreen() {
 
   const hasItems = draft.estimatedItems && draft.estimatedItems.length > 0;
 
+  // ── No database match guard ──────────────────────────────────────────────
+  // When every item is a generic fallback (matchId "unknown"), the nutrition
+  // data is meaningless — show a simple retry screen instead.
+  const allItemsUnmatched =
+    hasItems && draft.estimatedItems!.every((i) => i.matchId === "unknown");
+
+  if (allItemsUnmatched) {
+    return (
+      <View
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+      >
+        <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Pressable
+              onPress={() => {
+                clearDraft();
+                router.dismiss();
+              }}
+              hitSlop={12}
+            >
+              <Ionicons
+                name="chevron-back"
+                size={24}
+                color={theme.colors.text}
+              />
+            </Pressable>
+            <TText
+              variant="heading"
+              style={[styles.headerTitle, { color: theme.colors.text }]}
+            >
+              No Match
+            </TText>
+            <View style={{ width: 24 }} />
+          </View>
+
+          <View style={styles.emptyState}>
+            <View
+              style={[
+                styles.noMatchIcon,
+                { backgroundColor: theme.colors.surfaceSecondary },
+              ]}
+            >
+              <Ionicons
+                name="search-outline"
+                size={40}
+                color={theme.colors.textMuted}
+              />
+            </View>
+            <TSpacer size="md" />
+
+            <TText
+              variant="heading"
+              style={[styles.emptyTitle, { color: theme.colors.text }]}
+            >
+              No match found
+            </TText>
+            <TSpacer size="sm" />
+
+            <TText
+              style={{
+                fontSize: 15,
+                textAlign: "center",
+                color: theme.colors.textMuted,
+                lineHeight: 22,
+                paddingHorizontal: 16,
+              }}
+            >
+              We couldn{"'"}t find{" "}
+              <TText style={{ fontWeight: "600", color: theme.colors.text }}>
+                {"\u201C"}
+                {draft.rawInput || draft.title}
+                {"\u201D"}
+              </TText>{" "}
+              in our database. Try again or type it in.
+            </TText>
+
+            <TSpacer size="lg" />
+
+            {/* Retry (voice) */}
+            <Pressable
+              onPress={() => {
+                clearDraft();
+                router.dismiss();
+                setTimeout(() => {
+                  router.push("/(modals)/voice-log" as any);
+                }, 100);
+              }}
+              style={[
+                styles.noMatchBtn,
+                { backgroundColor: theme.colors.surfaceSecondary },
+              ]}
+            >
+              <Ionicons
+                name="mic-outline"
+                size={20}
+                color={theme.colors.primary}
+              />
+              <TText
+                style={[styles.noMatchBtnText, { color: theme.colors.primary }]}
+              >
+                Try Again with Voice
+              </TText>
+            </Pressable>
+
+            <TSpacer size="sm" />
+
+            {/* Type it in */}
+            <Pressable
+              onPress={() => {
+                clearDraft();
+                router.dismiss();
+                setTimeout(() => {
+                  router.push("/(modals)/manual-log" as any);
+                }, 100);
+              }}
+              style={[
+                styles.noMatchBtn,
+                {
+                  backgroundColor: theme.colors.primary,
+                },
+              ]}
+            >
+              <Ionicons name="create-outline" size={20} color="#FFF" />
+              <TText style={[styles.noMatchBtnText, { color: "#FFF" }]}>
+                Type It In
+              </TText>
+            </Pressable>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
   return (
     <View
       style={[styles.container, { backgroundColor: theme.colors.background }]}
@@ -274,8 +551,68 @@ export default function ConfirmMealScreen() {
           >
             Confirm Meal
           </TText>
-          <View style={{ width: 24 }} />
+          <Pressable onPress={() => setShowMenu(true)} hitSlop={12}>
+            <Ionicons
+              name="ellipsis-horizontal"
+              size={22}
+              color={theme.colors.text}
+            />
+          </Pressable>
         </View>
+
+        {/* More menu (dropdown) */}
+        <Modal
+          visible={showMenu}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowMenu(false)}
+        >
+          <Pressable
+            style={styles.menuOverlay}
+            onPress={() => setShowMenu(false)}
+          >
+            <View
+              style={[
+                styles.menuDropdown,
+                {
+                  backgroundColor: theme.colors.surface,
+                  shadowColor: "#000",
+                },
+              ]}
+            >
+              <Pressable style={styles.menuItem} onPress={handleReportFood}>
+                <Ionicons
+                  name="flag-outline"
+                  size={18}
+                  color={theme.colors.text}
+                />
+                <TText
+                  style={[styles.menuItemText, { color: theme.colors.text }]}
+                >
+                  Report Food
+                </TText>
+              </Pressable>
+              <View
+                style={[
+                  styles.menuDivider,
+                  { backgroundColor: theme.colors.border },
+                ]}
+              />
+              <Pressable style={styles.menuItem} onPress={handleDeleteFood}>
+                <Ionicons
+                  name="trash-outline"
+                  size={18}
+                  color={theme.colors.error}
+                />
+                <TText
+                  style={[styles.menuItemText, { color: theme.colors.error }]}
+                >
+                  Delete Food
+                </TText>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Modal>
 
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -337,6 +674,80 @@ export default function ConfirmMealScreen() {
                       : "Manual"}
                 </TText>
               </View>
+
+              {/* AI Vision badge when image analysis was used */}
+              {draft.source === "camera" && draft.imageAnalysis && (
+                <View
+                  style={[
+                    styles.sourcePill,
+                    { backgroundColor: "#8B5CF6" + "14" },
+                  ]}
+                >
+                  <Ionicons name="eye" size={12} color="#8B5CF6" />
+                  <TText style={[styles.sourceLabel, { color: "#8B5CF6" }]}>
+                    AI Vision
+                  </TText>
+                </View>
+              )}
+
+              {/* Data source summary badge */}
+              {draft.estimatedItems && draft.estimatedItems.length > 0 && (
+                <View
+                  style={[
+                    styles.sourcePill,
+                    { backgroundColor: "#10B981" + "14" },
+                  ]}
+                >
+                  <Ionicons name="server-outline" size={12} color="#10B981" />
+                  <TText style={[styles.sourceLabel, { color: "#10B981" }]}>
+                    {getDataSources(draft.estimatedItems)}
+                  </TText>
+                </View>
+              )}
+            </View>
+            <TSpacer size="sm" />
+            {/* Mealtime selector */}
+            <View style={styles.mealtimeRow}>
+              {(["breakfast", "lunch", "dinner", "snack"] as const).map(
+                (mt) => (
+                  <Pressable
+                    key={mt}
+                    onPress={() => handleMealTimeChange(mt)}
+                    style={[
+                      styles.mealtimePill,
+                      {
+                        backgroundColor:
+                          mealTime === mt
+                            ? theme.colors.primary + "22"
+                            : theme.colors.surfaceElevated,
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name={MEALTIME_ICONS[mt] as any}
+                      size={14}
+                      color={
+                        mealTime === mt
+                          ? theme.colors.primary
+                          : theme.colors.textMuted
+                      }
+                    />
+                    <TText
+                      style={[
+                        styles.mealtimeLabel,
+                        {
+                          color:
+                            mealTime === mt
+                              ? theme.colors.primary
+                              : theme.colors.textMuted,
+                        },
+                      ]}
+                    >
+                      {MEALTIME_LABELS[mt]}
+                    </TText>
+                  </Pressable>
+                )
+              )}
             </View>
           </Animated.View>
 
@@ -380,7 +791,9 @@ export default function ConfirmMealScreen() {
               <TSpacer size="sm" />
 
               {draft.estimatedItems!.map((item, index) => (
-                <React.Fragment key={`${item.parsed.name}-${index}`}>
+                <React.Fragment
+                  key={`${item.parsed?.name ?? item.matchedName ?? "item"}-${index}`}
+                >
                   <EditableFoodItemCard
                     item={item}
                     index={index}
@@ -563,42 +976,64 @@ export default function ConfirmMealScreen() {
           <TSpacer size="xxl" />
         </ScrollView>
 
-        {/* Confirm button */}
+        {/* Bottom action bar */}
         <Animated.View
           entering={FadeInUp.duration(400).delay(300)}
           style={styles.bottomAction}
         >
-          <Pressable
-            onPress={handleConfirm}
-            style={({ pressed }) => [
-              styles.confirmBtn,
-              {
-                opacity: pressed ? 0.9 : 1,
-                transform: [{ scale: pressed ? 0.98 : 1 }],
-              },
-            ]}
-          >
-            <LinearGradient
-              colors={[theme.colors.primary, theme.colors.accent]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.confirmGradient}
+          <View style={styles.bottomActionRow}>
+            {/* Fix Issue */}
+            <Pressable
+              onPress={handleReportFood}
+              style={({ pressed }) => [
+                styles.fixIssueBtn,
+                {
+                  borderColor: theme.colors.border,
+                  opacity: pressed ? 0.8 : 1,
+                },
+              ]}
             >
               <Ionicons
-                name="checkmark-circle"
-                size={22}
-                color={theme.colors.textInverse}
+                name="sparkles-outline"
+                size={18}
+                color={theme.colors.text}
               />
               <TText
-                style={[
-                  styles.confirmText,
-                  { color: theme.colors.textInverse },
-                ]}
+                style={[styles.fixIssueText, { color: theme.colors.text }]}
               >
-                Confirm & Log
+                Fix Issue
               </TText>
-            </LinearGradient>
-          </Pressable>
+            </Pressable>
+
+            {/* Confirm & Log */}
+            <Pressable
+              onPress={handleConfirm}
+              style={({ pressed }) => [
+                styles.confirmBtn,
+                styles.confirmBtnFlex,
+                {
+                  opacity: pressed ? 0.9 : 1,
+                  transform: [{ scale: pressed ? 0.98 : 1 }],
+                },
+              ]}
+            >
+              <LinearGradient
+                colors={[theme.colors.primary, theme.colors.accent]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.confirmGradient}
+              >
+                <TText
+                  style={[
+                    styles.confirmText,
+                    { color: theme.colors.textInverse },
+                  ]}
+                >
+                  Done
+                </TText>
+              </LinearGradient>
+            </Pressable>
+          </View>
         </Animated.View>
       </SafeAreaView>
     </View>
@@ -1061,6 +1496,45 @@ function ConfidenceBadge({
   );
 }
 
+// ─── Source Badge ──────────────────────────────────────────
+const SOURCE_BADGE_CONFIG: Record<
+  string,
+  { label: string; icon: string; color: string }
+> = {
+  dataset: { label: "USDA DB", icon: "server", color: "#10B981" },
+  usda: { label: "USDA API", icon: "cloud", color: "#3B82F6" },
+  openfoodfacts: { label: "OFF", icon: "globe", color: "#F59E0B" },
+  edamam: { label: "Edamam", icon: "nutrition", color: "#8B5CF6" },
+  "local-fallback": {
+    label: "Local",
+    icon: "phone-portrait",
+    color: "#6B7280",
+  },
+  "recipe-template": { label: "Recipe", icon: "book", color: "#EC4899" },
+  "personal-history": { label: "History", icon: "time", color: "#14B8A6" },
+  branded: { label: "Branded", icon: "pricetag", color: "#F97316" },
+};
+
+function SourceBadge({ matchSource }: { matchSource: string }) {
+  const { theme } = useTheme();
+  const config = SOURCE_BADGE_CONFIG[matchSource] ?? {
+    label: matchSource,
+    icon: "help-circle",
+    color: theme.colors.textMuted,
+  };
+
+  return (
+    <View
+      style={[styles.itemSourceBadge, { backgroundColor: config.color + "14" }]}
+    >
+      <Ionicons name={config.icon as any} size={10} color={config.color} />
+      <TText style={[styles.itemSourceText, { color: config.color }]}>
+        {config.label}
+      </TText>
+    </View>
+  );
+}
+
 // ─── Editable Food Item Card ───────────────────────────────
 function EditableFoodItemCard({
   item,
@@ -1113,9 +1587,11 @@ function EditableFoodItemCard({
               style={[styles.foodItemName, { color: theme.colors.text }]}
               numberOfLines={1}
             >
-              {item.parsed.quantity !== 1 ? `${item.parsed.quantity} ` : ""}
-              {item.parsed.name}
-              {item.parsed.preparation ? ` (${item.parsed.preparation})` : ""}
+              {(item.parsed?.quantity ?? 1) !== 1
+                ? `${item.parsed?.quantity} `
+                : ""}
+              {displayName(item)}
+              {item.parsed?.preparation ? ` (${item.parsed.preparation})` : ""}
             </TText>
             <TText
               style={[styles.itemCardSub, { color: theme.colors.textMuted }]}
@@ -1125,6 +1601,9 @@ function EditableFoodItemCard({
                 : `${confidencePct}% confidence`}{" "}
               • {item.matchedName}
             </TText>
+            <View style={styles.sourceBadgeRow}>
+              <SourceBadge matchSource={item.matchSource} />
+            </View>
           </View>
         </View>
         <View style={styles.itemCardRight}>
@@ -1382,7 +1861,12 @@ function getDataSources(items: EstimatedFoodItem[]): string {
   const labels: Record<string, string> = {
     usda: "USDA",
     openfoodfacts: "Open Food Facts",
+    edamam: "Edamam",
+    dataset: "USDA Dataset",
     "local-fallback": "local estimates",
+    "recipe-template": "recipes",
+    "personal-history": "history",
+    branded: "branded",
   };
   return Array.from(sources)
     .map((s) => labels[s] ?? s)
@@ -1409,7 +1893,10 @@ function buildMealInsight(
 
   // Build meal-level summary
   const itemNames = items
-    .map((i) => i.parsed.name.charAt(0).toUpperCase() + i.parsed.name.slice(1))
+    .map((i) => {
+      const n = displayName(i);
+      return n.charAt(0).toUpperCase() + n.slice(1);
+    })
     .join(", ");
 
   let summary: string;
@@ -1474,6 +1961,8 @@ const styles = StyleSheet.create({
   sourceRow: {
     flexDirection: "row",
     alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6,
   },
   sourcePill: {
     flexDirection: "row",
@@ -1486,6 +1975,22 @@ const styles = StyleSheet.create({
   sourceLabel: {
     fontSize: 12,
     fontWeight: "600",
+  },
+  mealtimeRow: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  mealtimePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  mealtimeLabel: {
+    fontSize: 12,
+    fontWeight: "500",
   },
   sectionLabel: {
     fontSize: 12,
@@ -1558,6 +2063,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 12,
   },
+  bottomActionRow: {
+    flexDirection: "row",
+    gap: 12,
+    alignItems: "center",
+  },
+  fixIssueBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  fixIssueText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
   confirmBtn: {
     borderRadius: 16,
     overflow: "hidden",
@@ -1566,6 +2090,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 6,
+  },
+  confirmBtnFlex: {
+    flex: 1,
   },
   confirmGradient: {
     flexDirection: "row",
@@ -1578,6 +2105,39 @@ const styles = StyleSheet.create({
   confirmText: {
     fontSize: 17,
     fontWeight: "700",
+  },
+  // More menu
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "flex-start",
+    alignItems: "flex-end",
+    paddingTop: 60,
+    paddingRight: 20,
+  },
+  menuDropdown: {
+    borderRadius: 14,
+    paddingVertical: 6,
+    minWidth: 180,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  menuItemText: {
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  menuDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: 12,
   },
   emptyState: {
     flex: 1,
@@ -1595,6 +2155,27 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   emptyBtnText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  // ── No-match screen ──
+  noMatchIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  noMatchBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    width: "100%",
+    paddingVertical: 16,
+    borderRadius: 14,
+  },
+  noMatchBtnText: {
     fontSize: 16,
     fontWeight: "600",
   },
@@ -1650,6 +2231,25 @@ const styles = StyleSheet.create({
   itemCardSub: {
     fontSize: 11,
     fontWeight: "400",
+  },
+  sourceBadgeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 4,
+    marginTop: 3,
+  },
+  itemSourceBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  itemSourceText: {
+    fontSize: 9,
+    fontWeight: "600",
+    letterSpacing: 0.3,
   },
   itemCardRight: {
     flexDirection: "row",

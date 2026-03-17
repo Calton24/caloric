@@ -22,9 +22,10 @@ import Animated, {
     withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme } from "../../src/theme/useTheme";
-import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
+import { useUnits } from "../../hooks/useUnits";
 import { useGoalsStore } from "../../src/features/goals/goals.store";
+import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
+import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
@@ -87,6 +88,7 @@ function FloatingEmoji({
 
 export default function OnboardingCompleteScreen() {
   const { theme } = useTheme();
+  const units = useUnits();
   const router = useRouter();
   const { completeOnboarding, profile } = useOnboarding();
   const plan = useGoalsStore((s) => s.plan);
@@ -186,7 +188,7 @@ export default function OnboardingCompleteScreen() {
               },
               {
                 icon: "trending-down-outline" as const,
-                label: `${profile.goalWeightLbs ?? "—"} lbs goal`,
+                label: `${units.format(profile.goalWeightLbs ?? 0, 0)} goal`,
                 color: theme.colors.success,
               },
               {
@@ -212,7 +214,10 @@ export default function OnboardingCompleteScreen() {
         >
           <Pressable
             testID="onboarding-done"
-            onPress={() => { completeOnboarding(); router.replace("/permissions" as any); }}
+            onPress={() => {
+              completeOnboarding();
+              router.replace("/permissions" as any);
+            }}
             style={({ pressed }) => ({
               opacity: pressed ? 0.9 : 1,
               transform: [{ scale: pressed ? 0.97 : 1 }],

@@ -16,16 +16,17 @@ import Animated, {
     FadeInUp,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme } from "../../src/theme/useTheme";
+import { useUnits } from "../../hooks/useUnits";
 import { useGoalsStore } from "../../src/features/goals/goals.store";
 import { useProfileStore } from "../../src/features/profile/profile.store";
+import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 
-
 export default function OnboardingPlanScreen() {
   const { theme } = useTheme();
+  const units = useUnits();
   const router = useRouter();
   const plan = useGoalsStore((s) => s.plan);
   const profile = useProfileStore((s) => s.profile);
@@ -38,7 +39,11 @@ export default function OnboardingPlanScreen() {
     fat: plan?.macros.fat ?? 0,
     goalWeeks: plan?.timeframeWeeks ?? 0,
     goalDate: plan?.targetDate
-      ? new Date(plan.targetDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+      ? new Date(plan.targetDate).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
       : "—",
     currentWeight: profile.currentWeightLbs ?? 0,
     goalWeight: profile.goalWeightLbs ?? 0,
@@ -49,21 +54,22 @@ export default function OnboardingPlanScreen() {
     {
       label: "Protein",
       grams: PLAN.protein,
-      pct: totalCals > 0 ? Math.round((PLAN.protein * 4 / totalCals) * 100) : 0,
+      pct:
+        totalCals > 0 ? Math.round(((PLAN.protein * 4) / totalCals) * 100) : 0,
       color: "#60A5FA",
       icon: "fish-outline" as const,
     },
     {
       label: "Carbs",
       grams: PLAN.carbs,
-      pct: totalCals > 0 ? Math.round((PLAN.carbs * 4 / totalCals) * 100) : 0,
+      pct: totalCals > 0 ? Math.round(((PLAN.carbs * 4) / totalCals) * 100) : 0,
       color: "#FBBF24",
       icon: "nutrition-outline" as const,
     },
     {
       label: "Fat",
       grams: PLAN.fat,
-      pct: totalCals > 0 ? Math.round((PLAN.fat * 9 / totalCals) * 100) : 0,
+      pct: totalCals > 0 ? Math.round(((PLAN.fat * 9) / totalCals) * 100) : 0,
       color: "#F87171",
       icon: "water-outline" as const,
     },
@@ -223,7 +229,8 @@ export default function OnboardingPlanScreen() {
                   <TText
                     style={[styles.projTitle, { color: theme.colors.text }]}
                   >
-                    Reach {PLAN.goalWeight} lbs by {PLAN.goalDate}
+                    Reach {units.display(PLAN.goalWeight)} {units.label} by{" "}
+                    {PLAN.goalDate}
                   </TText>
                   <TText
                     style={[
@@ -232,7 +239,8 @@ export default function OnboardingPlanScreen() {
                     ]}
                   >
                     {PLAN.goalWeeks} weeks ·{" "}
-                    {PLAN.currentWeight - PLAN.goalWeight} lbs to lose
+                    {units.display(PLAN.currentWeight - PLAN.goalWeight)}{" "}
+                    {units.label} to lose
                   </TText>
                 </View>
               </View>

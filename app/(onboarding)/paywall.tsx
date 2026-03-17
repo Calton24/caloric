@@ -9,14 +9,22 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useEffect, useState } from "react";
+import {
+    ActivityIndicator,
+    Alert,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    View,
+} from "react-native";
 import Animated, {
     FadeIn,
     FadeInDown,
     FadeInUp,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { logger } from "../../src/logging/logger";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
@@ -59,10 +67,71 @@ export default function OnboardingPaywallScreen() {
   const { theme } = useTheme();
   const router = useRouter();
   const [selectedTier, setSelectedTier] = useState("annual");
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  // RevenueCat packages keyed by tier id
+  const [packages, setPackages] = useState<Record<string, any>>({});
 
-  const handleStart = () => {
-    // In production: trigger StoreKit / Play Billing
-    router.push("/(onboarding)/complete" as any);
+  // Fetch RevenueCat offerings on mount
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const Purchases = require("react-native-purchases").default;
+        const offerings = await Purchases.getOfferings();
+        const current = offerings?.current;
+        if (!current || cancelled) return;
+
+        const pkgMap: Record<string, any> = {};
+        // Map RevenueCat package types to our tier ids
+        // annual = ANNUAL package, monthly = MONTHLY package
+        for (const pkg of current.availablePackages ?? []) {
+          const type: string = pkg.packageType;
+          if (type === "ANNUAL") pkgMap["annual"] = pkg;
+          else if (type === "MONTHLY") pkgMap["monthly"] = pkg;
+        }
+        if (!cancelled) setPackages(pkgMap);
+      } catch (e) {
+        logger.warn("[Paywall] Failed to fetch offerings:", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleStart = async () => {
+    const pkg = packages[selectedTier];
+    if (!pkg) {
+      // No RevenueCat package available (SDK not configured, dev mode, etc.)
+      // Navigate through to complete so onboarding isn't blocked
+      logger.warn("[Paywall] No package for tier, skipping purchase");
+      router.push("/(onboarding)/complete" as any);
+      return;
+    }
+
+    setIsPurchasing(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const Purchases = require("react-native-purchases").default;
+      await Purchases.purchasePackage(pkg);
+      // Purchase successful — RevenueCat handles receipt validation
+      router.push("/(onboarding)/complete" as any);
+    } catch (e: any) {
+      if (e?.userCancelled) {
+        // User tapped cancel — do nothing, stay on paywall
+        logger.log("[Paywall] User cancelled purchase");
+      } else {
+        logger.error("[Paywall] Purchase failed:", e);
+        Alert.alert(
+          "Purchase Failed",
+          "Something went wrong. Please try again or skip for now.",
+          [{ text: "OK" }]
+        );
+      }
+    } finally {
+      setIsPurchasing(false);
+    }
   };
 
   const handleSkip = () => {
@@ -124,6 +193,9 @@ export default function OnboardingPaywallScreen() {
             <View style={styles.tierRow}>
               {TIERS.map((tier) => {
                 const isActive = selectedTier === tier.id;
+                const pkg = packages[tier.id];
+                // Use live price from RevenueCat if available
+                const displayPrice = pkg?.product?.priceString ?? tier.price;
                 return (
                   <Pressable
                     key={tier.id}
@@ -169,7 +241,7 @@ export default function OnboardingPaywallScreen() {
                       <TText
                         style={[styles.tierPrice, { color: theme.colors.text }]}
                       >
-                        {tier.price}
+                        {displayPrice}
                       </TText>
                       <TText
                         style={[
@@ -265,8 +337,9 @@ export default function OnboardingPaywallScreen() {
           <Pressable
             testID="paywall-start"
             onPress={handleStart}
+            disabled={isPurchasing}
             style={({ pressed }) => ({
-              opacity: pressed ? 0.9 : 1,
+              opacity: pressed || isPurchasing ? 0.9 : 1,
               transform: [{ scale: pressed ? 0.97 : 1 }],
             })}
           >
@@ -276,11 +349,15 @@ export default function OnboardingPaywallScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.ctaGradient}
             >
-              <TText
-                style={[styles.ctaText, { color: theme.colors.textInverse }]}
-              >
-                Start Free Trial
-              </TText>
+              {isPurchasing ? (
+                <ActivityIndicator color={theme.colors.textInverse} />
+              ) : (
+                <TText
+                  style={[styles.ctaText, { color: theme.colors.textInverse }]}
+                >
+                  Start Free Trial
+                </TText>
+              )}
             </LinearGradient>
           </Pressable>
 

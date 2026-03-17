@@ -17,7 +17,7 @@ global.console = {
 };
 
 // Mock environment variables for testing
-process.env.EXPO_PUBLIC_APP_PROFILE = "intake";
+process.env.EXPO_PUBLIC_APP_PROFILE = "caloric";
 process.env.EXPO_PUBLIC_APP_ENV = "dev";
 process.env.APP_ENV = "dev"; // Also set APP_ENV for config loader
 

@@ -5,36 +5,40 @@
  */
 
 import {
-  buildConfidenceInsight,
-  buildItemConfidence,
-  computeOverallConfidence,
-  CONFIDENCE_HIGH,
-  CONFIDENCE_LOW,
-  CONFIDENCE_NEEDS_REVIEW,
-  getAmbiguityReason,
-  scoreParserConfidence,
-  scorePortionConfidence,
+    buildConfidenceInsight,
+    buildItemConfidence,
+    computeOverallConfidence,
+    CONFIDENCE_HIGH,
+    CONFIDENCE_LOW,
+    CONFIDENCE_NEEDS_REVIEW,
+    getAmbiguityReason,
+    scoreParserConfidence,
+    scorePortionConfidence,
 } from "../src/features/nutrition/estimation/confidence.service";
 import {
-  estimateFoodItem,
-  estimateMeal,
+    estimateFoodItem,
+    estimateMeal,
 } from "../src/features/nutrition/estimation/portion-estimator.service";
 import { rankCandidates } from "../src/features/nutrition/matching/candidate-ranker";
-import { matchFoodItemLocally } from "../src/features/nutrition/matching/food-matcher.service";
+import {
+    isCaloriePlausibleForFood,
+    matchFoodItemLocally,
+    singularize,
+} from "../src/features/nutrition/matching/food-matcher.service";
 import type {
-  FoodMatch,
-  MatchedFoodItem,
+    FoodMatch,
+    MatchedFoodItem,
 } from "../src/features/nutrition/matching/matching.types";
 import {
-  buildOntologyMatch,
-  routeSource,
+    buildOntologyMatch,
+    routeSource,
 } from "../src/features/nutrition/matching/source-router";
 import { mealEstimateToDraft } from "../src/features/nutrition/nutrition-pipeline";
 import { buildMealEntryFromDraft } from "../src/features/nutrition/nutrition.helpers";
 import {
-  detectBrandedIntent,
-  detectModifiers,
-  lookupOntology,
+    detectBrandedIntent,
+    detectModifiers,
+    lookupOntology,
 } from "../src/features/nutrition/ontology/food-ontology";
 import type { ParsedFoodItem } from "../src/features/nutrition/parsing/food-candidate.schema";
 import { groupFoodPhrases } from "../src/features/nutrition/parsing/phrase-grouper";
@@ -44,8 +48,8 @@ import { cleanTranscript } from "../src/features/nutrition/parsing/transcript-cl
 // ─── Recipe Templates ────────────────────────────────────────────────────────
 
 import {
-  buildRecipeMatch,
-  lookupRecipeTemplate
+    buildRecipeMatch,
+    lookupRecipeTemplate,
 } from "../src/features/nutrition/ontology/recipe-templates";
 
 // ─── Food Aliases (Multilingual) ─────────────────────────────────────────────
@@ -55,8 +59,8 @@ import { translateFoodAlias } from "../src/features/nutrition/ontology/food-alia
 // ─── Food Emoji ──────────────────────────────────────────────────────────────
 
 import {
-  getFoodEmoji,
-  getMealEmoji,
+    getFoodEmoji,
+    getMealEmoji,
 } from "../src/features/nutrition/ontology/food-emoji";
 
 // ─── Regex Parser ────────────────────────────────────────────────────────────
@@ -127,9 +131,15 @@ describe("parseWithRegex", () => {
   });
 
   it("detects preparation methods", () => {
+    // "grilled chicken" is a compound food — kept as full name
     const items = parseWithRegex("grilled chicken");
     expect(items).toHaveLength(1);
-    expect(items[0].preparation).toBe("grilled");
+    expect(items[0].name).toBe("grilled chicken");
+    // Non-compound: prep should still be extracted
+    const steak = parseWithRegex("grilled steak");
+    expect(steak).toHaveLength(1);
+    expect(steak[0].preparation).toBe("grilled");
+    expect(steak[0].name).toBe("steak");
   });
 
   it("assigns higher confidence to explicit quantities", () => {
@@ -507,7 +517,7 @@ describe("mealEstimateToDraft", () => {
     };
 
     const draft = mealEstimateToDraft(estimate);
-    expect(draft.title).toBe("2 eggs, toast");
+    expect(draft.title).toBe("2 egg, toast");
     expect(draft.source).toBe("voice");
     expect(draft.estimatedItems).toHaveLength(2);
   });
@@ -1143,6 +1153,81 @@ describe("phrase grouper", () => {
     const groups = groupFoodPhrases("");
     expect(groups).toHaveLength(0);
   });
+
+  it("splits 'with' clauses for substantial foods but keeps prep attached", () => {
+    const groups = groupFoodPhrases("toast with butter");
+    expect(groups).toHaveLength(1);
+    expect(groups[0].text).toBe("toast with butter");
+  });
+
+  it("splits avocado and olive oil dressing from chicken salad", () => {
+    const groups = groupFoodPhrases(
+      "chicken salad with avocado with olive oil dressing"
+    );
+    expect(groups).toHaveLength(3);
+    const texts = groups.map((g) => g.text);
+    expect(texts).toContain("chicken salad");
+    expect(texts).toContain("avocado");
+    expect(texts).toContain("olive oil dressing");
+  });
+
+  it("splits protein shake with banana and peanut butter", () => {
+    const groups = groupFoodPhrases(
+      "protein shake with a banana and peanut butter"
+    );
+    expect(groups).toHaveLength(3);
+    const texts = groups.map((g) => g.text);
+    expect(texts).toContain("protein shake");
+    expect(texts).toContain("banana");
+    expect(texts).toContain("peanut butter");
+  });
+});
+
+describe("conversational sentence end-to-end parsing", () => {
+  it("parses 'i had two eggs and toast with butter'", () => {
+    const cleaned = cleanTranscript(
+      "i had two eggs and toast with butter",
+      "voice"
+    );
+    const groups = groupFoodPhrases(cleaned.cleaned);
+    const toParse = groups.map((g) => g.text).join(", ");
+    const parsed = parseWithRegex(toParse);
+    expect(parsed).toHaveLength(2);
+    expect(parsed[0].name).toBe("eggs");
+    expect(parsed[0].quantity).toBe(2);
+    expect(parsed[1].name).toBe("toast");
+    expect(parsed[1].preparation).toBe("with butter");
+  });
+
+  it("parses 'Just ate a chicken salad with avocado with olive oil dressing'", () => {
+    const cleaned = cleanTranscript(
+      "Just ate a chicken salad with avocado with olive oil dressing",
+      "voice"
+    );
+    const groups = groupFoodPhrases(cleaned.cleaned);
+    const toParse = groups.map((g) => g.text).join(", ");
+    const parsed = parseWithRegex(toParse);
+    expect(parsed).toHaveLength(3);
+    const names = parsed.map((p: ParsedFoodItem) => p.name);
+    expect(names).toContain("chicken salad");
+    expect(names).toContain("avocado");
+    expect(names).toContain("olive oil dressing");
+  });
+
+  it("parses 'had a protein shake with a banana and peanut butter'", () => {
+    const cleaned = cleanTranscript(
+      "had a protein shake with a banana and peanut butter",
+      "voice"
+    );
+    const groups = groupFoodPhrases(cleaned.cleaned);
+    const toParse = groups.map((g) => g.text).join(", ");
+    const parsed = parseWithRegex(toParse);
+    expect(parsed).toHaveLength(3);
+    const names = parsed.map((p: ParsedFoodItem) => p.name);
+    expect(names).toContain("protein shake");
+    expect(names).toContain("banana");
+    expect(names).toContain("peanut butter");
+  });
 });
 
 // ─── Multi-layer Confidence ─────────────────────────────────────────────────
@@ -1609,9 +1694,127 @@ describe("candidate ranker — extra word penalty", () => {
     );
 
     // Generic cereal (180 cal, close to ontology 150) should beat
-    // chocolate puffs (500 cal, way off) because of ontology anchoring
+    // chocolate puffs (500 cal, way off) — the single-word filter removes
+    // compound names entirely, leaving only the plain match
     expect(ranked[0].name).toBe("Cereal");
+    expect(ranked.length).toBe(1);
+  });
+
+  it("ranks plain 'omelette' above 'cheesy omelette' for query 'omelette'", () => {
+    const plain: FoodMatch = {
+      source: "dataset",
+      sourceId: "d_1",
+      name: "Omelette",
+      nutrients: { calories: 250, protein: 16, carbs: 2, fat: 20 },
+      servingSize: 150,
+      servingUnit: "g",
+      servingDescription: "1 omelette (150g)",
+      matchScore: 0,
+    };
+    const cheesy: FoodMatch = {
+      source: "dataset",
+      sourceId: "d_2",
+      name: "Cheesy Omelette",
+      nutrients: { calories: 300, protein: 18, carbs: 3, fat: 24 },
+      servingSize: 150,
+      servingUnit: "g",
+      servingDescription: "1 omelette (150g)",
+      matchScore: 0,
+    };
+    const spanish: FoodMatch = {
+      source: "dataset",
+      sourceId: "d_3",
+      name: "Spanish Omelette With Peppers",
+      nutrients: { calories: 280, protein: 14, carbs: 8, fat: 20 },
+      servingSize: 200,
+      servingUnit: "g",
+      servingDescription: "1 omelette (200g)",
+      matchScore: 0,
+    };
+
+    const parsed: ParsedFoodItem = {
+      name: "omelette",
+      quantity: 1,
+      unit: "serving" as const,
+      confidence: 0.75,
+      rawFragment: "omelette",
+      preparation: null,
+    };
+
+    const routing = routeSource(parsed);
+    const ranked = rankCandidates([cheesy, spanish, plain], parsed, routing);
+
+    expect(ranked[0].name).toBe("Omelette");
     expect(ranked[0].matchScore).toBeGreaterThan(ranked[1].matchScore);
+  });
+
+  it("single-word query 'egg' filters out compound names like 'egg mcmuffin'", () => {
+    const plain: FoodMatch = {
+      source: "usda",
+      sourceId: "u_1",
+      name: "Egg",
+      nutrients: { calories: 78, protein: 6, carbs: 1, fat: 5 },
+      servingSize: 50,
+      servingUnit: "g",
+      servingDescription: "1 large egg (50g)",
+      matchScore: 0,
+    };
+    const compound: FoodMatch = {
+      source: "usda",
+      sourceId: "u_2",
+      name: "Egg McMuffin With Cheese",
+      nutrients: { calories: 300, protein: 17, carbs: 30, fat: 12 },
+      servingSize: 135,
+      servingUnit: "g",
+      servingDescription: "1 sandwich",
+      matchScore: 0,
+    };
+    const threeWord: FoodMatch = {
+      source: "usda",
+      sourceId: "u_3",
+      name: "Scrambled Eggs With Cheese",
+      nutrients: { calories: 200, protein: 14, carbs: 3, fat: 15 },
+      servingSize: 100,
+      servingUnit: "g",
+      servingDescription: "100g",
+      matchScore: 0,
+    };
+    const twoWord: FoodMatch = {
+      source: "usda",
+      sourceId: "u_4",
+      name: "Boiled Egg",
+      nutrients: { calories: 78, protein: 6, carbs: 1, fat: 5 },
+      servingSize: 50,
+      servingUnit: "g",
+      servingDescription: "1 egg",
+      matchScore: 0,
+    };
+
+    const parsed: ParsedFoodItem = {
+      name: "egg",
+      quantity: 1,
+      unit: "serving" as const,
+      confidence: 0.8,
+      rawFragment: "egg",
+      preparation: null,
+    };
+
+    const routing = routeSource(parsed);
+    const ranked = rankCandidates(
+      [compound, threeWord, plain, twoWord],
+      parsed,
+      routing
+    );
+
+    // Compound 3+ word names should be filtered out for a single-word query
+    const names = ranked.map((r) => r.name);
+    expect(names).not.toContain("Egg McMuffin With Cheese");
+    expect(names).not.toContain("Scrambled Eggs With Cheese");
+    // Plain "Egg" and 2-word "Boiled Egg" should remain
+    expect(names).toContain("Egg");
+    expect(names).toContain("Boiled Egg");
+    // Plain exact match should be ranked first
+    expect(ranked[0].name).toBe("Egg");
   });
 });
 
@@ -1804,5 +2007,233 @@ describe("emoji in estimation pipeline", () => {
     const draft = mealEstimateToDraft(estimate);
     expect(draft.emoji).toBeDefined();
     expect(draft.emoji).toBe("☕");
+  });
+});
+
+// ─── Singularization ─────────────────────────────────────────────────────────
+
+describe("singularize", () => {
+  it("handles regular plurals", () => {
+    expect(singularize("eggs")).toBe("egg");
+    expect(singularize("bananas")).toBe("banana");
+    expect(singularize("steaks")).toBe("steak");
+    expect(singularize("apples")).toBe("apple");
+    expect(singularize("carrots")).toBe("carrot");
+  });
+
+  it("handles -ies plurals", () => {
+    expect(singularize("berries")).toBe("berry");
+    expect(singularize("cherries")).toBe("cherry");
+    expect(singularize("strawberries")).toBe("strawberry");
+    expect(singularize("blueberries")).toBe("blueberry");
+    expect(singularize("raspberries")).toBe("raspberry");
+  });
+
+  it("handles -oes plurals", () => {
+    expect(singularize("potatoes")).toBe("potato");
+    expect(singularize("tomatoes")).toBe("tomato");
+  });
+
+  it("handles -ches/-shes plurals", () => {
+    expect(singularize("sandwiches")).toBe("sandwich");
+    expect(singularize("peaches")).toBe("peach");
+  });
+
+  it("does NOT singularize mass nouns", () => {
+    expect(singularize("hummus")).toBe("hummus");
+    expect(singularize("couscous")).toBe("couscous");
+    expect(singularize("asparagus")).toBe("asparagus");
+    expect(singularize("quinoa")).toBe("quinoa");
+    expect(singularize("tofu")).toBe("tofu");
+    expect(singularize("pasta")).toBe("pasta");
+    expect(singularize("ramen")).toBe("ramen");
+    expect(singularize("sushi")).toBe("sushi");
+  });
+
+  it("does NOT singularize -ss words", () => {
+    expect(singularize("grass")).toBe("grass");
+    expect(singularize("swiss")).toBe("swiss");
+  });
+
+  it("handles short/empty words", () => {
+    expect(singularize("")).toBe("");
+    expect(singularize("go")).toBe("go");
+    expect(singularize("egg")).toBe("egg");
+  });
+});
+
+// ─── Per-food Calorie Sanity Check ──────────────────────────────────────────
+
+describe("isCaloriePlausibleForFood", () => {
+  it("accepts egg within expected range", () => {
+    expect(isCaloriePlausibleForFood("egg", 70)).toBe(true);
+    expect(isCaloriePlausibleForFood("egg", 140)).toBe(true);
+  });
+
+  it("rejects egg with wildly high calories (e.g. egg noodles)", () => {
+    expect(isCaloriePlausibleForFood("egg", 512)).toBe(false);
+    expect(isCaloriePlausibleForFood("eggs", 512)).toBe(false);
+    expect(isCaloriePlausibleForFood("egg", 1024)).toBe(false);
+  });
+
+  it("handles plural forms via singularization", () => {
+    expect(isCaloriePlausibleForFood("eggs", 70)).toBe(true);
+    expect(isCaloriePlausibleForFood("bananas", 105)).toBe(true);
+    expect(isCaloriePlausibleForFood("steaks", 300)).toBe(true);
+  });
+
+  it("accepts unknown foods (no expectation data)", () => {
+    expect(isCaloriePlausibleForFood("unicorn fruit", 500)).toBe(true);
+    expect(isCaloriePlausibleForFood("xyz123", 9999)).toBe(true);
+  });
+
+  it("rejects banana at 500+ cal", () => {
+    expect(isCaloriePlausibleForFood("banana", 500)).toBe(false);
+  });
+
+  it("rejects broccoli at 300+ cal", () => {
+    expect(isCaloriePlausibleForFood("broccoli", 300)).toBe(false);
+  });
+
+  it("accepts pizza in normal range", () => {
+    expect(isCaloriePlausibleForFood("pizza", 300)).toBe(true);
+    expect(isCaloriePlausibleForFood("pizza", 450)).toBe(true);
+  });
+});
+
+// ─── Plural Local Match (the original "2 eggs = 1024 cal" bug) ──────────────
+
+describe("plural local matching", () => {
+  it('"eggs" matches local egg entry with high confidence', () => {
+    const result = matchFoodItemLocally({
+      name: "eggs",
+      quantity: 2,
+      unit: "piece",
+      confidence: 0.85,
+      rawFragment: "2 eggs",
+      preparation: null,
+    });
+    // Should match "egg" from LOCAL_FOODS, not fall through to a wrong API match
+    expect(result.selectedMatch).toBeDefined();
+    expect(result.selectedMatch!.name.toLowerCase()).toContain("egg");
+    // 2 eggs ≈ 140 cal (LOCAL_FOODS.egg = 140 cal / 2 eggs serving)
+    // The important thing is it should NOT be 1024 cal
+    expect(result.selectedMatch!.nutrients.calories).toBeLessThan(300);
+  });
+
+  it('"bananas" matches local banana entry', () => {
+    const result = matchFoodItemLocally({
+      name: "bananas",
+      quantity: 1,
+      unit: "piece",
+      confidence: 0.85,
+      rawFragment: "bananas",
+      preparation: null,
+    });
+    expect(result.selectedMatch).toBeDefined();
+    expect(result.selectedMatch!.name.toLowerCase()).toContain("banana");
+  });
+
+  it('"steaks" matches local steak entry', () => {
+    const result = matchFoodItemLocally({
+      name: "steaks",
+      quantity: 1,
+      unit: "piece",
+      confidence: 0.85,
+      rawFragment: "steaks",
+      preparation: null,
+    });
+    expect(result.selectedMatch).toBeDefined();
+    expect(result.selectedMatch!.name.toLowerCase()).toContain("steak");
+  });
+});
+
+// ─── Compound Food Matching (filled wraps, modifiers) ────────────────────────
+
+describe("Compound food substring matching prefers longest key", () => {
+  it('"chicken wrap" matches "chicken wrap" not plain "wrap"', () => {
+    const result = matchFoodItemLocally({
+      name: "chicken wrap",
+      quantity: 1,
+      unit: "piece",
+      confidence: 0.85,
+      rawFragment: "chicken wrap",
+      preparation: null,
+    });
+    expect(result.selectedMatch).toBeDefined();
+    expect(result.selectedMatch!.name).toBe("chicken wrap");
+    expect(result.selectedMatch!.nutrients.calories).toBeGreaterThan(400);
+  });
+
+  it('"beef wrap" matches "beef wrap" not "wrap" or "beef"', () => {
+    const result = matchFoodItemLocally({
+      name: "beef wrap",
+      quantity: 1,
+      unit: "piece",
+      confidence: 0.85,
+      rawFragment: "beef wrap",
+      preparation: null,
+    });
+    expect(result.selectedMatch).toBeDefined();
+    expect(result.selectedMatch!.name).toBe("beef wrap");
+    expect(result.selectedMatch!.nutrients.calories).toBeGreaterThan(400);
+  });
+
+  it('"falafel wrap" matches "falafel wrap" not "falafel"', () => {
+    const result = matchFoodItemLocally({
+      name: "falafel wrap",
+      quantity: 1,
+      unit: "piece",
+      confidence: 0.85,
+      rawFragment: "falafel wrap",
+      preparation: null,
+    });
+    expect(result.selectedMatch).toBeDefined();
+    expect(result.selectedMatch!.name).toBe("falafel wrap");
+    expect(result.selectedMatch!.nutrients.calories).toBeGreaterThan(400);
+  });
+
+  it('"plain wrap" still matches "wrap" (flour tortilla)', () => {
+    const result = matchFoodItemLocally({
+      name: "wrap",
+      quantity: 1,
+      unit: "piece",
+      confidence: 0.85,
+      rawFragment: "wrap",
+      preparation: null,
+    });
+    expect(result.selectedMatch).toBeDefined();
+    expect(result.selectedMatch!.name).toBe("wrap");
+    expect(result.selectedMatch!.nutrients.calories).toBe(200);
+  });
+
+  it('"grilled chicken wrap" uses chicken wrap ontology with user qualifier', () => {
+    const result = matchFoodItemLocally({
+      name: "grilled chicken wrap",
+      quantity: 1,
+      unit: "piece",
+      confidence: 0.85,
+      rawFragment: "grilled chicken wrap",
+      preparation: "grilled",
+    });
+    expect(result.selectedMatch).toBeDefined();
+    // Ontology preserves the user's qualifier "grilled" in display name
+    expect(result.selectedMatch!.name).toBe("grilled chicken wrap");
+    // Calories should come from the "chicken wrap" ontology entry (480 cal)
+    expect(result.selectedMatch!.nutrients.calories).toBe(480);
+  });
+
+  it('"french fries" matches "french fries" not "fries"', () => {
+    const result = matchFoodItemLocally({
+      name: "french fries",
+      quantity: 1,
+      unit: "serving",
+      confidence: 0.85,
+      rawFragment: "french fries",
+      preparation: null,
+    });
+    expect(result.selectedMatch).toBeDefined();
+    // Should match "french fries" (13 chars) over "fries" (5 chars)
+    expect(result.selectedMatch!.name).toBe("french fries");
   });
 });

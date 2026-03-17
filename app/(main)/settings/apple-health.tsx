@@ -8,9 +8,20 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useCallback } from "react";
-import { Pressable, StyleSheet, Switch, View } from "react-native";
+import React, { useCallback, useState } from "react";
+import {
+    ActivityIndicator,
+    Alert,
+    Pressable,
+    StyleSheet,
+    Switch,
+    View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import {
+    getHealthService,
+    syncWithHealthKit,
+} from "../../../src/features/health";
 import { usePermissionsStore } from "../../../src/features/permissions";
 import { useSettingsStore } from "../../../src/features/settings";
 import { useTheme } from "../../../src/theme/useTheme";
@@ -49,11 +60,35 @@ export default function AppleHealthScreen() {
     (s) => s.setAppleHealthWriteEnabled
   );
 
+  const [syncing, setSyncing] = useState(false);
+
   const handleToggleMaster = useCallback(
-    (value: boolean) => {
+    async (value: boolean) => {
+      if (value) {
+        // Request HealthKit permissions when enabling
+        const service = getHealthService();
+        const available = await service.isAvailable();
+        if (!available) {
+          Alert.alert(
+            "Not Available",
+            "Apple Health is not available on this device."
+          );
+          return;
+        }
+        const granted = await service.requestPermissions({
+          read: true,
+          write: true,
+        });
+        if (!granted) {
+          Alert.alert(
+            "Permission Required",
+            "Please grant Apple Health permissions in Settings to enable sync."
+          );
+          return;
+        }
+      }
       setAppleHealthSyncEnabled(value);
       if (!value) {
-        // Turn off sub-toggles when master is disabled
         setAppleHealthReadEnabled(false);
         setAppleHealthWriteEnabled(false);
       }
@@ -65,11 +100,33 @@ export default function AppleHealthScreen() {
     ]
   );
 
-  const handleSyncNow = useCallback(() => {
-    // In a real implementation, this would trigger HealthKit sync.
-    // For now, just update the timestamp.
-    setLastAppleHealthSyncAt(new Date().toISOString());
-  }, [setLastAppleHealthSyncAt]);
+  const handleSyncNow = useCallback(async () => {
+    if (syncing) return;
+    setSyncing(true);
+    try {
+      const result = await syncWithHealthKit({
+        read: appleHealthReadEnabled,
+        write: appleHealthWriteEnabled,
+      });
+      setLastAppleHealthSyncAt(new Date().toISOString());
+      Alert.alert(
+        "Sync Complete",
+        `Imported ${result.weightImported} weight entries, exported ${result.mealsExported} meals.`
+      );
+    } catch {
+      Alert.alert(
+        "Sync Failed",
+        "Could not sync with Apple Health. Please try again."
+      );
+    } finally {
+      setSyncing(false);
+    }
+  }, [
+    syncing,
+    appleHealthReadEnabled,
+    appleHealthWriteEnabled,
+    setLastAppleHealthSyncAt,
+  ]);
 
   const lastSyncLabel = lastAppleHealthSyncAt
     ? `Last synced: ${new Date(lastAppleHealthSyncAt).toLocaleString()}`
@@ -194,16 +251,20 @@ export default function AppleHealthScreen() {
           {/* Sync Now button */}
           <Pressable
             onPress={handleSyncNow}
-            disabled={!appleHealthSyncEnabled}
+            disabled={!appleHealthSyncEnabled || syncing}
             style={[
               styles.syncButton,
               {
                 backgroundColor: theme.colors.primary,
-                opacity: appleHealthSyncEnabled ? 1 : 0.5,
+                opacity: appleHealthSyncEnabled && !syncing ? 1 : 0.5,
               },
             ]}
           >
-            <TText style={styles.syncButtonText}>Sync Now</TText>
+            {syncing ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <TText style={styles.syncButtonText}>Sync Now</TText>
+            )}
           </Pressable>
         </View>
       </SafeAreaView>

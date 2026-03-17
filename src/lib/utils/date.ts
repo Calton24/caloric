@@ -44,3 +44,57 @@ export function formatDateHeader(date: Date): string {
     day: "numeric",
   });
 }
+
+/**
+ * Returns all days in the month for a given date,
+ * with padding for the grid layout (Mon-start weeks).
+ */
+export function getMonthDays(baseDate: Date) {
+  const year = baseDate.getFullYear();
+  const month = baseDate.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const daysInMonth = lastDay.getDate();
+
+  // Day of week for 1st (0=Sun → convert to Mon-start: 0=Mon)
+  const jsDay = firstDay.getDay();
+  const startOffset = jsDay === 0 ? 6 : jsDay - 1; // padding before 1st
+
+  const today = toISODate(new Date());
+
+  const days: ({
+    key: string;
+    dayNumber: number;
+    date: Date;
+    isToday: boolean;
+  } | null)[] = [];
+
+  // Leading empty cells
+  for (let i = 0; i < startOffset; i++) {
+    days.push(null);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month, d);
+    const key = toISODate(date);
+    days.push({ key, dayNumber: d, date, isToday: key === today });
+  }
+
+  return {
+    days,
+    monthLabel: firstDay.toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    }),
+    year,
+    month,
+  };
+}
+
+/** Format month header e.g. "June 2025" */
+export function formatMonthHeader(date: Date): string {
+  return date.toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+}

@@ -68,7 +68,7 @@ export const themeStorage = {
 
     return {
       mode: mode || "light",
-      brandHue: brandHue || 220, // Default to blue
+      brandHue: brandHue || 141, // Default to green
     };
   },
 

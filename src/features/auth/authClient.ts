@@ -41,6 +41,7 @@ export interface AuthClient {
   signIn(email: string, password: string): Promise<AuthResponse>;
   signUp(email: string, password: string): Promise<AuthResponse>;
   signOut(): Promise<{ error: Error | null }>;
+  deleteAccount(): Promise<{ error: Error | null }>;
   resetPasswordForEmail(email: string): Promise<{ error: Error | null }>;
   updatePassword(newPassword: string): Promise<{ error: Error | null }>;
   signInWithOAuth(provider: OAuthProvider): Promise<OAuthResponse>;
@@ -130,6 +131,7 @@ export const authClient: AuthClient = {
   signIn: async (...args) => authBlocked() ?? client.signIn(...args),
   signUp: async (...args) => authBlocked() ?? client.signUp(...args),
   signOut: (...args) => client.signOut(...args),
+  deleteAccount: (...args) => client.deleteAccount(...args),
   resetPasswordForEmail: (...args) => client.resetPasswordForEmail(...args),
   updatePassword: (...args) => client.updatePassword(...args),
   signInWithOAuth: (provider) => {

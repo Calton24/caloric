@@ -22,7 +22,11 @@ import type { FoodMatch } from "./matching.types";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type SourcePreference = "usda-first" | "off-first" | "ontology-only";
+export type SourcePreference =
+  | "usda-first"
+  | "off-first"
+  | "edamam-nlp"
+  | "ontology-only";
 
 export interface RoutingDecision {
   /** Which source to prefer */
@@ -53,11 +57,26 @@ export function routeSource(item: ParsedFoodItem): RoutingDecision {
 
   // No ontology entry — use general routing
   if (!entry) {
+    if (isBranded) {
+      return {
+        preference: "off-first",
+        ontologyEntry: null,
+        detectedModifiers: [],
+        isBranded,
+        category: null,
+        useOntologyDefaults: false,
+        assumptionLabel: undefined,
+      };
+    }
+
+    // Multi-word queries without ontology match benefit from Edamam's NLP
+    // parsing (e.g., "grilled chicken breast with steamed rice")
+    const wordCount = rawText.trim().split(/\s+/).length;
     return {
-      preference: isBranded ? "off-first" : "usda-first",
+      preference: wordCount >= 3 ? "edamam-nlp" : "usda-first",
       ontologyEntry: null,
       detectedModifiers: [],
-      isBranded,
+      isBranded: false,
       category: null,
       useOntologyDefaults: false,
       assumptionLabel: undefined,
@@ -125,9 +144,12 @@ export function routeSource(item: ParsedFoodItem): RoutingDecision {
     };
   }
 
-  // Default: use USDA first for generic foods
+  // Default: use USDA first for generic foods, Edamam for complex descriptions
+  const wordCount = rawText.trim().split(/\s+/).length;
+  const isComplexDescription = wordCount >= 3 || detectedModifiers.length >= 2;
+
   return {
-    preference: "usda-first",
+    preference: isComplexDescription ? "edamam-nlp" : "usda-first",
     ontologyEntry: entry,
     detectedModifiers,
     isBranded: false,
@@ -147,19 +169,34 @@ export function buildOntologyMatch(
   entry: OntologyEntry,
   foodName: string
 ): FoodMatch {
+  // Use the user's actual food name if they specified a modifier
+  // (e.g., "feta cheese" should stay "feta cheese", not become "cheddar cheese")
+  const modifiers = detectModifiers(foodName, entry);
+  const displayName =
+    modifiers.length > 0 ? foodName.toLowerCase() : entry.defaultAssumption;
+
+  // Parse serving size from the servingDescription
+  // e.g. "1 large egg (50g)" → 50, "2 large eggs (100g)" → 100,
+  //       "1 cup (240ml)" → 240
+  const servingMatch = entry.servingDescription.match(
+    /\((\d+(?:\.\d+)?)\s*(g|ml)\)/i
+  );
+  const servingSize = servingMatch ? parseFloat(servingMatch[1]) : 100;
+  const servingUnit = servingMatch ? (servingMatch[2] as "g" | "ml") : "g";
+
   return {
     source: "local-fallback",
     sourceId: `ontology_${foodName.toLowerCase().replace(/\s+/g, "_")}`,
-    name: entry.defaultAssumption,
+    name: displayName,
     nutrients: {
       calories: entry.defaultCalories,
       protein: entry.defaultProtein,
       carbs: entry.defaultCarbs,
       fat: entry.defaultFat,
     },
-    servingSize: 240, // beverages default to 240ml
-    servingUnit: "ml",
+    servingSize,
+    servingUnit,
     servingDescription: entry.servingDescription,
-    matchScore: 0.85, // high confidence — ontology is authoritative for these
+    matchScore: modifiers.length > 0 ? 0.7 : 0.85,
   };
 }

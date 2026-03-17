@@ -22,9 +22,9 @@ export function buildMealEntryFromDraft(params: {
   // Carry provenance data from the enhanced pipeline
   if (draft.estimatedItems) {
     entry.items = draft.estimatedItems.map((item) => ({
-      name: item.parsed.name,
-      quantity: item.parsed.quantity,
-      unit: item.parsed.unit,
+      name: item.parsed?.name ?? item.matchedName ?? "unknown",
+      quantity: item.parsed?.quantity ?? 1,
+      unit: item.parsed?.unit ?? "serving",
       calories: item.nutrients.calories,
       protein: item.nutrients.protein,
       carbs: item.nutrients.carbs,
@@ -46,6 +46,14 @@ export function buildMealEntryFromDraft(params: {
 
   if (draft.emoji) {
     entry.emoji = draft.emoji;
+  }
+
+  if (draft.mealTime) {
+    entry.mealTime = draft.mealTime;
+  }
+
+  if (draft.imageUri) {
+    entry.imageUri = draft.imageUri;
   }
 
   return entry;

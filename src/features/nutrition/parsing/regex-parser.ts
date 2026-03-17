@@ -32,7 +32,12 @@ const WORD_NUMBERS: Record<string, number> = {
   eight: 8,
   nine: 9,
   ten: 10,
+  eleven: 11,
+  twelve: 12,
   half: 0.5,
+  couple: 2,
+  few: 3,
+  dozen: 12,
 };
 
 /**
@@ -44,6 +49,25 @@ function extractQuantity(text: string): [number, string] {
   const numMatch = text.match(/^(\d+(?:\.\d+)?)\s*/);
   if (numMatch) {
     return [parseFloat(numMatch[1]), text.slice(numMatch[0].length)];
+  }
+
+  // Handle "half a cup" — extract "half" as 0.5, consume "a" so unit extraction works
+  const halfA = text.match(/^half\s+(?:a\s+|an\s+)?/i);
+  if (halfA) {
+    return [0.5, text.slice(halfA[0].length)];
+  }
+
+  // Handle "a dozen X" — must come before the generic "a" → 1 match
+  const dozenA = text.match(/^a\s+dozen\s+/i);
+  if (dozenA) {
+    return [12, text.slice(dozenA[0].length)];
+  }
+
+  // Handle "a couple X" / "a few X" — must come before the generic "a" → 1 match
+  const coupleA = text.match(/^a\s+(couple|couple\s+of|few)\s+/i);
+  if (coupleA) {
+    const qty = coupleA[1].startsWith("couple") ? 2 : 3;
+    return [qty, text.slice(coupleA[0].length)];
   }
 
   // Word number: "two eggs", "a bagel"
@@ -84,6 +108,15 @@ const UNIT_PATTERNS: { pattern: RegExp; unit: FoodUnit }[] = [
   { pattern: /^bars?\s+of\s+/i, unit: "bar" },
   { pattern: /^pieces?\s+of\s+/i, unit: "piece" },
   { pattern: /^servings?\s+of\s+/i, unit: "serving" },
+  { pattern: /^portions?\s+of\s+/i, unit: "serving" },
+  { pattern: /^packets?\s+of\s+/i, unit: "piece" },
+  { pattern: /^bags?\s+of\s+/i, unit: "piece" },
+  { pattern: /^boxes?\s+of\s+/i, unit: "piece" },
+  { pattern: /^cartons?\s+of\s+/i, unit: "piece" },
+  { pattern: /^containers?\s+of\s+/i, unit: "piece" },
+  { pattern: /^sticks?\s+of\s+/i, unit: "piece" },
+  { pattern: /^strips?\s+of\s+/i, unit: "piece" },
+  { pattern: /^fillets?\s+of\s+/i, unit: "piece" },
   { pattern: /^(\d+)\s*g\b/i, unit: "g" },
   { pattern: /^(\d+)\s*oz\b/i, unit: "oz" },
   { pattern: /^(\d+)\s*ml\b/i, unit: "ml" },
@@ -107,13 +140,30 @@ function extractUnit(text: string): [FoodUnit, string] {
 
 const PREPARATION_PATTERNS = [
   /\b(grilled|fried|baked|roasted|steamed|boiled|raw|fresh|frozen|canned)\b/i,
+  /\b(sautéed|sauteed|pan[- ]?fried|deep[- ]?fried|stir[- ]?fried|air[- ]?fried)\b/i,
+  /\b(blanched|braised|broiled|charred|blackened|seared|poached)\b/i,
+  /\b(slow[- ]?cooked|pressure[- ]?cooked|sous[- ]?vide)\b/i,
+  /\b(chopped|diced|minced|sliced|shredded|grated|mashed|pureed|blended)\b/i,
   /\b(with [\w\s]+)$/i,
-  /\b(whole milk|skim milk|almond milk|oat milk)\b/i,
-  /\b(scrambled|poached|hard.?boiled|sunny.?side|over easy)\b/i,
-  /\b(smoked|dried|pickled|marinated)\b/i,
+  /\b(whole milk|skim milk|almond milk|oat milk|soy milk|coconut milk|2%\s*milk|1%\s*milk)\b/i,
+  /\b(scrambled|poached|hard.?boiled|soft.?boiled|sunny.?side|over easy|over medium|over hard)\b/i,
+  /\b(smoked|dried|pickled|marinated|cured|fermented|candied|glazed)\b/i,
+  /\b(unsweetened|sweetened|salted|unsalted|plain|flavored|seasoned)\b/i,
+  /\b(organic|whole grain|whole wheat|multigrain|gluten free|sugar free|low fat|fat free|reduced fat)\b/i,
+  /\b(boneless|skinless|bone[- ]?in|skin[- ]?on)\b/i,
+  /\b(extra virgin|virgin|cold[- ]?pressed|unfiltered)\b/i,
 ];
 
 function extractPreparation(text: string): [string | null, string] {
+  // Don't strip cooking methods that are part of a known compound food
+  // e.g. "scrambled eggs", "fried rice", "baked beans"
+  const lower = text.toLowerCase().trim();
+  if (COMPOUND_FOODS.has(lower)) return [null, text];
+  // Also check if text starts with a compound food
+  for (const compound of COMPOUND_FOODS) {
+    if (lower.startsWith(compound)) return [null, text];
+  }
+
   for (const pattern of PREPARATION_PATTERNS) {
     const match = text.match(pattern);
     if (match) {
@@ -155,6 +205,9 @@ const STANDALONE_FOODS = new Set([
   "eggs",
   "egg",
   "tofu",
+  "meatballs",
+  "jerky",
+  "tempeh",
   // Grains & bread
   "toast",
   "bread",
@@ -168,8 +221,21 @@ const STANDALONE_FOODS = new Set([
   "waffles",
   "waffle",
   "bagel",
+  "muffin",
+  "croissant",
+  "tortilla",
+  "pita",
+  "naan",
+  "biscuit",
+  "roll",
+  "crackers",
+  "quinoa",
+  "couscous",
+  "granola",
   // Vegetables & legumes
   "beans",
+  "lentils",
+  "chickpeas",
   "salad",
   "broccoli",
   "spinach",
@@ -179,6 +245,16 @@ const STANDALONE_FOODS = new Set([
   "potatoes",
   "chips",
   "fries",
+  "asparagus",
+  "cauliflower",
+  "zucchini",
+  "mushrooms",
+  "peppers",
+  "carrots",
+  "kale",
+  "cabbage",
+  "edamame",
+  "hummus",
   // Fruits
   "apple",
   "banana",
@@ -186,10 +262,20 @@ const STANDALONE_FOODS = new Set([
   "grapes",
   "strawberries",
   "blueberries",
+  "raspberries",
+  "mango",
+  "pineapple",
+  "watermelon",
+  "peach",
+  "pear",
+  "kiwi",
+  "cherries",
+  "avocado",
   // Dairy
   "cheese",
   "yogurt",
   "milk",
+  "cottage cheese",
   // Common dishes
   "soup",
   "curry",
@@ -197,6 +283,34 @@ const STANDALONE_FOODS = new Set([
   "burger",
   "sandwich",
   "wrap",
+  "tacos",
+  "burrito",
+  "sushi",
+  "ramen",
+  "oatmeal",
+  "porridge",
+  // Drinks
+  "coffee",
+  "tea",
+  "juice",
+  "smoothie",
+  "shake",
+  "latte",
+  "water",
+  "soda",
+  "kombucha",
+  // Snacks / desserts
+  "cookies",
+  "brownie",
+  "cake",
+  "pie",
+  "ice cream",
+  "chocolate",
+  "popcorn",
+  "pretzels",
+  "trail mix",
+  "nuts",
+  "almonds",
 ]);
 
 /**
@@ -204,63 +318,372 @@ const STANDALONE_FOODS = new Set([
  * (Checked as consecutive word pairs in order.)
  */
 const COMPOUND_FOODS = new Set([
+  // Toast / bread combos
   "shrimp toast",
   "prawn toast",
   "french toast",
+  "garlic bread",
+  "garlic toast",
+  "avocado toast",
+  "cinnamon toast",
+  "banana bread",
+  "corn bread",
+  "sourdough bread",
+  "whole wheat bread",
+  "multigrain bread",
+  "rye bread",
+  "pumpkin bread",
+  "zucchini bread",
+  // Egg dishes
   "scrambled eggs",
+  "poached eggs",
+  "boiled eggs",
+  "hard boiled eggs",
+  "soft boiled eggs",
+  "deviled eggs",
+  "eggs benedict",
+  "egg whites",
+  "egg salad",
+  "egg sandwich",
+  "egg wrap",
+  "egg muffin",
+  "egg toast",
+  "eggs on toast",
+  // Rice dishes
   "fried rice",
+  "brown rice",
+  "white rice",
+  "wild rice",
+  "jasmine rice",
+  "basmati rice",
+  "sticky rice",
+  "rice pudding",
+  "rice bowl",
+  "rice cake",
+  "rice cakes",
+  // Chicken dishes
   "fried chicken",
-  "fried fish",
-  "baked beans",
-  "peanut butter",
-  "ice cream",
-  "olive oil",
-  "coconut milk",
-  "almond milk",
-  "oat milk",
-  "sweet potato",
-  "sweet potatoes",
-  "sweet corn",
-  "cream cheese",
-  "cottage cheese",
-  "sour cream",
-  "baked potato",
-  "mashed potato",
-  "fish fingers",
+  "grilled chicken",
+  "roast chicken",
+  "rotisserie chicken",
   "chicken breast",
   "chicken thigh",
+  "chicken thighs",
   "chicken wings",
-  "turkey breast",
-  "pork chop",
-  "pork belly",
-  "lamb chop",
+  "chicken drumstick",
+  "chicken drumsticks",
+  "chicken leg",
+  "chicken tenders",
+  "chicken nuggets",
+  "chicken strips",
+  "chicken fingers",
+  "chicken curry",
+  "chicken salad",
+  "chicken soup",
+  "chicken wrap",
+  "chicken sandwich",
+  "chicken burger",
+  "chicken pasta",
+  "chicken stir fry",
+  "chicken tikka",
+  "chicken tikka masala",
+  "chicken parmesan",
+  "chicken alfredo",
+  "chicken quesadilla",
+  "chicken fajita",
+  "chicken fajitas",
+  "chicken teriyaki",
+  "chicken fried rice",
+  "chicken noodle soup",
+  "chicken caesar salad",
+  "chicken caesar",
+  // Beef / steak dishes
   "beef steak",
   "beef mince",
+  "beef stew",
+  "beef curry",
+  "beef burger",
+  "beef jerky",
+  "beef tacos",
+  "beef brisket",
+  "ground beef",
+  "ground turkey",
+  // Pork dishes
+  "pork chop",
+  "pork chops",
+  "pork belly",
+  "pork tenderloin",
+  "pork loin",
+  "pulled pork",
+  // Lamb dishes
+  "lamb chop",
+  "lamb chops",
+  "lamb shank",
+  "lamb curry",
+  // Fish / seafood
+  "fish fingers",
+  "fish sticks",
+  "fish tacos",
+  "fish and chips",
+  "fried fish",
+  "grilled salmon",
+  "smoked salmon",
+  "tuna salad",
+  "tuna sandwich",
+  "tuna steak",
+  "shrimp scampi",
+  "coconut shrimp",
+  // Turkey dishes
+  "turkey breast",
+  "turkey sandwich",
+  "turkey burger",
+  "turkey bacon",
+  "turkey meatballs",
+  // Beans / legumes
   "black beans",
   "kidney beans",
   "butter beans",
+  "lima beans",
   "green beans",
   "baked beans",
-  "egg toast",
-  "eggs on toast",
+  "refried beans",
+  "pinto beans",
+  "navy beans",
+  "cannellini beans",
   "beans on toast",
-  "grilled chicken",
-  "roast chicken",
-  "chicken curry",
+  "bean soup",
+  "bean salad",
+  "bean burrito",
+  "black bean soup",
+  // Potato dishes
+  "sweet potato",
+  "sweet potatoes",
+  "baked potato",
+  "baked potatoes",
+  "mashed potato",
+  "mashed potatoes",
+  "roast potatoes",
+  "hash browns",
+  "tater tots",
+  "potato salad",
+  "potato soup",
+  "sweet potato fries",
+  "french fries",
+  // Salads
   "caesar salad",
-  "chicken caesar salad",
-  "chicken caesar",
   "greek salad",
   "cobb salad",
+  "garden salad",
+  "fruit salad",
+  "pasta salad",
+  "quinoa salad",
+  "spinach salad",
+  "kale salad",
+  "side salad",
+  "house salad",
+  "mixed salad",
+  "chopped salad",
+  "waldorf salad",
+  "caprese salad",
+  "taco salad",
+  // Dairy / cheese
+  "cream cheese",
+  "cottage cheese",
+  "sour cream",
+  "whipped cream",
+  "ice cream",
+  "frozen yogurt",
+  "greek yogurt",
+  "plain yogurt",
+  "string cheese",
+  "mac and cheese",
+  "grilled cheese",
+  "cheese pizza",
+  // Nut butters / oils
+  "peanut butter",
+  "almond butter",
+  "cashew butter",
+  "sunflower butter",
+  "coconut butter",
+  "olive oil",
+  "olive oil dressing",
+  "coconut oil",
+  "sesame oil",
+  "avocado oil",
+  // Milk alternatives
+  "coconut milk",
+  "almond milk",
+  "oat milk",
+  "soy milk",
+  "cashew milk",
+  "rice milk",
+  "whole milk",
+  "skim milk",
+  "chocolate milk",
+  // Protein / fitness
+  "protein bar",
+  "protein shake",
+  "protein smoothie",
+  "protein bowl",
+  "protein pancakes",
+  "protein oats",
+  "protein powder",
+  "energy bar",
+  "granola bar",
+  "cereal bar",
+  "power bar",
+  "snack bar",
+  // Soups
+  "chicken noodle soup",
+  "tomato soup",
+  "minestrone soup",
+  "clam chowder",
+  "french onion soup",
+  "miso soup",
+  "lentil soup",
+  "vegetable soup",
+  "bean soup",
+  "black bean soup",
+  "split pea soup",
+  "corn chowder",
+  "mushroom soup",
+  "broccoli soup",
+  // Sandwiches
+  "club sandwich",
+  "blt sandwich",
+  // Pasta dishes
+  "spaghetti bolognese",
+  "pasta bake",
+  "baked ziti",
+  "shrimp pasta",
+  // Mexican food
+  "cheese quesadilla",
+  "burrito bowl",
+  // Asian food
+  "pad thai",
+  "lo mein",
+  "chow mein",
+  "egg roll",
+  "egg rolls",
+  "spring roll",
+  "spring rolls",
+  "orange chicken",
+  "kung pao chicken",
+  "general tso",
+  "sweet and sour",
+  "sweet and sour chicken",
+  "teriyaki chicken",
+  // Breakfast items
+  "breakfast burrito",
+  "breakfast sandwich",
+  "overnight oats",
+  "chia pudding",
+  "acai bowl",
+  "poke bowl",
+  "buddha bowl",
+  "power bowl",
+  "grain bowl",
+  "smoothie bowl",
+  // Corn items
+  "sweet corn",
+  "corn on the cob",
+  "corn tortilla",
+  "corn chips",
+  // Sauces / condiments
+  "hot sauce",
+  "soy sauce",
+  "teriyaki sauce",
+  "bbq sauce",
+  "ranch dressing",
+  "caesar dressing",
+  "italian dressing",
+  "balsamic dressing",
+  "honey mustard",
+  "maple syrup",
+  // Drinks
+  "orange juice",
+  "apple juice",
+  "cranberry juice",
+  "grape juice",
+  "tomato juice",
+  "green tea",
+  "black tea",
+  "herbal tea",
+  "iced tea",
+  "iced coffee",
+  "black coffee",
+  "cold brew",
+  "hot chocolate",
+  "coconut water",
+  "sparkling water",
+  // Snacks / desserts
+  "trail mix",
+  "mixed nuts",
+  "dark chocolate",
+  "milk chocolate",
+  "white chocolate",
+  "chocolate chips",
+  "chocolate cake",
+  "cheese cake",
+  "carrot cake",
+  "apple pie",
+  "pumpkin pie",
+  "key lime pie",
+  "rice crispy",
+  "rice crispy treat",
 ]);
+
+/**
+ * Compound foods that contain "and" — must be protected before
+ * splitting on "and" delimiter. These get placeholder-replaced,
+ * split happens, then they get restored.
+ */
+const AND_COMPOUNDS: string[] = [
+  "mac and cheese",
+  "fish and chips",
+  "sweet and sour",
+  "sweet and sour chicken",
+  "peanut butter and jelly",
+  "bread and butter",
+  "salt and pepper",
+  "franks and beans",
+  "surf and turf",
+  "chips and salsa",
+  "chips and guacamole",
+  "biscuits and gravy",
+];
 
 /** Split a compound input into individual food fragments */
 function splitIntoFragments(input: string): string[] {
+  // 0th pass: Protect compound foods containing "and" from being split
+  let processed = input;
+  const placeholders: Map<string, string> = new Map();
+  for (const compound of AND_COMPOUNDS) {
+    const idx = processed.toLowerCase().indexOf(compound);
+    if (idx >= 0) {
+      const placeholder = `__COMPOUND_${placeholders.size}__`;
+      const original = processed.slice(idx, idx + compound.length);
+      placeholders.set(placeholder, original);
+      processed =
+        processed.slice(0, idx) +
+        placeholder +
+        processed.slice(idx + compound.length);
+    }
+  }
+
   // 1st pass: split on "and", "&", commas, "with a", "plus"
-  let fragments = input
+  let fragments = processed
     .split(/\s*(?:,\s*|\s+and\s+|\s*&\s*|\s+plus\s+|\s+with\s+a\s+)/i)
     .map((f) => f.trim())
     .filter((f) => f.length > 0);
+
+  // Restore placeholders
+  fragments = fragments.map((f) => {
+    for (const [placeholder, original] of placeholders) {
+      f = f.replace(placeholder, original);
+    }
+    return f;
+  });
 
   // 2nd pass: split fragments that contain implicit item boundaries.
   // E.g. "three corn two sweet corn" → ["three corn", "two sweet corn"]
@@ -354,6 +777,256 @@ function splitIntoFragments(input: string): string[] {
   return result;
 }
 
+// ─── Size Qualifier Detection ────────────────────────────────────────────────
+
+/**
+ * Foods where "small/medium/large" refers to the individual item size
+ * (e.g., "2 large eggs") rather than a menu/drink size (e.g., "large coffee").
+ * Only extract sizeQualifier for these foods.
+ */
+const SIZED_FOODS = new Set([
+  "egg",
+  "eggs",
+  "banana",
+  "bananas",
+  "apple",
+  "apples",
+  "orange",
+  "oranges",
+  "meatball",
+  "meatballs",
+  "pancake",
+  "pancakes",
+  "waffle",
+  "waffles",
+  "croissant",
+  "croissants",
+  "tortilla",
+  "tortillas",
+  "bun",
+  "buns",
+  "sausage",
+  "sausages",
+  "shrimp",
+  "prawns",
+  "cookie",
+  "cookies",
+  "taco",
+  "tacos",
+  "dumpling",
+  "dumplings",
+  "donut",
+  "donuts",
+  "doughnut",
+  "doughnuts",
+  "strawberry",
+  "strawberries",
+  "chicken wing",
+  "chicken wings",
+  "chicken nugget",
+  "chicken nuggets",
+  "potato",
+  "potatoes",
+  "tomato",
+  "tomatoes",
+  "onion",
+  "onions",
+  "avocado",
+  "avocados",
+  "pepper",
+  "peppers",
+  "carrot",
+  "carrots",
+  "peach",
+  "peaches",
+  "pear",
+  "pears",
+  "plum",
+  "plums",
+  "mango",
+  "mangoes",
+  "mangos",
+  "kiwi",
+  "kiwis",
+]);
+
+/**
+ * Foods that are inherently countable — when a user says "a burger" or
+ * "2 spring rolls", they mean individual items (pieces), not an abstract
+ * "serving". Without this, the parser defaults to unit="serving" which
+ * feeds into a different (and often wrong) portion estimation path.
+ *
+ * This is a superset of SIZED_FOODS — every sized food is also countable,
+ * but not every countable food supports small/medium/large sizing.
+ */
+const COUNTABLE_FOODS = new Set([
+  // Already in SIZED_FOODS (included for completeness in matching)
+  "egg",
+  "eggs",
+  "banana",
+  "bananas",
+  "apple",
+  "apples",
+  "orange",
+  "oranges",
+  "meatball",
+  "meatballs",
+  "pancake",
+  "pancakes",
+  "waffle",
+  "waffles",
+  "croissant",
+  "croissants",
+  "tortilla",
+  "tortillas",
+  "bun",
+  "buns",
+  "sausage",
+  "sausages",
+  "shrimp",
+  "prawns",
+  "cookie",
+  "cookies",
+  "taco",
+  "tacos",
+  "dumpling",
+  "dumplings",
+  "donut",
+  "donuts",
+  "doughnut",
+  "doughnuts",
+  "strawberry",
+  "strawberries",
+  "chicken wing",
+  "chicken wings",
+  "wing",
+  "wings",
+  "chicken nugget",
+  "chicken nuggets",
+  "nugget",
+  "nuggets",
+  "potato",
+  "potatoes",
+  "tomato",
+  "tomatoes",
+  "onion",
+  "onions",
+  "avocado",
+  "avocados",
+  "pepper",
+  "peppers",
+  "carrot",
+  "carrots",
+  "peach",
+  "peaches",
+  "pear",
+  "pears",
+  "plum",
+  "plums",
+  "mango",
+  "mangoes",
+  "mangos",
+  "kiwi",
+  "kiwis",
+  // Meal-type countable foods
+  "burger",
+  "burgers",
+  "hamburger",
+  "hamburgers",
+  "sandwich",
+  "sandwiches",
+  "wrap",
+  "wraps",
+  "burrito",
+  "burritos",
+  "kebab",
+  "kebabs",
+  "doner kebab",
+  "döner kebab",
+  "shawarma",
+  "shawarmas",
+  "gyro",
+  "gyros",
+  "pizza",
+  "pizzas",
+  "quesadilla",
+  "quesadillas",
+  "calzone",
+  "calzones",
+  "hot dog",
+  "hot dogs",
+  "hotdog",
+  "hotdogs",
+  "sub",
+  "subs",
+  "panini",
+  "paninis",
+  "spring roll",
+  "spring rolls",
+  "egg roll",
+  "egg rolls",
+  "samosa",
+  "samosas",
+  "empanada",
+  "empanadas",
+  "falafel",
+  "falafels",
+  // Baked goods
+  "bagel",
+  "bagels",
+  "muffin",
+  "muffins",
+  "cupcake",
+  "cupcakes",
+  "brownie",
+  "brownies",
+  "scone",
+  "scones",
+  "biscuit",
+  "biscuits",
+  "pretzel",
+  "pretzels",
+  "naan",
+  "naans",
+  "pita",
+  "pitas",
+  "roll",
+  "rolls",
+  "pie",
+  "pies",
+  "pasty",
+  "pasties",
+  "sausage roll",
+  "sausage rolls",
+]);
+
+const SIZE_PATTERN = /^(?:extra\s+)?(small|medium|large)\s+(?:sized?\s+)?/i;
+
+/**
+ * Extract size qualifier from text if the remaining food name is a sized food.
+ * Returns [sizeQualifier | undefined, remainingText].
+ */
+function extractSize(
+  text: string
+): ["small" | "medium" | "large" | undefined, string] {
+  const match = text.match(SIZE_PATTERN);
+  if (!match) return [undefined, text];
+
+  const size = match[1].toLowerCase() as "small" | "medium" | "large";
+  const afterSize = text.slice(match[0].length).trim();
+
+  // Only extract if the remaining text starts with a known sized food
+  const firstWord = afterSize.split(/\s/)[0].toLowerCase();
+  const twoWords = afterSize.split(/\s/).slice(0, 2).join(" ").toLowerCase();
+
+  if (SIZED_FOODS.has(firstWord) || SIZED_FOODS.has(twoWords)) {
+    return [size, afterSize];
+  }
+
+  // Not a sized food — leave "medium" etc. in the text (e.g., "medium coffee")
+  return [undefined, text];
+}
+
 // ─── Main Parser ─────────────────────────────────────────────────────────────
 
 /**
@@ -378,15 +1051,19 @@ export function parseWithRegex(rawInput: string): ParsedFoodItem[] {
     const [quantity, afterQty] = extractQuantity(remaining);
     remaining = afterQty;
 
-    // 2. Extract unit
+    // 2. Extract size qualifier (must be before unit extraction)
+    const [sizeQualifier, afterSize] = extractSize(remaining);
+    remaining = afterSize;
+
+    // 3. Extract unit
     const [unit, afterUnit] = extractUnit(remaining);
     remaining = afterUnit;
 
-    // 3. Extract preparation
+    // 4. Extract preparation
     const [preparation, afterPrep] = extractPreparation(remaining);
     remaining = afterPrep;
 
-    // 4. Clean up the food name
+    // 5. Clean up the food name
     const name = remaining
       .replace(/\b(of|some|the|my|i had|i ate|i drank)\b/gi, "")
       .replace(/\s+/g, " ")
@@ -394,20 +1071,39 @@ export function parseWithRegex(rawInput: string): ParsedFoodItem[] {
 
     if (!name) continue;
 
-    // 5. Confidence — regex is deterministic but not always right
+    // 6. Confidence — regex is deterministic but not always right
     //    High for simple items, lower for compound/ambiguous ones
     const hasExplicitQuantity = quantity !== 1 || /^\d/.test(fragment);
     const hasExplicitUnit = unit !== "serving";
     let confidence = 0.6;
     if (hasExplicitQuantity) confidence += 0.15;
     if (hasExplicitUnit) confidence += 0.1;
+    if (sizeQualifier) confidence += 0.05;
     if (name.split(" ").length <= 2) confidence += 0.05;
     confidence = Math.min(confidence, 0.95);
+
+    // If a size qualifier was detected on a countable food, default unit to "piece"
+    // Also default to "piece" for countable foods even without a size qualifier
+    let effectiveUnit = unit;
+    if (unit === "serving") {
+      const nameLower = name.toLowerCase();
+      const nameWords = nameLower.split(" ");
+      if (
+        sizeQualifier ||
+        COUNTABLE_FOODS.has(nameLower) ||
+        COUNTABLE_FOODS.has(nameWords[nameWords.length - 1]) || // "doner kebab" → check "kebab"
+        (nameWords.length >= 2 &&
+          COUNTABLE_FOODS.has(nameWords.slice(-2).join(" "))) // "chicken spring roll" → check "spring roll"
+      ) {
+        effectiveUnit = "piece";
+      }
+    }
 
     items.push({
       name,
       quantity,
-      unit,
+      unit: effectiveUnit,
+      sizeQualifier,
       preparation,
       confidence: Math.round(confidence * 100) / 100,
       rawFragment: fragment,

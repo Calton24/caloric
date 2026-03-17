@@ -398,10 +398,10 @@ You have multiple apps, each with its own Stripe account.
 Each app profile points to a different Supabase project:
 
 ```typescript
-// Intake app → intake-prod Supabase project
-export const intakeConfig = {
+// Caloric app → caloric-prod Supabase project
+export const caloricConfig = {
   supabase: {
-    url: "https://intake-prod.supabase.co",
+    url: "https://caloric-prod.supabase.co",
     anonKey: "...",
   },
 };
@@ -417,7 +417,7 @@ export const proxiConfig = {
 
 Then set different secrets in each Supabase project:
 
-- `intake-prod` project has Intake's Stripe key
+- `caloric-prod` project has Caloric's Stripe key
 - `proxi-prod` project has Proxi's Stripe key
 
 Edge Functions automatically use the correct project's secrets.

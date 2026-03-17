@@ -103,3 +103,41 @@ export async function labelFoodImage(imageUri: string): Promise<string | null> {
     return null;
   }
 }
+
+/**
+ * Get raw ML Kit labels with confidence scores.
+ *
+ * Unlike `labelFoodImage()` which returns a single string description,
+ * this returns structured label data needed by the taxonomy classifier
+ * and candidate generator.
+ *
+ * @param imageUri  Local file URI to the captured/selected image
+ * @returns         Array of { label, confidence } sorted by confidence desc
+ */
+export async function getRawFoodLabels(
+  imageUri: string
+): Promise<{ label: string; confidence: number }[]> {
+  try {
+    const result = await ImageLabeling.label(imageUri);
+
+    if (!result || result.length === 0) {
+      return [];
+    }
+
+    return result
+      .filter(
+        (label) =>
+          label.confidence >= MIN_CONFIDENCE &&
+          !IGNORED_LABELS.has(label.text.toLowerCase())
+      )
+      .sort((a, b) => b.confidence - a.confidence)
+      .slice(0, MAX_LABELS)
+      .map((label) => ({
+        label: label.text.toLowerCase(),
+        confidence: label.confidence,
+      }));
+  } catch (error) {
+    console.warn("Image labeling (raw) failed:", error);
+    return [];
+  }
+}

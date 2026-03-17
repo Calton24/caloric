@@ -12,6 +12,7 @@ import React, { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useUnits } from "../hooks/useUnits";
 import { useProfileStore, useProgressStore } from "../src/stores";
 import { useTheme } from "../src/theme/useTheme";
 import { TSpacer } from "../src/ui/primitives/TSpacer";
@@ -20,6 +21,7 @@ import { TText } from "../src/ui/primitives/TText";
 export default function LogWeightScreen() {
   const { theme } = useTheme();
   const router = useRouter();
+  const units = useUnits();
 
   // ── Domain stores ──
   const profile = useProfileStore((s) => s.profile);
@@ -28,7 +30,7 @@ export default function LogWeightScreen() {
   const latestWeight = weightLogs.length > 0 ? weightLogs[0].weightLbs : null;
 
   const [weight, setWeight] = useState(
-    latestWeight ?? profile.currentWeightLbs ?? 0
+    Number(units.display(latestWeight ?? profile.currentWeightLbs ?? 0))
   );
 
   const increment = (amount: number) => {
@@ -39,7 +41,7 @@ export default function LogWeightScreen() {
     addWeightLog({
       id: `wl_${Date.now()}`,
       date: new Date().toISOString().split("T")[0],
-      weightLbs: weight,
+      weightLbs: units.toLbs(weight),
     });
     router.back();
   };
@@ -94,7 +96,7 @@ export default function LogWeightScreen() {
             <TText
               style={[styles.weightUnit, { color: theme.colors.textMuted }]}
             >
-              lbs
+              {units.label}
             </TText>
           </Animated.View>
 
@@ -107,53 +109,53 @@ export default function LogWeightScreen() {
           >
             {/* -1.0 */}
             <Pressable
-              onPress={() => increment(-1)}
+              onPress={() => increment(-units.largeStep)}
               style={[
                 styles.stepperBtn,
                 { backgroundColor: theme.colors.surfaceSecondary },
               ]}
             >
               <TText style={[styles.stepperText, { color: theme.colors.text }]}>
-                -1.0
+                -{units.largeStep}
               </TText>
             </Pressable>
 
-            {/* -0.1 */}
+            {/* -step */}
             <Pressable
-              onPress={() => increment(-0.1)}
+              onPress={() => increment(-units.step)}
               style={[
                 styles.stepperBtn,
                 { backgroundColor: theme.colors.surfaceSecondary },
               ]}
             >
               <TText style={[styles.stepperText, { color: theme.colors.text }]}>
-                -0.1
+                -{units.step}
               </TText>
             </Pressable>
 
-            {/* +0.1 */}
+            {/* +step */}
             <Pressable
-              onPress={() => increment(0.1)}
+              onPress={() => increment(units.step)}
               style={[
                 styles.stepperBtn,
                 { backgroundColor: theme.colors.surfaceSecondary },
               ]}
             >
               <TText style={[styles.stepperText, { color: theme.colors.text }]}>
-                +0.1
+                +{units.step}
               </TText>
             </Pressable>
 
-            {/* +1.0 */}
+            {/* +largeStep */}
             <Pressable
-              onPress={() => increment(1)}
+              onPress={() => increment(units.largeStep)}
               style={[
                 styles.stepperBtn,
                 { backgroundColor: theme.colors.surfaceSecondary },
               ]}
             >
               <TText style={[styles.stepperText, { color: theme.colors.text }]}>
-                +1.0
+                +{units.largeStep}
               </TText>
             </Pressable>
           </Animated.View>
@@ -167,8 +169,12 @@ export default function LogWeightScreen() {
               <TText
                 style={[styles.goalText, { color: theme.colors.textSecondary }]}
               >
-                Goal: {profile.goalWeightLbs} lbs (
-                {(weight - (profile.goalWeightLbs ?? 0)).toFixed(1)} lbs to go)
+                Goal: {units.display(profile.goalWeightLbs ?? 0)} {units.label}{" "}
+                (
+                {(
+                  weight - Number(units.display(profile.goalWeightLbs ?? 0))
+                ).toFixed(1)}{" "}
+                {units.label} to go)
               </TText>
             </View>
           </Animated.View>

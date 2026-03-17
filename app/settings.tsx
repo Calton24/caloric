@@ -13,14 +13,31 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import React from "react";
-import { Pressable, ScrollView, StyleSheet, Switch, View } from "react-native";
+import {
+    Alert,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    View,
+} from "react-native";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useUnits } from "../hooks/useUnits";
+import { useAuth } from "../src/features/auth/useAuth";
+import {
+    exportAllDataCSV,
+    exportMealsCSV,
+    exportWeightCSV,
+} from "../src/features/export/data-export.service";
 import {
     useGoalsStore,
+    useNutritionStore,
     usePermissionsStore,
     useProfileStore,
+    useProgressStore,
     useSubscriptionStore,
 } from "../src/stores";
 import { useTheme } from "../src/theme/useTheme";
@@ -129,6 +146,8 @@ function SectionHeader({ title }: { title: string }) {
 export default function SettingsScreen() {
   const { theme } = useTheme();
   const router = useRouter();
+  const units = useUnits();
+  const { user, signOut } = useAuth();
 
   // ── Domain stores ──
   const profile = useProfileStore((s) => s.profile);
@@ -144,6 +163,19 @@ export default function SettingsScreen() {
     (s) => s.setLiveActivitiesEnabled
   );
   const subscription = useSubscriptionStore((s) => s.subscription);
+  const meals = useNutritionStore((s) => s.meals);
+  const weightLogs = useProgressStore((s) => s.weightLogs);
+
+  const handleExport = async (type: "meals" | "weight" | "all") => {
+    try {
+      if (type === "meals") await exportMealsCSV(meals);
+      else if (type === "weight") await exportWeightCSV(weightLogs);
+      else await exportAllDataCSV(meals, weightLogs);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Export failed";
+      Alert.alert("Export Error", msg);
+    }
+  };
 
   const planLabel =
     plan && plan.calorieBudget > 0
@@ -203,7 +235,7 @@ export default function SettingsScreen() {
                 iconColor={theme.colors.info}
                 label="Units"
                 value={profile.weightUnit === "lbs" ? "Imperial" : "Metric"}
-                onPress={() => {}}
+                onPress={() => units.toggleWeightUnit()}
               />
               <SettingsRow
                 icon="body-outline"
@@ -241,8 +273,8 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="refresh-outline"
                 iconColor={theme.colors.primary}
-                label="Recalculate Plan"
-                onPress={() => {}}
+                label="Edit Goals"
+                onPress={() => router.push("/goals" as any)}
               />
             </View>
           </Animated.View>
@@ -327,6 +359,40 @@ export default function SettingsScreen() {
 
           <TSpacer size="lg" />
 
+          {/* ── Data Export ── */}
+          <Animated.View entering={FadeInDown.duration(400).delay(350)}>
+            <SectionHeader title="DATA" />
+            <View
+              style={[
+                styles.section,
+                { backgroundColor: theme.colors.surfaceSecondary },
+              ]}
+            >
+              <SettingsRow
+                icon="nutrition-outline"
+                iconColor={theme.colors.primary}
+                label="Export Meals"
+                value={`${meals.length} meals`}
+                onPress={() => handleExport("meals")}
+              />
+              <SettingsRow
+                icon="scale-outline"
+                iconColor={theme.colors.info}
+                label="Export Weight"
+                value={`${weightLogs.length} entries`}
+                onPress={() => handleExport("weight")}
+              />
+              <SettingsRow
+                icon="download-outline"
+                iconColor={theme.colors.success}
+                label="Export All Data"
+                onPress={() => handleExport("all")}
+              />
+            </View>
+          </Animated.View>
+
+          <TSpacer size="md" />
+
           {/* ── Subscription ── */}
           <Animated.View entering={FadeInDown.duration(400).delay(400)}>
             <SectionHeader title="SUBSCRIPTION" />
@@ -349,6 +415,75 @@ export default function SettingsScreen() {
                 label="Restore Purchases"
                 onPress={() => {
                   /* Restore purchases – wire to RevenueCat */
+                }}
+              />
+            </View>
+          </Animated.View>
+
+          <TSpacer size="lg" />
+
+          {/* ── Legal ── */}
+          <Animated.View entering={FadeInDown.duration(400).delay(420)}>
+            <SectionHeader title="LEGAL" />
+            <View
+              style={[
+                styles.section,
+                { backgroundColor: theme.colors.surfaceSecondary },
+              ]}
+            >
+              <SettingsRow
+                icon="document-text-outline"
+                iconColor={theme.colors.textSecondary}
+                label="Privacy Policy"
+                onPress={() =>
+                  WebBrowser.openBrowserAsync(
+                    "https://calton24.github.io/caloric/privacy-policy"
+                  )
+                }
+              />
+            </View>
+          </Animated.View>
+
+          <TSpacer size="lg" />
+
+          {/* ── Account ── */}
+          <Animated.View entering={FadeInDown.duration(400).delay(450)}>
+            <SectionHeader title="ACCOUNT" />
+            <View
+              style={[
+                styles.section,
+                { backgroundColor: theme.colors.surfaceSecondary },
+              ]}
+            >
+              {user && (
+                <SettingsRow
+                  icon="mail-outline"
+                  iconColor={theme.colors.info}
+                  label="Email"
+                  value={user.email}
+                  showChevron={false}
+                />
+              )}
+              <SettingsRow
+                icon="log-out-outline"
+                iconColor={theme.colors.error}
+                label="Sign Out"
+                onPress={() => {
+                  Alert.alert(
+                    "Sign Out",
+                    "Are you sure you want to sign out?",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Sign Out",
+                        style: "destructive",
+                        onPress: async () => {
+                          await signOut();
+                          router.replace("/(onboarding)/landing");
+                        },
+                      },
+                    ]
+                  );
                 }}
               />
             </View>

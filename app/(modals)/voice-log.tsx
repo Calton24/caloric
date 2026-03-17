@@ -79,7 +79,14 @@ export default function VoiceLoggingScreen() {
       setIsProcessing(true);
       setProcessingError(null);
       try {
-        await startFromInput(transcript, "voice");
+        const foundFood = await startFromInput(transcript, "voice");
+        if (!foundFood) {
+          setIsProcessing(false);
+          setProcessingError(
+            'No food detected. Try saying just the food name, e.g. "chicken and rice".'
+          );
+          hasProcessed.current = false;
+        }
       } catch {
         setIsProcessing(false);
         setProcessingError("Couldn't look up nutrition. Tap retry.");

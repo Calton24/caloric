@@ -11,18 +11,19 @@ import { useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useUnits } from "../../hooks/useUnits";
+import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TButton } from "../../src/ui/primitives/TButton";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 import { OnboardingProgress } from "./_progress";
-import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
 
 interface TimeframeOption {
   id: string;
   weeks: number;
-  rate: string; // e.g. "-0.55 lbs/week"
+  rateLbsPerWeek: number;
   difficulty: string;
   difficultyColor: string;
   recommended?: boolean;
@@ -32,14 +33,14 @@ const TIMEFRAMES: TimeframeOption[] = [
   {
     id: "relaxed",
     weeks: 35,
-    rate: "-0.45 lbs/week",
+    rateLbsPerWeek: 0.45,
     difficulty: "Relaxed",
     difficultyColor: "#34D399",
   },
   {
     id: "realistic",
     weeks: 17,
-    rate: "-0.90 lbs/week",
+    rateLbsPerWeek: 0.9,
     difficulty: "Realistic",
     difficultyColor: "#60A5FA",
     recommended: true,
@@ -47,14 +48,14 @@ const TIMEFRAMES: TimeframeOption[] = [
   {
     id: "ambitious",
     weeks: 11,
-    rate: "-1.35 lbs/week",
+    rateLbsPerWeek: 1.35,
     difficulty: "Ambitious",
     difficultyColor: "#FBBF24",
   },
   {
     id: "challenging",
     weeks: 8,
-    rate: "-1.90 lbs/week",
+    rateLbsPerWeek: 1.9,
     difficulty: "Challenging",
     difficultyColor: "#F87171",
   },
@@ -62,10 +63,12 @@ const TIMEFRAMES: TimeframeOption[] = [
 
 export default function OnboardingTimeframeScreen() {
   const { theme } = useTheme();
+  const units = useUnits();
   const router = useRouter();
   const { timeframeWeeks, saveTimeframe, profile } = useOnboarding();
   // Map weeks back to id for selection highlighting
-  const selectedId = TIMEFRAMES.find((t) => t.weeks === timeframeWeeks)?.id ?? null;
+  const selectedId =
+    TIMEFRAMES.find((t) => t.weeks === timeframeWeeks)?.id ?? null;
 
   return (
     <View
@@ -93,7 +96,7 @@ export default function OnboardingTimeframeScreen() {
 
           <Animated.View entering={FadeInDown.duration(500).delay(200)}>
             <TText color="secondary" style={styles.description}>
-              {`How quickly do you want to reach ${profile.goalWeightLbs ?? "your goal"} lbs?`}
+              {`How quickly do you want to reach ${units.display(profile.goalWeightLbs ?? 0)} ${units.label}?`}
             </TText>
           </Animated.View>
 
@@ -156,7 +159,7 @@ export default function OnboardingTimeframeScreen() {
                           { color: theme.colors.textSecondary },
                         ]}
                       >
-                        {tf.rate}
+                        {`-${units.display(tf.rateLbsPerWeek, 2)} ${units.label}/week`}
                       </TText>
                     </View>
                     <View style={styles.cardRight}>
@@ -205,8 +208,8 @@ export default function OnboardingTimeframeScreen() {
               <TText
                 style={[styles.infoText, { color: theme.colors.textMuted }]}
               >
-                A safe rate is 0.5–2 lbs per week. Faster rates may not be
-                sustainable long term.
+                A safe rate is 0.2–1 {units.label} per week. Faster rates may
+                not be sustainable long term.
               </TText>
             </View>
           </Animated.View>

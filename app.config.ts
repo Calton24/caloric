@@ -11,7 +11,7 @@ const getConfig = (): any => {
   // During build time, we need to load config differently
   // Use process.env directly since Constants.expoConfig isn't available yet
   const appProfile =
-    process.env.EXPO_PUBLIC_APP_PROFILE || process.env.APP_PROFILE || "intake";
+    process.env.EXPO_PUBLIC_APP_PROFILE || process.env.APP_PROFILE || "caloric";
   const appEnv =
     process.env.EXPO_PUBLIC_APP_ENV || process.env.APP_ENV || "dev";
 
@@ -61,7 +61,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: appConfig.scheme,
-    userInterfaceStyle: "automatic",
+    userInterfaceStyle: "dark",
     newArchEnabled: true,
 
     ios: {
@@ -76,6 +76,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           "Allow Caloric to use speech recognition to convert your voice to food entries.",
         NSCameraUsageDescription:
           "Allow Caloric to use the camera to scan and identify food for calorie tracking.",
+        NSHealthShareUsageDescription:
+          "Allow Caloric to read your weight data from Apple Health for progress tracking.",
+        NSHealthUpdateUsageDescription:
+          "Allow Caloric to save your meals and weight to Apple Health.",
+      },
+      entitlements: {
+        "com.apple.developer.healthkit": true,
       },
     },
 
@@ -134,12 +141,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
             "Allow Caloric to use speech recognition to convert your voice to food entries.",
         },
       ],
-      "llama.rn",
       [
         "react-native-vision-camera",
         {
           cameraPermissionText:
             "Allow Caloric to use the camera to scan and identify food for calorie tracking.",
+          enableCodeScanner: true,
         },
       ],
     ],

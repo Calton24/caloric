@@ -50,7 +50,7 @@ eas submit --profile production --platform android
 import { getAppConfig } from "@/src/config";
 
 const config = getAppConfig();
-console.log(config.profile); // 'intake'
+console.log(config.profile); // 'caloric'
 console.log(config.environment); // 'dev'
 console.log(config.app.name); // 'Intake Dev'
 console.log(config.features); // { vision: true, ... }
@@ -203,10 +203,10 @@ EAS_PROJECT_ID=your-project-id
 
    ```typescript
    // src/config/types.ts
-   export type AppProfile = "intake" | "proxi" | "newapp";
+   export type AppProfile = "caloric" | "proxi" | "newapp";
 
    // src/config/schema.ts
-   export const AppProfileSchema = z.enum(["intake", "proxi", "newapp"]);
+   export const AppProfileSchema = z.enum(["caloric", "proxi", "newapp"]);
    ```
 
 5. **Add EAS profiles:**

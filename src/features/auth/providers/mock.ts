@@ -103,6 +103,13 @@ export class MockAuthClient implements AuthClient {
     return { error: null };
   }
 
+  async deleteAccount(): Promise<{ error: Error | null }> {
+    await delay(500);
+    this.currentSession = null;
+    this.notifyListeners(null);
+    return { error: null };
+  }
+
   async resetPasswordForEmail(email: string): Promise<{ error: Error | null }> {
     await delay(800);
     if (!email || !email.includes("@")) {

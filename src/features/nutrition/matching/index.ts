@@ -5,8 +5,15 @@ export {
     matchFoodItems
 } from "./food-matcher.service";
 export type {
-    FoodMatch, MatchSource, MatchedFoodItem, NutrientProfile
+    FoodMatch, MatchedFoodItem, MatchSource, NutrientProfile
 } from "./matching.types";
 export { lookupBarcode, searchOpenFoodFacts } from "./openfoodfacts.service";
+export {
+    clearFoodRegion,
+    getFoodRegion,
+    getFoodRegionSync,
+    initFoodRegion,
+    setFoodRegion
+} from "./region.service";
 export { searchUsda } from "./usda.service";
 

@@ -21,15 +21,46 @@ const USER_AGENT = "Caloric/1.0 (calorie-tracking-app)";
 
 // Country-specific OFF subdomains for better regional results
 const REGION_URLS: Record<string, string> = {
+  // British Isles
   gb: UK_URL,
   uk: UK_URL,
   ie: "https://ie.openfoodfacts.org",
+  // Western Europe
   fr: "https://fr.openfoodfacts.org",
   de: "https://de.openfoodfacts.org",
+  nl: "https://nl.openfoodfacts.org",
+  be: "https://be.openfoodfacts.org",
+  lu: "https://lu.openfoodfacts.org",
+  at: "https://at.openfoodfacts.org",
+  ch: "https://ch.openfoodfacts.org",
+  // Southern Europe
   es: "https://es.openfoodfacts.org",
   it: "https://it.openfoodfacts.org",
-  nl: "https://nl.openfoodfacts.org",
+  pt: "https://pt.openfoodfacts.org",
+  gr: "https://gr.openfoodfacts.org",
+  // Central & Eastern Europe
+  pl: "https://pl.openfoodfacts.org",
+  cz: "https://cz.openfoodfacts.org",
+  sk: "https://sk.openfoodfacts.org",
+  hu: "https://hu.openfoodfacts.org",
+  ro: "https://ro.openfoodfacts.org",
+  bg: "https://bg.openfoodfacts.org",
+  hr: "https://hr.openfoodfacts.org",
+  si: "https://si.openfoodfacts.org",
+  // Nordics & Baltics
+  se: "https://se.openfoodfacts.org",
+  dk: "https://dk.openfoodfacts.org",
+  fi: "https://fi.openfoodfacts.org",
+  no: "https://no.openfoodfacts.org",
+  // Americas
   us: BASE_URL,
+  ca: "https://ca.openfoodfacts.org",
+  br: "https://br.openfoodfacts.org",
+  mx: "https://mx.openfoodfacts.org",
+  // Asia-Pacific
+  au: "https://au.openfoodfacts.org",
+  in: "https://in.openfoodfacts.org",
+  jp: "https://jp.openfoodfacts.org",
 };
 
 // ─── OFF API Response Types ──────────────────────────────────────────────────
@@ -189,13 +220,19 @@ async function searchOffEndpoint(
   );
 
   try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+
     const response = await fetch(url.toString(), {
       method: "GET",
       headers: {
         Accept: "application/json",
         "User-Agent": USER_AGENT,
       },
+      signal: controller.signal,
     });
+
+    clearTimeout(timer);
 
     if (!response.ok) {
       console.warn(`OFF API error: ${response.status} ${response.statusText}`);
@@ -258,10 +295,8 @@ async function searchOffEndpoint(
 }
 
 // Simple in-memory barcode cache to avoid redundant network calls
-const barcodeCache = new Map<
-  string,
-  { result: FoodMatch | null; ts: number }
->();
+// Only caches SUCCESSFUL lookups — failures are never cached so retries hit the network.
+const barcodeCache = new Map<string, { result: FoodMatch; ts: number }>();
 const BARCODE_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
 /**
@@ -281,9 +316,9 @@ export async function lookupBarcode(
 
   const url = `${BASE_URL}/api/v2/product/${encodeURIComponent(barcode)}`;
 
-  // 5-second timeout to avoid hanging on slow networks
+  // 8-second timeout — barcode lookups are high-intent, give the API time
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 5000);
+  const timer = setTimeout(() => controller.abort(), 8000);
 
   try {
     const response = await fetch(url, {
@@ -340,6 +375,7 @@ export async function lookupBarcode(
     barcodeCache.set(barcode, { result, ts: Date.now() });
     return result;
   } catch (err) {
+    // Don't cache failures — next scan should retry the network
     console.warn("OFF barcode lookup failed:", err);
     return null;
   } finally {

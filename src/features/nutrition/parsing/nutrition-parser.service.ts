@@ -14,6 +14,11 @@ import type { InputSource, ParsedInput } from "./food-candidate.schema";
 import { parseWithLocalLlm } from "./local-llm.service";
 import { parseWithRegex } from "./regex-parser";
 
+export interface ParseOptions {
+  /** Skip local LLM and go straight to regex. */
+  skipLlm?: boolean;
+}
+
 /**
  * Parse raw user input into structured food candidates.
  *
@@ -22,11 +27,13 @@ import { parseWithRegex } from "./regex-parser";
  *
  * @param rawInput  The raw user input (transcript, typed text, or image caption)
  * @param source    How the input was captured: "voice" | "text" | "image"
+ * @param options   Parse options (e.g. skipLlm for camera fallback paths)
  * @returns         Structured ParsedInput with food candidates
  */
 export async function parseNutritionInput(
   rawInput: string,
-  source: InputSource
+  source: InputSource,
+  options: ParseOptions = {}
 ): Promise<ParsedInput> {
   const trimmed = rawInput.trim();
 
@@ -41,20 +48,23 @@ export async function parseNutritionInput(
   }
 
   // 1. Try local LLM (higher quality, structured JSON output)
-  const llmResult = await parseWithLocalLlm(trimmed);
+  //    Skip if caller already used LLM in a prior stage (e.g. image captioning)
+  if (!options.skipLlm) {
+    const llmResult = await parseWithLocalLlm(trimmed);
 
-  if (llmResult.success && llmResult.items.length > 0) {
-    return {
-      items: llmResult.items.map((item) => ({
-        ...item,
-        // Ensure rawFragment is populated
-        rawFragment: item.rawFragment || trimmed,
-      })),
-      rawInput: trimmed,
-      source,
-      parseMethod: "local-llm",
-      parsedAt: new Date().toISOString(),
-    };
+    if (llmResult.success && llmResult.items.length > 0) {
+      return {
+        items: llmResult.items.map((item) => ({
+          ...item,
+          // Ensure rawFragment is populated
+          rawFragment: item.rawFragment || trimmed,
+        })),
+        rawInput: trimmed,
+        source,
+        parseMethod: "local-llm",
+        parsedAt: new Date().toISOString(),
+      };
+    }
   }
 
   // 2. Fall back to regex parser (always available, deterministic)

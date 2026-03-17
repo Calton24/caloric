@@ -12,6 +12,7 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import React, { useCallback } from "react";
 import {
     Alert,
@@ -24,6 +25,7 @@ import {
 } from "react-native";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "../../../src/features/auth/useAuth";
 import {
     areLiveActivitiesAvailable,
     endLiveActivity,
@@ -35,6 +37,7 @@ import {
     useSettingsStore,
 } from "../../../src/features/settings";
 import { useSubscriptionStore } from "../../../src/features/subscription";
+import { getBillingProvider } from "../../../src/lib/billing";
 import { useTheme } from "../../../src/theme/useTheme";
 import { TSpacer } from "../../../src/ui/primitives/TSpacer";
 import { TText } from "../../../src/ui/primitives/TText";
@@ -153,6 +156,7 @@ function SectionHeader({ title }: { title: string }) {
 export default function SettingsScreen() {
   const { theme } = useTheme();
   const router = useRouter();
+  const { user, signOut, deleteAccount } = useAuth();
 
   // ── Settings store ──
   const settings = useSettingsStore((s) => s.settings);
@@ -343,6 +347,156 @@ export default function SettingsScreen() {
                 description="Showing the current progress on your lockscreen."
                 value={liveActivitiesEnabled}
                 onToggle={handleToggleLiveActivities}
+              />
+            </View>
+          </Animated.View>
+
+          {/* ── Legal ── */}
+          <Animated.View entering={FadeInDown.duration(400).delay(350)}>
+            <SectionHeader title="Legal" />
+            <View
+              style={[
+                styles.section,
+                { backgroundColor: theme.colors.surfaceSecondary },
+              ]}
+            >
+              <SettingsRow
+                icon="document-text-outline"
+                iconColor={theme.colors.textSecondary}
+                label="Privacy Policy"
+                onPress={() =>
+                  WebBrowser.openBrowserAsync(
+                    "https://calton24.github.io/caloric/privacy-policy"
+                  )
+                }
+              />
+              <SettingsRow
+                icon="document-outline"
+                iconColor={theme.colors.textSecondary}
+                label="Terms of Service"
+                onPress={() =>
+                  WebBrowser.openBrowserAsync(
+                    "https://calton24.github.io/caloric/terms-of-service"
+                  )
+                }
+              />
+            </View>
+          </Animated.View>
+
+          <TSpacer size="lg" />
+
+          {/* ── Subscription ── */}
+          <Animated.View entering={FadeInDown.duration(400).delay(380)}>
+            <SectionHeader title="Subscription" />
+            <View
+              style={[
+                styles.section,
+                { backgroundColor: theme.colors.surfaceSecondary },
+              ]}
+            >
+              <SettingsRow
+                icon="arrow-undo-outline"
+                iconColor={theme.colors.textSecondary}
+                label="Restore Purchases"
+                onPress={async () => {
+                  try {
+                    const provider = getBillingProvider();
+                    await provider.restorePurchases();
+                    Alert.alert("Success", "Purchases restored successfully.");
+                  } catch {
+                    Alert.alert(
+                      "Error",
+                      "Could not restore purchases. Please try again."
+                    );
+                  }
+                }}
+              />
+            </View>
+          </Animated.View>
+
+          <TSpacer size="lg" />
+
+          {/* ── Account ── */}
+          <Animated.View entering={FadeInDown.duration(400).delay(400)}>
+            <SectionHeader title="Account" />
+            <View
+              style={[
+                styles.section,
+                { backgroundColor: theme.colors.surfaceSecondary },
+              ]}
+            >
+              {user && (
+                <SettingsRow
+                  icon="mail-outline"
+                  iconColor={theme.colors.info}
+                  label="Email"
+                  value={user.email}
+                  showChevron={false}
+                />
+              )}
+              <SettingsRow
+                icon="log-out-outline"
+                iconColor={theme.colors.error}
+                label="Sign Out"
+                onPress={() => {
+                  Alert.alert(
+                    "Sign Out",
+                    "Are you sure you want to sign out?",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Sign Out",
+                        style: "destructive",
+                        onPress: async () => {
+                          await signOut();
+                          router.replace("/(onboarding)/landing");
+                        },
+                      },
+                    ]
+                  );
+                }}
+              />
+              <SettingsRow
+                icon="trash-outline"
+                iconColor={theme.colors.error}
+                label="Delete Account"
+                onPress={() => {
+                  Alert.alert(
+                    "Delete Account",
+                    "This will permanently delete your account and all your data. This action cannot be undone.",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Delete",
+                        style: "destructive",
+                        onPress: () => {
+                          Alert.alert(
+                            "Are you absolutely sure?",
+                            "All your meals, progress, and settings will be permanently erased.",
+                            [
+                              { text: "Cancel", style: "cancel" },
+                              {
+                                text: "Delete Forever",
+                                style: "destructive",
+                                onPress: async () => {
+                                  const { error } = await deleteAccount();
+                                  if (error) {
+                                    Alert.alert(
+                                      "Error",
+                                      "Could not delete account. Please try again."
+                                    );
+                                  } else {
+                                    router.replace("/(onboarding)/landing");
+                                  }
+                                },
+                              },
+                            ]
+                          );
+                        },
+                      },
+                    ]
+                  );
+                }}
               />
             </View>
           </Animated.View>

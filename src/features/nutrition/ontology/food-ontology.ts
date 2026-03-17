@@ -1037,10 +1037,32 @@ const FOOD_ONTOLOGY: Record<string, OntologyEntry> = {
     defaultProtein: 5,
     defaultCarbs: 30,
     defaultFat: 6,
-    clarifyIfModifiersMissing: false,
-    modifierKeywords: ["whole wheat", "spinach", "large", "small"],
+    clarifyIfModifiersMissing: true,
+    modifierKeywords: [
+      "chicken",
+      "beef",
+      "turkey",
+      "falafel",
+      "veggie",
+      "whole wheat",
+      "spinach",
+      "large",
+      "small",
+    ],
     preferOffIfBranded: true,
     servingDescription: "1 wrap (60g)",
+  },
+  "chicken wrap": {
+    category: "meal",
+    defaultAssumption: "chicken wrap",
+    defaultCalories: 480,
+    defaultProtein: 32,
+    defaultCarbs: 40,
+    defaultFat: 18,
+    clarifyIfModifiersMissing: false,
+    modifierKeywords: ["grilled", "crispy", "spicy", "caesar"],
+    preferOffIfBranded: false,
+    servingDescription: "1 wrap (280g)",
   },
   bagel: {
     category: "grain",
@@ -1737,6 +1759,66 @@ const FOOD_ONTOLOGY: Record<string, OntologyEntry> = {
     modifierKeywords: ["frozen", "canned", "snap", "snow", "mushy"],
     preferOffIfBranded: false,
     servingDescription: "1 cup (160g)",
+  },
+  chickpeas: {
+    category: "protein",
+    defaultAssumption: "cooked chickpeas",
+    defaultCalories: 269,
+    defaultProtein: 14.5,
+    defaultCarbs: 45,
+    defaultFat: 4.2,
+    clarifyIfModifiersMissing: false,
+    modifierKeywords: ["canned", "dried", "roasted", "hummus"],
+    preferOffIfBranded: false,
+    servingDescription: "1 cup (164g)",
+  },
+  lentils: {
+    category: "protein",
+    defaultAssumption: "cooked lentils",
+    defaultCalories: 230,
+    defaultProtein: 18,
+    defaultCarbs: 40,
+    defaultFat: 0.8,
+    clarifyIfModifiersMissing: false,
+    modifierKeywords: ["red", "green", "brown", "yellow", "dried"],
+    preferOffIfBranded: false,
+    servingDescription: "1 cup (198g)",
+  },
+  "black beans": {
+    category: "protein",
+    defaultAssumption: "cooked black beans",
+    defaultCalories: 227,
+    defaultProtein: 15,
+    defaultCarbs: 41,
+    defaultFat: 0.9,
+    clarifyIfModifiersMissing: false,
+    modifierKeywords: ["canned", "dried", "refried"],
+    preferOffIfBranded: false,
+    servingDescription: "1 cup (172g)",
+  },
+  "kidney beans": {
+    category: "protein",
+    defaultAssumption: "cooked kidney beans",
+    defaultCalories: 225,
+    defaultProtein: 15,
+    defaultCarbs: 40,
+    defaultFat: 0.9,
+    clarifyIfModifiersMissing: false,
+    modifierKeywords: ["canned", "dried", "red", "white"],
+    preferOffIfBranded: false,
+    servingDescription: "1 cup (177g)",
+  },
+  "baked beans": {
+    category: "protein",
+    defaultAssumption: "canned baked beans",
+    defaultCalories: 239,
+    defaultProtein: 12,
+    defaultCarbs: 54,
+    defaultFat: 0.9,
+    clarifyIfModifiersMissing: false,
+    modifierKeywords: ["canned", "homemade"],
+    preferOffIfBranded: true,
+    servingDescription: "1 cup (254g)",
   },
   "brussels sprouts": {
     category: "vegetable",
@@ -6624,15 +6706,15 @@ const SYNONYMS: Record<string, string> = {
   "mushy peas": "peas",
   "frozen peas": "peas",
   "petit pois": "peas",
-  chickpeas: "peas",
-  "baked beans": "peas",
-  "kidney beans": "peas",
-  "black beans": "peas",
-  "butter beans": "peas",
+  chickpeas: "chickpeas",
+  "baked beans": "baked beans",
+  "kidney beans": "kidney beans",
+  "black beans": "black beans",
+  "butter beans": "kidney beans",
   "prawn toast": "shrimp toast",
-  lentils: "peas",
-  "red lentils": "peas",
-  "green lentils": "peas",
+  lentils: "lentils",
+  "red lentils": "lentils",
+  "green lentils": "lentils",
   sprouts: "brussels sprouts",
   "brussels sprout": "brussels sprouts",
   "broccoli florets": "broccoli",
@@ -6942,7 +7024,6 @@ const SYNONYMS: Record<string, string> = {
   baba: "hummus",
   "baba ganoush": "hummus",
   falafels: "falafel",
-  "falafel wrap": "falafel",
 
   // ─── Condiment synonyms ───────────────────────────
   "tomato ketchup": "ketchup",
@@ -7613,7 +7694,6 @@ const SYNONYMS: Record<string, string> = {
   "fried plantain": "plantain",
 
   // ─── Accuracy Expansion v2: Bowls & Wraps ─────────
-  "chicken wrap": "wrap",
   "farro bowl": "grain bowl",
 
   // ─── Accuracy Expansion v2: Common misspellings ───
@@ -7677,7 +7757,20 @@ export function lookupOntology(foodName: string): OntologyEntry | null {
     return FOOD_ONTOLOGY[synonymTarget];
   }
 
-  // 3. Multi-word synonym check (e.g., "cup of joe" in "a cup of joe")
+  // 3. Multi-word ontology keys that appear in the input (highest authority).
+  //    Direct entries like "chicken wrap" should take priority over synonyms
+  //    like "grilled chicken" → "chicken breast".
+  const multiWordKeys = Object.keys(FOOD_ONTOLOGY)
+    .filter((k) => k.includes(" "))
+    .sort((a, b) => b.length - a.length);
+
+  for (const key of multiWordKeys) {
+    if (normalized.includes(key)) {
+      return FOOD_ONTOLOGY[key];
+    }
+  }
+
+  // 4. Multi-word synonym check (e.g., "cup of joe" in "a cup of joe")
   const multiWordSynonyms = Object.keys(SYNONYMS)
     .filter((k) => k.includes(" "))
     .sort((a, b) => b.length - a.length);
@@ -7691,38 +7784,31 @@ export function lookupOntology(foodName: string): OntologyEntry | null {
     }
   }
 
-  // 4. Multi-word ontology keys that appear in the input
-  const multiWordKeys = Object.keys(FOOD_ONTOLOGY)
-    .filter((k) => k.includes(" "))
-    .sort((a, b) => b.length - a.length);
-
-  for (const key of multiWordKeys) {
-    if (normalized.includes(key)) {
-      return FOOD_ONTOLOGY[key];
-    }
-  }
-
   // 5 & 6. Single-word key/synonym match — prefer the LONGEST match.
   //         "honey cornflakes" should match "cornflakes" (8 chars) not "honey" (5 chars).
   //         We scan BOTH ontology keys AND synonyms in one pass and pick the longest hit.
+  //         To avoid false positives (e.g., "xyzfood" matching "food"), single-word
+  //         keys must match on a word boundary, not as an embedded substring.
   let bestEntry: OntologyEntry | null = null;
   let bestLength = 0;
 
+  const wordBoundaryMatch = (input: string, key: string): boolean => {
+    if (input === key) return true;
+    // Key must appear at a word boundary (start/end of input, or preceded/followed by space/hyphen)
+    const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(`(?:^|[\\s\\-])${escaped}(?:$|[\\s\\-])`, "i");
+    return re.test(input);
+  };
+
   for (const key of Object.keys(FOOD_ONTOLOGY)) {
-    if (
-      (normalized === key || normalized.includes(key)) &&
-      key.length > bestLength
-    ) {
+    if (wordBoundaryMatch(normalized, key) && key.length > bestLength) {
       bestEntry = FOOD_ONTOLOGY[key];
       bestLength = key.length;
     }
   }
 
   for (const synKey of Object.keys(SYNONYMS)) {
-    if (
-      (normalized === synKey || normalized.includes(synKey)) &&
-      synKey.length > bestLength
-    ) {
+    if (wordBoundaryMatch(normalized, synKey) && synKey.length > bestLength) {
       const target = SYNONYMS[synKey];
       if (FOOD_ONTOLOGY[target]) {
         bestEntry = FOOD_ONTOLOGY[target]; // matched via synKey
@@ -7783,15 +7869,22 @@ export function detectBrandedIntent(rawInput: string): boolean {
   const normalized = rawInput.toLowerCase();
 
   const brandSignals = [
-    // Store names
-    /\b(starbucks|mcdonald'?s|subway|dunkin|chipotle|wendys|burger king|taco bell|chick-fil-a|panda express)\b/,
+    // Restaurant chains
+    /\b(starbucks|mcdonald'?s|subway|dunkin|chipotle|wendys|wendy'?s|burger king|taco bell|chick-?fil-?a|panda express)\b/,
+    // Grocery stores
     /\b(lidl|aldi|trader joe'?s|whole foods|costco|walmart|target|kroger|tesco|sainsbury'?s|waitrose)\b/,
     // Brand pattern: "X brand Y" or "Y from X"
     /\bfrom\s+\w+/,
     /\bbrand\b/,
-    // Common branded food hints
-    /\b(oreo|nutella|coca.?cola|pepsi|sprite|fanta|gatorade|powerade|monster|red bull|celsius)\b/,
-    /\b(cliff bar|kind bar|rxbar|quest|fairlife|chobani|fage|siggi|oikos|yoplait|dannon)\b/,
+    // Beverages
+    /\b(oreo|nutella|coca.?cola|coke|pepsi|sprite|fanta|dr.?pepper|mountain dew|gatorade|powerade|monster|red bull|celsius)\b/,
+    // Protein bars & snacks
+    /\b(clif.?bar|kind.?bar|rxbar|quest|fairlife|chobani|fage|siggi'?s|oikos|yoplait|dannon)\b/,
+    /\b(doritos|lays|pringles|takis|cheez.?it|goldfish|pop.?tarts?|nature valley|hot pocket)\b/,
+    // Cereals
+    /\b(cheerios|frosted flakes|lucky charms|cinnamon toast crunch)\b/,
+    // Fast-food items
+    /\b(big mac|mcnuggets|mcchicken|egg mcmuffin|filet.?o.?fish|whopper|baconator|crunchwrap)\b/,
     // Packaging indicators
     /\b(packaged|branded|store.?bought|pre-made|frozen meal|ready meal)\b/,
   ];

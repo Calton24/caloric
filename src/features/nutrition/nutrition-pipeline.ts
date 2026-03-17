@@ -13,16 +13,22 @@
  * "One pipeline. Three entry points."
  */
 
-import type { MealEstimate } from "./estimation/estimation.types";
+import type {
+    EstimatedFoodItem,
+    MealEstimate,
+} from "./estimation/estimation.types";
 import { estimateMeal } from "./estimation/portion-estimator.service";
 import {
     matchFoodItemLocally,
     matchFoodItems,
 } from "./matching/food-matcher.service";
 import type { MatchedFoodItem } from "./matching/matching.types";
+import { detectMealTime, type MealTime } from "./mealtime";
+import { findBestMemoryMatch } from "./memory/food-memory.service";
 import type { MealDraft } from "./nutrition.draft.types";
 import { translateFoodAlias } from "./ontology/food-aliases";
 import { getMealEmoji } from "./ontology/food-emoji";
+import { deduplicateItems } from "./parsing/dedup-items";
 import type { InputSource } from "./parsing/food-candidate.schema";
 import { parseNutritionInput } from "./parsing/nutrition-parser.service";
 import { groupFoodPhrases } from "./parsing/phrase-grouper";
@@ -44,6 +50,20 @@ export interface PipelineOptions {
    * Default: 5000
    */
   matchTimeoutMs?: number;
+
+  /**
+   * Meal time context for portion estimation.
+   * Auto-detected from current time if not provided.
+   */
+  mealTime?: MealTime;
+
+  /**
+   * Skip the local LLM parsing step and go straight to regex.
+   * Use when the input is already structured (ML Kit labels, image captions)
+   * or the LLM has already run in a prior stage.
+   * Default: false
+   */
+  skipLlmParse?: boolean;
 }
 
 // ─── Main Pipeline ───────────────────────────────────────────────────────────
@@ -63,7 +83,13 @@ export async function runNutritionPipeline(
   source: InputSource,
   options: PipelineOptions = {}
 ): Promise<MealEstimate> {
-  const { offlineOnly = false, matchTimeoutMs = 5000 } = options;
+  const {
+    offlineOnly = false,
+    matchTimeoutMs = 5000,
+    mealTime,
+    skipLlmParse = false,
+  } = options;
+  const resolvedMealTime = mealTime ?? detectMealTime();
 
   // 0. Transcript cleanup: remove ASR artifacts, filler words
   const { cleaned, asrConfidence } = cleanTranscript(rawInput, source);
@@ -83,7 +109,12 @@ export async function runNutritionPipeline(
   }
 
   // 1. Parse: raw text → structured food candidates
-  const parsed = await parseNutritionInput(textToParse, source);
+  const parsed = await parseNutritionInput(textToParse, source, {
+    skipLlm: skipLlmParse,
+  });
+
+  // 1.5. Deduplicate: merge repeated items ("toast and eggs and toast" → 2× toast + eggs)
+  parsed.items = deduplicateItems(parsed.items);
 
   if (parsed.items.length === 0) {
     return {
@@ -131,16 +162,74 @@ export async function runNutritionPipeline(
     m.groupingConfidence = groupConf;
   }
 
+  // 2.5. Food Memory: personal calibration from past meals
+  //      If the user has logged this food before, boost confidence
+  //      and optionally use their personal average (more accurate than DB).
+  for (const m of matched) {
+    const memory = findBestMemoryMatch(m.parsed.name);
+    if (memory && memory.similarity >= 0.8) {
+      // Boost match confidence — user has logged this before
+      const memoryBoost = Math.min(memory.entry.frequency * 0.03, 0.15);
+      m.matchConfidence = Math.min(1, (m.matchConfidence ?? 0.5) + memoryBoost);
+
+      // If the match source is local fallback and we have personal data,
+      // use the user's personal averages instead of generic defaults
+      if (
+        m.selectedMatch?.source === "local-fallback" &&
+        memory.entry.frequency >= 3 &&
+        m.selectedMatch
+      ) {
+        m.selectedMatch = {
+          ...m.selectedMatch,
+          name: memory.entry.name,
+          nutrients: {
+            calories: memory.entry.avgCalories,
+            protein: memory.entry.avgProtein,
+            carbs: memory.entry.avgCarbs,
+            fat: memory.entry.avgFat,
+          },
+          source: "personal-history",
+          matchScore: Math.min(1, 0.85 + memoryBoost),
+        };
+      }
+    }
+  }
+
   // 3. Estimate: matched items → final calories/macros (with layered confidence)
   const estimate = estimateMeal(
     matched,
     rawInput,
     source,
     parsed.parseMethod,
-    asrConfidence
+    asrConfidence,
+    resolvedMealTime
   );
 
   return estimate;
+}
+
+// ─── Display Helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Pick the best display name for a food item.
+ *
+ * Prefers `matchedName` (the database-resolved food name) over `parsed.name`
+ * (the raw transcript text). This ensures users see "Protein Shake" not
+ * "protein bar had a protein shake".
+ *
+ * Falls back to `parsed.name` only when `matchedName` is missing or is
+ * a generic fallback like "unknown food".
+ */
+export function displayName(item: EstimatedFoodItem): string {
+  const matched = item.matchedName?.trim();
+  const parsed = item.parsed?.name?.trim();
+
+  // Use matched name if it's a real food name (not empty, not a generic fallback)
+  if (matched && matched.length > 0 && matched.toLowerCase() !== "unknown") {
+    return matched;
+  }
+
+  return parsed || "food";
 }
 
 // ─── Draft Conversion ────────────────────────────────────────────────────────
@@ -150,15 +239,16 @@ export async function runNutritionPipeline(
  * This bridges the new pipeline output into the existing draft → confirm flow.
  */
 export function mealEstimateToDraft(estimate: MealEstimate): MealDraft {
-  // Build a title from the user's parsed input (what they actually said/typed).
-  // matchedName is used for nutrition lookup only — it may differ significantly
-  // (e.g., "pavlova milkshake" matched to "chocolate milkshake" in the DB).
+  // Build title from the matched food names (what the database resolved).
+  // This shows the actual food detected, not the raw transcript.
   const title =
     estimate.items.length > 0
       ? estimate.items
           .map((i) => {
-            const qty = i.parsed.quantity !== 1 ? `${i.parsed.quantity} ` : "";
-            return `${qty}${i.parsed.name}`;
+            const qty =
+              (i.parsed?.quantity ?? 1) !== 1 ? `${i.parsed?.quantity} ` : "";
+            const name = displayName(i);
+            return `${qty}${name}`;
           })
           .join(", ")
       : estimate.rawInput;
@@ -183,9 +273,10 @@ export function mealEstimateToDraft(estimate: MealEstimate): MealDraft {
     parseMethod: estimate.parseMethod,
     emoji: getMealEmoji(
       estimate.items.map((i) => ({
-        name: i.parsed.name,
+        name: displayName(i),
         calories: i.nutrients.calories,
       }))
     ),
+    mealTime: estimate.mealTime,
   };
 }

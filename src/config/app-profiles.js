@@ -36,7 +36,7 @@ const APP_PROFILES = {
     },
   },
 
-  intake: {
+  caloric: {
     app: {
       name: "Caloric",
       slug: "caloric",
@@ -56,9 +56,9 @@ const APP_PROFILES = {
       },
       staging: {
         app: {
-          name: "Intake Staging",
-          bundleIdentifier: "com.yourcompany.intake.staging",
-          androidPackage: "com.yourcompany.intake.staging",
+          name: "Caloric Staging",
+          bundleIdentifier: "com.calton24.caloric.staging",
+          androidPackage: "com.calton24.caloric.staging",
         },
       },
       prod: {},

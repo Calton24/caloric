@@ -99,7 +99,7 @@ Example:
 
 ```typescript
 it("should load intake profile when EXPO_PUBLIC_APP_PROFILE=intake", () => {
-  process.env.EXPO_PUBLIC_APP_PROFILE = "intake";
+  process.env.EXPO_PUBLIC_APP_PROFILE = "caloric";
   const config = getActiveConfig();
   expect(config.app.name).toBe("Intake");
 });
@@ -191,7 +191,7 @@ beforeEach(() => {
 
 ```typescript
 beforeEach(() => {
-  process.env.EXPO_PUBLIC_APP_PROFILE = "intake";
+  process.env.EXPO_PUBLIC_APP_PROFILE = "caloric";
   process.env.EXPO_PUBLIC_APP_ENV = "dev";
 });
 ```
@@ -202,7 +202,7 @@ beforeEach(() => {
 
 ```typescript
 it("should reload config after cache clear", () => {
-  process.env.EXPO_PUBLIC_APP_PROFILE = "intake";
+  process.env.EXPO_PUBLIC_APP_PROFILE = "caloric";
   const config1 = getActiveConfig();
 
   __clearConfigCache();

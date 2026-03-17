@@ -138,6 +138,9 @@ export async function searchUsda(
   const url = `${BASE_URL}/foods/search?api_key=${encodeURIComponent(apiKey)}`;
 
   try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -149,7 +152,10 @@ export async function searchUsda(
         pageSize: Math.min(maxResults * 2, 25),
         dataType: ["SR Legacy", "Foundation", "Survey (FNDDS)", "Branded"],
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timer);
 
     if (!response.ok) {
       console.warn(`USDA API error: ${response.status}`);

@@ -8,9 +8,10 @@
  * Returns ranked ProductCandidate[] ready for the confirmation UI.
  */
 
+import { lookupBarcode as lookupBarcodeDataset } from "../../nutrition/matching/dataset-lookup.service";
 import type { FoodMatch } from "../../nutrition/matching/matching.types";
 import {
-    lookupBarcode,
+    lookupBarcode as lookupBarcodeOFF,
     searchOpenFoodFacts,
 } from "../../nutrition/matching/openfoodfacts.service";
 import { buildSearchQuery } from "../extraction/packaged-product-extractor";
@@ -122,7 +123,10 @@ export async function matchPackagedProduct(
       // ── Barcode lookup ───────────────────────────────────────
       case "barcode_lookup": {
         if (!evidence.barcode) return [];
-        const barcodeMatch = await lookupBarcode(evidence.barcode);
+        // Try local dataset first (1.84M branded), fall back to OFF
+        const barcodeMatch =
+          (await lookupBarcodeDataset(evidence.barcode)) ??
+          (await lookupBarcodeOFF(evidence.barcode));
         if (!barcodeMatch) return [];
 
         const candidate = foodMatchToCandidate(barcodeMatch, [

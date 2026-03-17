@@ -11,13 +11,14 @@ import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useUnits } from "../../hooks/useUnits";
+import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TButton } from "../../src/ui/primitives/TButton";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 import { OnboardingProgress } from "./_progress";
-import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
 
 // Simple BMI helper (for demo — uses hardcoded 5'8" height)
 function getBmiCategory(weightLbs: number): {
@@ -35,13 +36,21 @@ function getBmiCategory(weightLbs: number): {
 
 export default function OnboardingWeightGoalScreen() {
   const { theme } = useTheme();
+  const units = useUnits();
   const router = useRouter();
   const { profile, saveGoalWeight } = useOnboarding();
-  const currentWeight = profile.currentWeightLbs ?? 160;
-  const [goalWeight, setGoalWeight] = useState(profile.goalWeightLbs ?? Math.round(currentWeight * 0.9));
+  const currentWeight = Number(units.display(profile.currentWeightLbs ?? 160));
+  const [goalWeight, setGoalWeight] = useState(
+    Number(
+      units.display(
+        profile.goalWeightLbs ??
+          Math.round((profile.currentWeightLbs ?? 160) * 0.9)
+      )
+    )
+  );
 
   const diff = currentWeight - goalWeight;
-  const bmi = getBmiCategory(goalWeight);
+  const bmi = getBmiCategory(units.toLbs(goalWeight));
 
   // Bar heights (relative to max)
   const maxBar = Math.max(currentWeight, goalWeight);
@@ -104,7 +113,7 @@ export default function OnboardingWeightGoalScreen() {
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  lbs
+                  {units.label}
                 </TText>
                 <TSpacer size="xs" />
                 <View
@@ -218,7 +227,7 @@ export default function OnboardingWeightGoalScreen() {
                     <TText
                       style={[styles.diffText, { color: theme.colors.success }]}
                     >
-                      {diff} lbs to lose
+                      {diff} {units.label} to lose
                     </TText>
                   </View>
                 </>
@@ -232,7 +241,10 @@ export default function OnboardingWeightGoalScreen() {
         {/* Bottom CTA */}
         <View style={styles.footer}>
           <TButton
-            onPress={() => { saveGoalWeight(goalWeight); router.push("/onboarding/timeframe" as any); }}
+            onPress={() => {
+              saveGoalWeight(units.toLbs(goalWeight));
+              router.push("/onboarding/timeframe" as any);
+            }}
             size="lg"
             testID="onboarding-next-weight"
           >

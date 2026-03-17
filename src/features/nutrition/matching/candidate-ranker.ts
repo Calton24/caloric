@@ -41,21 +41,33 @@ function scoreTextSimilarity(match: FoodMatch, query: string): number {
   const q = query.toLowerCase();
 
   if (matchName === q) return 1.0;
-  if (matchName.startsWith(q) || q.startsWith(matchName)) return 0.85;
 
-  // Word overlap scoring
   const queryWords = new Set(q.split(/\s+/));
   const matchWords = matchName.split(/\s+/);
   const overlap = matchWords.filter((w) => queryWords.has(w)).length;
   const overlapRatio = overlap / Math.max(queryWords.size, 1);
 
-  // Extra words penalty: words in match name NOT in query
-  // "MILK CHOCOLATE COATED CORNFLAKES" for query "cornflakes"
-  //  = 3 extra words → significant penalty
+  // Extra words penalty: words in match name NOT in query.
+  // Scales with query brevity — a 1-word query like "omelette" should
+  // heavily penalize "cheesy omelette", "spanish omelette" etc.
   const extraWords = matchWords.filter((w) => !queryWords.has(w)).length;
-  const extraPenalty = Math.min(extraWords * 0.08, 0.35);
+  const brevityMultiplier =
+    queryWords.size <= 1 ? 0.18 : queryWords.size <= 2 ? 0.12 : 0.08;
+  const extraPenalty = Math.min(extraWords * brevityMultiplier, 0.5);
 
-  if (matchName.includes(q) || q.includes(matchName)) {
+  // Query is entirely contained in the match name ("omelette" → "cheesy omelette")
+  if (matchName.includes(q)) {
+    // Reward based on what fraction of the match name IS the query
+    const lengthRatio = q.length / matchName.length;
+    return Math.max(
+      0.25,
+      0.6 + lengthRatio * 0.25 + overlapRatio * 0.1 - extraPenalty
+    );
+  }
+
+  // Match name is a prefix/subset of query ("egg" → query "eggs on toast")
+  if (matchName.startsWith(q) || q.startsWith(matchName)) return 0.85;
+  if (q.includes(matchName)) {
     return Math.max(0.3, 0.7 + overlapRatio * 0.15 - extraPenalty);
   }
 
@@ -161,8 +173,10 @@ function scoreSourceTrust(match: FoodMatch, routing: RoutingDecision): number {
   const sourceScores: Record<string, number> = {
     usda: 0.85,
     openfoodfacts: 0.65,
+    edamam: 0.8,
+    branded: 0.9,
     "recipe-template": 0.7,
-    "local-fallback": 0.4,
+    "local-fallback": 0.7,
   };
 
   let base = sourceScores[match.source] ?? 0.5;
@@ -173,6 +187,9 @@ function scoreSourceTrust(match: FoodMatch, routing: RoutingDecision): number {
   }
   if (routing.preference === "usda-first" && match.source === "usda") {
     base += 0.1;
+  }
+  if (routing.preference === "edamam-nlp" && match.source === "edamam") {
+    base += 0.15;
   }
 
   return Math.min(base, 1.0);
@@ -301,10 +318,45 @@ export function rankCandidates(
     ? `${parsed.name} ${parsed.preparation}`
     : parsed.name;
 
+  const queryWords = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const queryWordCount = queryWords.length;
+
+  // ── SINGLE-WORD HARD FILTER ──────────────────────────────────────────
+  // When the user said ONE word ("egg", "rice", "chicken"), discard any
+  // candidate whose name contains extra qualifying words. A single-word
+  // query deserves a single-concept result — not "egg mcmuffin" or
+  // "fried rice with shrimp". We keep candidates where:
+  //   - The name is exactly the query ("egg" → "egg")
+  //   - The name is the plural ("egg" → "eggs")
+  //   - The name is 1-2 words total ("egg" → "boiled egg" is borderline ok)
+  //   - The candidate is from local-fallback or recipe-template (curated)
+  let pool = candidates;
+  if (queryWordCount === 1) {
+    const q = queryWords[0];
+    const filtered = candidates.filter((m) => {
+      // Always keep curated sources
+      if (m.source === "local-fallback" || m.source === "recipe-template")
+        return true;
+      const mWords = m.name.toLowerCase().split(/\s+/).filter(Boolean);
+      // Allow exact match or plural
+      if (mWords.length === 1) return true;
+      // Allow 2-word names where one word is the query (e.g. "boiled egg")
+      if (
+        mWords.length === 2 &&
+        mWords.some((w) => w === q || w.startsWith(q) || q.startsWith(w))
+      )
+        return true;
+      // Reject 3+ word compound names for single-word queries
+      return false;
+    });
+    // Only apply filter if it doesn't eliminate everything
+    if (filtered.length > 0) pool = filtered;
+  }
+
   // Extract ontology calorie anchor for plausibility scoring
   const ontologyCalories = routing.ontologyEntry?.defaultCalories ?? null;
 
-  return candidates
+  return pool
     .map((match) => {
       const textSim = scoreTextSimilarity(match, query);
       const catMatch = scoreCategoryMatch(match, routing.category);

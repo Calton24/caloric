@@ -36,6 +36,10 @@ ci-logs/
 # local env files
 .env
 .env*.local
+.env.supabase
+
+# supabase local state (contains project ref, pooler URL)
+supabase/.temp/
 
 # typescript
 *.tsbuildinfo

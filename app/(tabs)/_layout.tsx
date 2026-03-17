@@ -99,11 +99,18 @@ function NativeTabLayout() {
 
 // ─── Custom glass pill tabs (iOS < 26 & Android) ─────────────
 function GlassTabLayout() {
+  const { theme } = useTheme();
   return (
-    <View testID="tabs-root" style={{ flex: 1 }}>
+    <View
+      testID="tabs-root"
+      style={{ flex: 1, backgroundColor: theme.colors.background }}
+    >
       <Tabs
         tabBar={(props) => <GlassTabBar {...props} />}
-        screenOptions={{ headerShown: false }}
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: theme.colors.background },
+        }}
       >
         {TABS.map((t) => (
           <Tabs.Screen

@@ -379,8 +379,8 @@ export function isCandidatePlausible(
   // Reject negative values
   if (calories < 0 || protein < 0 || carbs < 0 || fat < 0) return false;
 
-  // Reject extreme calories (> 5000 kcal per serving is clearly wrong data)
-  if (calories > 5000) return false;
+  // Reject extreme calories (> 2000 kcal per serving is almost certainly wrong data)
+  if (calories > 2000) return false;
 
   // Reject physically impossible macro ratios
   if (calories > 0) {

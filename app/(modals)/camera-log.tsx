@@ -15,17 +15,10 @@ import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
-} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
-    Dimensions,
     Linking,
     Platform,
     Pressable,
@@ -35,21 +28,15 @@ import {
 } from "react-native";
 import Animated, {
     FadeIn,
-    FadeOut,
     useAnimatedStyle,
     useSharedValue,
     withRepeat,
     withSequence,
     withTiming,
 } from "react-native-reanimated";
-import {
-    SafeAreaView,
-    useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
     Camera,
-    type Code,
-    type CodeScannerFrame,
     useCameraDevice,
     useCameraPermission,
     useCodeScanner,
@@ -102,9 +89,6 @@ export default function CameraLoggingScreen() {
   const { theme } = useTheme();
   const router = useRouter();
   const { startFromImage, startFromInput, startFromBarcode } = useLoggingFlow();
-  const insets = useSafeAreaInsets();
-  const screenW = Dimensions.get("window").width;
-  const screenH = Dimensions.get("window").height;
 
   const cameraRef = useRef<Camera>(null);
   const device = useCameraDevice("back");
@@ -115,83 +99,56 @@ export default function CameraLoggingScreen() {
   const [torch, setTorch] = useState<"off" | "on">("off");
   const [stageIndex, setStageIndex] = useState(0);
   const [description, setDescription] = useState("");
+  const barcodeLockRef = useRef(false);
 
-  // ── Barcode scanning state ───────────────────────────────────────────
-  const [barcodeHighlight, setBarcodeHighlight] = useState<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null>(null);
-  const [barcodeValue, setBarcodeValue] = useState<string | null>(null);
-  const isProcessingBarcode = useRef(false);
-  const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // ── Barcode scanner ──────────────────────────────────────────────────
 
-  // ── Code scanner for real-time barcode detection ─────────────────────
-  const codeScanner = useCodeScanner(
-    useMemo(
-      () => ({
-        codeTypes: ["ean-13", "ean-8", "upc-a", "upc-e", "code-128", "code-39"],
-        onCodeScanned: (codes: Code[], frame: CodeScannerFrame) => {
-          if (state !== "viewfinder" || isProcessingBarcode.current) return;
-
-          const code = codes[0];
-          if (!code?.value) return;
-
-          // Map barcode frame coordinates to screen coordinates
-          if (code.frame && frame.width > 0 && frame.height > 0) {
-            const scaleX = screenW / frame.width;
-            const scaleY = screenH / frame.height;
-            setBarcodeHighlight({
-              x: code.frame.x * scaleX,
-              y: code.frame.y * scaleY,
-              width: code.frame.width * scaleX,
-              height: code.frame.height * scaleY,
-            });
-          }
-
-          setBarcodeValue(code.value);
-
-          // Clear highlight after a short delay if not processed
-          if (highlightTimer.current) clearTimeout(highlightTimer.current);
-          highlightTimer.current = setTimeout(() => {
-            setBarcodeHighlight(null);
-            setBarcodeValue(null);
-          }, 1500);
-
-          // Auto-process the barcode
-          isProcessingBarcode.current = true;
-          (async () => {
-            try {
-              setState("analyzing");
-              setTorch("off");
-              const success = await startFromBarcode(code.value!);
-              if (success) {
-                router.push("/(modals)/confirm-meal" as never);
-                setState("viewfinder");
-                setImageUri(null);
-              } else {
-                // Barcode not found in database — fall back to photo capture
-                setState("viewfinder");
-                Alert.alert(
-                  "Product Not Found",
-                  `Barcode ${code.value} wasn't found in our database. Try taking a photo of the packaging instead.`,
-                  [{ text: "OK" }]
-                );
-              }
-            } catch {
-              setState("viewfinder");
-            } finally {
-              isProcessingBarcode.current = false;
-              setBarcodeHighlight(null);
-              setBarcodeValue(null);
-            }
-          })();
-        },
-      }),
-      [state, screenW, screenH, startFromBarcode, router]
-    )
+  const handleBarcodeScanned = useCallback(
+    async (barcode: string) => {
+      if (barcodeLockRef.current || state !== "viewfinder") return;
+      barcodeLockRef.current = true;
+      setTorch("off");
+      setState("analyzing");
+      try {
+        const success = await startFromBarcode(barcode);
+        if (success) {
+          router.push("/(modals)/confirm-meal" as never);
+        } else {
+          // Barcode not found — fall back to error state
+          setState("error");
+        }
+      } catch {
+        setState("error");
+      } finally {
+        barcodeLockRef.current = false;
+      }
+    },
+    [startFromBarcode, router, state]
   );
+
+  const codeScanner = useCodeScanner({
+    codeTypes: [
+      "ean-13",
+      "ean-8",
+      "upc-a",
+      "upc-e",
+      "code-128",
+      "code-39",
+      "qr",
+    ],
+    onCodeScanned: (codes) => {
+      if (codes.length > 0 && codes[0].value) {
+        handleBarcodeScanned(codes[0].value);
+      }
+    },
+  });
+
+  // Reset barcode lock when returning to viewfinder
+  useEffect(() => {
+    if (state === "viewfinder") {
+      barcodeLockRef.current = false;
+    }
+  }, [state]);
 
   // ── Cycle stage labels while analyzing ───────────────────────────────
 
@@ -236,9 +193,6 @@ export default function CameraLoggingScreen() {
         if (success) {
           // Draft is populated with real data — navigate to confirm
           router.push("/(modals)/confirm-meal" as never);
-          // Reset camera so returning shows viewfinder, not stuck animation
-          setState("viewfinder");
-          setImageUri(null);
         } else {
           // Pipeline returned no usable result
           setState("error");
@@ -460,45 +414,14 @@ export default function CameraLoggingScreen() {
             codeScanner={codeScanner}
           />
 
-          {/* Barcode highlight overlay */}
-          {barcodeHighlight && (
-            <Animated.View
-              entering={FadeIn.duration(150)}
-              exiting={FadeOut.duration(200)}
-              pointerEvents="none"
-              style={[
-                styles.barcodeHighlight,
-                {
-                  left: barcodeHighlight.x - 4,
-                  top: barcodeHighlight.y - 4,
-                  width: barcodeHighlight.width + 8,
-                  height: barcodeHighlight.height + 8,
-                },
-              ]}
-            >
-              <View style={styles.barcodeLabel}>
-                <Ionicons name="barcode-outline" size={14} color="#fff" />
-                <TText style={styles.barcodeLabelText}>
-                  {barcodeValue ?? "Scanning…"}
-                </TText>
-              </View>
-            </Animated.View>
-          )}
-
-          {/* Top overlay: close + flash + title */}
-          <View style={[styles.viewfinderOverlay, { paddingTop: insets.top }]}>
+          {/* Top overlay: title only */}
+          <SafeAreaView style={styles.viewfinderOverlay} edges={["top"]}>
             <View style={styles.vfHeader}>
-              <Pressable
-                onPress={() => router.back()}
-                hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
-                style={styles.vfHeaderBtn}
-              >
-                <Ionicons name="close" size={24} color="#fff" />
-              </Pressable>
+              <View style={{ width: 40 }} />
               <TText style={styles.vfTitle}>Scan Food</TText>
-              <View style={{ width: 36 }} />
+              <View style={{ width: 40 }} />
             </View>
-          </View>
+          </SafeAreaView>
 
           {/* Scan frame overlay */}
           <View style={styles.scanFrameContainer} pointerEvents="none">
@@ -510,27 +433,9 @@ export default function CameraLoggingScreen() {
               <View style={[styles.corner, styles.cornerBR]} />
             </View>
             <TSpacer size="md" />
-            <View style={styles.scanHintContainer}>
-              <View style={styles.scanHintRow}>
-                <Ionicons
-                  name="camera-outline"
-                  size={16}
-                  color="rgba(255,255,255,0.85)"
-                />
-                <TText style={styles.scanHint}>Snap a photo of your food</TText>
-              </View>
-              <View style={styles.scanHintDivider} />
-              <View style={styles.scanHintRow}>
-                <Ionicons
-                  name="barcode-outline"
-                  size={16}
-                  color="rgba(255,255,255,0.85)"
-                />
-                <TText style={styles.scanHint}>
-                  Or point at a barcode to scan
-                </TText>
-              </View>
-            </View>
+            <TText style={styles.scanHint}>
+              Point at food or scan a barcode
+            </TText>
           </View>
 
           {/* Bottom controls */}
@@ -555,21 +460,30 @@ export default function CameraLoggingScreen() {
                 <View style={styles.shutterInner} />
               </Pressable>
 
-              {/* Flash toggle */}
-              <Pressable
-                onPress={() => setTorch((t) => (t === "off" ? "on" : "off"))}
-                hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
-                style={[
-                  styles.vfSecondaryBtn,
-                  torch === "on" && styles.vfHeaderBtnActive,
-                ]}
-              >
-                <Ionicons
-                  name={torch === "on" ? "flash" : "flash-outline"}
-                  size={24}
-                  color="#fff"
-                />
-              </Pressable>
+              {/* Close + Flash (bottom right) */}
+              <View style={styles.vfRightControls}>
+                <Pressable
+                  onPress={() => setTorch((t) => (t === "off" ? "on" : "off"))}
+                  hitSlop={12}
+                  style={[
+                    styles.vfSecondaryBtn,
+                    torch === "on" && styles.vfHeaderBtnActive,
+                  ]}
+                >
+                  <Ionicons
+                    name={torch === "on" ? "flash" : "flash-outline"}
+                    size={22}
+                    color="#fff"
+                  />
+                </Pressable>
+                <Pressable
+                  onPress={() => router.back()}
+                  hitSlop={12}
+                  style={styles.vfSecondaryBtn}
+                >
+                  <Ionicons name="close" size={24} color="#fff" />
+                </Pressable>
+              </View>
             </View>
           </SafeAreaView>
         </View>
@@ -580,81 +494,79 @@ export default function CameraLoggingScreen() {
         <View
           style={[
             styles.container,
-            {
-              backgroundColor: theme.colors.background,
-              paddingTop: insets.top,
-            },
+            { backgroundColor: theme.colors.background },
           ]}
         >
-          {/* Header with cancel */}
-          <View style={styles.headerWide}>
-            <Pressable
-              onPress={() => {
-                setImageUri(null);
-                setState("viewfinder");
-              }}
-              hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
-              style={styles.backBtn}
-            >
-              <Ionicons
-                name="chevron-back"
-                size={28}
-                color={theme.colors.text}
-              />
-            </Pressable>
-            <TText
-              variant="heading"
-              style={[styles.headerTitle, { color: theme.colors.text }]}
-            >
-              Analyzing
-            </TText>
-            <View style={{ width: 44 }} />
-          </View>
-
-          <View style={styles.centeredContent}>
-            {/* Captured image with pulse */}
-            {imageUri && (
-              <Animated.View entering={FadeIn.duration(300)}>
-                <PulsingImage uri={imageUri} />
-              </Animated.View>
-            )}
-
-            <TSpacer size="xl" />
-
-            {/* Spinner + stage label */}
-            <ActivityIndicator size="large" color={theme.colors.primary} />
-            <TSpacer size="md" />
-            <Animated.View key={stageIndex} entering={FadeIn.duration(300)}>
-              <TText
-                style={[
-                  styles.analyzingText,
-                  { color: theme.colors.textMuted },
-                ]}
+          <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+            {/* Header with cancel */}
+            <View style={styles.header}>
+              <Pressable
+                onPress={() => {
+                  setImageUri(null);
+                  setState("viewfinder");
+                }}
+                hitSlop={12}
               >
-                {STAGE_LABELS[stageIndex]}
-              </TText>
-            </Animated.View>
-
-            <TSpacer size="xl" />
-
-            {/* Progress dots */}
-            <View style={styles.dotsRow}>
-              {STAGE_LABELS.map((_, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.dot,
-                    {
-                      backgroundColor:
-                        i <= stageIndex
-                          ? theme.colors.primary
-                          : theme.colors.border,
-                    },
-                  ]}
+                <Ionicons
+                  name="chevron-back"
+                  size={24}
+                  color={theme.colors.text}
                 />
-              ))}
+              </Pressable>
+              <TText
+                variant="heading"
+                style={[styles.headerTitle, { color: theme.colors.text }]}
+              >
+                Analyzing
+              </TText>
+              <View style={{ width: 24 }} />
             </View>
-          </View>
+
+            <View style={styles.centeredContent}>
+              {/* Captured image with pulse */}
+              {imageUri && (
+                <Animated.View entering={FadeIn.duration(300)}>
+                  <PulsingImage uri={imageUri} />
+                </Animated.View>
+              )}
+
+              <TSpacer size="xl" />
+
+              {/* Spinner + stage label */}
+              <ActivityIndicator size="large" color={theme.colors.primary} />
+              <TSpacer size="md" />
+              <Animated.View key={stageIndex} entering={FadeIn.duration(300)}>
+                <TText
+                  style={[
+                    styles.analyzingText,
+                    { color: theme.colors.textMuted },
+                  ]}
+                >
+                  {STAGE_LABELS[stageIndex]}
+                </TText>
+              </Animated.View>
+
+              <TSpacer size="xl" />
+
+              {/* Progress dots */}
+              <View style={styles.dotsRow}>
+                {STAGE_LABELS.map((_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.dot,
+                      {
+                        backgroundColor:
+                          i <= stageIndex
+                            ? theme.colors.primary
+                            : theme.colors.border,
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
+            </View>
+          </SafeAreaView>
         </View>
       )}
 
@@ -663,26 +575,22 @@ export default function CameraLoggingScreen() {
         <View
           style={[
             styles.container,
-            {
-              backgroundColor: theme.colors.background,
-              paddingTop: insets.top,
-            },
+            { backgroundColor: theme.colors.background },
           ]}
         >
-          <SafeAreaView style={styles.safe} edges={["bottom"]}>
-            <View style={styles.headerWide}>
+          <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+            <View style={styles.header}>
               <Pressable
                 onPress={() => {
                   setImageUri(null);
                   setDescription("");
                   setState("viewfinder");
                 }}
-                hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
-                style={styles.backBtn}
+                hitSlop={12}
               >
                 <Ionicons
                   name="chevron-back"
-                  size={28}
+                  size={24}
                   color={theme.colors.text}
                 />
               </Pressable>
@@ -690,9 +598,9 @@ export default function CameraLoggingScreen() {
                 variant="heading"
                 style={[styles.headerTitle, { color: theme.colors.text }]}
               >
-                Couldn't Identify
+                Couldn&apos;t Identify
               </TText>
-              <View style={{ width: 44 }} />
+              <View style={{ width: 24 }} />
             </View>
 
             <View style={styles.errorContent}>
@@ -716,7 +624,7 @@ export default function CameraLoggingScreen() {
               />
               <TSpacer size="md" />
               <TText style={[styles.errorTitle, { color: theme.colors.text }]}>
-                We couldn't identify this food
+                We couldn&apos;t identify this food
               </TText>
               <TSpacer size="xs" />
               <TText
@@ -725,7 +633,7 @@ export default function CameraLoggingScreen() {
                   { color: theme.colors.textMuted },
                 ]}
               >
-                Describe what you see and we'll look it up
+                Describe what you see and we&apos;ll look it up
               </TText>
 
               <TSpacer size="lg" />
@@ -842,20 +750,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 12,
-  },
-  headerWide: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-  },
-  backBtn: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
   },
   headerTitle: {
     fontSize: 18,
@@ -997,54 +891,12 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 8,
   },
   scanHint: {
-    color: "rgba(255,255,255,0.85)",
+    color: "rgba(255,255,255,0.75)",
     fontSize: 14,
     fontWeight: "500",
     textShadowColor: "rgba(0,0,0,0.6)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
-  },
-  scanHintContainer: {
-    alignItems: "center",
-    gap: 6,
-  },
-  scanHintRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  scanHintDivider: {
-    width: 24,
-    height: 1,
-    backgroundColor: "rgba(255,255,255,0.25)",
-  },
-  // ── Barcode highlight ──
-  barcodeHighlight: {
-    position: "absolute",
-    borderWidth: 2,
-    borderColor: "#4ADE80",
-    borderRadius: 8,
-    zIndex: 20,
-  },
-  barcodeLabel: {
-    position: "absolute",
-    bottom: -28,
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    alignSelf: "center",
-  },
-  barcodeLabelText: {
-    color: "#fff",
-    fontSize: 11,
-    fontWeight: "600",
   },
   vfBottomBar: {
     position: "absolute",
@@ -1056,9 +908,14 @@ const styles = StyleSheet.create({
   vfControls: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-around",
+    justifyContent: "space-between",
     paddingVertical: 20,
     paddingHorizontal: 30,
+  },
+  vfRightControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   vfSecondaryBtn: {
     width: 50,

@@ -101,6 +101,25 @@ export class SupabaseAuthClient implements AuthClient {
     }
   }
 
+  async deleteAccount(): Promise<{ error: Error | null }> {
+    try {
+      const supabase = getSupabaseClient();
+      const { error } = await supabase.functions.invoke("delete-account", {
+        method: "POST",
+      });
+      if (error) {
+        return { error: new Error(error.message) };
+      }
+      this.notifyListeners(null);
+      return { error: null };
+    } catch (err) {
+      return {
+        error:
+          err instanceof Error ? err : new Error("Account deletion failed"),
+      };
+    }
+  }
+
   async resetPasswordForEmail(email: string): Promise<{ error: Error | null }> {
     try {
       const supabase = getSupabaseClient();

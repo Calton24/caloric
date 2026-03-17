@@ -102,6 +102,9 @@ export interface ParsedFoodItem {
   /** Unit of measurement — defaults to "serving" if ambiguous */
   unit: FoodUnit;
 
+  /** Size qualifier: "small", "medium", or "large" — used for portion weight lookup */
+  sizeQualifier?: "small" | "medium" | "large";
+
   /** Preparation method or modifier: "grilled", "with butter", "whole milk" */
   preparation: string | null;
 

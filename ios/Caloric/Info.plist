@@ -49,6 +49,10 @@
     <string>Allow Caloric to use the camera to scan and identify food for calorie tracking.</string>
     <key>NSFaceIDUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your Face ID biometric data.</string>
+    <key>NSHealthShareUsageDescription</key>
+    <string>Allow Caloric to read your weight data from Apple Health for progress tracking.</string>
+    <key>NSHealthUpdateUsageDescription</key>
+    <string>Allow Caloric to save your meals and weight to Apple Health.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Allow Caloric to use the microphone for voice meal logging.</string>
     <key>NSMotionUsageDescription</key>
@@ -88,7 +92,7 @@
       <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
     <key>UIUserInterfaceStyle</key>
-    <string>Automatic</string>
+    <string>Dark</string>
     <key>UIViewControllerBasedStatusBarAppearance</key>
     <false/>
   </dict>

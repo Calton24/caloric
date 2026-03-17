@@ -5,6 +5,7 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import React, { useRef } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
@@ -14,6 +15,7 @@ import { TText } from "../primitives/TText";
 
 interface MealCardProps {
   icon?: string;
+  imageUri?: string;
   title: string;
   time?: string;
   calories: number;
@@ -26,6 +28,7 @@ interface MealCardProps {
 
 export function MealCard({
   icon = "🍽",
+  imageUri,
   title,
   time,
   calories,
@@ -68,16 +71,28 @@ export function MealCard({
     );
   };
 
+  const accessibilityLabel = `${title}, ${calories} calories, protein ${Math.round(protein)}g, carbs ${Math.round(carbs)}g, fat ${Math.round(fat)}g`;
+
   const cardContent = (
     <View
+      accessible
+      accessibilityLabel={accessibilityLabel}
       style={[
         styles.container,
         { backgroundColor: theme.colors.surfaceSecondary },
       ]}
     >
-      <View style={styles.iconContainer}>
-        <TText style={styles.emoji}>{icon}</TText>
-      </View>
+      {imageUri ? (
+        <Image
+          source={{ uri: imageUri }}
+          style={styles.mealImage}
+          contentFit="cover"
+        />
+      ) : (
+        <View style={styles.iconContainer}>
+          <TText style={styles.emoji}>{icon}</TText>
+        </View>
+      )}
       <View style={styles.content}>
         <TText
           style={[styles.title, { color: theme.colors.text }]}
@@ -184,6 +199,11 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.06)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  mealImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
   },
   emoji: {
     fontSize: 24,

@@ -1,9 +1,21 @@
 import { router } from "expo-router";
+import { getHealthService } from "../health";
 import { labelFoodImage } from "../image-analysis/ocr/image-labeling.service";
 import { extractTextFromImage } from "../image-analysis/ocr/text-recognition.service";
 import { analyzeImage } from "../image-analysis/pipeline";
+import {
+    runVisionPipeline,
+    type VisionPipelineResult,
+} from "../image-analysis/vision-pipeline";
+import { analyzeMealImage } from "../meal-analysis/meal-analysis.service";
+import type { MealAnalysisResult } from "../meal-analysis/meal-analysis.types";
+import { usePermissionsStore } from "../permissions/permissions.store";
+import { trackMealAndMaybePromptReview } from "../review/review.service";
+import { useSettingsStore } from "../settings";
 import { captionFoodImage } from "./image/image-captioning.service";
-import { lookupBarcode } from "./matching/openfoodfacts.service";
+import { lookupBarcode as lookupBarcodeDataset } from "./matching/dataset-lookup.service";
+import { lookupBarcode as lookupBarcodeOFF } from "./matching/openfoodfacts.service";
+import { rebuildFoodMemory } from "./memory/food-memory.service";
 import { parseMealInput } from "./nutrition-parser.service";
 import {
     mealEstimateToDraft,
@@ -41,17 +53,29 @@ export function useLoggingFlow() {
 
   const addMeal = useNutritionStore((state) => state.addMeal);
 
+  const meals = useNutritionStore((state) => state.meals);
+
   /**
    * Start the logging flow using the new nutrition pipeline.
    * Runs parse → match → estimate, then navigates to confirm screen.
    *
+   * Returns false if no food items were detected (caller should prompt retry).
    * Falls back to the old regex parser if the pipeline fails.
    */
-  async function startFromInput(input: string, source: MealSource) {
+  async function startFromInput(
+    input: string,
+    source: MealSource
+  ): Promise<boolean> {
     try {
       // New pipeline: parse → match (USDA/OFF) → estimate
       const inputSource = toInputSource(source);
       const estimate = await runNutritionPipeline(input, inputSource);
+
+      // No food detected — signal caller to prompt retry
+      if (estimate.items.length === 0) {
+        return false;
+      }
+
       const pipelineDraft = mealEstimateToDraft(estimate);
       setDraft(pipelineDraft);
     } catch {
@@ -62,6 +86,7 @@ export function useLoggingFlow() {
     }
 
     router.push("/(modals)/confirm-meal" as never);
+    return true;
   }
 
   function saveDraftAsMeal() {
@@ -72,6 +97,32 @@ export function useLoggingFlow() {
     const meal = buildMealEntryFromDraft({ draft });
     addMeal(meal);
     clearDraft();
+
+    // Auto-export to Apple Health if write sync is enabled
+    const { appleHealthSyncEnabled } = useSettingsStore.getState().settings;
+    const { appleHealthWriteEnabled } =
+      usePermissionsStore.getState().permissions;
+    if (
+      appleHealthSyncEnabled &&
+      appleHealthWriteEnabled &&
+      meal.calories > 0
+    ) {
+      const healthService = getHealthService();
+      const loggedAt = new Date(meal.loggedAt);
+      healthService
+        .writeCalories(
+          meal.calories,
+          loggedAt,
+          new Date(loggedAt.getTime() + 60_000)
+        )
+        .catch(() => {}); // fire-and-forget, don't block UI
+    }
+
+    // Rebuild food memory with updated meal history
+    rebuildFoodMemory([meal, ...meals]);
+
+    // Prompt for App Store review after enough meals (fire-and-forget)
+    trackMealAndMaybePromptReview().catch(() => {});
 
     // dismissAll() pops to the first screen in the modal stack (tracking).
     // The extra back() closes the modal presentation and returns to home.
@@ -155,7 +206,9 @@ export function useLoggingFlow() {
             })
             .join(" and ");
 
-          const estimate = await runNutritionPipeline(rawInput, "image");
+          const estimate = await runNutritionPipeline(rawInput, "image", {
+            skipLlmParse: true,
+          });
           const pipelineDraft = mealEstimateToDraft(estimate);
           pipelineDraft.source = "camera";
           setDraft(pipelineDraft);
@@ -163,7 +216,40 @@ export function useLoggingFlow() {
         }
       }
 
-      // ── Stage B.5: ML Kit image labeling → visual food recognition ──
+      // ── Stage B.5: Cloud vision (GPT-4o-mini) → meal decomposition ──
+      // When the image pipeline returned null (plated meal / generic food)
+      // and local LLM is not available, try the cloud-based meal analysis.
+      if (!isLocalLlmReady()) {
+        try {
+          const cloudResult: MealAnalysisResult = await analyzeMealImage(
+            imagePath,
+            description
+          );
+
+          if (
+            cloudResult.items.length > 0 &&
+            cloudResult.overallConfidence > 0.3
+          ) {
+            setDraft({
+              title: cloudResult.items.map((i) => i.resolvedName).join(", "),
+              source: "camera",
+              rawInput: description || "photo",
+              calories: cloudResult.totals.calories,
+              protein: cloudResult.totals.protein,
+              carbs: cloudResult.totals.carbs,
+              fat: cloudResult.totals.fat,
+              confidence: cloudResult.overallConfidence,
+              parseMethod: "cloud-vision (gpt-4o-mini)",
+            });
+            return true;
+          }
+        } catch (e) {
+          // Cloud vision failed — fall through to ML Kit labels
+          console.warn("Cloud vision analysis failed, falling back:", e);
+        }
+      }
+
+      // ── Stage C: ML Kit image labeling → visual food recognition ──
       // When OCR finds no text and LLM is unavailable, use on-device
       // image labeling to identify food from pixels (e.g. "ice cream",
       // "chocolate", "pizza") and feed labels into the text pipeline.
@@ -177,7 +263,9 @@ export function useLoggingFlow() {
         signalParts.push(imageLabels);
         const labelInput = signalParts.join(" ");
 
-        const estimate = await runNutritionPipeline(labelInput, "image");
+        const estimate = await runNutritionPipeline(labelInput, "image", {
+          skipLlmParse: true,
+        });
         const pipelineDraft = mealEstimateToDraft(estimate);
 
         // Validate: reject garbage results before showing to user
@@ -212,7 +300,8 @@ export function useLoggingFlow() {
         if (signalParts.length > 1) {
           const labelOnlyEstimate = await runNutritionPipeline(
             imageLabels,
-            "image"
+            "image",
+            { skipLlmParse: true }
           );
           const labelOnlyDraft = mealEstimateToDraft(labelOnlyEstimate);
           const labelOnlyValidation = validateFoodResult(
@@ -247,7 +336,9 @@ export function useLoggingFlow() {
       // ── Stage C: Text description / OCR text → text pipeline ──
       const textForPipeline = description?.trim() || ocrText;
       if (textForPipeline && textForPipeline.length > 0) {
-        const estimate = await runNutritionPipeline(textForPipeline, "image");
+        const estimate = await runNutritionPipeline(textForPipeline, "image", {
+          skipLlmParse: true,
+        });
         const pipelineDraft = mealEstimateToDraft(estimate);
 
         // Validate: reject garbage results before showing to user
@@ -287,8 +378,22 @@ export function useLoggingFlow() {
    */
   async function startFromBarcode(barcode: string): Promise<boolean> {
     try {
-      const match = await lookupBarcode(barcode);
+      // Try local dataset first (1.84M branded foods), fall back to OpenFoodFacts
+      let match =
+        (await lookupBarcodeDataset(barcode)) ??
+        (await lookupBarcodeOFF(barcode));
+
+      // iOS reports UPC-A as EAN-13 with leading '0' — try the 12-digit UPC-A variant
+      if (!match && barcode.length === 13 && barcode.startsWith("0")) {
+        const upcA = barcode.slice(1);
+        match =
+          (await lookupBarcodeDataset(upcA)) ?? (await lookupBarcodeOFF(upcA));
+      }
+
       if (!match) return false;
+
+      const matchSource =
+        match.source === "dataset" ? "dataset" : "openfoodfacts";
 
       const title = [match.brand, match.name].filter(Boolean).join(" — ");
       // Try emoji from full title first (may contain "juice", "sparkling" etc.), then product name
@@ -312,7 +417,7 @@ export function useLoggingFlow() {
           {
             name: match.name,
             matchedName: match.name,
-            matchSource: "openfoodfacts",
+            matchSource: matchSource,
             matchId: barcode,
             estimatedServings: 1,
             nutrients: match.nutrients,
@@ -334,6 +439,23 @@ export function useLoggingFlow() {
     router.dismiss();
   }
 
+  /**
+   * Run the new vision pipeline to detect food candidates from a photo.
+   *
+   * Returns structured candidates instead of auto-creating a draft.
+   * The camera UX shows candidates to the user for confirmation.
+   * After the user picks one, call `startFromInput(candidate.name, "camera")`
+   * to resolve nutrition data and create the draft.
+   *
+   * Pipeline: Quality Gate → ML Kit Labels → Taxonomy → Top-3 Candidates
+   */
+  async function detectFoodCandidates(
+    imagePath: string,
+    description?: string
+  ): Promise<VisionPipelineResult> {
+    return runVisionPipeline(imagePath, description);
+  }
+
   return {
     draft,
     updateDraft,
@@ -341,6 +463,7 @@ export function useLoggingFlow() {
     startFromInput,
     startFromImage,
     startFromBarcode,
+    detectFoodCandidates,
     saveDraftAsMeal,
     cancelLogging,
   };

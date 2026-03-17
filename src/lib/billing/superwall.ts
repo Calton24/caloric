@@ -1,6 +1,10 @@
 /**
  * Superwall Billing Provider
- * Wrapper around Superwall SDK for mobile paywalls
+ * Wrapper around Superwall SDK for mobile paywalls.
+ *
+ * Superwall handles paywall UI presentation and A/B testing.
+ * It delegates actual purchases to RevenueCat (or StoreKit directly)
+ * via the purchase controller configured during Superwall.configure().
  *
  * NOTE: This is a wrapper/adapter only. We test our logic, not Superwall SDK internals.
  */
@@ -8,6 +12,26 @@
 import type { SuperwallConfig } from "../../config/types";
 import { logger } from "../../logging/logger";
 import type { BillingProvider, Entitlement, SubscriptionTier } from "./types";
+
+// Lazy-loaded Superwall SDK
+let SuperwallSDK: any = null;
+
+function getSuperwall() {
+  if (!SuperwallSDK) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      SuperwallSDK =
+        require("@superwall/react-native-superwall").default ??
+        require("@superwall/react-native-superwall").Superwall;
+    } catch {
+      logger.warn(
+        "[Superwall] @superwall/react-native-superwall not available"
+      );
+      return null;
+    }
+  }
+  return SuperwallSDK;
+}
 
 /**
  * Superwall Provider Implementation
@@ -31,19 +55,15 @@ export class SuperwallProvider implements BillingProvider {
     }
 
     try {
-      // TODO: Initialize Superwall SDK
-      // import Superwall from '@superwall/react-native-superwall';
-      // await Superwall.configure(this.config.apiKey);
+      const SW = getSuperwall();
+      if (SW) {
+        await SW.configure(this.config.apiKey);
+      }
 
       logger.log(
         "[Superwall] Initialized with API key:",
         this.config.apiKey.substring(0, 10) + "..."
       );
-
-      // TODO: Set up entitlement change listener
-      // Superwall.shared.delegate.subscriptionStatusDidChange = (status) => {
-      //   this.notifyEntitlementChange();
-      // };
 
       this.initialized = true;
     } catch (error) {
@@ -58,11 +78,9 @@ export class SuperwallProvider implements BillingProvider {
     }
 
     try {
-      // TODO: Get entitlements from Superwall SDK
-      // const status = await Superwall.shared.getSubscriptionStatus();
-
-      // For now, return mock data
-      // In production, map Superwall's status to our Entitlement model
+      // Superwall delegates entitlement checks to RevenueCat.
+      // When used standalone, return free tier — the RevenueCatProvider
+      // is the source of truth for entitlements.
       const mockEntitlement: Entitlement = {
         isPro: false,
         tier: "free",
@@ -89,8 +107,10 @@ export class SuperwallProvider implements BillingProvider {
         paywallTrigger
       );
 
-      // TODO: Present paywall with Superwall SDK
-      // await Superwall.shared.present(paywallTrigger);
+      const SW = getSuperwall();
+      if (SW) {
+        await SW.register(paywallTrigger);
+      }
     } catch (error) {
       logger.error("[Superwall] Failed to present paywall:", error);
       throw error;
@@ -109,8 +129,10 @@ export class SuperwallProvider implements BillingProvider {
     try {
       logger.log("[Superwall] Restoring purchases...");
 
-      // TODO: Restore purchases with Superwall SDK
-      // await Superwall.shared.restorePurchases();
+      const SW = getSuperwall();
+      if (SW) {
+        await SW.restorePurchases();
+      }
 
       // Notify listeners of potential entitlement change
       await this.notifyEntitlementChange();

@@ -18,13 +18,14 @@ import {
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useUnits } from "../../hooks/useUnits";
+import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TButton } from "../../src/ui/primitives/TButton";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 import { OnboardingProgress } from "./_progress";
-import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
 
 const GENDERS = [
   { id: "male", icon: "male-outline" as const, label: "Male" },
@@ -34,13 +35,16 @@ const GENDERS = [
 
 export default function OnboardingBodyScreen() {
   const { theme } = useTheme();
+  const units = useUnits();
   const router = useRouter();
   const { profile, saveBodyMeasurements } = useOnboarding();
   const [gender, setGender] = useState<string | null>(profile.gender);
   const [age, setAge] = useState(28);
   const [heightFt, setHeightFt] = useState(5);
   const [heightIn, setHeightIn] = useState(8);
-  const [weight, setWeight] = useState(profile.currentWeightLbs ?? 160);
+  const [weight, setWeight] = useState(
+    Number(units.display(profile.currentWeightLbs ?? 160))
+  );
 
   const isValid = gender !== null && age > 0 && weight > 0;
 
@@ -311,7 +315,7 @@ export default function OnboardingBodyScreen() {
                       { color: theme.colors.textMuted },
                     ]}
                   >
-                    lbs
+                    {units.label}
                   </TText>
                 </View>
                 <Pressable
@@ -332,18 +336,22 @@ export default function OnboardingBodyScreen() {
           {/* Bottom CTA */}
           <View style={styles.footer}>
             <TButton
-              onPress={() => (() => {
-              // Convert age → birthYear, ft/in → cm, then save to store
-              const birthYear = new Date().getFullYear() - age;
-              const heightCm = Math.round(heightFt * 30.48 + heightIn * 2.54);
-              saveBodyMeasurements({
-                gender: gender as "male" | "female" | "other",
-                birthYear,
-                heightCm,
-                currentWeightLbs: weight,
-              });
-              router.push("/onboarding/activity" as any);
-            })()}
+              onPress={() =>
+                (() => {
+                  // Convert age → birthYear, ft/in → cm, then save to store
+                  const birthYear = new Date().getFullYear() - age;
+                  const heightCm = Math.round(
+                    heightFt * 30.48 + heightIn * 2.54
+                  );
+                  saveBodyMeasurements({
+                    gender: gender as "male" | "female" | "other",
+                    birthYear,
+                    heightCm,
+                    currentWeightLbs: units.toLbs(weight),
+                  });
+                  router.push("/onboarding/activity" as any);
+                })()
+              }
               disabled={!isValid}
               size="lg"
               testID="onboarding-next-body"

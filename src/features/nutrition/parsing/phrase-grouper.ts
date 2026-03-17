@@ -29,28 +29,73 @@ export interface GroupedPhrase {
  * together. "banana protein smoothie" = one smoothie, not banana + protein + smoothie.
  */
 const CONTAINER_WORDS = new Set([
+  // Drinks
   "smoothie",
   "shake",
+  "latte",
+  "cappuccino",
+  "mocha",
+  "frappuccino",
+  "milkshake",
+  // Bowls
   "bowl",
-  "wrap",
-  "sandwich",
-  "salad",
-  "pasta",
-  "curry",
-  "stew",
-  "soup",
-  "burrito",
-  "taco",
-  "pizza",
-  "omelette",
-  "omelet",
-  "stir fry",
-  "parfait",
   "acai bowl",
   "poke bowl",
   "buddha bowl",
   "power bowl",
-  // Cereal / breakfast containers
+  "grain bowl",
+  "burrito bowl",
+  "rice bowl",
+  "noodle bowl",
+  // Wraps & sandwiches
+  "wrap",
+  "sandwich",
+  "sub",
+  "hoagie",
+  "panini",
+  "pita",
+  "flatbread",
+  "croissant sandwich",
+  // Salads
+  "salad",
+  // Plated meals
+  "pasta",
+  "curry",
+  "stew",
+  "soup",
+  "chili",
+  "casserole",
+  "stir fry",
+  // Mexican
+  "burrito",
+  "taco",
+  "quesadilla",
+  "enchilada",
+  "fajita",
+  "nachos",
+  // Italian
+  "pizza",
+  "risotto",
+  "lasagna",
+  // Asian
+  "sushi",
+  "ramen",
+  "pho",
+  "pad thai",
+  "bibimbap",
+  "fried rice",
+  "lo mein",
+  "chow mein",
+  "teriyaki",
+  "dumplings",
+  // Indian
+  "biryani",
+  "tikka masala",
+  "dal",
+  // Breakfast
+  "omelette",
+  "omelet",
+  "parfait",
   "cereal",
   "cornflakes",
   "corn flakes",
@@ -58,10 +103,20 @@ const CONTAINER_WORDS = new Set([
   "porridge",
   "muesli",
   "granola",
-  // Meal containers
-  "biryani",
-  "risotto",
+  "pancakes",
+  "waffles",
+  "french toast",
+  "overnight oats",
+  "chia pudding",
+  // Other
   "goulash",
+  "paella",
+  "jambalaya",
+  "gumbo",
+  "potpie",
+  "pot pie",
+  "pie",
+  "cobbler",
 ]);
 
 /**
@@ -69,35 +124,71 @@ const CONTAINER_WORDS = new Set([
  * rather than separate items when adjacent to a container.
  */
 const MODIFIER_WORDS = new Set([
+  // Proteins
   "protein",
-  "banana",
-  "strawberry",
-  "blueberry",
-  "mango",
-  "peanut butter",
-  "chocolate",
-  "vanilla",
-  "matcha",
-  "green",
-  "berry",
-  "tropical",
-  "mixed",
-  "spinach",
-  "kale",
-  "avocado",
   "chicken",
   "beef",
   "tuna",
   "salmon",
   "turkey",
+  "shrimp",
+  "tofu",
+  // Fruits
+  "banana",
+  "strawberry",
+  "blueberry",
+  "mango",
+  "raspberry",
+  "acai",
+  "berry",
+  "tropical",
+  "mixed",
+  "apple",
+  "peach",
+  "cherry",
+  // Nut butters / supplements
+  "peanut butter",
+  "almond butter",
+  "chocolate",
+  "vanilla",
+  "matcha",
+  "whey",
+  "collagen",
+  // Vegetables / greens
+  "spinach",
+  "kale",
+  "avocado",
+  "mushroom",
+  "pepper",
+  "onion",
+  "tomato",
+  "green",
+  // Flavor modifiers
   "veggie",
   "vegan",
   "greek",
   "caesar",
   "garden",
+  "buffalo",
+  "bbq",
+  "teriyaki",
+  "thai",
+  "mexican",
+  "italian",
+  "mediterranean",
+  // Cooking methods (that form compound names)
   "grilled",
   "crispy",
   "spicy",
+  "fried",
+  "baked",
+  "steamed",
+  "roasted",
+  "smoked",
+  "stuffed",
+  "pan",
+  "stir",
+  // Temperature
   "iced",
   "hot",
   "cold",
@@ -113,26 +204,358 @@ const MODIFIER_WORDS = new Set([
   "raisin",
   "cocoa",
   "crunchy",
-  // Meal modifiers
-  "fried",
-  "baked",
-  "steamed",
-  "roasted",
-  "smoked",
-  "stuffed",
+  // Grain/flour modifiers
+  "whole wheat",
+  "multigrain",
+  "sourdough",
+  "gluten free",
 ]);
 
 // ─── Split Logic ────────────────────────────────────────────────────────────
 
 /**
+ * Known food words that indicate a "with X" is a separate addition/topping,
+ * not a preparation method. "salad with avocado" → avocado is a separate item.
+ * Small condiments (butter, salt, honey) stay attached as preparation.
+ */
+const WITH_ITEM_WORDS = new Set([
+  // Proteins — always separate items
+  "chicken",
+  "beef",
+  "pork",
+  "fish",
+  "salmon",
+  "tuna",
+  "shrimp",
+  "prawns",
+  "turkey",
+  "bacon",
+  "ham",
+  "sausage",
+  "sausages",
+  "egg",
+  "eggs",
+  "tofu",
+  "steak",
+  "lamb",
+  "meatballs",
+  "tempeh",
+  "seitan",
+  "jerky",
+  // Fruits — always separate items
+  "banana",
+  "apple",
+  "avocado",
+  "blueberries",
+  "strawberries",
+  "raspberries",
+  "blackberries",
+  "mango",
+  "berries",
+  "grapes",
+  "orange",
+  "pear",
+  "peach",
+  "pineapple",
+  "watermelon",
+  "melon",
+  "kiwi",
+  "plum",
+  "cherries",
+  "pomegranate",
+  "fig",
+  "figs",
+  "dates",
+  // Vegetables — always separate items
+  "spinach",
+  "kale",
+  "tomato",
+  "tomatoes",
+  "onion",
+  "onions",
+  "peppers",
+  "mushrooms",
+  "broccoli",
+  "cauliflower",
+  "corn",
+  "lettuce",
+  "cucumber",
+  "carrots",
+  "celery",
+  "zucchini",
+  "asparagus",
+  "green beans",
+  "sweet potato",
+  "sweet potatoes",
+  "beets",
+  "cabbage",
+  "brussels sprouts",
+  "edamame",
+  // Dairy (substantial portions)
+  "cheese",
+  "yogurt",
+  "cottage cheese",
+  "cream cheese",
+  // Grains — always separate items
+  "rice",
+  "bread",
+  "pasta",
+  "noodles",
+  "oats",
+  "granola",
+  "quinoa",
+  "couscous",
+  "bulgur",
+  "crackers",
+  "tortilla",
+  "toast",
+  "bagel",
+  "muffin",
+  "croissant",
+  // Legumes
+  "beans",
+  "lentils",
+  "chickpeas",
+  "hummus",
+  // Substantial toppings
+  "peanut butter",
+  "almond butter",
+  "guacamole",
+  "salsa",
+  "nuts",
+  "almonds",
+  "walnuts",
+  "pecans",
+  "cashews",
+  "seeds",
+  "chia seeds",
+  "flax seeds",
+  // Dressings (named dressings are separate)
+  "olive oil dressing",
+  "ranch dressing",
+  "vinaigrette",
+  "caesar dressing",
+  "balsamic dressing",
+  "italian dressing",
+  "blue cheese dressing",
+  "thousand island",
+  // Supplements
+  "protein powder",
+  "protein",
+  "whey",
+  "collagen",
+]);
+
+/**
+ * Small additions that should stay attached to the base food
+ * as preparation/modifier rather than split into separate items.
+ * "toast with butter" → one item, not two.
+ */
+const WITH_PREP_WORDS = new Set([
+  // Fats / spreads
+  "butter",
+  "margarine",
+  "olive oil",
+  "oil",
+  "coconut oil",
+  "cooking spray",
+  // Sweeteners
+  "sugar",
+  "honey",
+  "maple syrup",
+  "syrup",
+  "agave",
+  "stevia",
+  // Preserves
+  "jam",
+  "jelly",
+  "marmalade",
+  "nutella",
+  // Dairy additions
+  "cream",
+  "milk",
+  "whipped cream",
+  "half and half",
+  "creamer",
+  // Condiments
+  "mayo",
+  "mayonnaise",
+  "ketchup",
+  "mustard",
+  "hot sauce",
+  "sriracha",
+  "tabasco",
+  "soy sauce",
+  "teriyaki sauce",
+  "bbq sauce",
+  "worcestershire",
+  "fish sauce",
+  // Dressings (generic — named dressings are in WITH_ITEM_WORDS)
+  "dressing",
+  "sauce",
+  "gravy",
+  "pesto",
+  "aioli",
+  "chimichurri",
+  "tahini",
+  // Seasonings
+  "salt",
+  "pepper",
+  "seasoning",
+  "spice",
+  "herbs",
+  "oregano",
+  "basil",
+  "thyme",
+  "cumin",
+  "paprika",
+  "chili flakes",
+  "red pepper flakes",
+  // Citrus / aromatics
+  "lemon",
+  "lime",
+  "lemon juice",
+  "lime juice",
+  "garlic",
+  "ginger",
+  "cinnamon",
+  "vanilla",
+  "nutmeg",
+  // Vinegars
+  "vinegar",
+  "balsamic",
+  "apple cider vinegar",
+  // Misc small additions
+  "sprinkles",
+  "croutons",
+  "parmesan",
+  "sour cream",
+  "salsa",
+  "relish",
+  "pickles",
+]);
+
+/**
+ * Check if a "with X" clause refers to a recognizable food item
+ * (should be split as separate item) vs a preparation method
+ * (should stay attached, e.g. "with butter", "with salt").
+ */
+function isWithClauseASeparateItem(withText: string): boolean {
+  const lower = withText.toLowerCase().trim();
+  // Check exact item matches first — "olive oil dressing" should match
+  // WITH_ITEM_WORDS before "olive oil" prefix-matches WITH_PREP_WORDS
+  for (const item of WITH_ITEM_WORDS) {
+    if (lower === item) return true;
+  }
+  // Check prep words — these stay attached
+  for (const prep of WITH_PREP_WORDS) {
+    if (lower === prep || lower.startsWith(prep + " ")) return false;
+  }
+  // Check prefix/partial item matches
+  for (const item of WITH_ITEM_WORDS) {
+    if (lower.startsWith(item + " ") || lower.startsWith(item)) return true;
+  }
+  return false;
+}
+
+/**
+ * Split "X with Y with Z" into separate items when Y and Z are
+ * recognizable foods/toppings. Keeps "with butter" attached when
+ * it looks like a preparation modifier.
+ *
+ * "chicken salad with avocado with olive oil dressing"
+ *   → ["chicken salad", "avocado", "olive oil dressing"]
+ *
+ * "toast with butter" → ["toast with butter"] (kept together)
+ */
+function splitWithClauses(fragment: string): string[] {
+  // Split on "with" boundaries
+  const parts = fragment.split(/\s+with\s+/i);
+  if (parts.length <= 1) return [fragment];
+
+  const base = parts[0].trim();
+  const result: string[] = [base];
+
+  for (let i = 1; i < parts.length; i++) {
+    const withPart = parts[i].trim();
+    if (!withPart) continue;
+
+    if (isWithClauseASeparateItem(withPart)) {
+      // This is a separate food item — split it out
+      result.push(withPart);
+    } else {
+      // This is a preparation/modifier — attach to the base
+      result[0] = `${result[0]} with ${withPart}`;
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Compound foods containing "and" — must be protected before
+ * splitting on "and" delimiter.
+ */
+const AND_COMPOUNDS: string[] = [
+  "mac and cheese",
+  "fish and chips",
+  "sweet and sour",
+  "sweet and sour chicken",
+  "sweet and sour pork",
+  "peanut butter and jelly",
+  "bread and butter",
+  "salt and pepper",
+  "franks and beans",
+  "surf and turf",
+  "chips and salsa",
+  "chips and guacamole",
+  "biscuits and gravy",
+  "half and half",
+];
+
+/**
  * Split input on standard delimiters ("and", ",", "&", "plus", "with a").
- * Preserves "with" only when followed by "a" (to not break "pasta with chicken").
+ * Then further split "with X" clauses where X is a recognizable food.
  */
 function splitOnDelimiters(input: string): string[] {
-  return input
-    .split(/\s*(?:,\s*|\s+and\s+|\s*&\s*|\s+plus\s+|\s+with\s+a\s+)/i)
+  // Protect compound foods containing "and" from being split
+  let processed = input;
+  const placeholders: Map<string, string> = new Map();
+  for (const compound of AND_COMPOUNDS) {
+    const idx = processed.toLowerCase().indexOf(compound);
+    if (idx >= 0) {
+      const placeholder = `__COMPOUND_${placeholders.size}__`;
+      const original = processed.slice(idx, idx + compound.length);
+      placeholders.set(placeholder, original);
+      processed =
+        processed.slice(0, idx) +
+        placeholder +
+        processed.slice(idx + compound.length);
+    }
+  }
+
+  const initial = processed
+    .split(
+      /\s*(?:,\s*|\s+and\s+|\s*&\s*|\s+plus\s+|\s+with\s+a\s+|\s+on\s+|\s+(?:had|ate|drank|got|grabbed)\s+(?:an?\s+|some\s+|the\s+)?)/i
+    )
     .map((f) => f.trim())
     .filter((f) => f.length > 0);
+
+  // Restore placeholders
+  const restored = initial.map((f) => {
+    for (const [placeholder, original] of placeholders) {
+      f = f.replace(placeholder, original);
+    }
+    return f;
+  });
+
+  // Post-process: split any fragment that has "with X" where X is a food
+  const result: string[] = [];
+  for (const frag of restored) {
+    result.push(...splitWithClauses(frag));
+  }
+
+  return result;
 }
 
 /**
@@ -210,6 +633,32 @@ export function groupFoodPhrases(cleanedInput: string): GroupedPhrase[] {
     );
 
     if (allOthersAreModifiers) {
+      // Don't merge if a "modifier" is actually a standalone food item
+      // e.g. "avocado" split from "chicken salad with avocado" shouldn't be merged back
+      // Check individual words too — "a banana" contains "banana" which is standalone
+      const standaloneModifiers = fragments.filter((f, i) => {
+        if (i === containerIdx) return false;
+        const lower = f.toLowerCase().trim();
+        if (WITH_ITEM_WORDS.has(lower)) return true;
+        // Check if any word in the fragment is a standalone food
+        const words = lower.replace(/^(a|an|the|some)\s+/i, "").trim();
+        if (WITH_ITEM_WORDS.has(words)) return true;
+        // Multi-word fragments with food words are likely separate items
+        if (lower.split(/\s+/).length >= 2) {
+          return lower.split(/\s+/).some((w) => WITH_ITEM_WORDS.has(w));
+        }
+        return false;
+      });
+      if (standaloneModifiers.length > 0) {
+        // Some "modifiers" are actually separate foods — don't merge
+        return fragments.map((f) => ({
+          text: f,
+          isMerged: false,
+          originalFragments: [f],
+          groupingConfidence: 0.85,
+        }));
+      }
+
       // Merge all: "protein shake" + "banana" + "smoothie" → "banana protein smoothie"
       // Put modifiers first, container last
       const modifiers = fragments.filter((_, i) => i !== containerIdx);

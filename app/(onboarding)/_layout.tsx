@@ -13,8 +13,9 @@
  *   6. timeframe — Timeline selection
  *   7. calculating — Plan calculation animation
  *   8. plan — Personalized results
- *   9. paywall — Subscription gate
- *  10. complete — Celebration
+ *   9. save-progress — Auth gate (sign in / sign up / skip)
+ *  10. paywall — Subscription gate
+ *  11. complete — Celebration
  */
 
 import { Stack } from "expo-router";
@@ -28,6 +29,7 @@ export default function OnboardingLayout() {
         gestureEnabled: false,
       }}
     >
+      <Stack.Screen name="landing" />
       <Stack.Screen name="welcome" />
       <Stack.Screen name="goal" />
       <Stack.Screen name="body" />
@@ -36,6 +38,7 @@ export default function OnboardingLayout() {
       <Stack.Screen name="timeframe" />
       <Stack.Screen name="calculating" />
       <Stack.Screen name="plan" />
+      <Stack.Screen name="save-progress" />
       <Stack.Screen name="paywall" />
       <Stack.Screen name="complete" />
     </Stack>

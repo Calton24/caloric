@@ -9,6 +9,7 @@
  */
 
 import type { NutrientProfile } from "../matching/matching.types";
+import type { MealTime } from "../mealtime";
 import type {
     ConfidenceInsight,
     InputSource,
@@ -30,7 +31,15 @@ export interface EstimatedFoodItem {
   matchedName: string;
 
   /** Which database provided the nutrient data */
-  matchSource: "usda" | "openfoodfacts" | "local-fallback" | "recipe-template";
+  matchSource:
+    | "usda"
+    | "openfoodfacts"
+    | "edamam"
+    | "dataset"
+    | "local-fallback"
+    | "recipe-template"
+    | "personal-history"
+    | "branded";
 
   /** Source record ID (USDA FDC ID, OFF barcode, or "local") */
   matchId: string;
@@ -87,6 +96,9 @@ export interface MealEstimate {
 
   /** Which parser was used */
   parseMethod: string;
+
+  /** Time-of-day context applied during estimation */
+  mealTime?: MealTime;
 }
 
 // ─── Saved Food Item (persisted in MealEntry) ────────────────────────────────

@@ -40,8 +40,12 @@ export interface NutrientProfile {
 export type MatchSource =
   | "usda"
   | "openfoodfacts"
+  | "edamam"
+  | "dataset"
   | "local-fallback"
-  | "recipe-template";
+  | "recipe-template"
+  | "personal-history"
+  | "branded";
 
 // ─── Food Match ──────────────────────────────────────────────────────────────
 

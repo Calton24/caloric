@@ -15,13 +15,24 @@ import Animated, {
     FadeInUp,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useUnits } from "../hooks/useUnits";
+import {
+    getNutritionChartPoints,
+    getNutritionStats,
+} from "../src/features/nutrition/nutrition-trends.service";
 import {
     getChartPointsForSegment,
     getWeightStats,
 } from "../src/features/progress/progress-shaping.service";
 import { useRecalculatePlan } from "../src/features/progress/use-recalculate-plan";
-import { useProfileStore, useProgressStore } from "../src/stores";
+import {
+    useGoalsStore,
+    useNutritionStore,
+    useProfileStore,
+    useProgressStore,
+} from "../src/stores";
 import { useTheme } from "../src/theme/useTheme";
+import { NutritionTrendChart } from "../src/ui/components/NutritionTrendChart";
 import { SegmentedControl } from "../src/ui/components/SegmentedControl";
 import { WeightChart } from "../src/ui/components/WeightChart";
 import { TSpacer } from "../src/ui/primitives/TSpacer";
@@ -32,17 +43,32 @@ const SEGMENTS = ["Week", "Month", "Year"];
 export default function ProgressScreen() {
   const { theme } = useTheme();
   const router = useRouter();
+  const units = useUnits();
   const [segmentIndex, setSegmentIndex] = useState(0);
 
   // ── Domain stores ──
   const profile = useProfileStore((s) => s.profile);
   const weightLogs = useProgressStore((s) => s.weightLogs);
+  const meals = useNutritionStore((s) => s.meals);
+  const plan = useGoalsStore((s) => s.plan);
   const { canRecalculate, recalculate } = useRecalculatePlan();
+
+  const calorieBudget = plan?.calorieBudget ?? 0;
 
   // ── Derived data ──
   const chartData = useMemo(
     () => getChartPointsForSegment(weightLogs, segmentIndex),
     [weightLogs, segmentIndex]
+  );
+
+  const nutritionChartData = useMemo(
+    () => getNutritionChartPoints(meals, segmentIndex),
+    [meals, segmentIndex]
+  );
+
+  const nutritionStats = useMemo(
+    () => getNutritionStats(meals, segmentIndex, calorieBudget),
+    [meals, segmentIndex, calorieBudget]
   );
 
   const stats = useMemo(
@@ -51,7 +77,7 @@ export default function ProgressScreen() {
   );
 
   const currentWeight = stats.currentWeight ?? profile.currentWeightLbs ?? 0;
-  const goalWeight = profile.goalWeightLbs;
+  const goalWeight = profile.goalWeightLbs ?? 0;
   const totalLost = stats.totalChange;
   const remaining = stats.remaining ?? 0;
 
@@ -136,7 +162,7 @@ export default function ProgressScreen() {
               <TText
                 style={[styles.legendText, { color: theme.colors.textMuted }]}
               >
-                Goal: {goalWeight} lbs
+                Goal: {units.display(goalWeight)} {units.label}
               </TText>
             </View>
           </Animated.View>
@@ -156,7 +182,7 @@ export default function ProgressScreen() {
                 <TText
                   style={[styles.summaryValue, { color: theme.colors.text }]}
                 >
-                  {currentWeight}
+                  {units.display(currentWeight)}
                 </TText>
                 <TText
                   style={[
@@ -164,7 +190,7 @@ export default function ProgressScreen() {
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  Current (lbs)
+                  Current ({units.label})
                 </TText>
               </View>
 
@@ -179,7 +205,7 @@ export default function ProgressScreen() {
                 <TText
                   style={[styles.summaryValue, { color: theme.colors.success }]}
                 >
-                  -{totalLost.toFixed(1)}
+                  -{units.display(totalLost, 1)}
                 </TText>
                 <TText
                   style={[
@@ -187,7 +213,7 @@ export default function ProgressScreen() {
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  Lost (lbs)
+                  Lost ({units.label})
                 </TText>
               </View>
 
@@ -202,7 +228,7 @@ export default function ProgressScreen() {
                 <TText
                   style={[styles.summaryValue, { color: theme.colors.text }]}
                 >
-                  {remaining.toFixed(1)}
+                  {units.display(remaining, 1)}
                 </TText>
                 <TText
                   style={[
@@ -210,11 +236,219 @@ export default function ProgressScreen() {
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  To goal (lbs)
+                  To goal ({units.label})
                 </TText>
               </View>
             </View>
           </Animated.View>
+
+          <TSpacer size="lg" />
+
+          {/* ── Nutrition Trends ── */}
+          <Animated.View entering={FadeIn.duration(400).delay(350)}>
+            <TText
+              variant="heading"
+              style={[styles.sectionTitle, { color: theme.colors.text }]}
+            >
+              Calorie Trends
+            </TText>
+          </Animated.View>
+
+          <TSpacer size="sm" />
+
+          <Animated.View
+            entering={FadeInDown.duration(500).delay(400)}
+            style={[
+              styles.chartCard,
+              { backgroundColor: theme.colors.surfaceSecondary },
+            ]}
+          >
+            {nutritionChartData.some((d) => d.calories > 0) ? (
+              <>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.chartScroll}
+                >
+                  <NutritionTrendChart
+                    data={nutritionChartData}
+                    calorieBudget={calorieBudget || undefined}
+                    height={200}
+                  />
+                </ScrollView>
+
+                {calorieBudget > 0 && (
+                  <View style={styles.legendRow}>
+                    <View
+                      style={[
+                        styles.legendDash,
+                        { backgroundColor: theme.colors.success },
+                      ]}
+                    />
+                    <TText
+                      style={[
+                        styles.legendText,
+                        { color: theme.colors.textMuted },
+                      ]}
+                    >
+                      Budget: {calorieBudget} kcal
+                    </TText>
+                  </View>
+                )}
+              </>
+            ) : (
+              <TText
+                style={[styles.emptyText, { color: theme.colors.textMuted }]}
+              >
+                No meals logged in this period
+              </TText>
+            )}
+          </Animated.View>
+
+          <TSpacer size="md" />
+
+          {/* Nutrition Summary Card */}
+          {nutritionStats.daysLogged > 0 && (
+            <Animated.View
+              entering={FadeInUp.duration(500).delay(450)}
+              style={[
+                styles.summaryCard,
+                { backgroundColor: theme.colors.surfaceSecondary },
+              ]}
+            >
+              <View style={styles.summaryRow}>
+                <View style={styles.summaryItem}>
+                  <TText
+                    style={[styles.summaryValue, { color: theme.colors.text }]}
+                  >
+                    {nutritionStats.avgCalories}
+                  </TText>
+                  <TText
+                    style={[
+                      styles.summaryLabel,
+                      { color: theme.colors.textMuted },
+                    ]}
+                  >
+                    Avg kcal/day
+                  </TText>
+                </View>
+
+                <View
+                  style={[
+                    styles.summaryDivider,
+                    { backgroundColor: theme.colors.border },
+                  ]}
+                />
+
+                <View style={styles.summaryItem}>
+                  <TText
+                    style={[styles.summaryValue, { color: theme.colors.text }]}
+                  >
+                    {nutritionStats.avgProtein}g
+                  </TText>
+                  <TText
+                    style={[
+                      styles.summaryLabel,
+                      { color: theme.colors.textMuted },
+                    ]}
+                  >
+                    Avg protein
+                  </TText>
+                </View>
+
+                <View
+                  style={[
+                    styles.summaryDivider,
+                    { backgroundColor: theme.colors.border },
+                  ]}
+                />
+
+                <View style={styles.summaryItem}>
+                  <TText
+                    style={[
+                      styles.summaryValue,
+                      {
+                        color:
+                          nutritionStats.adherencePercent >= 70
+                            ? theme.colors.success
+                            : nutritionStats.adherencePercent >= 40
+                              ? theme.colors.warning
+                              : theme.colors.error,
+                      },
+                    ]}
+                  >
+                    {nutritionStats.adherencePercent}%
+                  </TText>
+                  <TText
+                    style={[
+                      styles.summaryLabel,
+                      { color: theme.colors.textMuted },
+                    ]}
+                  >
+                    On target
+                  </TText>
+                </View>
+              </View>
+
+              {/* Macro breakdown row */}
+              <View
+                style={[
+                  styles.macroDivider,
+                  { backgroundColor: theme.colors.border },
+                ]}
+              />
+              <View style={styles.macroRow}>
+                <View style={styles.macroItem}>
+                  <View
+                    style={[
+                      styles.macroDot,
+                      { backgroundColor: theme.colors.primary },
+                    ]}
+                  />
+                  <TText
+                    style={[
+                      styles.macroText,
+                      { color: theme.colors.textSecondary },
+                    ]}
+                  >
+                    P: {nutritionStats.avgProtein}g
+                  </TText>
+                </View>
+                <View style={styles.macroItem}>
+                  <View
+                    style={[
+                      styles.macroDot,
+                      { backgroundColor: theme.colors.warning },
+                    ]}
+                  />
+                  <TText
+                    style={[
+                      styles.macroText,
+                      { color: theme.colors.textSecondary },
+                    ]}
+                  >
+                    C: {nutritionStats.avgCarbs}g
+                  </TText>
+                </View>
+                <View style={styles.macroItem}>
+                  <View
+                    style={[
+                      styles.macroDot,
+                      { backgroundColor: theme.colors.error },
+                    ]}
+                  />
+                  <TText
+                    style={[
+                      styles.macroText,
+                      { color: theme.colors.textSecondary },
+                    ]}
+                  >
+                    F: {nutritionStats.avgFat}g
+                  </TText>
+                </View>
+              </View>
+            </Animated.View>
+          )}
 
           <TSpacer size="lg" />
 
@@ -254,7 +488,7 @@ export default function ProgressScreen() {
                 recalculate();
                 Alert.alert(
                   "Plan Updated",
-                  `Your plan has been recalculated using your latest weight of ${currentWeight} lbs.`
+                  `Your plan has been recalculated using your latest weight of ${units.format(currentWeight)}.`
                 );
               }}
               style={[
@@ -371,5 +605,36 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 15,
     fontWeight: "600",
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+  },
+  emptyText: {
+    fontSize: 14,
+    textAlign: "center",
+    paddingVertical: 24,
+  },
+  macroDivider: {
+    height: 1,
+    marginVertical: 12,
+  },
+  macroRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+  },
+  macroItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  macroDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  macroText: {
+    fontSize: 13,
+    fontWeight: "500",
   },
 });

@@ -1,16 +1,16 @@
 /**
- * Intake App Configuration
+ * Caloric App Configuration
  * Vision AI food tracking app
  */
 
 import { AppProfileConfig } from "../types";
 
-export const intakeConfig: AppProfileConfig = {
+export const caloricConfig: AppProfileConfig = {
   // Base configuration (production)
   supabase: {
     url:
       process.env.EXPO_PUBLIC_SUPABASE_URL ||
-      "https://your-intake-project.supabase.co",
+      "https://your-caloric-project.supabase.co",
     anonKey:
       process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "YOUR_SUPABASE_ANON_KEY", // Replace with actual anon key from Supabase dashboard
   },
@@ -20,21 +20,21 @@ export const intakeConfig: AppProfileConfig = {
       googleAppId: "1:123456789:ios:abcdef123456",
       gcmSenderId: "123456789",
       apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-      projectId: "intake-prod",
-      storageBucket: "intake-prod.appspot.com",
+      projectId: "caloric-prod",
+      storageBucket: "caloric-prod.appspot.com",
       clientId:
         "123456789-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com",
-      bundleId: "com.yourcompany.intake",
+      bundleId: "com.yourcompany.caloric",
     },
     android: {
       googleAppId: "1:123456789:android:abcdef123456",
       apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-      projectId: "intake-prod",
-      storageBucket: "intake-prod.appspot.com",
+      projectId: "caloric-prod",
+      storageBucket: "caloric-prod.appspot.com",
       gcmSenderId: "123456789",
       clientId:
         "123456789-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com",
-      packageName: "com.yourcompany.intake",
+      packageName: "com.yourcompany.caloric",
     },
   },
 
@@ -53,7 +53,7 @@ export const intakeConfig: AppProfileConfig = {
   features: {
     vision: true, // Vision AI enabled for food scanning
     water: true,
-    habit: false, // Not needed for intake
+    habit: false, // Not needed for caloric
     analytics: true,
     growth: false,
     haptics: true,
@@ -85,17 +85,17 @@ export const intakeConfig: AppProfileConfig = {
       // Supabase config comes from env vars (base config)
       firebase: {
         ios: {
-          projectId: "intake-dev",
-          storageBucket: "intake-dev.appspot.com",
-          bundleId: "com.yourcompany.intake.dev",
+          projectId: "caloric-dev",
+          storageBucket: "caloric-dev.appspot.com",
+          bundleId: "com.calton24.caloric.dev",
           googleAppId: "1:123456789:ios:dev123456",
           gcmSenderId: "123456789",
           apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
         },
         android: {
-          projectId: "intake-dev",
-          storageBucket: "intake-dev.appspot.com",
-          packageName: "com.yourcompany.intake.dev",
+          projectId: "caloric-dev",
+          storageBucket: "caloric-dev.appspot.com",
+          packageName: "com.calton24.caloric.dev",
           googleAppId: "1:123456789:android:dev123456",
           apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
           gcmSenderId: "123456789",
@@ -120,8 +120,8 @@ export const intakeConfig: AppProfileConfig = {
       // Supabase config comes from env vars (base config)
       app: {
         name: "Caloric Staging",
-        bundleIdentifier: "com.yourcompany.caloric.staging",
-        androidPackage: "com.yourcompany.caloric.staging",
+        bundleIdentifier: "com.calton24.caloric.staging",
+        androidPackage: "com.calton24.caloric.staging",
       },
     },
     prod: {

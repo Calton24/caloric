@@ -1,4 +1,5 @@
 import type { SavedFoodItem } from "./estimation/estimation.types";
+import type { MealTime } from "./mealtime";
 
 export type MealSource = "voice" | "manual" | "camera" | "text" | "image";
 
@@ -23,6 +24,12 @@ export interface MealEntry {
 
   /** Emoji representing the dominant food in this meal */
   emoji?: string;
+
+  /** Time-of-day context when meal was logged */
+  mealTime?: MealTime;
+
+  /** Local URI of the meal photo (camera scans only) */
+  imageUri?: string;
 }
 
 export interface DailyNutritionSummary {

@@ -5,6 +5,7 @@
 
 import { logger } from "../../logging/logger";
 import { getActiveConfig } from "../config";
+import { RevenueCatProvider } from "./revenuecat";
 import { StripeProvider } from "./stripe";
 import { SuperwallProvider } from "./superwall";
 import type { BillingProvider } from "./types";
@@ -61,6 +62,16 @@ export function getBillingProvider(): BillingProvider {
 
   // Create provider based on config
   switch (config.billing.provider) {
+    case "revenueCat":
+      logger.log("[Billing] Using RevenueCat provider");
+      if (!config.billing.revenueCat) {
+        throw new Error(
+          "[Billing] RevenueCat provider selected but no revenueCat config found"
+        );
+      }
+      cachedProvider = new RevenueCatProvider(config.billing.revenueCat);
+      break;
+
     case "superwall":
       logger.log("[Billing] Using Superwall provider");
       if (!config.billing.superwall) {
@@ -124,5 +135,10 @@ export function __resetBillingProvider(): void {
 
 // Export types and providers for testing
 export type { BillingProvider, Entitlement, SubscriptionTier } from "./types";
-export { NoBillingProvider, StripeProvider, SuperwallProvider };
+export {
+    NoBillingProvider,
+    RevenueCatProvider,
+    StripeProvider,
+    SuperwallProvider
+};
 

@@ -12,7 +12,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Animated, {
     FadeIn,
@@ -21,12 +21,15 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useHomeData } from "../../src/features/home/use-home-data";
+import { rebuildFoodMemory } from "../../src/features/nutrition/memory/food-memory.service";
 import { useNutritionStore } from "../../src/features/nutrition/nutrition.store";
 import { useTheme } from "../../src/theme/useTheme";
+import { DailyInsightsCard } from "../../src/ui/components/DailyInsightsCard";
 import { DaySelector } from "../../src/ui/components/DaySelector";
 import { MacroCard } from "../../src/ui/components/MacroCard";
 import { MealCard } from "../../src/ui/components/MealCard";
 import { ProgressRing } from "../../src/ui/components/ProgressRing";
+import { QuickLogSection } from "../../src/ui/components/QuickLogSection";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 
@@ -45,8 +48,15 @@ export default function HomeScreen() {
   const {
     selectedDayIndex,
     handleDaySelect,
+    weekDays,
+    weekPages,
+    weekPagesProgress,
     activeDays,
+    dayProgress,
     dateHeader,
+    isToday,
+    goToNextWeek,
+    goToPrevWeek,
     latestWeight,
     calorieBudget,
     dailySummary,
@@ -57,6 +67,12 @@ export default function HomeScreen() {
   } = useHomeData();
 
   const removeMeal = useNutritionStore((s) => s.removeMeal);
+  const allMeals = useNutritionStore((s) => s.meals);
+
+  // Rebuild food memory on mount so Quick Log has data
+  useEffect(() => {
+    if (allMeals.length > 0) rebuildFoodMemory(allMeals);
+  }, [allMeals]);
 
   const todayMeals = dailySummary.meals;
   const totals = {
@@ -80,11 +96,13 @@ export default function HomeScreen() {
               variant="heading"
               style={[styles.greeting, { color: theme.colors.text }]}
             >
-              Today
+              {isToday ? "Today" : dateHeader}
             </TText>
-            <TText style={[styles.date, { color: theme.colors.textMuted }]}>
-              {dateHeader}
-            </TText>
+            {isToday && (
+              <TText style={[styles.date, { color: theme.colors.textMuted }]}>
+                {dateHeader}
+              </TText>
+            )}
           </View>
           <View style={styles.headerRight}>
             <Pressable
@@ -127,7 +145,10 @@ export default function HomeScreen() {
             <DaySelector
               selectedIndex={selectedDayIndex}
               onSelect={handleDaySelect}
-              activeDays={activeDays}
+              weekPages={weekPages}
+              weekPagesProgress={weekPagesProgress}
+              onPrevWeek={goToPrevWeek}
+              onNextWeek={goToNextWeek}
             />
           </Animated.View>
 
@@ -268,6 +289,19 @@ export default function HomeScreen() {
               ))}
             </View>
           </Animated.View>
+
+          <TSpacer size="lg" />
+
+          {/* Daily insights — comparison with yesterday, last week, etc. */}
+          <DailyInsightsCard
+            allMeals={allMeals}
+            todayDate={dailySummary.date}
+          />
+
+          <TSpacer size="lg" />
+
+          {/* Eat Again — quick-log from recent/frequent foods */}
+          <QuickLogSection />
 
           {/* Bottom spacing for FAB */}
           <TSpacer size="xxl" />

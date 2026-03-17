@@ -148,10 +148,6 @@ export function WaterTracker({
         style,
       ]}
     >
-      <TText color="secondary" style={styles.title}>
-        Hydration
-      </TText>
-
       <View style={styles.dropletContainer}>
         <Svg width={dropletW} height={dropletH} viewBox={svgViewBox}>
           <Defs>
@@ -262,7 +258,6 @@ const styles = StyleSheet.create({
   card: {
     padding: 20,
     borderWidth: 1,
-    overflow: "hidden",
     alignItems: "center",
   },
   title: {

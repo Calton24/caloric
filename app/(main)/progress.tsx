@@ -15,6 +15,7 @@ import Animated, {
     FadeInUp,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useUnits } from "../../hooks/useUnits";
 import {
     getChartPointsForSegment,
     getWeightStats,
@@ -32,6 +33,7 @@ const SEGMENTS = ["Week", "Month", "Year"];
 export default function ProgressScreen() {
   const { theme } = useTheme();
   const router = useRouter();
+  const units = useUnits();
   const [segmentIndex, setSegmentIndex] = useState(0);
 
   // ── Domain stores ──
@@ -51,7 +53,7 @@ export default function ProgressScreen() {
   );
 
   const currentWeight = stats.currentWeight ?? profile.currentWeightLbs ?? 0;
-  const goalWeight = profile.goalWeightLbs;
+  const goalWeight = profile.goalWeightLbs ?? 0;
   const totalLost = stats.totalChange;
   const remaining = stats.remaining ?? 0;
 
@@ -136,7 +138,7 @@ export default function ProgressScreen() {
               <TText
                 style={[styles.legendText, { color: theme.colors.textMuted }]}
               >
-                Goal: {goalWeight} lbs
+                Goal: {units.display(goalWeight)} {units.label}
               </TText>
             </View>
           </Animated.View>
@@ -156,7 +158,7 @@ export default function ProgressScreen() {
                 <TText
                   style={[styles.summaryValue, { color: theme.colors.text }]}
                 >
-                  {currentWeight}
+                  {units.display(currentWeight)}
                 </TText>
                 <TText
                   style={[
@@ -164,7 +166,7 @@ export default function ProgressScreen() {
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  Current (lbs)
+                  Current ({units.label})
                 </TText>
               </View>
 
@@ -179,7 +181,7 @@ export default function ProgressScreen() {
                 <TText
                   style={[styles.summaryValue, { color: theme.colors.success }]}
                 >
-                  -{totalLost.toFixed(1)}
+                  -{units.display(totalLost, 1)}
                 </TText>
                 <TText
                   style={[
@@ -187,7 +189,7 @@ export default function ProgressScreen() {
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  Lost (lbs)
+                  Lost ({units.label})
                 </TText>
               </View>
 
@@ -202,7 +204,7 @@ export default function ProgressScreen() {
                 <TText
                   style={[styles.summaryValue, { color: theme.colors.text }]}
                 >
-                  {remaining.toFixed(1)}
+                  {units.display(remaining, 1)}
                 </TText>
                 <TText
                   style={[
@@ -210,7 +212,7 @@ export default function ProgressScreen() {
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  To goal (lbs)
+                  To goal ({units.label})
                 </TText>
               </View>
             </View>
@@ -254,7 +256,7 @@ export default function ProgressScreen() {
                 recalculate();
                 Alert.alert(
                   "Plan Updated",
-                  `Your plan has been recalculated using your latest weight of ${currentWeight} lbs.`
+                  `Your plan has been recalculated using your latest weight of ${units.format(currentWeight)}.`
                 );
               }}
               style={[

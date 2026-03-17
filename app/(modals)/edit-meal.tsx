@@ -10,6 +10,7 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import RNSlider from "@react-native-community/slider";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
@@ -231,7 +232,16 @@ export default function EditMealScreen() {
               { backgroundColor: theme.colors.surfaceSecondary },
             ]}
           >
-            <TText style={styles.mealIcon}>{meal.emoji ?? "🍽️"}</TText>
+            {meal.imageUri ? (
+              <Image
+                source={{ uri: meal.imageUri }}
+                style={styles.mealPhoto}
+                contentFit="cover"
+                transition={300}
+              />
+            ) : (
+              <TText style={styles.mealIcon}>{meal.emoji ?? "🍽️"}</TText>
+            )}
             <TSpacer size="sm" />
             {!hasItems && (
               <TextInput
@@ -731,6 +741,11 @@ const styles = StyleSheet.create({
   },
   mealIcon: {
     fontSize: 48,
+  },
+  mealPhoto: {
+    width: 80,
+    height: 80,
+    borderRadius: 16,
   },
   titleInput: {
     fontSize: 18,

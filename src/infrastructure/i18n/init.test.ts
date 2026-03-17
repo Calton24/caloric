@@ -78,7 +78,7 @@ describe("initI18n", () => {
     jest.doMock("../../config", () => ({
       getAppConfig: () => ({
         features: { i18n: false },
-        profile: "intake",
+        profile: "caloric",
       }),
     }));
 
@@ -94,7 +94,6 @@ describe("initI18n", () => {
       locale: "de-DE",
     }));
 
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { initI18n: initFresh, resetI18n: resetFresh } = require("./index");
     resetFresh();
     await initFresh();

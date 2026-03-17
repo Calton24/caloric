@@ -10,6 +10,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { getAppConfig } from "./config";
 import { AuthProvider } from "./features/auth/AuthProvider";
+import { initFoodRegion } from "./features/nutrition/matching/region.service";
 import { initActivityMonitor } from "./infrastructure/activityMonitor";
 import { analytics, initAnalytics } from "./infrastructure/analytics";
 import {
@@ -37,10 +38,7 @@ interface CaloricProvidersProps {
  * Root provider that wraps all Caloric providers
  * Use this at the root of your app
  */
-export function CaloricProviders({
-  children,
-  testID,
-}: CaloricProvidersProps) {
+export function CaloricProviders({ children, testID }: CaloricProvidersProps) {
   // Initialize cross-cutting infrastructure on mount
   useEffect(() => {
     const reporter = initErrorReporting();
@@ -53,6 +51,7 @@ export function CaloricProviders({
     initHaptics();
     initNotifications();
     initI18n();
+    initFoodRegion();
     initPresence();
     initActivityMonitor();
     initLiveActivity();

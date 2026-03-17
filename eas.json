@@ -9,10 +9,10 @@
       "distribution": "internal"
     },
 
-    "intake-dev": {
+    "caloric-dev": {
       "extends": "development",
       "env": {
-        "EXPO_PUBLIC_APP_PROFILE": "intake",
+        "EXPO_PUBLIC_APP_PROFILE": "caloric",
         "EXPO_PUBLIC_APP_ENV": "dev"
       },
       "prebuildCommand": "./scripts/eas-build-firebase-setup.sh",
@@ -24,20 +24,20 @@
       }
     },
 
-    "intake-staging": {
+    "caloric-staging": {
       "extends": "development",
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_APP_PROFILE": "intake",
+        "EXPO_PUBLIC_APP_PROFILE": "caloric",
         "EXPO_PUBLIC_APP_ENV": "staging"
       },
       "prebuildCommand": "./scripts/eas-build-firebase-setup.sh"
     },
 
-    "intake-prod": {
+    "caloric-prod": {
       "distribution": "store",
       "env": {
-        "EXPO_PUBLIC_APP_PROFILE": "intake",
+        "EXPO_PUBLIC_APP_PROFILE": "caloric",
         "EXPO_PUBLIC_APP_ENV": "prod"
       },
       "prebuildCommand": "./scripts/eas-build-firebase-setup.sh",

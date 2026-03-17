@@ -9,7 +9,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
     FadeIn,
@@ -17,7 +17,9 @@ import Animated, {
     FadeInUp,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRecalibration } from "../../src/features/goals/use-recalibration";
 import { useTheme } from "../../src/theme/useTheme";
+import { RecalibrationCard } from "../../src/ui/components/RecalibrationCard";
 import { TrackingPromptCard } from "../../src/ui/components/TrackingPromptCard";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
@@ -59,6 +61,8 @@ const PROMPTS = [
 export default function TrackingLauncherScreen() {
   const { theme } = useTheme();
   const router = useRouter();
+  const { result, applyRecalibration } = useRecalibration();
+  const [dismissed, setDismissed] = useState(false);
 
   return (
     <View
@@ -129,6 +133,18 @@ export default function TrackingLauncherScreen() {
               />
             ))}
           </Animated.View>
+
+          {/* Recalibration suggestion */}
+          {result?.shouldRecalibrate && !dismissed && (
+            <>
+              <TSpacer size="md" />
+              <RecalibrationCard
+                result={result}
+                onApply={applyRecalibration}
+                onDismiss={() => setDismissed(true)}
+              />
+            </>
+          )}
         </View>
 
         {/* Input method buttons */}

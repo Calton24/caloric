@@ -1,7 +1,7 @@
 /**
  * MacroCard
- * Displays a single macro nutrient with progress bar.
- * Shows consumed/target grams and a colored mini progress bar.
+ * Displays a single macro nutrient with a thick rounded progress bar.
+ * Shows label, thick bar, and consumed/target grams.
  */
 
 import React from "react";
@@ -23,7 +23,8 @@ export function MacroCard({
   color,
 }: MacroCardProps) {
   const { theme } = useTheme();
-  const progress = Math.min(consumedG / targetG, 1);
+  const progress =
+    targetG > 0 ? Math.min(consumedG / targetG, 1) : consumedG > 0 ? 1 : 0;
 
   return (
     <View
@@ -32,17 +33,8 @@ export function MacroCard({
         { backgroundColor: theme.colors.surfaceSecondary },
       ]}
     >
-      <View style={styles.header}>
-        <View style={[styles.dot, { backgroundColor: color }]} />
-        <TText style={[styles.label, { color: theme.colors.textSecondary }]}>
-          {label}
-        </TText>
-      </View>
-      <TText style={[styles.value, { color: theme.colors.text }]}>
-        {Math.round(consumedG * 10) / 10}
-        <TText style={[styles.unit, { color: theme.colors.textMuted }]}>
-          /{targetG}g
-        </TText>
+      <TText style={[styles.label, { color: theme.colors.textSecondary }]}>
+        {label}
       </TText>
       <View
         style={[
@@ -60,6 +52,12 @@ export function MacroCard({
           ]}
         />
       </View>
+      <TText style={[styles.value, { color: theme.colors.text }]}>
+        {Math.round(consumedG * 10) / 10}
+        <TText style={[styles.unit, { color: theme.colors.textMuted }]}>
+          /{targetG}g
+        </TText>
+      </TText>
     </View>
   );
 }
@@ -69,21 +67,20 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 14,
     padding: 12,
-    gap: 6,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    gap: 8,
   },
   label: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "500",
+  },
+  track: {
+    height: 10,
+    borderRadius: 5,
+    overflow: "hidden",
+  },
+  fill: {
+    height: 10,
+    borderRadius: 5,
   },
   value: {
     fontSize: 18,
@@ -92,14 +89,5 @@ const styles = StyleSheet.create({
   unit: {
     fontSize: 13,
     fontWeight: "400",
-  },
-  track: {
-    height: 4,
-    borderRadius: 2,
-    overflow: "hidden",
-  },
-  fill: {
-    height: 4,
-    borderRadius: 2,
   },
 });

@@ -13,6 +13,7 @@ import { BlurView } from "expo-blur";
 import React, {
     createContext,
     useCallback,
+    useEffect,
     useMemo,
     useRef,
     useState,
@@ -43,27 +44,36 @@ export function BottomSheetProvider({ children }: BottomSheetProviderProps) {
   const bottomSheetRef = useRef<BottomSheetModalType>(null);
   const [content, setContent] = useState<React.ReactNode | null>(null);
   const [snapPoints, setSnapPoints] = useState<string[] | number[]>(["50%"]);
-  const [modalKey, setModalKey] = useState(0);
+  const [pendingPresent, setPendingPresent] = useState(false);
 
   const open = useCallback(
     (newContent: React.ReactNode, options?: BottomSheetOptions) => {
       const points = options?.snapPoints || ["50%"];
 
-      // Force remount with new key to ensure fresh snap points
-      setModalKey((prev) => prev + 1);
+      // Dismiss any currently showing sheet first
+      bottomSheetRef.current?.dismiss();
+
       setContent(newContent);
       setSnapPoints(points);
-
-      // Present after remount
-      setTimeout(() => {
-        bottomSheetRef.current?.present();
-      }, 100);
+      setPendingPresent(true);
     },
     []
   );
 
+  // Present the sheet after state updates have flushed and the
+  // BottomSheetModal has re-rendered with the new content/snapPoints.
+  useEffect(() => {
+    if (!pendingPresent) return;
+    // Use rAF to wait for the next frame after React commit
+    const id = requestAnimationFrame(() => {
+      bottomSheetRef.current?.present();
+      setPendingPresent(false);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [pendingPresent]);
+
   const close = useCallback(() => {
-    bottomSheetRef.current?.close();
+    bottomSheetRef.current?.dismiss();
   }, []);
 
   const renderBackdrop = useCallback(
@@ -108,7 +118,6 @@ export function BottomSheetProvider({ children }: BottomSheetProviderProps) {
     <BottomSheetContext.Provider value={value}>
       {children}
       <BottomSheetModal
-        key={modalKey}
         ref={bottomSheetRef}
         snapPoints={snapPoints}
         index={0}

@@ -171,13 +171,13 @@ export const APP_PROFILES: Record<AppProfile, AppProfileConfig> = {
 Add to `src/config/types.ts`:
 
 ```typescript
-export type AppProfile = "intake" | "proxi" | "mynewapp"; // Add here
+export type AppProfile = "caloric" | "proxi" | "mynewapp"; // Add here
 ```
 
 Also update the Zod schema in `src/config/schema.ts`:
 
 ```typescript
-export const AppProfileSchema = z.enum(["intake", "proxi", "mynewapp"], {
+export const AppProfileSchema = z.enum(["caloric", "proxi", "mynewapp"], {
   errorMap: () => ({
     message: "APP_PROFILE must be one of: intake, proxi, mynewapp",
   }),
@@ -215,7 +215,7 @@ EXPO_PUBLIC_APP_ENV=dev
   "build": {
     "intake-prod": {
       "env": {
-        "EXPO_PUBLIC_APP_PROFILE": "intake",
+        "EXPO_PUBLIC_APP_PROFILE": "caloric",
         "EXPO_PUBLIC_APP_ENV": "prod"
       }
     }
@@ -485,7 +485,7 @@ CREATE POLICY "Users can read config"
 ```sql
 INSERT INTO remote_config (app_profile, environment, feature_flags)
 VALUES (
-  'intake',
+  'caloric',
   'prod',
   '{"vision": true, "paywall": false}'::jsonb
 );
