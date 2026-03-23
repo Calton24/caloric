@@ -19,6 +19,8 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    type GestureResponderEvent,
+    type LayoutChangeEvent,
     Linking,
     Platform,
     Pressable,
@@ -41,6 +43,10 @@ import {
     useCameraPermission,
     useCodeScanner,
 } from "react-native-vision-camera";
+import {
+  computeFocusPoint,
+  deactivateCameraBeforeDismiss,
+} from "../../src/features/camera/camera-log.helpers";
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
 import { useTheme } from "../../src/theme/useTheme";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
@@ -100,6 +106,8 @@ export default function CameraLoggingScreen() {
   const [stageIndex, setStageIndex] = useState(0);
   const [description, setDescription] = useState("");
   const barcodeLockRef = useRef(false);
+  const [cameraLayout, setCameraLayout] = useState({ width: 0, height: 0 });
+  const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
 
   // ── Barcode scanner ──────────────────────────────────────────────────
 
@@ -217,6 +225,44 @@ export default function CameraLoggingScreen() {
       setState("error");
     }
   }, [description, startFromInput, router]);
+
+  // ── Close / dismiss ──────────────────────────────────────────────────
+
+  const handleClose = useCallback(() => {
+    deactivateCameraBeforeDismiss(
+      () => setState("analyzing"), // deactivates camera via isActive check
+      () => router.back()
+    );
+  }, [router]);
+
+  // ── Tap-to-focus ─────────────────────────────────────────────────────
+
+  const handleCameraLayout = useCallback((e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    setCameraLayout({ width, height });
+  }, []);
+
+  const handleTapToFocus = useCallback(
+    async (e: GestureResponderEvent) => {
+      if (!cameraRef.current || state !== "viewfinder") return;
+      const { locationX, locationY } = e.nativeEvent;
+      const point = computeFocusPoint(
+        locationX,
+        locationY,
+        cameraLayout.width,
+        cameraLayout.height
+      );
+      setFocusPoint({ x: locationX, y: locationY });
+      try {
+        await cameraRef.current.focus(point);
+      } catch {
+        // focus may not be supported on all devices
+      }
+      // Hide focus ring after a short delay
+      setTimeout(() => setFocusPoint(null), 800);
+    },
+    [state, cameraLayout]
+  );
 
   // ── Capture from live viewfinder ─────────────────────────────────────
 
@@ -403,7 +449,11 @@ export default function CameraLoggingScreen() {
     <View style={styles.container}>
       {/* ── Viewfinder ─────────────────────────────────────────────── */}
       {state === "viewfinder" && (
-        <View style={styles.viewfinderContainer}>
+        <Pressable
+          style={styles.viewfinderContainer}
+          onPress={handleTapToFocus}
+          onLayout={handleCameraLayout}
+        >
           <Camera
             ref={cameraRef}
             style={StyleSheet.absoluteFill}
@@ -414,12 +464,29 @@ export default function CameraLoggingScreen() {
             codeScanner={codeScanner}
           />
 
-          {/* Top overlay: title only */}
+          {/* Focus ring indicator */}
+          {focusPoint && (
+            <View
+              pointerEvents="none"
+              style={[
+                styles.focusRing,
+                { left: focusPoint.x - 30, top: focusPoint.y - 30 },
+              ]}
+            />
+          )}
+
+          {/* Top overlay: title + close */}
           <SafeAreaView style={styles.viewfinderOverlay} edges={["top"]}>
             <View style={styles.vfHeader}>
               <View style={{ width: 40 }} />
               <TText style={styles.vfTitle}>Scan Food</TText>
-              <View style={{ width: 40 }} />
+              <Pressable
+                onPress={handleClose}
+                hitSlop={12}
+                style={styles.vfHeaderBtn}
+              >
+                <Ionicons name="close" size={22} color="#fff" />
+              </Pressable>
             </View>
           </SafeAreaView>
 
@@ -460,33 +527,24 @@ export default function CameraLoggingScreen() {
                 <View style={styles.shutterInner} />
               </Pressable>
 
-              {/* Close + Flash (bottom right) */}
-              <View style={styles.vfRightControls}>
-                <Pressable
-                  onPress={() => setTorch((t) => (t === "off" ? "on" : "off"))}
-                  hitSlop={12}
-                  style={[
-                    styles.vfSecondaryBtn,
-                    torch === "on" && styles.vfHeaderBtnActive,
-                  ]}
-                >
-                  <Ionicons
-                    name={torch === "on" ? "flash" : "flash-outline"}
-                    size={22}
-                    color="#fff"
-                  />
-                </Pressable>
-                <Pressable
-                  onPress={() => router.back()}
-                  hitSlop={12}
-                  style={styles.vfSecondaryBtn}
-                >
-                  <Ionicons name="close" size={24} color="#fff" />
-                </Pressable>
-              </View>
+              {/* Flash toggle (bottom right) */}
+              <Pressable
+                onPress={() => setTorch((t) => (t === "off" ? "on" : "off"))}
+                hitSlop={12}
+                style={[
+                  styles.vfSecondaryBtn,
+                  torch === "on" && styles.vfHeaderBtnActive,
+                ]}
+              >
+                <Ionicons
+                  name={torch === "on" ? "flash" : "flash-outline"}
+                  size={22}
+                  color="#fff"
+                />
+              </Pressable>
             </View>
           </SafeAreaView>
-        </View>
+        </Pressable>
       )}
 
       {/* ── Analyzing — auto-triggered after capture ──────────────── */}
@@ -834,6 +892,15 @@ const styles = StyleSheet.create({
   vfHeaderBtnActive: {
     backgroundColor: "rgba(255,200,0,0.35)",
   },
+  focusRing: {
+    position: "absolute",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.8)",
+    zIndex: 20,
+  },
   vfTitle: {
     fontSize: 17,
     fontWeight: "700",
@@ -911,11 +978,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 20,
     paddingHorizontal: 30,
-  },
-  vfRightControls: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
   },
   vfSecondaryBtn: {
     width: 50,

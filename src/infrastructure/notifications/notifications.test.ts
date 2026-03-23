@@ -22,6 +22,9 @@ describe("Notifications", () => {
       requestPermissions: jest.fn().mockResolvedValue("granted"),
       getPushToken: jest.fn().mockResolvedValue("ExponentPushToken[xxxx]"),
       scheduleLocal: jest.fn().mockResolvedValue(undefined),
+      scheduleDailyRepeat: jest.fn().mockResolvedValue(undefined),
+      cancelScheduled: jest.fn().mockResolvedValue(undefined),
+      cancelAllScheduled: jest.fn().mockResolvedValue(undefined),
       clearBadge: jest.fn().mockResolvedValue(undefined),
       sendTestRemote: jest.fn().mockResolvedValue(undefined),
     };
@@ -103,6 +106,9 @@ describe("Notifications", () => {
         requestPermissions: jest.fn().mockRejectedValue(new Error("boom")),
         getPushToken: jest.fn().mockRejectedValue(new Error("boom")),
         scheduleLocal: jest.fn().mockRejectedValue(new Error("boom")),
+        scheduleDailyRepeat: jest.fn().mockRejectedValue(new Error("boom")),
+        cancelScheduled: jest.fn().mockRejectedValue(new Error("boom")),
+        cancelAllScheduled: jest.fn().mockRejectedValue(new Error("boom")),
         clearBadge: jest.fn().mockRejectedValue(new Error("boom")),
       };
       setNotificationsClient(failingClient);
@@ -123,6 +129,9 @@ describe("Notifications", () => {
         requestPermissions: jest.fn().mockResolvedValue("granted"),
         getPushToken: jest.fn().mockResolvedValue(null),
         scheduleLocal: jest.fn().mockResolvedValue(undefined),
+        scheduleDailyRepeat: jest.fn().mockResolvedValue(undefined),
+        cancelScheduled: jest.fn().mockResolvedValue(undefined),
+        cancelAllScheduled: jest.fn().mockResolvedValue(undefined),
         clearBadge: jest.fn().mockResolvedValue(undefined),
         // sendTestRemote deliberately not defined
       };

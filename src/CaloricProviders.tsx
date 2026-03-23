@@ -3,6 +3,7 @@
  * Combine all providers for easy app setup
  */
 
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import React, { useEffect } from "react";
 import { View } from "react-native";
@@ -11,6 +12,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { getAppConfig } from "./config";
 import { AuthProvider } from "./features/auth/AuthProvider";
 import { initFoodRegion } from "./features/nutrition/matching/region.service";
+import { rescheduleRemindersIfEnabled } from "./features/reminders/reschedule";
+import { useProgressSync } from "./features/sync/useProgressSync";
 import { initActivityMonitor } from "./infrastructure/activityMonitor";
 import { analytics, initAnalytics } from "./infrastructure/analytics";
 import {
@@ -29,6 +32,12 @@ import { NotificationToastProvider } from "./ui/components/NotificationToast";
 import { ToastProvider } from "./ui/components/Toast";
 import { BottomSheetProvider } from "./ui/sheets/BottomSheetProvider";
 
+/** Invisible component that syncs stores ↔ Supabase once auth is available */
+function SyncGate({ children }: { children: React.ReactNode }) {
+  useProgressSync();
+  return <>{children}</>;
+}
+
 interface CaloricProvidersProps {
   children: React.ReactNode;
   testID?: string;
@@ -46,10 +55,14 @@ export function CaloricProviders({ children, testID }: CaloricProvidersProps) {
       console.log("[Caloric] Error reporting initialized");
     }
 
+    // Pre-load MaterialCommunityIcons font for keyboard icon in FAB picker
+    MaterialCommunityIcons.loadFont().catch(() => {});
+
     initAnalytics();
     initGrowth();
     initHaptics();
     initNotifications();
+    rescheduleRemindersIfEnabled();
     initI18n();
     initFoodRegion();
     initPresence();
@@ -73,13 +86,15 @@ export function CaloricProviders({ children, testID }: CaloricProvidersProps) {
               <ToastProvider>
                 <MaintenanceGate>
                   <AuthProvider>
-                    <BottomSheetModalProvider>
-                      <BottomSheetProvider>
-                        <NotificationToastProvider>
-                          {children}
-                        </NotificationToastProvider>
-                      </BottomSheetProvider>
-                    </BottomSheetModalProvider>
+                    <SyncGate>
+                      <BottomSheetModalProvider>
+                        <BottomSheetProvider>
+                          <NotificationToastProvider>
+                            {children}
+                          </NotificationToastProvider>
+                        </BottomSheetProvider>
+                      </BottomSheetModalProvider>
+                    </SyncGate>
                   </AuthProvider>
                 </MaintenanceGate>
               </ToastProvider>

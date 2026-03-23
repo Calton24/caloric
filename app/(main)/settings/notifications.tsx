@@ -10,7 +10,12 @@ import { useRouter } from "expo-router";
 import React, { useCallback } from "react";
 import { Pressable, StyleSheet, Switch, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  cancelMealReminders,
+  scheduleMealReminders,
+} from "../../../src/features/reminders/meal-reminders.service";
 import { useSettingsStore } from "../../../src/features/settings";
+import { notifications } from "../../../src/infrastructure/notifications";
 import { useTheme } from "../../../src/theme/useTheme";
 import { TSpacer } from "../../../src/ui/primitives/TSpacer";
 import { TText } from "../../../src/ui/primitives/TText";
@@ -27,7 +32,14 @@ export default function NotificationsScreen() {
   );
 
   const handleToggle = useCallback(
-    (value: boolean) => {
+    async (value: boolean) => {
+      if (value) {
+        const status = await notifications.requestPermissions();
+        if (status !== "granted") return;
+        await scheduleMealReminders();
+      } else {
+        await cancelMealReminders();
+      }
       setLogReminderEnabled(value);
     },
     [setLogReminderEnabled]

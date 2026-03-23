@@ -32,4 +32,8 @@ export interface MealDraft {
 
   /** Local URI of the captured food photo */
   imageUri?: string;
+
+  /** Override date for the meal (ISO YYYY-MM-DD). When set, the meal
+   *  is logged for this date instead of "now". */
+  loggedAt?: string;
 }

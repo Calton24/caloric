@@ -15,5 +15,6 @@ struct CaloricWidgetBundle: WidgetBundle {
         FitnessLiveActivity()
         PedometerLiveActivity()
         CalorieBudgetLiveActivity()
+        CalorieTrackerLiveActivity()
     }
 }

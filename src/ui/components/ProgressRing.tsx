@@ -66,7 +66,12 @@ export function ProgressRing({
   const { theme } = useTheme();
 
   const ringColor = color ?? theme.colors.primary;
-  const track = trackColor ?? `${theme.colors.surfaceElevated}80`;
+  // In light mode, surfaceElevated is white — use a visible gray track instead
+  const track =
+    trackColor ??
+    (theme.mode === "light"
+      ? `${theme.colors.border}`
+      : `${theme.colors.surfaceElevated}80`);
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const hasTarget = target > 0;
@@ -95,12 +100,19 @@ export function ProgressRing({
   }));
 
   return (
-    <View style={[styles.container, { width: size, height: size }]}>
+    <View
+      testID="progress-ring"
+      style={[styles.container, { width: size, height: size }]}
+    >
       <Svg width={size} height={size}>
         <Defs>
           {/* Gradient for the progress arc */}
           <SvgGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0" stopColor={ringColor} stopOpacity="0.6" />
+            <Stop
+              offset="0"
+              stopColor={ringColor}
+              stopOpacity={theme.mode === "light" ? "0.85" : "0.6"}
+            />
             <Stop offset="0.5" stopColor={ringColor} stopOpacity="1" />
             <Stop
               offset="1"

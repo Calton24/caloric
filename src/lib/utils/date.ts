@@ -1,5 +1,18 @@
+/**
+ * Returns YYYY-MM-DD in the device's local timezone.
+ * All date comparisons in the app should use this
+ * so that "today" matches the user's wall-clock date.
+ */
+export function toLocalDate(date: Date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/** @deprecated Use toLocalDate instead */
 export function toISODate(date: Date): string {
-  return date.toISOString().split("T")[0];
+  return toLocalDate(date);
 }
 
 export function getWeekDays(baseDate = new Date()) {

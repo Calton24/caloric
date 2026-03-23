@@ -16,6 +16,7 @@ import Animated, {
     FadeInDown,
     FadeInUp,
 } from "react-native-reanimated";
+import { notifications } from "../src/infrastructure/notifications/notifications";
 import { useTheme } from "../src/theme/useTheme";
 import type { PermissionStatus } from "../src/types/nutrition";
 import { PermissionRow } from "../src/ui/components/PermissionRow";
@@ -30,8 +31,10 @@ export default function PermissionsScreen() {
   // In production these would use expo-modules permission APIs
   const [mic, setMic] = useState<PermissionStatus>("unknown");
   const [speech, setSpeech] = useState<PermissionStatus>("unknown");
+  const [pushNotifs, setPushNotifs] = useState<PermissionStatus>("unknown");
 
-  const allGranted = mic === "granted" && speech === "granted";
+  const allGranted =
+    mic === "granted" && speech === "granted" && pushNotifs === "granted";
 
   const handleMic = () => {
     // TODO: Replace with actual expo-av permission request
@@ -41,6 +44,11 @@ export default function PermissionsScreen() {
   const handleSpeech = () => {
     // TODO: Replace with actual speech recognition permission request
     setSpeech("granted");
+  };
+
+  const handleNotifications = async () => {
+    const status = await notifications.requestPermissions();
+    setPushNotifs(status === "granted" ? "granted" : "denied");
   };
 
   const handleContinue = () => {
@@ -83,7 +91,7 @@ export default function PermissionsScreen() {
             style={[styles.subtitle, { color: theme.colors.textSecondary }]}
           >
             Caloric uses your microphone and speech recognition to log meals
-            with your voice — fast and hands-free.
+            with your voice, and notifications to keep you on track.
           </TText>
         </Animated.View>
 
@@ -108,6 +116,14 @@ export default function PermissionsScreen() {
             description="Convert your speech to food entries"
             status={speech}
             onPress={handleSpeech}
+          />
+          <TSpacer size="sm" />
+          <PermissionRow
+            icon="notifications"
+            label="Push Notifications"
+            description="Meal reminders and daily progress updates"
+            status={pushNotifs}
+            onPress={handleNotifications}
           />
         </Animated.View>
       </View>

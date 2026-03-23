@@ -1,19 +1,19 @@
 /**
  * Live Activity Feature — Service
  *
- * Wraps the existing CalorieBudgetActivity native bridge with a
- * thin state layer that guards against duplicate starts, deduplicates
- * identical payloads, and manages the active activity ID.
+ * Wraps the CalorieTrackerActivity native bridge with a thin state
+ * layer that guards against duplicate starts, deduplicates identical
+ * payloads, and manages the active activity ID.
  */
 
-import { calorieBudgetActivity } from "../../infrastructure/liveActivity/CalorieBudgetActivity";
+import { calorieTrackerActivity } from "../../infrastructure/liveActivity/CalorieTrackerActivity";
 import type { LiveActivityPayload } from "./live-activity.types";
 
 let activeActivityId: string | null = null;
 let lastPayloadHash: string | null = null;
 
 function hashPayload(p: LiveActivityPayload): string {
-  return `${p.caloriesConsumed}|${p.calorieBudget}|${p.protein}|${p.carbs}|${p.fat}`;
+  return `${p.caloriesConsumed}|${p.calorieBudget}|${p.protein}|${p.carbs}|${p.fat}|${p.proteinGoal}|${p.carbsGoal}|${p.fatGoal}`;
 }
 
 /**
@@ -22,30 +22,38 @@ function hashPayload(p: LiveActivityPayload): string {
  * Live Activities for this app in iOS Settings.
  */
 export function areLiveActivitiesAvailable(): boolean {
-  return calorieBudgetActivity.isSupported();
+  return calorieTrackerActivity.isSupported();
 }
 
 /**
- * Start a new CalorieBudget Live Activity with the given payload.
+ * Start a new CalorieTracker Live Activity with the given payload.
  * If one is already running it will be ended first.
  */
 export function startLiveActivity(payload: LiveActivityPayload): void {
   // End any existing activity first
   if (activeActivityId) {
-    calorieBudgetActivity.end(activeActivityId);
+    calorieTrackerActivity.end(activeActivityId);
     activeActivityId = null;
   }
 
-  const result = calorieBudgetActivity.start({
-    baseGoal: payload.calorieBudget,
-    consumed: payload.caloriesConsumed,
-    activityBonus: 0,
-    mode: "strict",
+  const result = calorieTrackerActivity.start({
+    calorieGoal: payload.calorieBudget,
+    proteinGoal: payload.proteinGoal,
+    carbsGoal: payload.carbsGoal,
+    fatGoal: payload.fatGoal,
+    caloriesConsumed: payload.caloriesConsumed,
+    proteinConsumed: payload.protein,
+    carbsConsumed: payload.carbs,
+    fatConsumed: payload.fat,
   });
 
   if (result.status === "started") {
     activeActivityId = result.activityId;
     lastPayloadHash = hashPayload(payload);
+  } else {
+    console.warn(
+      `[LiveActivity] start failed: ${result.status} — ${result.reason}`
+    );
   }
 }
 
@@ -67,9 +75,11 @@ export function updateLiveActivity(payload: LiveActivityPayload): void {
 
   lastPayloadHash = nextHash;
 
-  calorieBudgetActivity.update(activeActivityId, {
-    consumed: payload.caloriesConsumed,
-    activityBonus: 0,
+  calorieTrackerActivity.update(activeActivityId, {
+    caloriesConsumed: payload.caloriesConsumed,
+    proteinConsumed: payload.protein,
+    carbsConsumed: payload.carbs,
+    fatConsumed: payload.fat,
   });
 }
 
@@ -78,13 +88,13 @@ export function updateLiveActivity(payload: LiveActivityPayload): void {
  */
 export function endLiveActivity(): void {
   if (activeActivityId) {
-    calorieBudgetActivity.end(activeActivityId);
+    calorieTrackerActivity.end(activeActivityId);
     activeActivityId = null;
     lastPayloadHash = null;
   }
 
   // Also clean up any orphans
-  calorieBudgetActivity.endAll();
+  calorieTrackerActivity.endAll();
 }
 
 /**

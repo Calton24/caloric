@@ -26,12 +26,14 @@ import { useNutritionStore } from "../../src/features/nutrition/nutrition.store"
 import { useTheme } from "../../src/theme/useTheme";
 import { DailyInsightsCard } from "../../src/ui/components/DailyInsightsCard";
 import { DaySelector } from "../../src/ui/components/DaySelector";
+import { EditMealSheet } from "../../src/ui/components/EditMealSheet";
 import { MacroCard } from "../../src/ui/components/MacroCard";
 import { MealCard } from "../../src/ui/components/MealCard";
 import { ProgressRing } from "../../src/ui/components/ProgressRing";
 import { QuickLogSection } from "../../src/ui/components/QuickLogSection";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+import { useBottomSheet } from "../../src/ui/sheets/useBottomSheet";
 
 /** Macro accent colors */
 const MACRO_COLORS = {
@@ -68,6 +70,7 @@ export default function HomeScreen() {
 
   const removeMeal = useNutritionStore((s) => s.removeMeal);
   const allMeals = useNutritionStore((s) => s.meals);
+  const { open: openSheet, close: closeSheet } = useBottomSheet();
 
   // Rebuild food memory on mount so Quick Log has data
   useEffect(() => {
@@ -279,10 +282,16 @@ export default function HomeScreen() {
                   carbs={meal.carbs}
                   fat={meal.fat}
                   onPress={() =>
-                    router.push({
-                      pathname: "/(modals)/edit-meal" as any,
-                      params: { mealId: meal.id },
-                    })
+                    openSheet(
+                      <EditMealSheet
+                        mealId={meal.id}
+                        onClose={closeSheet}
+                      />,
+                      {
+                        snapPoints: ["92%"],
+                        enablePanDownToClose: true,
+                      }
+                    )
                   }
                   onDelete={() => removeMeal(meal.id)}
                 />

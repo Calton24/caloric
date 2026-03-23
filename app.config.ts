@@ -61,7 +61,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: appConfig.scheme,
-    userInterfaceStyle: "dark",
+    userInterfaceStyle: "automatic",
     newArchEnabled: true,
 
     ios: {
@@ -131,6 +131,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // ships a stable plugin. Until then the factory falls back to Noop.
       // See: src/infrastructure/liveActivity/factory.ts
       "./plugins/withLiveActivity",
+      [
+        "./plugins/withIconComposer",
+        { iconPath: "./assets/images/caloric.icon" },
+      ],
       "expo-secure-store",
       [
         "expo-speech-recognition",

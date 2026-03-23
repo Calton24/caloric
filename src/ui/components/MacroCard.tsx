@@ -28,6 +28,7 @@ export function MacroCard({
 
   return (
     <View
+      testID={`macro-${label.toLowerCase()}`}
       style={[
         styles.container,
         { backgroundColor: theme.colors.surfaceSecondary },

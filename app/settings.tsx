@@ -44,6 +44,41 @@ import { useTheme } from "../src/theme/useTheme";
 import { TSpacer } from "../src/ui/primitives/TSpacer";
 import { TText } from "../src/ui/primitives/TText";
 
+// ─── Appearance Toggle Component ───────────────────────────
+function AppearanceToggle() {
+  const { theme, toggleMode } = useTheme();
+  const isDark = theme.mode === "dark";
+
+  return (
+    <View style={[styles.row, { borderBottomColor: theme.colors.border }]}>
+      <View
+        style={[
+          styles.iconContainer,
+          { backgroundColor: (isDark ? "#FBBF24" : "#6366F1") + "22" },
+        ]}
+      >
+        <Ionicons
+          name={isDark ? "moon" : "sunny"}
+          size={18}
+          color={isDark ? "#FBBF24" : "#6366F1"}
+        />
+      </View>
+      <TText style={[styles.rowLabel, { color: theme.colors.text }]}>
+        Dark Mode
+      </TText>
+      <Switch
+        value={isDark}
+        onValueChange={toggleMode}
+        trackColor={{
+          false: theme.colors.surfaceSecondary,
+          true: theme.colors.primary + "88",
+        }}
+        thumbColor={isDark ? theme.colors.primary : theme.colors.textMuted}
+      />
+    </View>
+  );
+}
+
 // ─── Section Row Component ─────────────────────────────────
 function SettingsRow({
   icon,
@@ -214,6 +249,21 @@ export default function SettingsScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          {/* ── Appearance ── */}
+          <Animated.View entering={FadeIn.duration(400)}>
+            <SectionHeader title="APPEARANCE" />
+            <View
+              style={[
+                styles.section,
+                { backgroundColor: theme.colors.surfaceSecondary },
+              ]}
+            >
+              <AppearanceToggle />
+            </View>
+          </Animated.View>
+
+          <TSpacer size="lg" />
+
           {/* ── Profile ── */}
           <Animated.View entering={FadeIn.duration(400)}>
             <SectionHeader title="PROFILE" />

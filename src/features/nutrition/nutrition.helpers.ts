@@ -5,7 +5,21 @@ export function buildMealEntryFromDraft(params: {
   draft: MealDraft;
   loggedAt?: string;
 }): MealEntry {
-  const { draft, loggedAt = new Date().toISOString() } = params;
+  const { draft, loggedAt } = params;
+  // Priority: explicit param > draft.loggedAt > now
+  let timestamp = loggedAt ?? draft.loggedAt;
+  if (timestamp) {
+    // If only a date (YYYY-MM-DD), attach the current time of day
+    if (timestamp.length === 10) {
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, "0");
+      const mm = String(now.getMinutes()).padStart(2, "0");
+      const ss = String(now.getSeconds()).padStart(2, "0");
+      timestamp = `${timestamp}T${hh}:${mm}:${ss}`;
+    }
+  } else {
+    timestamp = new Date().toISOString();
+  }
 
   const entry: MealEntry = {
     id: `meal_${Date.now()}`,
@@ -16,7 +30,7 @@ export function buildMealEntryFromDraft(params: {
     protein: draft.protein,
     carbs: draft.carbs,
     fat: draft.fat,
-    loggedAt,
+    loggedAt: timestamp,
   };
 
   // Carry provenance data from the enhanced pipeline

@@ -9,55 +9,64 @@
  * - Floating "+" button to tracking launcher
  */
 
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-    Dimensions,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    View,
+  Dimensions,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-    Easing,
-    FadeIn,
-    FadeInDown,
-    FadeInUp,
-    runOnJS,
-    useAnimatedStyle,
-    useSharedValue,
-    withTiming,
+  Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-    getOverLimitColor,
-    useOverLimitColor,
+  getOverLimitColor,
+  useOverLimitColor,
 } from "../../hooks/useOverLimitColor";
 import { useUnits } from "../../hooks/useUnits";
 import { useHomeData } from "../../src/features/home/use-home-data";
 import type { MealTime } from "../../src/features/nutrition/mealtime";
 import {
-    MEALTIME_ICONS,
-    MEALTIME_LABELS,
-    mealTimeFromISO,
+  MEALTIME_ICONS,
+  MEALTIME_LABELS,
+  mealTimeFromISO,
 } from "../../src/features/nutrition/mealtime";
+import {
+  type FoodMemoryEntry,
+  getFrequentFoods,
+  hasMemory,
+} from "../../src/features/nutrition/memory/food-memory.service";
+import { useNutritionDraftStore } from "../../src/features/nutrition/nutrition.draft.store";
+import type { MealDraft } from "../../src/features/nutrition/nutrition.draft.types";
 import { useNutritionStore } from "../../src/features/nutrition/nutrition.store";
 import { useProfileStore } from "../../src/features/profile/profile.store";
+import { useStreakStore } from "../../src/features/streak/streak.store";
 import { haptics } from "../../src/infrastructure/haptics";
 import { useTheme } from "../../src/theme/useTheme";
-import { WaterTracker } from "../../src/ui/analytics/WaterTracker";
 import { DaySelector } from "../../src/ui/components/DaySelector";
+import { EditMealSheet } from "../../src/ui/components/EditMealSheet";
+import { ManualLogSheet } from "../../src/ui/components/ManualLogSheet";
+import { VoiceLogSheet } from "../../src/ui/components/VoiceLogSheet";
 import { MacroCard } from "../../src/ui/components/MacroCard";
 import { MealCard } from "../../src/ui/components/MealCard";
 import { MonthlyView } from "../../src/ui/components/MonthlyView";
 import { ProgressRing } from "../../src/ui/components/ProgressRing";
+import { WaterCard } from "../../src/ui/components/WaterCard";
 import { WeeklyView } from "../../src/ui/components/WeeklyView";
 import { GlassSegmentedControl } from "../../src/ui/glass/GlassSegmentedControl";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+import { useBottomSheet } from "../../src/ui/sheets/useBottomSheet";
 
 /** Macro accent colors */
 const MACRO_COLORS = {
@@ -65,6 +74,22 @@ const MACRO_COLORS = {
   carbs: "#FBBF24",
   fat: "#F87171",
 };
+
+/** Build a MealDraft from a food memory entry for quick re-logging */
+function memoryToDraft(entry: FoodMemoryEntry): MealDraft {
+  return {
+    title: entry.name,
+    source: "manual",
+    rawInput: entry.name,
+    calories: entry.lastCalories,
+    protein: entry.lastProtein,
+    carbs: entry.lastCarbs,
+    fat: entry.lastFat,
+    emoji: entry.emoji,
+    confidence: 1.0,
+    parseMethod: "quick-log",
+  };
+}
 
 /** D/W/M segment options */
 const VIEW_MODE_OPTIONS = [
@@ -80,10 +105,10 @@ export default function HomeScreen() {
   const router = useRouter();
   const units = useUnits();
   const [viewMode, setViewMode] = useState<ViewMode>("D");
-  const [showHydration, setShowHydration] = useState(false);
-  const [glassCount, setGlassCount] = useState(0);
-  const GLASS_SIZE = 0.25; // litres per glass
-  const WATER_GOAL = 2.5; // litres
+  const [waterMl, setWaterMl] = useState(0);
+  const { open: openSheet, close: closeSheet } = useBottomSheet();
+  const WATER_INCREMENT = 250; // ml per tap
+  const WATER_GOAL = 2500; // ml
 
   // ── Derived data from stores ──
   const {
@@ -116,6 +141,7 @@ export default function HomeScreen() {
 
   const removeMeal = useNutritionStore((s) => s.removeMeal);
   const goalWeightLbs = useProfileStore((s) => s.profile.goalWeightLbs);
+  const currentStreak = useStreakStore((s) => s.currentStreak);
 
   const todayMeals = dailySummary.meals;
 
@@ -197,35 +223,289 @@ export default function HomeScreen() {
     [setSelectedDate]
   );
 
-  const toggleHydration = useCallback(() => {
-    haptics.impact("heavy");
-    setShowHydration((prev) => !prev);
-  }, []);
+  const setDraft = useNutritionDraftStore((s) => s.setDraft);
+  const setLogDate = useNutritionDraftStore((s) => s.setLogDate);
 
-  // Long-press scale animation feedback
-  const holdScale = useSharedValue(1);
-
-  const ringLongPress = Gesture.LongPress()
-    .minDuration(3000)
-    .onBegin(() => {
-      holdScale.value = withTiming(0.88, {
-        duration: 3000,
-        easing: Easing.out(Easing.cubic),
-      });
-    })
-    .onEnd((_e, success) => {
-      if (success) runOnJS(toggleHydration)();
-    })
-    .onFinalize(() => {
-      holdScale.value = withTiming(1, {
-        duration: 200,
-        easing: Easing.out(Easing.cubic),
-      });
+  const openManualLog = useCallback(() => {
+    setLogDate(isToday ? null : selectedDate);
+    openSheet(<ManualLogSheet onClose={closeSheet} />, {
+      snapPoints: ["55%"],
+      enablePanDownToClose: true,
     });
+  }, [openSheet, closeSheet, isToday, selectedDate, setLogDate]);
 
-  const holdAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: holdScale.value }],
-  }));
+  const openVoiceLog = useCallback(() => {
+    setLogDate(isToday ? null : selectedDate);
+    openSheet(<VoiceLogSheet onClose={closeSheet} />, {
+      snapPoints: ["55%"],
+      enablePanDownToClose: true,
+    });
+  }, [openSheet, closeSheet, isToday, selectedDate, setLogDate]);
+
+  const openLogSheet = useCallback(() => {
+    haptics.impact("light");
+    // Set date override for the whole logging session
+    setLogDate(isToday ? null : selectedDate);
+    const frequentFoods = hasMemory() ? getFrequentFoods(15) : [];
+
+    const handleQuickLog = (entry: FoodMemoryEntry) => {
+      closeSheet();
+      const draft = memoryToDraft(entry);
+      // When logging from a past date, stamp the draft
+      if (!isToday) {
+        draft.loggedAt = selectedDate;
+      }
+      setDraft(draft);
+      router.push("/(modals)/confirm-meal" as never);
+    };
+
+    openSheet(
+      <View style={{ flex: 1, paddingTop: 8 }}>
+        {/* ── Input method buttons ── */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 28,
+            paddingVertical: 20,
+            paddingHorizontal: 20,
+          }}
+        >
+          {/* Keyboard */}
+          <Pressable
+            onPress={() => {
+              openManualLog();
+            }}
+            style={({ pressed }) => ({
+              width: 56,
+              height: 56,
+              borderRadius: 28,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: theme.colors.primary,
+              opacity: pressed ? 0.85 : 1,
+              transform: [{ scale: pressed ? 0.95 : 1 }],
+            })}
+          >
+            <MaterialCommunityIcons
+              name="keyboard-outline"
+              size={24}
+              color={theme.colors.textInverse}
+            />
+          </Pressable>
+
+          {/* Mic — primary CTA with glow */}
+          <Pressable
+            onPress={() => {
+              openVoiceLog();
+            }}
+            style={({ pressed }) => ({
+              alignItems: "center",
+              justifyContent: "center",
+              transform: [{ scale: pressed ? 0.95 : 1 }],
+            })}
+          >
+            <View
+              style={{
+                width: 80,
+                height: 80,
+                borderRadius: 40,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {/* Glow ring */}
+              <View
+                style={{
+                  position: "absolute",
+                  width: 80,
+                  height: 80,
+                  borderRadius: 40,
+                  backgroundColor: theme.colors.primary + "30",
+                }}
+              />
+              <LinearGradient
+                colors={[theme.colors.primary, theme.colors.accent]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 32,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ionicons
+                  name="mic"
+                  size={30}
+                  color={theme.colors.textInverse}
+                />
+              </LinearGradient>
+            </View>
+          </Pressable>
+
+          {/* Camera */}
+          <Pressable
+            onPress={() => {
+              closeSheet();
+              router.push("/(modals)/camera-log" as any);
+            }}
+            style={({ pressed }) => ({
+              width: 56,
+              height: 56,
+              borderRadius: 28,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: theme.colors.primary,
+              opacity: pressed ? 0.85 : 1,
+              transform: [{ scale: pressed ? 0.95 : 1 }],
+            })}
+          >
+            <Ionicons
+              name="camera"
+              size={24}
+              color={theme.colors.textInverse}
+            />
+          </Pressable>
+        </View>
+
+        {/* ── Frequently Added header ── */}
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            paddingHorizontal: 20,
+            paddingTop: 16,
+            paddingBottom: 12,
+          }}
+        >
+          <TText
+            style={{
+              fontSize: 15,
+              fontWeight: "500",
+              color: theme.colors.textSecondary,
+            }}
+          >
+            Frequently Added
+          </TText>
+          <Pressable
+            onPress={() => {
+              closeSheet();
+              router.push("/(modals)/manual-log" as any);
+            }}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              backgroundColor: theme.colors.surfaceSecondary,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <Ionicons
+              name="search"
+              size={18}
+              color={theme.colors.textSecondary}
+            />
+          </Pressable>
+        </View>
+
+        {/* ── Food items list ── */}
+        {frequentFoods.length > 0 ? (
+          <View style={{ paddingHorizontal: 16, gap: 10, paddingBottom: 40 }}>
+            {frequentFoods.map((entry) => (
+              <Pressable
+                key={entry.name}
+                onPress={() => handleQuickLog(entry)}
+                style={({ pressed }) => ({
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: theme.colors.surfaceSecondary,
+                  borderRadius: 14,
+                  paddingVertical: 14,
+                  paddingHorizontal: 16,
+                  opacity: pressed ? 0.8 : 1,
+                  transform: [{ scale: pressed ? 0.98 : 1 }],
+                })}
+              >
+                <TText style={{ fontSize: 28, marginRight: 14 }}>
+                  {entry.emoji ?? "🍽"}
+                </TText>
+                <View style={{ flex: 1 }}>
+                  <TText
+                    style={{
+                      fontSize: 15,
+                      fontWeight: "600",
+                      color: theme.colors.text,
+                    }}
+                    numberOfLines={2}
+                  >
+                    {entry.name}
+                  </TText>
+                  <TText
+                    style={{
+                      fontSize: 13,
+                      color: theme.colors.textSecondary,
+                      marginTop: 2,
+                    }}
+                  >
+                    {entry.lastCalories} kcal
+                  </TText>
+                </View>
+                <View
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    backgroundColor: theme.colors.surface,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Ionicons name="add" size={18} color={theme.colors.text} />
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        ) : (
+          <View
+            style={{
+              paddingHorizontal: 20,
+              paddingVertical: 40,
+              alignItems: "center",
+            }}
+          >
+            <TText
+              style={{
+                fontSize: 14,
+                color: theme.colors.textMuted,
+                textAlign: "center",
+              }}
+            >
+              Log your first meal to see frequently added foods here
+            </TText>
+          </View>
+        )}
+      </View>,
+      { snapPoints: ["50%", "92%"] }
+    );
+  }, [
+    openSheet,
+    closeSheet,
+    router,
+    theme,
+    setDraft,
+    setLogDate,
+    openManualLog,
+    openVoiceLog,
+    isToday,
+    selectedDate,
+  ]);
 
   const contentSwipe = Gesture.Pan()
     .activeOffsetX([-15, 15])
@@ -295,16 +575,46 @@ export default function HomeScreen() {
     >
       <SafeAreaView style={styles.safe} edges={["top"]}>
         {/* Header */}
-        <Animated.View entering={FadeIn.duration(400)} style={styles.header}>
+        <View testID="home-header" style={styles.header}>
           <View style={styles.headerLeft}>
             <TText
               variant="heading"
+              numberOfLines={1}
               style={[styles.greeting, { color: theme.colors.text }]}
             >
               {isToday ? "Today" : dateHeader}
             </TText>
           </View>
           <View style={styles.headerRight}>
+            <View
+              style={[
+                styles.streakPill,
+                { backgroundColor: theme.colors.surfaceSecondary },
+              ]}
+              accessibilityLabel={`${currentStreak} day streak`}
+            >
+              <TText
+                style={[
+                  styles.streakFlame,
+                  currentStreak === 0 && { opacity: 0.4 },
+                ]}
+              >
+                🔥
+              </TText>
+              <TText
+                style={[
+                  styles.streakText,
+                  {
+                    color:
+                      currentStreak > 0
+                        ? theme.colors.text
+                        : theme.colors.textMuted,
+                  },
+                ]}
+              >
+                {currentStreak}
+              </TText>
+            </View>
             <Pressable
               onPress={() => router.push("/progress" as any)}
               accessibilityLabel={`Current weight ${units.format(displayWeight)}`}
@@ -338,54 +648,54 @@ export default function HomeScreen() {
               />
             </Pressable>
           </View>
-        </Animated.View>
+        </View>
 
         <ScrollView
+          testID="home-scroll"
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <TSpacer size="md" />
+          <TSpacer size="sm" />
 
           {/* D / W / M Segmented Control */}
-          <Animated.View
-            entering={FadeInDown.duration(400).delay(100)}
-            style={styles.segmentRow}
-          >
+          <View style={styles.segmentRow}>
             <GlassSegmentedControl
               options={VIEW_MODE_OPTIONS as any}
               value={viewMode}
               onChange={(key) => setViewMode(key as ViewMode)}
             />
-          </Animated.View>
+          </View>
 
-          <TSpacer size="md" />
+          <TSpacer size="sm" />
 
           {/* Day selector — only shown in D mode */}
           {viewMode === "D" && (
-            <Animated.View entering={FadeInDown.duration(300)}>
-              <DaySelector
-                selectedIndex={selectedDayIndex}
-                onSelect={handleDaySelect}
-                weekPages={weekPages}
-                weekPagesProgress={weekPagesProgress}
-                dayColors={dayProgressColors}
-                onPrevWeek={goToPrevWeek}
-                onNextWeek={goToNextWeek}
-              />
-            </Animated.View>
+            <DaySelector
+              selectedIndex={selectedDayIndex}
+              onSelect={handleDaySelect}
+              weekPages={weekPages}
+              weekPagesProgress={weekPagesProgress}
+              dayColors={dayProgressColors}
+              onPrevWeek={goToPrevWeek}
+              onNextWeek={goToNextWeek}
+            />
           )}
 
-          {viewMode === "D" && <TSpacer size="lg" />}
+          {viewMode === "D" && <TSpacer size="md" />}
 
           {/* ── Daily view ── */}
           {viewMode === "D" && (
-            <Animated.View key={selectedDate} entering={FadeIn.duration(350)}>
-              {/* Swipeable ring — swipe or long-press to toggle hydration */}
-              <GestureDetector
-                gesture={Gesture.Race(ringLongPress, contentSwipe)}
+            <>
+              {/* ── Calorie card (ring + footer) ── */}
+              <View
+                style={[
+                  styles.calorieCard,
+                  { backgroundColor: theme.colors.surfaceSecondary },
+                ]}
               >
-                <Animated.View style={[styles.ringSection, holdAnimStyle]}>
-                  {!showHydration && (
+                {/* Swipeable ring */}
+                <GestureDetector gesture={contentSwipe}>
+                  <Animated.View style={styles.ringSection}>
                     <Pressable
                       onPress={goToPrevDay}
                       hitSlop={16}
@@ -398,36 +708,19 @@ export default function HomeScreen() {
                         color={theme.colors.textMuted}
                       />
                     </Pressable>
-                  )}
 
-                  <Animated.View
-                    style={showHydration ? undefined : contentAnimStyle}
-                  >
-                    {showHydration ? (
-                      <WaterTracker
-                        current={glassCount * GLASS_SIZE}
-                        goal={WATER_GOAL}
-                        unit="L"
-                        glasses={glassCount}
-                        glassSize={GLASS_SIZE}
-                        size={220}
-                        showGlasses
-                        style={styles.hydrationWidget}
-                      />
-                    ) : (
+                    <Animated.View style={contentAnimStyle}>
                       <ProgressRing
                         consumed={totals.calories}
                         target={targetCalories}
-                        size={260}
-                        strokeWidth={20}
+                        size={220}
+                        strokeWidth={18}
                         color={overLimit.color}
                         dayLabel={isToday ? "Today" : dateHeader.split(",")[0]}
                         subtitle={`of ${targetCalories.toLocaleString()} cal`}
                       />
-                    )}
-                  </Animated.View>
+                    </Animated.View>
 
-                  {!showHydration && (
                     <Pressable
                       onPress={goToNextDay}
                       hitSlop={16}
@@ -440,27 +733,13 @@ export default function HomeScreen() {
                         color={theme.colors.textMuted}
                       />
                     </Pressable>
-                  )}
-                </Animated.View>
-              </GestureDetector>
+                  </Animated.View>
+                </GestureDetector>
 
-              {/* Long-press hint */}
-              {!showHydration && (
-                <TText
-                  style={[
-                    styles.longPressHint,
-                    { color: theme.colors.textMuted },
-                  ]}
-                >
-                  Hold ring 3s for hydration
-                </TText>
-              )}
+                <TSpacer size="sm" />
 
-              {!showHydration && <TSpacer size="sm" />}
-
-              {/* Consumed / Budget footer */}
-              {!showHydration && (
-                <View style={styles.ringFooter}>
+                {/* Consumed / Budget footer */}
+                <View testID="consumed-budget" style={styles.ringFooter}>
                   <View style={styles.ringFooterItem}>
                     <TText
                       style={[
@@ -504,39 +783,53 @@ export default function HomeScreen() {
                     </TText>
                   </View>
                 </View>
-              )}
+              </View>
+              {/* end calorieCard */}
 
               <TSpacer size="md" />
 
-              {/* Macro cards — hidden when hydration is active */}
-              {!showHydration && (
-                <View style={styles.macroRow}>
-                  <MacroCard
-                    label="Protein"
-                    consumedG={totals.protein}
-                    targetG={proteinTarget}
-                    color={MACRO_COLORS.protein}
-                  />
-                  <MacroCard
-                    label="Carbs"
-                    consumedG={totals.carbs}
-                    targetG={carbsTarget}
-                    color={MACRO_COLORS.carbs}
-                  />
-                  <MacroCard
-                    label="Fat"
-                    consumedG={totals.fat}
-                    targetG={fatTarget}
-                    color={MACRO_COLORS.fat}
-                  />
-                </View>
-              )}
-            </Animated.View>
-          )}
+              {/* Macro cards */}
+              <View testID="macro-cards" style={styles.macroRow}>
+                <MacroCard
+                  label="Protein"
+                  consumedG={totals.protein}
+                  targetG={proteinTarget}
+                  color={MACRO_COLORS.protein}
+                />
+                <MacroCard
+                  label="Carbs"
+                  consumedG={totals.carbs}
+                  targetG={carbsTarget}
+                  color={MACRO_COLORS.carbs}
+                />
+                <MacroCard
+                  label="Fat"
+                  consumedG={totals.fat}
+                  targetG={fatTarget}
+                  color={MACRO_COLORS.fat}
+                />
+              </View>
 
-          {/* ── Weekly view ── */}
+              <TSpacer size="md" />
+
+              {/* Water tracker card */}
+              <WaterCard
+                currentMl={waterMl}
+                goalMl={WATER_GOAL}
+                incrementMl={WATER_INCREMENT}
+                onIncrement={() => {
+                  setWaterMl((v) => v + WATER_INCREMENT);
+                  haptics.impact("light");
+                }}
+                onDecrement={() => {
+                  setWaterMl((v) => Math.max(0, v - WATER_INCREMENT));
+                  haptics.impact("light");
+                }}
+              />
+            </>
+          )}
           {viewMode === "W" && (
-            <Animated.View entering={FadeInDown.duration(400)}>
+            <View testID="weekly-view">
               <WeeklyView
                 weekDays={weekDays}
                 dayProgress={dayProgress}
@@ -546,12 +839,12 @@ export default function HomeScreen() {
                 weekSummary={weekSummary}
                 calorieBudget={calorieBudget}
               />
-            </Animated.View>
+            </View>
           )}
 
           {/* ── Monthly view ── */}
           {viewMode === "M" && (
-            <Animated.View entering={FadeInDown.duration(400)}>
+            <View testID="monthly-view">
               <MonthlyView
                 monthGrid={monthGrid}
                 monthProgress={monthProgress}
@@ -559,60 +852,13 @@ export default function HomeScreen() {
                 selectedDate={selectedDate}
                 onSelectDay={handleMonthDaySelect}
               />
-            </Animated.View>
-          )}
-
-          {/* Hydration +/- controls — shown when hydration is active */}
-          {showHydration && (
-            <Animated.View
-              entering={FadeInUp.duration(400).delay(200)}
-              style={styles.glassControls}
-            >
-              <Pressable
-                onPress={() => {
-                  setGlassCount((c) => Math.max(0, c - 1));
-                  haptics.impact("light");
-                }}
-                style={[
-                  styles.glassBtn,
-                  { backgroundColor: theme.colors.surfaceSecondary },
-                ]}
-                hitSlop={8}
-              >
-                <Ionicons name="remove" size={28} color={theme.colors.text} />
-              </Pressable>
-              <View style={styles.glassInfo}>
-                <TText
-                  style={[styles.glassValue, { color: theme.colors.text }]}
-                >
-                  {glassCount}
-                </TText>
-                <TText
-                  style={[styles.glassLabel, { color: theme.colors.textMuted }]}
-                >
-                  glasses
-                </TText>
-              </View>
-              <Pressable
-                onPress={() => {
-                  setGlassCount((c) => c + 1);
-                  haptics.impact("light");
-                }}
-                style={[
-                  styles.glassBtn,
-                  { backgroundColor: theme.colors.surfaceSecondary },
-                ]}
-                hitSlop={8}
-              >
-                <Ionicons name="add" size={28} color={theme.colors.text} />
-              </Pressable>
-            </Animated.View>
+            </View>
           )}
 
           <TSpacer size="lg" />
 
           {/* Meals section */}
-          <Animated.View entering={FadeInUp.duration(500).delay(400)}>
+          <View testID="meals-section">
             <View style={styles.mealsHeader}>
               <TText
                 variant="subheading"
@@ -686,10 +932,16 @@ export default function HomeScreen() {
                           carbs={meal.carbs}
                           fat={meal.fat}
                           onPress={() =>
-                            router.push({
-                              pathname: "/(modals)/edit-meal" as any,
-                              params: { mealId: meal.id },
-                            })
+                            openSheet(
+                              <EditMealSheet
+                                mealId={meal.id}
+                                onClose={closeSheet}
+                              />,
+                              {
+                                snapPoints: ["92%"],
+                                enablePanDownToClose: true,
+                              }
+                            )
                           }
                           onDelete={() => removeMeal(meal.id)}
                         />
@@ -699,28 +951,16 @@ export default function HomeScreen() {
                 )
               )}
             </View>
-          </Animated.View>
+          </View>
 
-          {/* Bottom spacing for FAB */}
-          <TSpacer size="xxl" />
-          <TSpacer size="xxl" />
+          {/* Bottom spacing handled by scrollContent paddingBottom */}
         </ScrollView>
       </SafeAreaView>
 
-      {/* Bottom fade gradient */}
-      <LinearGradient
-        colors={["transparent", "#1A1A1A"]}
-        style={styles.bottomGradient}
-        pointerEvents="none"
-      />
-
       {/* Floating Add button */}
-      <Animated.View
-        entering={FadeInUp.duration(400).delay(600)}
-        style={styles.fabContainer}
-      >
+      <View testID="fab-button" style={styles.fabContainer}>
         <Pressable
-          onPress={() => router.push("/(modals)/tracking" as any)}
+          onPress={openLogSheet}
           accessibilityLabel="Log a meal"
           accessibilityRole="button"
           style={({ pressed }) => [
@@ -742,7 +982,7 @@ export default function HomeScreen() {
             <Ionicons name="add" size={30} color={theme.colors.textInverse} />
           </LinearGradient>
         </Pressable>
-      </Animated.View>
+      </View>
     </View>
   );
 }
@@ -762,16 +1002,19 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   headerLeft: {
+    flex: 1,
     minHeight: 48,
     justifyContent: "center",
+    marginRight: 8,
   },
   headerRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    flexShrink: 0,
+    gap: 8,
   },
   greeting: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: "700",
     letterSpacing: -0.3,
   },
@@ -792,12 +1035,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
+  streakPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+  },
+  streakFlame: {
+    fontSize: 14,
+  },
+  streakText: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
   scrollContent: {
     paddingHorizontal: 20,
+    paddingBottom: 160,
   },
   segmentRow: {
     alignSelf: "center",
     width: 160,
+  },
+  calorieCard: {
+    borderRadius: 20,
+    paddingVertical: 20,
+    alignItems: "center",
   },
   ringSection: {
     flexDirection: "row",
@@ -807,43 +1071,6 @@ const styles = StyleSheet.create({
   ringChevron: {
     padding: 4,
     opacity: 0.6,
-  },
-  hydrationWidget: {
-    borderWidth: 0,
-    backgroundColor: "transparent",
-    padding: 0,
-  },
-  glassControls: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 24,
-  },
-  glassBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  glassInfo: {
-    alignItems: "center",
-    minWidth: 60,
-  },
-  glassValue: {
-    fontSize: 32,
-    fontWeight: "800",
-  },
-  glassLabel: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  longPressHint: {
-    fontSize: 11,
-    fontWeight: "400",
-    textAlign: "center",
-    marginTop: 4,
-    opacity: 0.5,
   },
   ringFooter: {
     flexDirection: "row",
@@ -914,13 +1141,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "400",
     textAlign: "center",
-  },
-  bottomGradient: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 120,
   },
   fabContainer: {
     position: "absolute",

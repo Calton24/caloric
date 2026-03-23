@@ -37,6 +37,7 @@ export function TrackingPromptCard({
         styles.container,
         {
           backgroundColor: theme.colors.surfaceSecondary,
+          borderColor: theme.colors.border,
           opacity: pressed ? 0.85 : 1,
         },
       ]}
@@ -64,12 +65,14 @@ export function TrackingPromptCard({
 const styles = StyleSheet.create({
   container: {
     borderRadius: 14,
-    paddingVertical: 16,
+    paddingVertical: 20,
     paddingHorizontal: 18,
+    borderWidth: 1,
   },
   textRow: {
     flexDirection: "row",
     flexWrap: "wrap",
+    justifyContent: "center",
     gap: 4,
   },
   word: {

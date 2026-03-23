@@ -173,30 +173,6 @@ PODS:
     - libwebp/sharpyuv
   - LiveActivityModule (1.0.0):
     - ExpoModulesCore
-  - llama-rn (0.11.3):
-    - hermes-engine
-    - RCTRequired
-    - RCTTypeSafety
-    - React
-    - React-callinvoker
-    - React-Core
-    - React-Core-prebuilt
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - ReactNativeDependencies
-    - Yoga
   - MLImage (1.0.0-beta7)
   - MLKitCommon (13.0.0):
     - GoogleDataTransport (~> 10.0)
@@ -2377,7 +2353,6 @@ DEPENDENCIES:
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
   - LiveActivityModule (from `../modules/live-activity/ios`)
-  - llama-rn (from `../node_modules/llama.rn`)
   - RCTDeprecation (from `../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)
   - RCTRequired (from `../node_modules/react-native/Libraries/Required`)
   - RCTTypeSafety (from `../node_modules/react-native/Libraries/TypeSafety`)
@@ -2561,8 +2536,6 @@ EXTERNAL SOURCES:
     :tag: hermes-2025-07-07-RNv0.81.0-e0fc67142ec0763c6b6153ca2bf96df815539782
   LiveActivityModule:
     :path: "../modules/live-activity/ios"
-  llama-rn:
-    :path: "../node_modules/llama.rn"
   RCTDeprecation:
     :path: "../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation"
   RCTRequired:
@@ -2764,7 +2737,6 @@ SPEC CHECKSUMS:
   libdav1d: 23581a4d8ec811ff171ed5e2e05cd27bad64c39f
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
   LiveActivityModule: c922bc562a453e88668a9ddc3bd73440ac8861e1
-  llama-rn: 9a447096ba0a9f3790815e0a14363c593d9b48c0
   MLImage: 2ab9c968e75f57911c16f4c9d9e8a8e9604a86a1
   MLKitCommon: 26b779f072a182c1603d4c88a101c350cac837b1
   MLKitImageLabeling: b486a127450efab9ed86e633f9a12fe7d9dbc493

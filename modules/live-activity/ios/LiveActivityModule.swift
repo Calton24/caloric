@@ -237,6 +237,16 @@ public class LiveActivityModule: Module {
                     "activityState": Self.stateString(activity.activityState),
                 ])
             }
+            for activity in Activity<CalorieTrackerActivityAttributes>.activities {
+                result.append([
+                    "id": activity.id,
+                    "type": "calorieTracker",
+                    "name": "CalorieTrackerActivity",
+                    "title": "Calorie Tracker",
+                    "value": "\(activity.content.state.caloriesConsumed)/\(activity.attributes.calorieGoal) cal",
+                    "activityState": Self.stateString(activity.activityState),
+                ])
+            }
             return result
         }
 
@@ -247,6 +257,7 @@ public class LiveActivityModule: Module {
                  + Activity<FitnessActivityAttributes>.activities.count
                  + Activity<PedometerActivityAttributes>.activities.count
                  + Activity<CalorieBudgetActivityAttributes>.activities.count
+                 + Activity<CalorieTrackerActivityAttributes>.activities.count
         }
 
         // ════════════════════════════════════════════════
@@ -617,6 +628,118 @@ public class LiveActivityModule: Module {
                     "mode": activity.attributes.mode,
                     "consumed": activity.content.state.consumed,
                     "activityBonus": activity.content.state.activityBonus,
+                    "activityState": Self.stateString(activity.activityState),
+                ])
+            }
+            return result
+        }
+
+        // ════════════════════════════════════════════════
+        // MARK: — Calorie Tracker Activity (CTAs + Macros)
+        // ════════════════════════════════════════════════
+
+        Function("startCalorieTrackerActivity") {
+            (calorieGoal: Int, proteinGoal: Int, carbsGoal: Int, fatGoal: Int,
+             caloriesConsumed: Int, proteinConsumed: Int, carbsConsumed: Int, fatConsumed: Int) -> String? in
+
+            guard #available(iOS 16.2, *) else { return nil }
+            guard ActivityAuthorizationInfo().areActivitiesEnabled else { return nil }
+
+            let attributes = CalorieTrackerActivityAttributes(
+                calorieGoal: calorieGoal,
+                proteinGoal: proteinGoal,
+                carbsGoal: carbsGoal,
+                fatGoal: fatGoal
+            )
+            let state = CalorieTrackerActivityAttributes.ContentState(
+                caloriesConsumed: caloriesConsumed,
+                proteinConsumed: proteinConsumed,
+                carbsConsumed: carbsConsumed,
+                fatConsumed: fatConsumed
+            )
+
+            do {
+                let activity = try Activity.request(
+                    attributes: attributes,
+                    content: .init(state: state, staleDate: nil),
+                    pushType: nil
+                )
+                return activity.id
+            } catch {
+                print("[LiveActivityModule] startCalorieTrackerActivity failed: \(error.localizedDescription)")
+                return nil
+            }
+        }
+
+        Function("updateCalorieTrackerActivity") {
+            (activityId: String, caloriesConsumed: Int, proteinConsumed: Int,
+             carbsConsumed: Int, fatConsumed: Int) -> Bool in
+
+            guard #available(iOS 16.2, *) else { return false }
+
+            let state = CalorieTrackerActivityAttributes.ContentState(
+                caloriesConsumed: caloriesConsumed,
+                proteinConsumed: proteinConsumed,
+                carbsConsumed: carbsConsumed,
+                fatConsumed: fatConsumed
+            )
+
+            Task {
+                for activity in Activity<CalorieTrackerActivityAttributes>.activities {
+                    if activity.id == activityId {
+                        await activity.update(
+                            ActivityContent(state: state, staleDate: nil)
+                        )
+                        return
+                    }
+                }
+            }
+
+            return true
+        }
+
+        Function("endCalorieTrackerActivity") { (activityId: String) -> Bool in
+            guard #available(iOS 16.2, *) else { return false }
+
+            Task {
+                for activity in Activity<CalorieTrackerActivityAttributes>.activities {
+                    if activity.id == activityId {
+                        await activity.end(nil, dismissalPolicy: .default)
+                        return
+                    }
+                }
+            }
+
+            return true
+        }
+
+        Function("endAllCalorieTrackerActivities") { () -> Bool in
+            guard #available(iOS 16.2, *) else { return false }
+
+            Task {
+                for activity in Activity<CalorieTrackerActivityAttributes>.activities {
+                    await activity.end(nil, dismissalPolicy: .default)
+                }
+            }
+
+            return true
+        }
+
+        Function("getActiveCalorieTrackerActivities") { () -> [[String: Any]] in
+            guard #available(iOS 16.2, *) else { return [] }
+
+            var result: [[String: Any]] = []
+            for activity in Activity<CalorieTrackerActivityAttributes>.activities {
+                result.append([
+                    "id": activity.id,
+                    "calorieGoal": activity.attributes.calorieGoal,
+                    "proteinGoal": activity.attributes.proteinGoal,
+                    "carbsGoal": activity.attributes.carbsGoal,
+                    "fatGoal": activity.attributes.fatGoal,
+                    "caloriesConsumed": activity.content.state.caloriesConsumed,
+                    "proteinConsumed": activity.content.state.proteinConsumed,
+                    "carbsConsumed": activity.content.state.carbsConsumed,
+                    "fatConsumed": activity.content.state.fatConsumed,
                     "activityState": Self.stateString(activity.activityState),
                 ])
             }

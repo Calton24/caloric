@@ -12,6 +12,7 @@ import { NoopNotificationsClient } from "./NoopNotificationsClient";
 import type {
     NotificationsClient,
     PermissionStatus,
+    ScheduleDailyOpts,
     ScheduleLocalOpts,
     SendTestRemoteOpts,
 } from "./types";
@@ -92,6 +93,30 @@ export const notifications = {
       }
     } catch (error) {
       console.warn("[Notifications] sendTestRemote failed:", error);
+    }
+  },
+
+  async scheduleDailyRepeat(opts: ScheduleDailyOpts): Promise<void> {
+    try {
+      await client.scheduleDailyRepeat(opts);
+    } catch (error) {
+      console.warn("[Notifications] scheduleDailyRepeat failed:", error);
+    }
+  },
+
+  async cancelScheduled(identifier: string): Promise<void> {
+    try {
+      await client.cancelScheduled(identifier);
+    } catch (error) {
+      console.warn("[Notifications] cancelScheduled failed:", error);
+    }
+  },
+
+  async cancelAllScheduled(): Promise<void> {
+    try {
+      await client.cancelAllScheduled();
+    } catch (error) {
+      console.warn("[Notifications] cancelAllScheduled failed:", error);
     }
   },
 };

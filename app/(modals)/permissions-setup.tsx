@@ -22,6 +22,7 @@ import {
     requestVoicePermissions,
     usePermissionsStore,
 } from "../../src/features/permissions";
+import { notifications } from "../../src/infrastructure/notifications/notifications";
 import { useTheme } from "../../src/theme/useTheme";
 import { PermissionRow } from "../../src/ui/components/PermissionRow";
 import { ScreenContainer } from "../../src/ui/components/ScreenContainer";
@@ -39,8 +40,10 @@ export default function PermissionsScreen() {
   // Read live permission state from the global store
   const mic = usePermissionsStore((s) => s.permissions.microphone);
   const speech = usePermissionsStore((s) => s.permissions.speechRecognition);
+  const notifs = usePermissionsStore((s) => s.permissions.notifications);
 
-  const allGranted = mic === "granted" && speech === "granted";
+  const allGranted =
+    mic === "granted" && speech === "granted" && notifs === "granted";
 
   // Auto-navigate back when both permissions are granted and we came from voice-log.
   // This eliminates the need to manually tap "Continue" after granting.
@@ -58,6 +61,16 @@ export default function PermissionsScreen() {
 
   const handleSpeech = async () => {
     await requestSpeechRecognitionPermission();
+  };
+
+  const handleNotifications = async () => {
+    const status = await notifications.requestPermissions();
+    usePermissionsStore
+      .getState()
+      .setPermission(
+        "notifications",
+        status === "granted" ? "granted" : "denied"
+      );
   };
 
   const handleContinue = async () => {
@@ -117,7 +130,7 @@ export default function PermissionsScreen() {
             style={[styles.subtitle, { color: theme.colors.textSecondary }]}
           >
             Caloric uses your microphone and speech recognition to log meals
-            with your voice — fast and hands-free.
+            with your voice, and notifications to keep you on track.
           </TText>
         </Animated.View>
 
@@ -142,6 +155,14 @@ export default function PermissionsScreen() {
             description="Convert your speech to food entries"
             status={speech}
             onPress={handleSpeech}
+          />
+          <TSpacer size="sm" />
+          <PermissionRow
+            icon="notifications"
+            label="Push Notifications"
+            description="Meal reminders and daily progress updates"
+            status={notifs}
+            onPress={handleNotifications}
           />
         </Animated.View>
       </View>

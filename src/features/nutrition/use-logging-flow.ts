@@ -94,7 +94,12 @@ export function useLoggingFlow() {
       throw new Error("No meal draft available");
     }
 
-    const meal = buildMealEntryFromDraft({ draft });
+    // If a date override is set (logging for a past day), use it
+    const logDate = useNutritionDraftStore.getState().logDate;
+    const meal = buildMealEntryFromDraft({
+      draft,
+      loggedAt: logDate ?? undefined,
+    });
     addMeal(meal);
     clearDraft();
 

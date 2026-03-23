@@ -26,4 +26,16 @@ export class NoopNotificationsClient implements NotificationsClient {
   async clearBadge(): Promise<void> {
     // No-op
   }
+
+  async scheduleDailyRepeat(): Promise<void> {
+    // No-op
+  }
+
+  async cancelScheduled(): Promise<void> {
+    // No-op
+  }
+
+  async cancelAllScheduled(): Promise<void> {
+    // No-op
+  }
 }

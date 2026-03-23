@@ -50,16 +50,16 @@ function generateNeutrals(mode: ColorMode): string[] {
     ];
   } else {
     return [
-      "#0A0A0A", // 0
-      "#121212", // 1
-      "#1E1E1E", // 2
-      "#2A2A2A", // 3
-      "#383838", // 4
-      "#4A4A4A", // 5
-      "#6B6B6B", // 6
-      "#909090", // 7
-      "#B8B8B8", // 8
-      "#E5E5E5", // 9
+      "#000000", // 0 - pure black background
+      "#1C1C1E", // 1 - dark gray surfaces  
+      "#2C2C2E", // 2 - medium gray elevated surfaces
+      "#3A3A3C", // 3 - lighter gray for higher elevation
+      "#48484A", // 4 - mid-tone gray
+      "#636366", // 5 - accent gray
+      "#8E8E93", // 6 - light gray 
+      "#AEAEB2", // 7 - lighter gray text
+      "#C7C7CC", // 8 - very light gray
+      "#F2F2F7", // 9 - near white
     ];
   }
 }

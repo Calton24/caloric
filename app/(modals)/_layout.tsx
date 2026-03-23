@@ -41,6 +41,7 @@ export default function ModalsLayout() {
             <Stack.Screen name="log-weight" />
             <Stack.Screen name="permissions-setup" />
             <Stack.Screen name="live-activity-intro" />
+            <Stack.Screen name="guide" />
           </Stack>
         </BottomSheetProvider>
       </BottomSheetModalProvider>

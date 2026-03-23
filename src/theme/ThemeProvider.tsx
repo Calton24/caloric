@@ -54,8 +54,9 @@ export function ThemeProvider({
   // Load persisted theme on mount (async, non-blocking)
   useEffect(() => {
     themeStorage.getPreferences().then((prefs) => {
-      // Always enforce dark mode — ignore persisted mode
-      setModeState("dark");
+      if (prefs.mode) {
+        setModeState(prefs.mode);
+      }
       if (prefs.brandHue !== undefined && prefs.brandHue !== null) {
         // Migrate old blue default (220) → new green default (141)
         const hue = prefs.brandHue === 220 ? defaultBrandHue : prefs.brandHue;

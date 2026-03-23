@@ -53,6 +53,7 @@ export default function EditMealScreen() {
   const [carbs, setCarbs] = useState(meal?.carbs ?? 0);
   const [fat, setFat] = useState(meal?.fat ?? 0);
   const [items, setItems] = useState<SavedFoodItem[]>(meal?.items ?? []);
+  const [loggedAt, setLoggedAt] = useState(meal?.loggedAt ?? "");
 
   // Recalculate totals from items
   const recalcTotals = useCallback((updatedItems: SavedFoodItem[]) => {
@@ -160,7 +161,8 @@ export default function EditMealScreen() {
     calories !== meal.calories ||
     protein !== meal.protein ||
     carbs !== meal.carbs ||
-    fat !== meal.fat;
+    fat !== meal.fat ||
+    loggedAt !== meal.loggedAt;
 
   const handleSave = () => {
     const updates: Partial<typeof meal> = {
@@ -172,6 +174,9 @@ export default function EditMealScreen() {
     };
     if (hasItems) {
       updates.items = items;
+    }
+    if (loggedAt !== meal.loggedAt) {
+      updates.loggedAt = loggedAt;
     }
     updateMeal(meal.id, updates);
     router.dismiss();
@@ -282,11 +287,46 @@ export default function EditMealScreen() {
                     ? "Camera detected"
                     : "Manually entered"}
               </TText>
-              <TText
-                style={[styles.sourceLabel, { color: theme.colors.textMuted }]}
+            </View>
+            <TSpacer size="xs" />
+            {/* Editable date row */}
+            <View style={styles.dateRow}>
+              <Pressable
+                onPress={() => {
+                  const d = new Date(loggedAt);
+                  d.setDate(d.getDate() - 1);
+                  setLoggedAt(d.toISOString());
+                }}
+                hitSlop={8}
+                style={[styles.dateArrow, { backgroundColor: theme.colors.border + "60" }]}
               >
-                · {meal.loggedAt.split("T")[1]?.slice(0, 5)}
-              </TText>
+                <Ionicons name="chevron-back" size={14} color={theme.colors.textSecondary} />
+              </Pressable>
+              <View style={styles.dateCenter}>
+                <Ionicons name="calendar-outline" size={14} color={theme.colors.textMuted} />
+                <TText style={[styles.sourceLabel, { color: theme.colors.textMuted }]}>
+                  {new Date(loggedAt).toLocaleDateString("en-US", {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                  {" · "}
+                  {loggedAt.split("T")[1]?.slice(0, 5)}
+                </TText>
+              </View>
+              <Pressable
+                onPress={() => {
+                  const d = new Date(loggedAt);
+                  d.setDate(d.getDate() + 1);
+                  if (d <= new Date()) {
+                    setLoggedAt(d.toISOString());
+                  }
+                }}
+                hitSlop={8}
+                style={[styles.dateArrow, { backgroundColor: theme.colors.border + "60" }]}
+              >
+                <Ionicons name="chevron-forward" size={14} color={theme.colors.textSecondary} />
+              </Pressable>
             </View>
           </Animated.View>
 
@@ -757,6 +797,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+  },
+  dateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  dateCenter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  dateArrow: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
   },
   sourceLabel: {
     fontSize: 13,

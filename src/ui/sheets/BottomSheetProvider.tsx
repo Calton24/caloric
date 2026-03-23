@@ -7,7 +7,7 @@ import type { BottomSheetModal as BottomSheetModalType } from "@gorhom/bottom-sh
 import {
     BottomSheetBackdrop,
     BottomSheetModal,
-    BottomSheetView,
+    BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
 import { BlurView } from "expo-blur";
 import React, {
@@ -45,17 +45,27 @@ export function BottomSheetProvider({ children }: BottomSheetProviderProps) {
   const [content, setContent] = useState<React.ReactNode | null>(null);
   const [snapPoints, setSnapPoints] = useState<string[] | number[]>(["50%"]);
   const [pendingPresent, setPendingPresent] = useState(false);
+  const isShowingRef = useRef(false);
+  const pendingRef = useRef<{
+    content: React.ReactNode;
+    points: string[] | number[];
+  } | null>(null);
 
   const open = useCallback(
     (newContent: React.ReactNode, options?: BottomSheetOptions) => {
       const points = options?.snapPoints || ["50%"];
 
-      // Dismiss any currently showing sheet first
-      bottomSheetRef.current?.dismiss();
-
-      setContent(newContent);
-      setSnapPoints(points);
-      setPendingPresent(true);
+      if (isShowingRef.current) {
+        // Sheet is visible — queue the new content and dismiss first.
+        // onDismiss will present the queued content once the animation ends.
+        pendingRef.current = { content: newContent, points };
+        bottomSheetRef.current?.dismiss();
+      } else {
+        // Nothing showing — set content and present directly
+        setContent(newContent);
+        setSnapPoints(points);
+        setPendingPresent(true);
+      }
     },
     []
   );
@@ -71,6 +81,21 @@ export function BottomSheetProvider({ children }: BottomSheetProviderProps) {
     });
     return () => cancelAnimationFrame(id);
   }, [pendingPresent]);
+
+  const handleDismiss = useCallback(() => {
+    isShowingRef.current = false;
+    if (pendingRef.current) {
+      const { content: c, points: p } = pendingRef.current;
+      pendingRef.current = null;
+      setContent(c);
+      setSnapPoints(p);
+      setPendingPresent(true);
+    }
+  }, []);
+
+  const handleChange = useCallback((index: number) => {
+    isShowingRef.current = index >= 0;
+  }, []);
 
   const close = useCallback(() => {
     bottomSheetRef.current?.dismiss();
@@ -129,12 +154,14 @@ export function BottomSheetProvider({ children }: BottomSheetProviderProps) {
         handleIndicatorStyle={{
           backgroundColor: theme.colors.textSecondary,
         }}
+        onDismiss={handleDismiss}
+        onChange={handleChange}
       >
-        <BottomSheetView style={styles.contentContainer}>
+        <BottomSheetScrollView style={styles.contentContainer}>
           <BottomSheetContext.Provider value={value}>
             {content}
           </BottomSheetContext.Provider>
-        </BottomSheetView>
+        </BottomSheetScrollView>
       </BottomSheetModal>
     </BottomSheetContext.Provider>
   );

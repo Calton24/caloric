@@ -23,6 +23,19 @@ const {
 const path = require("path");
 const fs = require("fs");
 
+function copyDirSync(src, dest) {
+  fs.mkdirSync(dest, { recursive: true });
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      copyDirSync(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
 const WIDGET_NAME = "CaloricWidget";
 
 // Swift source files for the widget extension
@@ -33,6 +46,7 @@ const WIDGET_SWIFT_FILES = [
   "FitnessLiveActivity.swift",
   "PedometerLiveActivity.swift",
   "CalorieBudgetLiveActivity.swift",
+  "CalorieTrackerLiveActivity.swift",
 ];
 
 // ────────────────────────────────────────────────────────
@@ -84,6 +98,14 @@ function withWidgetFiles(config) {
         }
       }
 
+      // Copy Assets.xcassets (contains app icon for Live Activity)
+      const assetsSrc = path.join(sourceDir, "Assets.xcassets");
+      const assetsDest = path.join(widgetDir, "Assets.xcassets");
+      if (fs.existsSync(assetsSrc)) {
+        copyDirSync(assetsSrc, assetsDest);
+        console.log(`[withLiveActivity] Copied Assets.xcassets → ${widgetDir}`);
+      }
+
       console.log(
         `[withLiveActivity] Copied ${allFiles.length} files → ${widgetDir}`
       );
@@ -132,6 +154,16 @@ function withWidgetTarget(config) {
       fileRefUuids[file] = uuid;
     }
 
+    // Assets.xcassets file ref
+    const assetsRefUuid = proj.generateUuid();
+    objects["PBXFileReference"][assetsRefUuid] = {
+      isa: "PBXFileReference",
+      lastKnownFileType: "folder.assetcatalog",
+      path: "Assets.xcassets",
+      sourceTree: '"<group>"',
+    };
+    objects["PBXFileReference"][`${assetsRefUuid}_comment`] = "Assets.xcassets";
+
     // Info.plist file ref
     const infoPlistRefUuid = proj.generateUuid();
     objects["PBXFileReference"][infoPlistRefUuid] = {
@@ -160,6 +192,7 @@ function withWidgetTarget(config) {
       value: fileRefUuids[f],
       comment: f,
     }));
+    groupChildren.push({ value: assetsRefUuid, comment: "Assets.xcassets" });
     groupChildren.push({ value: infoPlistRefUuid, comment: "Info.plist" });
 
     objects["PBXGroup"] = objects["PBXGroup"] || {};
@@ -277,14 +310,28 @@ function withWidgetTarget(config) {
     objects["PBXFrameworksBuildPhase"][`${frameworksBPUuid}_comment`] =
       "Frameworks";
 
-    // Resources (empty)
+    // Resources — include Assets.xcassets
+    const assetsBuildFileUuid = proj.generateUuid();
+    objects["PBXBuildFile"][assetsBuildFileUuid] = {
+      isa: "PBXBuildFile",
+      fileRef: assetsRefUuid,
+      fileRef_comment: "Assets.xcassets",
+    };
+    objects["PBXBuildFile"][`${assetsBuildFileUuid}_comment`] =
+      "Assets.xcassets in Resources";
+
     const resourcesBPUuid = proj.generateUuid();
     objects["PBXResourcesBuildPhase"] =
       objects["PBXResourcesBuildPhase"] || {};
     objects["PBXResourcesBuildPhase"][resourcesBPUuid] = {
       isa: "PBXResourcesBuildPhase",
       buildActionMask: 2147483647,
-      files: [],
+      files: [
+        {
+          value: assetsBuildFileUuid,
+          comment: "Assets.xcassets in Resources",
+        },
+      ],
       runOnlyForDeploymentPostprocessing: 0,
     };
     objects["PBXResourcesBuildPhase"][`${resourcesBPUuid}_comment`] =
@@ -295,6 +342,7 @@ function withWidgetTarget(config) {
     const releaseConfigUuid = proj.generateUuid();
     const configListUuid = proj.generateUuid();
 
+    const appVersion = mod.version || "1.0.0";
     const sharedSettings = {
       ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: '"AccentColor"',
       ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME: '"WidgetBackground"',
@@ -306,7 +354,7 @@ function withWidgetTarget(config) {
       IPHONEOS_DEPLOYMENT_TARGET: "16.2",
       LD_RUNPATH_SEARCH_PATHS:
         '"$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks"',
-      MARKETING_VERSION: '"1.0"',
+      MARKETING_VERSION: `"${appVersion}"`,
       PRODUCT_BUNDLE_IDENTIFIER: `"${widgetBundleId}"`,
       PRODUCT_NAME: '"$(TARGET_NAME)"',
       SKIP_INSTALL: "YES",

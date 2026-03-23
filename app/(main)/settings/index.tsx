@@ -154,7 +154,7 @@ function SectionHeader({ title }: { title: string }) {
 }
 
 export default function SettingsScreen() {
-  const { theme } = useTheme();
+  const { theme, toggleMode } = useTheme();
   const router = useRouter();
   const { user, signOut, deleteAccount } = useAuth();
 
@@ -257,6 +257,27 @@ export default function SettingsScreen() {
                 }
                 onPress={() => {}}
                 showChevron
+              />
+            </View>
+          </Animated.View>
+
+          <TSpacer size="lg" />
+
+          {/* ── Appearance ── */}
+          <Animated.View entering={FadeIn.duration(400)}>
+            <SectionHeader title="Appearance" />
+            <View
+              style={[
+                styles.section,
+                { backgroundColor: theme.colors.surfaceSecondary },
+              ]}
+            >
+              <SettingsToggle
+                icon={theme.mode === "dark" ? "moon" : "sunny"}
+                iconColor={theme.mode === "dark" ? "#FBBF24" : "#6366F1"}
+                label="Dark Mode"
+                value={theme.mode === "dark"}
+                onToggle={() => toggleMode()}
               />
             </View>
           </Animated.View>

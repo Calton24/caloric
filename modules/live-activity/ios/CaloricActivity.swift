@@ -71,3 +71,21 @@ struct CalorieBudgetActivityAttributes: ActivityAttributes {
         var activityBonus: Int   // calories earned from activity
     }
 }
+
+// MARK: - Calorie Tracker Activity (Lock Screen + Dynamic Island with CTAs)
+
+struct CalorieTrackerActivityAttributes: ActivityAttributes {
+    /// Static: set once when the activity starts
+    var calorieGoal: Int
+    var proteinGoal: Int
+    var carbsGoal: Int
+    var fatGoal: Int
+
+    /// Dynamic: updated as user logs meals
+    struct ContentState: Codable, Hashable {
+        var caloriesConsumed: Int
+        var proteinConsumed: Int
+        var carbsConsumed: Int
+        var fatConsumed: Int
+    }
+}

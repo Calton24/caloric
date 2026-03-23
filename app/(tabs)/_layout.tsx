@@ -1,4 +1,5 @@
 import { FeatureFlags } from "@/config/features";
+import { useLiveActivitySync } from "@/src/features/live-activity";
 import { haptics } from "@/src/infrastructure/haptics";
 import { useTheme } from "@/src/theme/useTheme";
 import { GlassTabBar } from "@/src/ui/tabs/GlassTabBar";
@@ -78,10 +79,7 @@ function NativeTabLayout() {
 
   // Use the app's own theme mode (not the device's useColorScheme)
   // so the wrapper background stays in sync with screen content.
-  const screenBg =
-    theme.mode === "dark"
-      ? "#000000" // iOS systemBackground (dark)
-      : "#FFFFFF"; // iOS systemBackground (light)
+  const screenBg = theme.colors.background;
 
   return (
     <View testID="tabs-root" style={{ flex: 1, backgroundColor: screenBg }}>
@@ -109,6 +107,7 @@ function GlassTabLayout() {
         tabBar={(props) => <GlassTabBar {...props} />}
         screenOptions={{
           headerShown: false,
+          lazy: true,
           sceneStyle: { backgroundColor: theme.colors.background },
         }}
       >
@@ -128,5 +127,7 @@ function GlassTabLayout() {
 }
 
 export default function TabLayout() {
+  useLiveActivitySync();
+
   return USE_NATIVE_TABS ? <NativeTabLayout /> : <GlassTabLayout />;
 }

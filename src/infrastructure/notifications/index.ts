@@ -16,6 +16,7 @@ export { initNotifications, resetNotifications } from "./factory";
 export type {
     NotificationsClient,
     PermissionStatus,
+    ScheduleDailyOpts,
     ScheduleLocalOpts,
     SendTestRemoteOpts
 } from "./types";
