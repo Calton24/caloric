@@ -93,6 +93,29 @@ export function useHomeData() {
     setSelectedDate((prev) => shiftDate(prev, -7));
   }, []);
 
+  /** Navigate to next month */
+  const goToNextMonth = useCallback(() => {
+    setSelectedDate((prev) => {
+      const d = new Date(prev + "T12:00:00");
+      d.setMonth(d.getMonth() + 1);
+      return toISODate(d);
+    });
+  }, []);
+
+  /** Navigate to previous month */
+  const goToPrevMonth = useCallback(() => {
+    setSelectedDate((prev) => {
+      const d = new Date(prev + "T12:00:00");
+      d.setMonth(d.getMonth() - 1);
+      return toISODate(d);
+    });
+  }, []);
+
+  /** Jump back to today */
+  const goToToday = useCallback(() => {
+    setSelectedDate(today);
+  }, [today]);
+
   // Which days in this week have meal data
   const activeDays = useMemo(() => {
     const indices: number[] = [];
@@ -220,6 +243,9 @@ export function useHomeData() {
     isToday,
     goToNextWeek,
     goToPrevWeek,
+    goToNextMonth,
+    goToPrevMonth,
+    goToToday,
 
     // Weight
     latestWeight,

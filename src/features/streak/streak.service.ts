@@ -65,7 +65,8 @@ export async function recordMealLogged(
   // Optimistic local update for today & recent past dates
   updateLocalStreakOptimistic(logDate);
 
-  // Push to Supabase in background
+  // Push to Supabase in background — the RPC response will
+  // update cachedStreak with server-authoritative values.
   pushDailyLog(logDate, calories).catch(() => {});
 
   return getStreakInfo();

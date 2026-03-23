@@ -15,17 +15,19 @@ import { useAuth } from "../auth/useAuth";
 import { useGoalsStore } from "../goals/goals.store";
 import { useNutritionStore } from "../nutrition/nutrition.store";
 import type { MealEntry } from "../nutrition/nutrition.types";
+import { useProfileStore } from "../profile/profile.store";
 import { useProgressStore } from "../progress/progress.store";
 import { fetchStreak, recordMealLogged } from "../streak/streak.service";
 import { useStreakStore } from "../streak/streak.store";
 import {
-  pushAllToSupabase,
-  pushGoals,
-  pushMeal,
-  pushMealDelete,
-  pushMealUpdate,
-  pushWeightLog,
-  restoreFromSupabase,
+    pushAllToSupabase,
+    pushGoals,
+    pushMeal,
+    pushMealDelete,
+    pushMealUpdate,
+    pushProfile,
+    pushWeightLog,
+    restoreFromSupabase,
 } from "./sync.service";
 
 /**
@@ -39,15 +41,19 @@ function toLocalDate(date: Date = new Date()): string {
   return `${y}-${m}-${d}`;
 }
 
-/** Compute streak from local meal data (no network needed) */
-function computeLocalStreak(): void {
+/**
+ * Compute streak from local meal data (no network needed).
+ * Used as a fallback when offline or to reconcile after sync.
+ * When `force` is true, always writes the computed value (remote sync just finished).
+ * Otherwise only bumps the streak upward (offline-first pre-login path).
+ */
+function computeLocalStreak(force = false): void {
   const meals = useNutritionStore.getState().meals;
   if (meals.length === 0) return;
 
   // Collect unique local dates that have at least one meal
   const loggedDates = new Set<string>();
   for (const meal of meals) {
-    // Convert the ISO timestamp to the device's local date
     loggedDates.add(toLocalDate(new Date(meal.loggedAt)));
   }
 
@@ -63,13 +69,17 @@ function computeLocalStreak(): void {
   }
 
   const currentInfo = useStreakStore.getState();
-  // Only update if local computation gives a better result
-  if (streak > currentInfo.currentStreak) {
+
+  if (force || streak > currentInfo.currentStreak) {
+    // Compute streakStartDate by walking back `streak` days from today
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - (streak - 1));
+
     useStreakStore.getState().setStreak({
       currentStreak: streak,
       longestStreak: Math.max(streak, currentInfo.longestStreak),
       lastLogDate: today,
-      streakStartDate: currentInfo.streakStartDate,
+      streakStartDate: streak > 0 ? toLocalDate(startDate) : null,
     });
   }
 }
@@ -113,9 +123,13 @@ export function useProgressSync(): void {
       await pushAllToSupabase();
       // Then restore anything from remote we don't have locally
       await restoreFromSupabase();
-      // Fetch current streak (remote may have more data)
-      const streak = await fetchStreak();
-      useStreakStore.getState().setStreak(streak);
+      // Fetch authoritative streak from the server
+      const remoteStreak = await fetchStreak();
+      useStreakStore.getState().setStreak(remoteStreak);
+      // Re-derive streak from the now-merged local+remote meals
+      // so the result is accurate even if the server RPC is stale.
+      // force=true so local computation can correct downward too.
+      computeLocalStreak(true);
     })();
   }, [userId]);
 
@@ -211,6 +225,21 @@ export function useProgressSync(): void {
       if (state.plan) {
         pushGoals(state.goalType, state.plan, state.timeframeWeeks);
       }
+    });
+
+    return unsub;
+  }, [userId]);
+
+  // ── Subscribe to profile changes → push to Supabase ──
+  useEffect(() => {
+    if (!userId) return;
+
+    let prevProfile = useProfileStore.getState().profile;
+
+    const unsub = useProfileStore.subscribe((state) => {
+      if (state.profile === prevProfile) return;
+      prevProfile = state.profile;
+      pushProfile(state.profile);
     });
 
     return unsub;

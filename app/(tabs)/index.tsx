@@ -55,12 +55,12 @@ import { haptics } from "../../src/infrastructure/haptics";
 import { useTheme } from "../../src/theme/useTheme";
 import { DaySelector } from "../../src/ui/components/DaySelector";
 import { EditMealSheet } from "../../src/ui/components/EditMealSheet";
-import { ManualLogSheet } from "../../src/ui/components/ManualLogSheet";
-import { VoiceLogSheet } from "../../src/ui/components/VoiceLogSheet";
 import { MacroCard } from "../../src/ui/components/MacroCard";
+import { ManualLogSheet } from "../../src/ui/components/ManualLogSheet";
 import { MealCard } from "../../src/ui/components/MealCard";
 import { MonthlyView } from "../../src/ui/components/MonthlyView";
 import { ProgressRing } from "../../src/ui/components/ProgressRing";
+import { VoiceLogSheet } from "../../src/ui/components/VoiceLogSheet";
 import { WaterCard } from "../../src/ui/components/WaterCard";
 import { WeeklyView } from "../../src/ui/components/WeeklyView";
 import { GlassSegmentedControl } from "../../src/ui/glass/GlassSegmentedControl";
@@ -126,6 +126,9 @@ export default function HomeScreen() {
     isToday,
     goToNextWeek,
     goToPrevWeek,
+    goToNextMonth,
+    goToPrevMonth,
+    goToToday,
     latestWeight,
     calorieBudget,
     dailySummary,
@@ -838,6 +841,10 @@ export default function HomeScreen() {
                 onSelectDay={handleDaySelect}
                 weekSummary={weekSummary}
                 calorieBudget={calorieBudget}
+                onPrevWeek={goToPrevWeek}
+                onNextWeek={goToNextWeek}
+                onToday={goToToday}
+                isToday={isToday}
               />
             </View>
           )}
@@ -851,6 +858,10 @@ export default function HomeScreen() {
                 dayColors={monthDayColors}
                 selectedDate={selectedDate}
                 onSelectDay={handleMonthDaySelect}
+                onPrevMonth={goToPrevMonth}
+                onNextMonth={goToNextMonth}
+                onToday={goToToday}
+                isToday={isToday}
               />
             </View>
           )}

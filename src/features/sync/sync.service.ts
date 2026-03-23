@@ -14,6 +14,8 @@ import { useGoalsStore } from "../goals/goals.store";
 import type { GoalPlan } from "../goals/goals.types";
 import { useNutritionStore } from "../nutrition/nutrition.store";
 import type { MealEntry } from "../nutrition/nutrition.types";
+import { useProfileStore } from "../profile/profile.store";
+import type { UserProfile } from "../profile/profile.types";
 import { useProgressStore } from "../progress/progress.store";
 import type { WeightLog } from "../progress/progress.types";
 
@@ -276,6 +278,67 @@ export async function pullGoals(): Promise<{
   }
 }
 
+// ── Profile Sync ─────────────────────────────────────────────
+
+export async function pushProfile(profile: UserProfile): Promise<void> {
+  const userId = await getUserId();
+  if (!userId) return;
+
+  try {
+    const client = getSupabaseClient();
+    await client.from("user_profiles").upsert(
+      {
+        user_id: userId,
+        gender: profile.gender,
+        birth_year: profile.birthYear,
+        height_cm: profile.heightCm,
+        current_weight_lbs: profile.currentWeightLbs,
+        goal_weight_lbs: profile.goalWeightLbs,
+        activity_level: profile.activityLevel,
+        weight_unit: profile.weightUnit,
+        height_unit: profile.heightUnit,
+        onboarding_completed: profile.onboardingCompleted,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" }
+    );
+  } catch (e) {
+    logSyncError("pushProfile", e);
+  }
+}
+
+export async function pullProfile(): Promise<UserProfile | null> {
+  const userId = await getUserId();
+  if (!userId) return null;
+
+  try {
+    const client = getSupabaseClient();
+    const { data, error } = await client
+      .from("user_profiles")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+
+    if (error || !data) return null;
+
+    return {
+      id: userId,
+      gender: data.gender ?? null,
+      birthYear: data.birth_year ?? null,
+      heightCm: data.height_cm ?? null,
+      currentWeightLbs: data.current_weight_lbs ?? null,
+      goalWeightLbs: data.goal_weight_lbs ?? null,
+      activityLevel: data.activity_level ?? null,
+      weightUnit: data.weight_unit ?? "lbs",
+      heightUnit: data.height_unit ?? "cm",
+      onboardingCompleted: data.onboarding_completed ?? false,
+    };
+  } catch (e) {
+    logSyncError("pullProfile", e);
+    return null;
+  }
+}
+
 // ── Full Restore (login / app startup) ───────────────────────
 
 export async function restoreFromSupabase(): Promise<void> {
@@ -283,11 +346,13 @@ export async function restoreFromSupabase(): Promise<void> {
   if (!userId) return;
 
   try {
-    const [remoteMeals, remoteWeightLogs, remoteGoals] = await Promise.all([
-      pullMeals(),
-      pullWeightLogs(),
-      pullGoals(),
-    ]);
+    const [remoteMeals, remoteWeightLogs, remoteGoals, remoteProfile] =
+      await Promise.all([
+        pullMeals(),
+        pullWeightLogs(),
+        pullGoals(),
+        pullProfile(),
+      ]);
 
     // Merge meals: remote wins for any ID not in local, local wins for local-only
     const localMeals = useNutritionStore.getState().meals;
@@ -322,6 +387,40 @@ export async function restoreFromSupabase(): Promise<void> {
         plan: remoteGoals.plan,
         timeframeWeeks: remoteGoals.timeframeWeeks,
       });
+    }
+
+    // Profile: remote wins if onboarding was completed remotely
+    if (remoteProfile) {
+      const localProfile = useProfileStore.getState().profile;
+      if (
+        remoteProfile.onboardingCompleted &&
+        !localProfile.onboardingCompleted
+      ) {
+        // Remote completed onboarding — use remote data wholesale
+        useProfileStore.getState().updateProfile(remoteProfile);
+      } else if (
+        !localProfile.onboardingCompleted &&
+        !remoteProfile.onboardingCompleted
+      ) {
+        // Neither finished — merge any non-null fields from remote
+        const merged: Partial<UserProfile> = {};
+        const fields: (keyof UserProfile)[] = [
+          "gender",
+          "birthYear",
+          "heightCm",
+          "currentWeightLbs",
+          "goalWeightLbs",
+          "activityLevel",
+        ];
+        for (const f of fields) {
+          if (localProfile[f] == null && remoteProfile[f] != null) {
+            (merged as any)[f] = remoteProfile[f];
+          }
+        }
+        if (Object.keys(merged).length > 0) {
+          useProfileStore.getState().updateProfile(merged);
+        }
+      }
     }
   } catch (e) {
     logSyncError("restoreFromSupabase", e);
@@ -377,6 +476,10 @@ export async function pushAllToSupabase(): Promise<void> {
     if (plan) {
       await pushGoals(goalType, plan, timeframeWeeks);
     }
+
+    // Push profile
+    const profile = useProfileStore.getState().profile;
+    await pushProfile(profile);
   } catch (e) {
     logSyncError("pushAllToSupabase", e);
   }

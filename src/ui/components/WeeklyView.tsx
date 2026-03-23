@@ -3,8 +3,10 @@
  *
  * Shows M T W T F S S labels with circular day bubbles
  * and calorie progress arcs. Glass aesthetic.
+ * Prev/next week navigation arrows with date range label.
  */
 
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
@@ -14,6 +16,12 @@ import { TText } from "../primitives/TText";
 const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
 const CIRCLE_SIZE = 40;
 const STROKE_W = 3;
+
+/** Format "2025-03-15" → "Mar 15" */
+function formatShortDate(iso: string): string {
+  const d = new Date(iso + "T12:00:00");
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
 
 interface WeeklyViewProps {
   weekDays: {
@@ -34,6 +42,10 @@ interface WeeklyViewProps {
     daysWithData: number;
   };
   calorieBudget: number;
+  onPrevWeek: () => void;
+  onNextWeek: () => void;
+  onToday?: () => void;
+  isToday?: boolean;
 }
 
 export function WeeklyView({
@@ -44,13 +56,52 @@ export function WeeklyView({
   onSelectDay,
   weekSummary,
   calorieBudget,
+  onPrevWeek,
+  onNextWeek,
+  onToday,
+  isToday,
 }: WeeklyViewProps) {
   const { theme } = useTheme();
   const radius = (CIRCLE_SIZE - STROKE_W) / 2;
   const circumference = 2 * Math.PI * radius;
 
+  // Date range label from first to last day of this week
+  const weekLabel =
+    weekDays.length >= 7
+      ? `${formatShortDate(weekDays[0].key)} – ${formatShortDate(weekDays[6].key)}`
+      : "";
+
   return (
     <View style={styles.container}>
+      {/* Week navigation header */}
+      <View style={styles.navRow}>
+        <Pressable onPress={onPrevWeek} hitSlop={12}>
+          <Ionicons
+            name="chevron-back"
+            size={22}
+            color={theme.colors.textSecondary}
+          />
+        </Pressable>
+        <Pressable onPress={onToday} disabled={isToday}>
+          <TText
+            style={[
+              styles.navLabel,
+              {
+                color: isToday ? theme.colors.textMuted : theme.colors.primary,
+              },
+            ]}
+          >
+            {weekLabel}
+          </TText>
+        </Pressable>
+        <Pressable onPress={onNextWeek} hitSlop={12}>
+          <Ionicons
+            name="chevron-forward"
+            size={22}
+            color={theme.colors.textSecondary}
+          />
+        </Pressable>
+      </View>
       {/* Day circles grid */}
       <View style={styles.daysRow}>
         {weekDays.map((day, idx) => {
@@ -204,6 +255,17 @@ const styles = StyleSheet.create({
   container: {
     alignItems: "center",
     gap: 20,
+  },
+  navRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+    paddingHorizontal: 4,
+  },
+  navLabel: {
+    fontSize: 14,
+    fontWeight: "600",
   },
   daysRow: {
     flexDirection: "row",

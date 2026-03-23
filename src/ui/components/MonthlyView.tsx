@@ -3,9 +3,11 @@
  *
  * Shows full month grid with numbered day circles,
  * progress arcs for days with data, and month summary.
+ * Prev/next month navigation arrows.
  * Glass aesthetic matching the app's design system.
  */
 
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
@@ -30,6 +32,10 @@ interface MonthlyViewProps {
   dayColors?: Map<string, string>; // iso date → severity color
   selectedDate: string;
   onSelectDay: (isoDate: string) => void;
+  onPrevMonth: () => void;
+  onNextMonth: () => void;
+  onToday?: () => void;
+  isToday?: boolean;
 }
 
 export function MonthlyView({
@@ -38,6 +44,10 @@ export function MonthlyView({
   dayColors,
   selectedDate,
   onSelectDay,
+  onPrevMonth,
+  onNextMonth,
+  onToday,
+  isToday,
 }: MonthlyViewProps) {
   const { theme } = useTheme();
   const radius = (CELL_SIZE - STROKE_W) / 2;
@@ -57,10 +67,35 @@ export function MonthlyView({
 
   return (
     <View style={styles.container}>
-      {/* Month header */}
-      <TText style={[styles.monthLabel, { color: theme.colors.text }]}>
-        {monthGrid.monthLabel}
-      </TText>
+      {/* Month navigation header */}
+      <View style={styles.navRow}>
+        <Pressable onPress={onPrevMonth} hitSlop={12}>
+          <Ionicons
+            name="chevron-back"
+            size={22}
+            color={theme.colors.textSecondary}
+          />
+        </Pressable>
+        <Pressable onPress={onToday} disabled={isToday}>
+          <TText
+            style={[
+              styles.monthLabel,
+              {
+                color: isToday ? theme.colors.text : theme.colors.primary,
+              },
+            ]}
+          >
+            {monthGrid.monthLabel}
+          </TText>
+        </Pressable>
+        <Pressable onPress={onNextMonth} hitSlop={12}>
+          <Ionicons
+            name="chevron-forward"
+            size={22}
+            color={theme.colors.textSecondary}
+          />
+        </Pressable>
+      </View>
 
       {/* Day headers */}
       <View style={styles.headerRow}>
@@ -208,11 +243,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
+  navRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+    paddingHorizontal: 4,
+    marginBottom: 4,
+  },
   monthLabel: {
     fontSize: 16,
     fontWeight: "700",
     letterSpacing: 0.3,
-    marginBottom: 4,
   },
   headerRow: {
     flexDirection: "row",
