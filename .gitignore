@@ -33,6 +33,9 @@ ci-logs/
 .DS_Store
 *.pem
 
+# IDE
+.idea/
+
 # local env files
 .env
 .env*.local
@@ -52,6 +55,7 @@ ios/Pods/Pods.xcodeproj/
 android/build/
 android/app/build/
 android/.gradle/
+android/local.properties
 
 # Firebase configs (production secrets NOT committed)
 # Keep dev configs for local development
