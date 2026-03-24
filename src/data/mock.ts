@@ -6,14 +6,14 @@
  */
 
 import type {
-  DailyNutritionSummary,
-  GoalPlan,
-  MacroTargets,
-  MealEntry,
-  PermissionState,
-  SubscriptionState,
-  UserProfile,
-  WeightLog,
+    DailyNutritionSummary,
+    GoalPlan,
+    MacroTargets,
+    MealEntry,
+    PermissionState,
+    SubscriptionState,
+    UserProfile,
+    WeightLog,
 } from "../types/nutrition";
 
 // ─── User Profile ──────────────────────────────────────────────
@@ -28,6 +28,8 @@ export const MOCK_USER: UserProfile = {
   weightUnit: "lbs",
   heightUnit: "cm",
   onboardingCompleted: true,
+  waterGoalMl: 2000,
+  waterIncrementMl: 250,
 };
 
 // ─── Goal Plan ─────────────────────────────────────────────────
@@ -149,6 +151,16 @@ export const MOCK_SUBSCRIPTION: SubscriptionState = {
 // ─── Weekday helpers ───────────────────────────────────────────
 export const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"] as const;
 export const MONTH_LABELS = [
-  "J", "F", "M", "A", "M", "J",
-  "J", "A", "S", "O", "N", "D",
+  "J",
+  "F",
+  "M",
+  "A",
+  "M",
+  "J",
+  "J",
+  "A",
+  "S",
+  "O",
+  "N",
+  "D",
 ] as const;

@@ -14,6 +14,8 @@ export const mockProfile: UserProfile = {
   weightUnit: "lbs",
   heightUnit: "cm",
   onboardingCompleted: true,
+  waterGoalMl: 2000,
+  waterIncrementMl: 250,
 };
 
 export const mockPlan: GoalPlan = {
