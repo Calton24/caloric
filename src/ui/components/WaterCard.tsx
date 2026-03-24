@@ -74,16 +74,12 @@ export function WaterCard({
   };
 
   return (
-    <View
-      testID="water-card"
-      style={[
-        styles.container,
-        { backgroundColor: theme.colors.surfaceSecondary },
-      ]}
-    >
+    <View testID="water-card" style={styles.container}>
       {/* Left: animated glass icon + info */}
       <View style={styles.left}>
-        <View style={[styles.iconWrap, { backgroundColor: theme.colors.surface }]}>
+        <View
+          style={[styles.iconWrap, { backgroundColor: theme.colors.surface }]}
+        >
           <WaterGlass progress={progress} />
         </View>
 
@@ -104,15 +100,6 @@ export function WaterCard({
             >
               {formatAmount(currentMl)}
             </TText>
-            {onSettings && (
-              <Pressable onPress={onSettings} hitSlop={8}>
-                <Ionicons
-                  name="settings-outline"
-                  size={14}
-                  color={theme.colors.textMuted}
-                />
-              </Pressable>
-            )}
           </View>
         </View>
       </View>
@@ -147,11 +134,7 @@ export function WaterCard({
             },
           ]}
         >
-          <Ionicons
-            name="add"
-            size={18}
-            color={theme.colors.textInverse}
-          />
+          <Ionicons name="add" size={18} color={theme.colors.textInverse} />
         </Pressable>
       </View>
     </View>

@@ -1,15 +1,19 @@
 /**
  * MealCard
  * Displays a single meal log entry with emoji, title, time, macros.
- * Supports tap to edit and swipe-to-delete.
+ * Supports tap to edit and swipe-to-delete with polished animations.
  */
 
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import React, { useRef } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import Animated, {
+    SlideInRight,
+    SlideOutRight
+} from "react-native-reanimated";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -43,12 +47,16 @@ export function MealCard({
 
   const handleDelete = () => {
     swipeRef.current?.close();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert("Delete Meal", `Delete "${title}"?`, [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",
         style: "destructive",
-        onPress: onDelete,
+        onPress: () => {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          onDelete?.();
+        },
       },
     ]);
   };
@@ -57,14 +65,22 @@ export function MealCard({
     if (!onDelete) return null;
     return (
       <Animated.View
-        entering={FadeIn.duration(200)}
-        exiting={FadeOut.duration(150)}
+        entering={SlideInRight.duration(250).damping(20)}
+        exiting={SlideOutRight.duration(200)}
+        style={styles.deleteActionContainer}
       >
         <Pressable
           onPress={handleDelete}
-          style={[styles.deleteAction, { backgroundColor: theme.colors.error }]}
+          style={({ pressed }) => [
+            styles.deleteAction,
+            {
+              backgroundColor: theme.colors.error,
+              opacity: pressed ? 0.85 : 1,
+              transform: [{ scale: pressed ? 0.96 : 1 }],
+            },
+          ]}
         >
-          <Ionicons name="trash-outline" size={22} color="#fff" />
+          <Ionicons name="trash" size={20} color="#fff" />
           <TText style={styles.deleteText}>Delete</TText>
         </Pressable>
       </Animated.View>
@@ -154,11 +170,23 @@ export function MealCard({
         renderRightActions={renderRightActions}
         overshootRight={false}
         friction={2}
+        rightThreshold={40}
+        onSwipeableWillOpen={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }}
       >
         {onPress ? (
           <Pressable
-            onPress={onPress}
-            style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onPress();
+            }}
+            style={({ pressed }) => [
+              {
+                opacity: pressed ? 0.85 : 1,
+                transform: [{ scale: pressed ? 0.98 : 1 }],
+              },
+            ]}
           >
             {cardContent}
           </Pressable>
@@ -173,8 +201,16 @@ export function MealCard({
   if (onPress) {
     return (
       <Pressable
-        onPress={onPress}
-        style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onPress();
+        }}
+        style={({ pressed }) => [
+          {
+            opacity: pressed ? 0.85 : 1,
+            transform: [{ scale: pressed ? 0.98 : 1 }],
+          },
+        ]}
       >
         {cardContent}
       </Pressable>
@@ -247,17 +283,27 @@ const styles = StyleSheet.create({
   chevron: {
     marginLeft: -4,
   },
+  deleteActionContainer: {
+    justifyContent: "center",
+    marginLeft: 8,
+  },
   deleteAction: {
     justifyContent: "center",
     alignItems: "center",
-    width: 80,
+    width: 75,
+    height: "100%",
     borderRadius: 14,
-    marginLeft: 8,
-    gap: 4,
+    gap: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   deleteText: {
     color: "#fff",
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.2,
   },
 });

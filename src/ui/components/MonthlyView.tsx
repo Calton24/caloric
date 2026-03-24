@@ -137,6 +137,8 @@ export function MonthlyView({
                     styles.dayCellInner,
                     isSelected && {
                       backgroundColor: `${theme.colors.primary}20`,
+                      borderRadius: CELL_SIZE / 2,
+                      overflow: "hidden",
                     },
                   ]}
                 >
@@ -287,6 +289,7 @@ const styles = StyleSheet.create({
     borderRadius: CELL_SIZE / 2,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
   dayNumber: {
     fontSize: 13,

@@ -12,6 +12,7 @@ interface ProfileStore {
   setGoalWeightLbs: (weight: number) => void;
   setActivityLevel: (level: ActivityLevel) => void;
   setOnboardingCompleted: (completed: boolean) => void;
+  setWaterSettings: (goalMl: number, incrementMl: number) => void;
   updateProfile: (updates: Partial<UserProfile>) => void;
   resetProfile: () => void;
 }
@@ -27,6 +28,8 @@ export const initialProfile: UserProfile = {
   weightUnit: "lbs",
   heightUnit: "cm",
   onboardingCompleted: false,
+  waterGoalMl: 2000,
+  waterIncrementMl: 250,
 };
 
 export const useProfileStore = create<ProfileStore>()(
@@ -67,6 +70,11 @@ export const useProfileStore = create<ProfileStore>()(
       setOnboardingCompleted: (onboardingCompleted) =>
         set((state) => ({
           profile: { ...state.profile, onboardingCompleted },
+        })),
+
+      setWaterSettings: (waterGoalMl, waterIncrementMl) =>
+        set((state) => ({
+          profile: { ...state.profile, waterGoalMl, waterIncrementMl },
         })),
 
       updateProfile: (updates) =>

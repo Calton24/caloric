@@ -20,4 +20,6 @@ export interface UserProfile {
   weightUnit: WeightUnit;
   heightUnit: HeightUnit;
   onboardingCompleted: boolean;
+  waterGoalMl: number;
+  waterIncrementMl: number;
 }

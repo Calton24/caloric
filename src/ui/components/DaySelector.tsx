@@ -149,9 +149,9 @@ export function DaySelector({
         (finished) => {
           if (!finished) return;
           if (target > 0) {
-            runOnJS(doPrev)();
-          } else {
             runOnJS(doNext)();
+          } else {
+            runOnJS(doPrev)();
           }
           offsetX.value = 0;
         }
@@ -212,14 +212,14 @@ export function DaySelector({
                       <View
                         style={[
                           styles.circle,
-                          isSelected && {
-                            backgroundColor: arcColor,
-                          },
-                          day.isToday &&
-                            !isSelected && {
-                              borderWidth: 1.5,
-                              borderColor: arcColor,
+                          isSelected &&
+                            !day.isToday && {
+                              backgroundColor: arcColor,
                             },
+                          day.isToday && {
+                            borderWidth: 1.5,
+                            borderColor: arcColor,
+                          },
                         ]}
                       >
                         {/* Progress arc ring */}
@@ -258,11 +258,10 @@ export function DaySelector({
                           style={[
                             styles.num,
                             {
-                              color: isSelected
-                                ? theme.colors.textInverse
-                                : day.isToday
-                                  ? arcColor
-                                  : theme.colors.text,
+                              color:
+                                isSelected && !day.isToday
+                                  ? theme.colors.textInverse
+                                  : arcColor,
                               fontWeight:
                                 isSelected || day.isToday ? "700" : "500",
                             },
@@ -327,6 +326,7 @@ const styles = StyleSheet.create({
     borderRadius: CIRCLE_SZ / 2,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
   ring: {
     position: "absolute",

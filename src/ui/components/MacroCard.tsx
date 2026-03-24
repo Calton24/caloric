@@ -1,19 +1,44 @@
-/**
+﻿/**
  * MacroCard
- * Displays a single macro nutrient with a thick rounded progress bar.
- * Shows label, thick bar, and consumed/target grams.
+ * Circular arc progress card in CalAI style:
+ * bold number + label at top, 270-degree SVG arc ring with emoji icon centred.
  */
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { StyleSheet, View } from "react-native";
+import Animated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedProps,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from "react-native-reanimated";
+import Svg, { Circle } from "react-native-svg";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+// Arc ring geometry (270 degree arc, gap at bottom)
+const RING_SIZE = 84;
+const STROKE_W = 7;
+const RADIUS = (RING_SIZE - STROKE_W) / 2; // 38.5
+const CIRC = 2 * Math.PI * RADIUS;         // ~241.9
+const ARC_FRAC = 0.75;                     // 270 deg
+const ARC_LEN = CIRC * ARC_FRAC;           // ~181.4
 
 interface MacroCardProps {
   label: string;
   consumedG: number;
   targetG: number;
   color: string;
+  /** Emoji shown in the centre of the ring */
+  icon?: string;
+  /** Unit appended to the number (default: "g") */
+  unit?: string;
+  /** Whether to show remaining (target-consumed) or consumed value (default: "remaining") */
+  display?: "remaining" | "consumed";
 }
 
 export function MacroCard({
@@ -21,74 +46,152 @@ export function MacroCard({
   consumedG,
   targetG,
   color,
+  icon = "",
+  unit = "g",
+  display = "remaining",
 }: MacroCardProps) {
   const { theme } = useTheme();
-  const progress =
-    targetG > 0 ? Math.min(consumedG / targetG, 1) : consumedG > 0 ? 1 : 0;
+
+  const hasTarget = targetG > 0;
+  const rawProgress = hasTarget ? consumedG / targetG : 0;
+  const progress = Math.min(rawProgress, 1);
+
+  const displayNum =
+    display === "remaining"
+      ? hasTarget
+        ? Math.max(targetG - consumedG, 0)
+        : consumedG
+      : consumedG;
+
+  const animProg = useSharedValue(0);
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    cancelAnimation(animProg);
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      animProg.value = withTiming(progress, {
+        duration: 700,
+        easing: Easing.out(Easing.cubic),
+      });
+    } else {
+      animProg.value = 0;
+      animProg.value = withDelay(
+        50,
+        withTiming(progress, { duration: 600, easing: Easing.out(Easing.cubic) })
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progress]);
+
+  // strokeDashoffset drives the animated arc fill.
+  // offset=CIRC  => nothing drawn  (progress 0)
+  // offset=CIRC-ARC_LEN => full 270-deg arc drawn  (progress 1)
+  const animatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: CIRC - ARC_LEN * animProg.value,
+  }));
+
+  const trackColor =
+    theme.mode === "dark" ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.07)";
 
   return (
     <View
       testID={`macro-${label.toLowerCase()}`}
-      style={[
-        styles.container,
-        { backgroundColor: theme.colors.surfaceSecondary },
-      ]}
+      style={[styles.card, { backgroundColor: theme.colors.surface }]}
     >
+      {/* Number */}
+      <TText style={[styles.number, { color: theme.colors.text }]}>
+        {Math.round(displayNum).toLocaleString()}
+        <TText style={[styles.unitText, { color: theme.colors.text }]}>{unit}</TText>
+      </TText>
+
+      {/* Label */}
       <TText style={[styles.label, { color: theme.colors.textSecondary }]}>
-        {label}
+        {label}{" "}
+        <TText style={[styles.leftText, { color: theme.colors.textMuted }]}>left</TText>
       </TText>
-      <View
-        style={[
-          styles.track,
-          { backgroundColor: theme.colors.surfaceElevated },
-        ]}
-      >
-        <View
-          style={[
-            styles.fill,
-            {
-              backgroundColor: color,
-              width: `${progress * 100}%`,
-            },
-          ]}
-        />
+
+      {/* Arc ring */}
+      <View style={styles.ringWrap}>
+        <Svg width={RING_SIZE} height={RING_SIZE}>
+          {/* Static track arc (270-deg, gap at bottom) */}
+          <Circle
+            cx={RING_SIZE / 2}
+            cy={RING_SIZE / 2}
+            r={RADIUS}
+            strokeDasharray={`${ARC_LEN} ${CIRC - ARC_LEN}`}
+            strokeDashoffset={0}
+            rotation={135}
+            origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
+            stroke={trackColor}
+            strokeWidth={STROKE_W}
+            fill="none"
+            strokeLinecap="round"
+          />
+          {/* Animated progress arc */}
+          <AnimatedCircle
+            cx={RING_SIZE / 2}
+            cy={RING_SIZE / 2}
+            r={RADIUS}
+            strokeDasharray={CIRC}
+            rotation={135}
+            origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
+            stroke={color}
+            strokeWidth={STROKE_W}
+            fill="none"
+            strokeLinecap="round"
+            animatedProps={animatedProps}
+          />
+        </Svg>
+
+        {/* Icon centred in ring */}
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+          <View style={styles.iconWrap}>
+            <TText style={styles.icon}>{icon}</TText>
+          </View>
+        </View>
       </View>
-      <TText style={[styles.value, { color: theme.colors.text }]}>
-        {Math.round(consumedG * 10) / 10}
-        <TText style={[styles.unit, { color: theme.colors.textMuted }]}>
-          /{targetG}g
-        </TText>
-      </TText>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  card: {
     flex: 1,
-    borderRadius: 14,
-    padding: 12,
-    gap: 8,
+    borderRadius: 16,
+    padding: 14,
+    alignItems: "flex-start",
+    gap: 2,
+  },
+  number: {
+    fontSize: 22,
+    fontWeight: "800",
+    letterSpacing: -0.5,
+  },
+  unitText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
   label: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "500",
   },
-  track: {
-    height: 10,
-    borderRadius: 5,
-    overflow: "hidden",
-  },
-  fill: {
-    height: 10,
-    borderRadius: 5,
-  },
-  value: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  unit: {
-    fontSize: 13,
+  leftText: {
     fontWeight: "400",
+    fontSize: 12,
+  },
+  ringWrap: {
+    width: RING_SIZE,
+    height: RING_SIZE,
+    alignSelf: "center",
+    marginTop: 10,
+  },
+  iconWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  icon: {
+    fontSize: 22,
   },
 });

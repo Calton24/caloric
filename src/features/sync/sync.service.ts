@@ -298,6 +298,8 @@ export async function pushProfile(profile: UserProfile): Promise<void> {
         weight_unit: profile.weightUnit,
         height_unit: profile.heightUnit,
         onboarding_completed: profile.onboardingCompleted,
+        water_goal_ml: profile.waterGoalMl,
+        water_increment_ml: profile.waterIncrementMl,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id" }
@@ -332,6 +334,8 @@ export async function pullProfile(): Promise<UserProfile | null> {
       weightUnit: data.weight_unit ?? "lbs",
       heightUnit: data.height_unit ?? "cm",
       onboardingCompleted: data.onboarding_completed ?? false,
+      waterGoalMl: data.water_goal_ml ?? 2000,
+      waterIncrementMl: data.water_increment_ml ?? 250,
     };
   } catch (e) {
     logSyncError("pullProfile", e);

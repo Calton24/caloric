@@ -10,48 +10,51 @@
  */
 
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Dimensions,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
+    Dimensions,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    View,
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-  Easing,
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
+    Easing,
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  getOverLimitColor,
-  useOverLimitColor,
+    getOverLimitColor,
+    useOverLimitColor,
 } from "../../hooks/useOverLimitColor";
 import { useUnits } from "../../hooks/useUnits";
 import { useHomeData } from "../../src/features/home/use-home-data";
 import type { MealTime } from "../../src/features/nutrition/mealtime";
 import {
-  MEALTIME_ICONS,
-  MEALTIME_LABELS,
-  mealTimeFromISO,
+    MEALTIME_ICONS,
+    MEALTIME_LABELS,
+    mealTimeFromISO,
 } from "../../src/features/nutrition/mealtime";
 import {
-  type FoodMemoryEntry,
-  getFrequentFoods,
-  hasMemory,
+    type FoodMemoryEntry,
+    getFrequentFoods,
+    hasMemory,
 } from "../../src/features/nutrition/memory/food-memory.service";
 import { useNutritionDraftStore } from "../../src/features/nutrition/nutrition.draft.store";
 import type { MealDraft } from "../../src/features/nutrition/nutrition.draft.types";
 import { useNutritionStore } from "../../src/features/nutrition/nutrition.store";
 import { useProfileStore } from "../../src/features/profile/profile.store";
 import { useStreakStore } from "../../src/features/streak/streak.store";
+import { useWaterStore } from "../../src/features/water/water.store";
 import { haptics } from "../../src/infrastructure/haptics";
+import { toISODate } from "../../src/lib/utils/date";
 import { useTheme } from "../../src/theme/useTheme";
 import { DaySelector } from "../../src/ui/components/DaySelector";
 import { EditMealSheet } from "../../src/ui/components/EditMealSheet";
@@ -60,13 +63,87 @@ import { ManualLogSheet } from "../../src/ui/components/ManualLogSheet";
 import { MealCard } from "../../src/ui/components/MealCard";
 import { MonthlyView } from "../../src/ui/components/MonthlyView";
 import { ProgressRing } from "../../src/ui/components/ProgressRing";
+import { StreakModal } from "../../src/ui/components/StreakModal";
 import { VoiceLogSheet } from "../../src/ui/components/VoiceLogSheet";
 import { WaterCard } from "../../src/ui/components/WaterCard";
+import { WaterSettingsModal } from "../../src/ui/components/WaterSettingsModal";
 import { WeeklyView } from "../../src/ui/components/WeeklyView";
 import { GlassSegmentedControl } from "../../src/ui/glass/GlassSegmentedControl";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 import { useBottomSheet } from "../../src/ui/sheets/useBottomSheet";
+
+/** Animated number display using React state with smooth transitions */
+function AnimatedNumber({ value, style }: { value: number; style?: any }) {
+  const [displayValue, setDisplayValue] = React.useState(value);
+
+  React.useEffect(() => {
+    const startValue = displayValue;
+    const endValue = value;
+    const duration = 400; // ms
+    const startTime = Date.now();
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Ease-out function
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = startValue + (endValue - startValue) * eased;
+
+      setDisplayValue(Math.round(current));
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]); // Only depend on the target value
+
+  return <TText style={style}>{displayValue}</TText>;
+}
+
+/** Animated weight display */
+function AnimatedWeight({
+  currentValue,
+  units,
+  style,
+}: {
+  currentValue: number;
+  units: any;
+  style?: any;
+}) {
+  const [displayValue, setDisplayValue] = React.useState(currentValue);
+
+  React.useEffect(() => {
+    const startValue = displayValue;
+    const endValue = currentValue;
+    const duration = 400; // ms
+    const startTime = Date.now();
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Ease-out function
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = startValue + (endValue - startValue) * eased;
+
+      setDisplayValue(current);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentValue]);
+
+  return <TText style={style}>{units.format(displayValue, 0)}</TText>;
+}
 
 /** Macro accent colors */
 const MACRO_COLORS = {
@@ -100,15 +177,146 @@ const VIEW_MODE_OPTIONS = [
 
 type ViewMode = "D" | "W" | "M";
 
+/**
+ * SwipeTutorialOverlay
+ * Animated tutorial showing users they can swipe to delete meals
+ */
+function SwipeTutorialOverlay({
+  onDismiss,
+  theme,
+}: {
+  onDismiss: () => void;
+  theme: any;
+}) {
+  const translateX = useSharedValue(0);
+  const opacity = useSharedValue(0);
+
+  React.useEffect(() => {
+    // Fade in
+    opacity.value = withTiming(1, { duration: 300 });
+
+    // Auto-play swipe animation in a loop
+    const animate = () => {
+      translateX.value = 0;
+      translateX.value = withTiming(
+        -90,
+        { duration: 800, easing: Easing.inOut(Easing.ease) },
+        (finished) => {
+          if (finished) {
+            translateX.value = withTiming(0, { duration: 600 }, (done) => {
+              if (done) {
+                // Loop after 1 second delay
+                setTimeout(animate, 1000);
+              }
+            });
+          }
+        }
+      );
+    };
+
+    // Start after short delay
+    const timer = setTimeout(animate, 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const cardStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
+  const deleteStyle = useAnimatedStyle(() => ({
+    opacity: translateX.value < -40 ? 1 : 0,
+  }));
+
+  const overlayStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
+
+  return (
+    <Animated.View style={[styles.tutorialOverlay, overlayStyle]}>
+      <Pressable style={styles.tutorialBackdrop} onPress={onDismiss}>
+        <View style={styles.tutorialContent}>
+          <TText style={styles.tutorialTitle}>Swipe to Delete</TText>
+          <TText
+            style={[styles.tutorialHint, { color: theme.colors.textSecondary }]}
+          >
+            Swipe any meal left to remove it
+          </TText>
+
+          <View style={styles.tutorialDemo}>
+            <Animated.View style={[styles.tutorialCard, cardStyle]}>
+              <View style={styles.tutorialIcon}>
+                <TText style={{ fontSize: 20 }}>🍎</TText>
+              </View>
+              <View style={{ flex: 1 }}>
+                <TText
+                  style={[
+                    styles.tutorialMealName,
+                    { color: theme.colors.text },
+                  ]}
+                >
+                  Sample Meal
+                </TText>
+                <TText
+                  style={[
+                    styles.tutorialMealCal,
+                    { color: theme.colors.textMuted },
+                  ]}
+                >
+                  250 cal
+                </TText>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={theme.colors.textMuted}
+              />
+            </Animated.View>
+
+            <Animated.View style={[styles.tutorialDelete, deleteStyle]}>
+              <Ionicons name="trash" size={20} color="#fff" />
+            </Animated.View>
+          </View>
+
+          <Pressable
+            onPress={onDismiss}
+            style={[
+              styles.tutorialButton,
+              { backgroundColor: theme.colors.primary },
+            ]}
+          >
+            <TText
+              style={[
+                styles.tutorialButtonText,
+                { color: theme.colors.textInverse },
+              ]}
+            >
+              Got it!
+            </TText>
+          </Pressable>
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 export default function HomeScreen() {
   const { theme } = useTheme();
   const router = useRouter();
   const units = useUnits();
   const [viewMode, setViewMode] = useState<ViewMode>("D");
-  const [waterMl, setWaterMl] = useState(0);
+  const [showSwipeTutorial, setShowSwipeTutorial] = useState(false);
+  const [showStreakModal, setShowStreakModal] = useState(false);
+  const [showWaterSettings, setShowWaterSettings] = useState(false);
+  const [macroPage, setMacroPage] = useState(0);
+  const [macroPagerWidth, setMacroPagerWidth] = useState(0);
   const { open: openSheet, close: closeSheet } = useBottomSheet();
-  const WATER_INCREMENT = 250; // ml per tap
-  const WATER_GOAL = 2500; // ml
+
+  // ── Water state from stores ──
+  const todayISO = new Date().toISOString().split("T")[0];
+  const waterMl = useWaterStore((s) => s.intakeByDate[todayISO] ?? 0);
+  const { addMl: addWater, subtractMl: subtractWater } = useWaterStore();
+  const waterGoalMl = useProfileStore((s) => s.profile.waterGoalMl);
+  const waterIncrementMl = useProfileStore((s) => s.profile.waterIncrementMl);
 
   // ── Derived data from stores ──
   const {
@@ -145,6 +353,9 @@ export default function HomeScreen() {
   const removeMeal = useNutritionStore((s) => s.removeMeal);
   const goalWeightLbs = useProfileStore((s) => s.profile.goalWeightLbs);
   const currentStreak = useStreakStore((s) => s.currentStreak);
+  const longestStreak = useStreakStore((s) => s.longestStreak);
+  const lastLogDate = useStreakStore((s) => s.lastLogDate);
+  const streakStartDate = useStreakStore((s) => s.streakStartDate);
 
   const todayMeals = dailySummary.meals;
 
@@ -174,6 +385,22 @@ export default function HomeScreen() {
   const displayWeight = latestWeight ?? 0;
   const weightTrending = (latestWeight ?? 0) <= (goalWeightLbs ?? Infinity);
 
+  // Check if user has seen swipe-to-delete tutorial
+  useEffect(() => {
+    const checkTutorial = async () => {
+      const seen = await AsyncStorage.getItem("@swipe_tutorial_seen");
+      if (!seen && todayMeals.length > 0) {
+        setShowSwipeTutorial(true);
+      }
+    };
+    checkTutorial();
+  }, [todayMeals.length]);
+
+  const dismissTutorial = async () => {
+    setShowSwipeTutorial(false);
+    await AsyncStorage.setItem("@swipe_tutorial_seen", "true");
+  };
+
   // Over-limit severity color (animated green → yellow → orange → red)
   const overLimit = useOverLimitColor(calorieProgress);
 
@@ -201,23 +428,79 @@ export default function HomeScreen() {
   const contentOffsetX = useSharedValue(0);
   const contentOpacity = useSharedValue(1);
 
-  const goToPrevDay = useCallback(() => {
+  // State change functions (no animation)
+  const changeToPrevDay = useCallback(() => {
     if (selectedDayIndex > 0) {
       handleDaySelect(selectedDayIndex - 1);
     } else {
-      goToPrevWeek();
-      setTimeout(() => handleDaySelect(6), 50);
+      // Going from Monday to previous Sunday
+      const currentDate = new Date(selectedDate + "T12:00:00");
+      currentDate.setDate(currentDate.getDate() - 1);
+      setSelectedDate(toISODate(currentDate));
     }
-  }, [selectedDayIndex, handleDaySelect, goToPrevWeek]);
+  }, [selectedDayIndex, selectedDate, handleDaySelect, setSelectedDate]);
 
-  const goToNextDay = useCallback(() => {
+  const changeToNextDay = useCallback(() => {
     if (selectedDayIndex < 6) {
       handleDaySelect(selectedDayIndex + 1);
     } else {
-      goToNextWeek();
-      setTimeout(() => handleDaySelect(0), 50);
+      // Going from Sunday to next Monday
+      const currentDate = new Date(selectedDate + "T12:00:00");
+      currentDate.setDate(currentDate.getDate() + 1);
+      setSelectedDate(toISODate(currentDate));
     }
-  }, [selectedDayIndex, handleDaySelect, goToNextWeek]);
+  }, [selectedDayIndex, selectedDate, handleDaySelect, setSelectedDate]);
+
+  // Arrow button handlers (with animation)
+  const goToPrevDay = useCallback(() => {
+    // Trigger slide-out animation
+    contentOpacity.value = withTiming(0.3, { duration: 120 });
+    contentOffsetX.value = withTiming(
+      SLIDE_OUT,
+      {
+        duration: 120,
+        easing: Easing.bezier(0.25, 0.1, 0.25, 1.0),
+      },
+      (finished) => {
+        if (!finished) return;
+        runOnJS(changeToPrevDay)();
+
+        // Slide in from right
+        contentOffsetX.value = -SLIDE_OUT * 0.6;
+        contentOpacity.value = 0.3;
+        contentOffsetX.value = withTiming(0, {
+          duration: 180,
+          easing: Easing.bezier(0.25, 0.1, 0.25, 1.0),
+        });
+        contentOpacity.value = withTiming(1, { duration: 180 });
+      }
+    );
+  }, [changeToPrevDay, contentOffsetX, contentOpacity, SLIDE_OUT]);
+
+  const goToNextDay = useCallback(() => {
+    // Trigger slide-out animation
+    contentOpacity.value = withTiming(0.3, { duration: 120 });
+    contentOffsetX.value = withTiming(
+      -SLIDE_OUT,
+      {
+        duration: 120,
+        easing: Easing.bezier(0.25, 0.1, 0.25, 1.0),
+      },
+      (finished) => {
+        if (!finished) return;
+        runOnJS(changeToNextDay)();
+
+        // Slide in from left
+        contentOffsetX.value = SLIDE_OUT * 0.6;
+        contentOpacity.value = 0.3;
+        contentOffsetX.value = withTiming(0, {
+          duration: 180,
+          easing: Easing.bezier(0.25, 0.1, 0.25, 1.0),
+        });
+        contentOpacity.value = withTiming(1, { duration: 180 });
+      }
+    );
+  }, [changeToNextDay, contentOffsetX, contentOpacity, SLIDE_OUT]);
 
   const handleMonthDaySelect = useCallback(
     (isoDate: string) => {
@@ -548,11 +831,11 @@ export default function HomeScreen() {
         },
         (finished) => {
           if (!finished) return;
-          // Fire day change
+          // Fire day change (no animation inside these functions)
           if (swiped > 0) {
-            runOnJS(goToPrevDay)();
+            runOnJS(changeToPrevDay)();
           } else {
-            runOnJS(goToNextDay)();
+            runOnJS(changeToNextDay)();
           }
           // Instantly jump to opposite side, then slide in
           contentOffsetX.value = -swiped * SLIDE_OUT * 0.6;
@@ -573,9 +856,84 @@ export default function HomeScreen() {
   }));
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <View style={styles.container}>
+      {/* Background with depth */}
+      <LinearGradient
+        colors={
+          theme.mode === "light"
+            ? [
+                "#FAFAFA", // Very light gray
+                "#FFFFFF", // Pure white
+                "#F8F8F8", // Subtle gray at bottom
+              ]
+            : [
+                theme.colors.background,
+                theme.colors.background,
+                theme.colors.surfaceSecondary,
+              ]
+        }
+        locations={[0, 0.4, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* Decorative background shapes for depth */}
+      <View style={styles.bgShapes}>
+        {theme.mode === "light" ? (
+          <>
+            {/* Ultra-subtle radial gradient for soft depth */}
+            <LinearGradient
+              colors={[
+                "rgba(0, 0, 0, 0.008)",
+                "rgba(0, 0, 0, 0.002)",
+                "rgba(0, 0, 0, 0)",
+              ]}
+              locations={[0, 0.5, 1]}
+              style={{
+                position: "absolute",
+                top: "15%",
+                left: "10%",
+                right: "10%",
+                height: 450,
+                borderRadius: 225,
+              }}
+            />
+          </>
+        ) : (
+          <>
+            {/* Dark mode shapes only */}
+            <LinearGradient
+              colors={[
+                "rgba(255, 255, 255, 0.03)",
+                "rgba(255, 255, 255, 0.01)",
+              ]}
+              style={[styles.bgShape, styles.bgShapeTopLeft]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            />
+
+            <LinearGradient
+              colors={[
+                "rgba(255, 255, 255, 0.02)",
+                "rgba(255, 255, 255, 0.005)",
+              ]}
+              style={[styles.bgShape, styles.bgShapeCenterRight]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            />
+
+            <LinearGradient
+              colors={[
+                "rgba(255, 255, 255, 0.025)",
+                "rgba(255, 255, 255, 0.01)",
+              ]}
+              style={[styles.bgShape, styles.bgShapeBottom]}
+              start={{ x: 0, y: 1 }}
+              end={{ x: 1, y: 0 }}
+            />
+          </>
+        )}
+      </View>
+
       <SafeAreaView style={styles.safe} edges={["top"]}>
         {/* Header */}
         <View testID="home-header" style={styles.header}>
@@ -589,12 +947,14 @@ export default function HomeScreen() {
             </TText>
           </View>
           <View style={styles.headerRight}>
-            <View
-              style={[
-                styles.streakPill,
-                { backgroundColor: theme.colors.surfaceSecondary },
-              ]}
+            <Pressable
+              style={styles.streakPill}
               accessibilityLabel={`${currentStreak} day streak`}
+              accessibilityRole="button"
+              onPress={() => {
+                haptics.impact("medium");
+                setShowStreakModal(true);
+              }}
             >
               <TText
                 style={[
@@ -604,7 +964,8 @@ export default function HomeScreen() {
               >
                 🔥
               </TText>
-              <TText
+              <AnimatedNumber
+                value={currentStreak}
                 style={[
                   styles.streakText,
                   {
@@ -614,10 +975,8 @@ export default function HomeScreen() {
                         : theme.colors.textMuted,
                   },
                 ]}
-              >
-                {currentStreak}
-              </TText>
-            </View>
+              />
+            </Pressable>
             <Pressable
               onPress={() => router.push("/progress" as any)}
               accessibilityLabel={`Current weight ${units.format(displayWeight)}`}
@@ -634,9 +993,11 @@ export default function HomeScreen() {
                   weightTrending ? theme.colors.success : theme.colors.warning
                 }
               />
-              <TText style={[styles.weightText, { color: theme.colors.text }]}>
-                {units.format(displayWeight, 0)}
-              </TText>
+              <AnimatedWeight
+                currentValue={displayWeight}
+                units={units}
+                style={[styles.weightText, { color: theme.colors.text }]}
+              />
             </Pressable>
             <Pressable
               onPress={() => router.push("/settings" as any)}
@@ -690,12 +1051,7 @@ export default function HomeScreen() {
           {viewMode === "D" && (
             <>
               {/* ── Calorie card (ring + footer) ── */}
-              <View
-                style={[
-                  styles.calorieCard,
-                  { backgroundColor: theme.colors.surfaceSecondary },
-                ]}
-              >
+              <View style={styles.calorieCard}>
                 {/* Swipeable ring */}
                 <GestureDetector gesture={contentSwipe}>
                   <Animated.View style={styles.ringSection}>
@@ -791,44 +1147,131 @@ export default function HomeScreen() {
 
               <TSpacer size="md" />
 
-              {/* Macro cards */}
-              <View testID="macro-cards" style={styles.macroRow}>
-                <MacroCard
-                  label="Protein"
-                  consumedG={totals.protein}
-                  targetG={proteinTarget}
-                  color={MACRO_COLORS.protein}
-                />
-                <MacroCard
-                  label="Carbs"
-                  consumedG={totals.carbs}
-                  targetG={carbsTarget}
-                  color={MACRO_COLORS.carbs}
-                />
-                <MacroCard
-                  label="Fat"
-                  consumedG={totals.fat}
-                  targetG={fatTarget}
-                  color={MACRO_COLORS.fat}
-                />
-              </View>
+              {/* Macro + Activity pager */}
+              <Animated.View testID="macro-cards" style={contentAnimStyle}>
+                <View
+                  onLayout={(e) =>
+                    setMacroPagerWidth(Math.round(e.nativeEvent.layout.width))
+                  }
+                >
+                  {macroPagerWidth > 0 && (
+                    <ScrollView
+                      horizontal
+                      pagingEnabled
+                      showsHorizontalScrollIndicator={false}
+                      bounces={false}
+                      scrollEventThrottle={200}
+                      onScroll={(e) => {
+                        const p = Math.round(
+                          e.nativeEvent.contentOffset.x / macroPagerWidth
+                        );
+                        setMacroPage(p);
+                      }}
+                    >
+                      {/* Page 0 — Macros */}
+                      <View
+                        style={{
+                          width: macroPagerWidth,
+                          flexDirection: "row",
+                          gap: 10,
+                        }}
+                      >
+                        <MacroCard
+                          label="Protein"
+                          consumedG={totals.protein}
+                          targetG={proteinTarget}
+                          color={MACRO_COLORS.protein}
+                          icon="🍖"
+                        />
+                        <MacroCard
+                          label="Carbs"
+                          consumedG={totals.carbs}
+                          targetG={carbsTarget}
+                          color={MACRO_COLORS.carbs}
+                          icon="🌾"
+                        />
+                        <MacroCard
+                          label="Fat"
+                          consumedG={totals.fat}
+                          targetG={fatTarget}
+                          color={MACRO_COLORS.fat}
+                          icon="💧"
+                        />
+                      </View>
+                      {/* Page 1 — Activity (placeholder — no step integration yet) */}
+                      <View
+                        style={{
+                          width: macroPagerWidth,
+                          flexDirection: "row",
+                          gap: 10,
+                        }}
+                      >
+                        <MacroCard
+                          label="Steps"
+                          consumedG={0}
+                          targetG={10000}
+                          color="#34C759"
+                          icon="👟"
+                          unit=""
+                          display="consumed"
+                        />
+                        <MacroCard
+                          label="Active cal"
+                          consumedG={0}
+                          targetG={500}
+                          color="#FF9500"
+                          icon="🔥"
+                          unit=""
+                          display="consumed"
+                        />
+                      </View>
+                    </ScrollView>
+                  )}
+                  {/* Page indicator dots */}
+                  <View style={styles.pageDots}>
+                    {[0, 1].map((i) => (
+                      <View
+                        key={i}
+                        style={[
+                          styles.pageDot,
+                          {
+                            backgroundColor:
+                              macroPage === i
+                                ? theme.colors.text
+                                : theme.colors.border,
+                          },
+                        ]}
+                      />
+                    ))}
+                  </View>
+                </View>
+              </Animated.View>
 
               <TSpacer size="md" />
 
               {/* Water tracker card */}
-              <WaterCard
-                currentMl={waterMl}
-                goalMl={WATER_GOAL}
-                incrementMl={WATER_INCREMENT}
-                onIncrement={() => {
-                  setWaterMl((v) => v + WATER_INCREMENT);
-                  haptics.impact("light");
-                }}
-                onDecrement={() => {
-                  setWaterMl((v) => Math.max(0, v - WATER_INCREMENT));
-                  haptics.impact("light");
-                }}
-              />
+              <Animated.View style={contentAnimStyle}>
+                <Pressable
+                  onPress={() => {
+                    haptics.impact("light");
+                    setShowWaterSettings(true);
+                  }}
+                >
+                  <WaterCard
+                    currentMl={waterMl}
+                    goalMl={waterGoalMl}
+                    incrementMl={waterIncrementMl}
+                    onIncrement={() => {
+                      addWater(todayISO, waterIncrementMl);
+                      haptics.impact("light");
+                    }}
+                    onDecrement={() => {
+                      subtractWater(todayISO, waterIncrementMl);
+                      haptics.impact("light");
+                    }}
+                  />
+                </Pressable>
+              </Animated.View>
             </>
           )}
           {viewMode === "W" && (
@@ -994,6 +1437,27 @@ export default function HomeScreen() {
           </LinearGradient>
         </Pressable>
       </View>
+
+      {/* Swipe-to-delete tutorial overlay */}
+      {showSwipeTutorial && (
+        <SwipeTutorialOverlay onDismiss={dismissTutorial} theme={theme} />
+      )}
+
+      {/* Streak celebration modal */}
+      <StreakModal
+        visible={showStreakModal}
+        onClose={() => setShowStreakModal(false)}
+        currentStreak={currentStreak}
+        longestStreak={longestStreak ?? 0}
+        lastLogDate={lastLogDate ?? null}
+        streakStartDate={streakStartDate ?? null}
+      />
+
+      {/* Water settings modal */}
+      <WaterSettingsModal
+        visible={showWaterSettings}
+        onClose={() => setShowWaterSettings(false)}
+      />
     </View>
   );
 }
@@ -1001,6 +1465,37 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  bgShapes: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: "hidden",
+  },
+  bgShape: {
+    position: "absolute",
+  },
+  bgShapeTopLeft: {
+    top: -150,
+    left: -100,
+    width: 350,
+    height: 400,
+    borderRadius: 80,
+    transform: [{ rotate: "-15deg" }],
+  },
+  bgShapeCenterRight: {
+    top: "35%",
+    right: -120,
+    width: 280,
+    height: 500,
+    borderRadius: 140,
+    transform: [{ rotate: "25deg" }],
+  },
+  bgShapeBottom: {
+    bottom: -200,
+    left: "20%",
+    width: 400,
+    height: 350,
+    borderRadius: 100,
+    transform: [{ rotate: "10deg" }],
   },
   safe: {
     flex: 1,
@@ -1011,10 +1506,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 8,
+    height: 64,
   },
   headerLeft: {
     flex: 1,
-    minHeight: 48,
+    height: 48,
     justifyContent: "center",
     marginRight: 8,
   },
@@ -1078,6 +1574,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 24,
   },
   ringChevron: {
     padding: 4,
@@ -1108,6 +1605,18 @@ const styles = StyleSheet.create({
   macroRow: {
     flexDirection: "row",
     gap: 10,
+  },
+  pageDots: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 10,
+  },
+  pageDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   mealsHeader: {
     flexDirection: "row",
@@ -1175,5 +1684,90 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
+  },
+  // Tutorial overlay styles
+  tutorialOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1000,
+  },
+  tutorialBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.85)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 30,
+  },
+  tutorialContent: {
+    backgroundColor: "#1C1C1E",
+    borderRadius: 20,
+    padding: 24,
+    width: "100%",
+    maxWidth: 340,
+    alignItems: "center",
+    gap: 16,
+  },
+  tutorialTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  tutorialHint: {
+    fontSize: 15,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  tutorialDemo: {
+    width: "100%",
+    height: 70,
+    position: "relative",
+    marginVertical: 8,
+  },
+  tutorialCard: {
+    position: "absolute",
+    left: 0,
+    width: "100%",
+    height: "100%",
+    backgroundColor: "#2C2C2E",
+    borderRadius: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    gap: 12,
+  },
+  tutorialIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tutorialMealName: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  tutorialMealCal: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  tutorialDelete: {
+    position: "absolute",
+    right: 8,
+    width: 70,
+    height: "100%",
+    backgroundColor: "#FF3B30",
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tutorialButton: {
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  tutorialButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
   },
 });
