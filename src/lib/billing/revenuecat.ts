@@ -116,6 +116,11 @@ export class RevenueCatProvider implements BillingProvider {
     if (!this.initialized) return;
     try {
       const RC = getPurchases();
+      const isAnonymous = await RC.isAnonymous();
+      if (isAnonymous) {
+        logger.log("[RevenueCat] Already anonymous, skipping logOut");
+        return;
+      }
       const customerInfo = await RC.logOut();
       const entitlement = this.mapCustomerInfo(customerInfo);
       this.entitlementCallbacks.forEach((cb) => cb(entitlement));

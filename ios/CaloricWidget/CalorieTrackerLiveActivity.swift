@@ -23,7 +23,7 @@ import WidgetKit
 
 // MARK: - Brand Color
 
-private let brandGreen = Color(red: 0.725, green: 0.855, blue: 0.318) // #B9DA51 brand green
+private let brandGreen = Color(red: 0.298, green: 0.733, blue: 0.459) // hue 141 primary
 
 // MARK: - Deep Link URLs
 

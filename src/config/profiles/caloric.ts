@@ -112,7 +112,7 @@ export const caloricConfig: AppProfileConfig = {
         firebaseAnalytics: true, // Keep Firebase Analytics in dev
         crashReporting: true, // Keep crash reporting
         performanceMonitoring: false, // Disable perf monitoring in dev
-        billing: false, // Disable billing in dev (use test mode in staging)
+        billing: true, // Enable billing in dev for RevenueCat testing
       },
       app: {
         name: "Caloric",

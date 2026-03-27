@@ -61,7 +61,7 @@ describe("Config System", () => {
 
       const config = getAppConfig();
 
-      expect(config.features.billing).toBe(false);
+      expect(config.features.billing).toBe(true);
     });
 
     it("should apply staging environment overrides", () => {
@@ -161,13 +161,13 @@ describe("Config System", () => {
       expect(config.billing?.stripe?.publishableKey).toBeDefined();
     });
 
-    it("should disable billing in dev environment", () => {
+    it("should enable billing in dev environment", () => {
       process.env.EXPO_PUBLIC_APP_PROFILE = "caloric";
       process.env.EXPO_PUBLIC_APP_ENV = "dev";
 
       const config = getAppConfig();
 
-      expect(config.features.billing).toBe(false);
+      expect(config.features.billing).toBe(true);
     });
 
     it("should reject Stripe secret keys in config", () => {
