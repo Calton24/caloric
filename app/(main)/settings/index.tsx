@@ -37,7 +37,8 @@ import {
     useSettingsStore,
 } from "../../../src/features/settings";
 import { useSubscriptionStore } from "../../../src/features/subscription";
-import { getBillingProvider } from "../../../src/lib/billing";
+import { useRevenueCat } from "../../../src/features/subscription/useRevenueCat";
+
 import { useTheme } from "../../../src/theme/useTheme";
 import { TSpacer } from "../../../src/ui/primitives/TSpacer";
 import { TText } from "../../../src/ui/primitives/TText";
@@ -182,6 +183,15 @@ export default function SettingsScreen() {
           ? "Monthly"
           : "Yearly";
 
+  // ── RevenueCat helpers ──
+  const {
+    isPro,
+    presentPaywall,
+    presentCustomerCenter,
+    restorePurchases,
+    isRestoring,
+  } = useRevenueCat();
+
   // ── Handlers ──
   const handleToggleLiveActivities = useCallback(
     async (value: boolean) => {
@@ -249,13 +259,11 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="star"
                 iconColor={theme.colors.success}
-                label={subscription.plan ? "You are Pro" : "Upgrade to Pro"}
+                label={isPro ? "You are Pro" : "Upgrade to Pro"}
                 value={
-                  subscription.plan
-                    ? "Thank you for your support!"
-                    : subscriptionLabel
+                  isPro ? "Thank you for your support!" : subscriptionLabel
                 }
-                onPress={() => {}}
+                onPress={presentPaywall}
                 showChevron
               />
             </View>
@@ -418,19 +426,14 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="arrow-undo-outline"
                 iconColor={theme.colors.textSecondary}
-                label="Restore Purchases"
-                onPress={async () => {
-                  try {
-                    const provider = getBillingProvider();
-                    await provider.restorePurchases();
-                    Alert.alert("Success", "Purchases restored successfully.");
-                  } catch {
-                    Alert.alert(
-                      "Error",
-                      "Could not restore purchases. Please try again."
-                    );
-                  }
-                }}
+                label={isRestoring ? "Restoring…" : "Restore Purchases"}
+                onPress={isRestoring ? undefined : restorePurchases}
+              />
+              <SettingsRow
+                icon="settings-outline"
+                iconColor={theme.colors.textSecondary}
+                label="Manage Subscription"
+                onPress={presentCustomerCenter}
               />
             </View>
           </Animated.View>

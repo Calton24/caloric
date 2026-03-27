@@ -1,51 +1,34 @@
 /**
  * Onboarding Step 9 — Paywall
  *
- * 7-day free trial gate. Shows annual vs monthly pricing,
- * a feature list, testimonial quote, and primary CTA.
- * "Skip" link at bottom for free-tier fallback.
+ * Presents the RevenueCat-managed paywall for subscription.
+ * Falls back to a feature list + “View Plans” button if the
+ * remote paywall is unavailable.
+ * “Skip” link at bottom for free-tier fallback.
  */
 
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+    ActivityIndicator,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    View,
+} from "react-native";
 import Animated, {
     FadeIn,
     FadeInDown,
     FadeInUp,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRevenueCat } from "../../src/features/subscription/useRevenueCat";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
-
-// ── Pricing tiers ──
-interface PricingTier {
-  id: string;
-  label: string;
-  price: string;
-  perMonth: string;
-  badge?: string;
-}
-
-const TIERS: PricingTier[] = [
-  {
-    id: "annual",
-    label: "Annual",
-    price: "$39.99/yr",
-    perMonth: "$3.33/mo",
-    badge: "Best Value",
-  },
-  {
-    id: "monthly",
-    label: "Monthly",
-    price: "$7.99/mo",
-    perMonth: "$7.99/mo",
-  },
-];
 
 const FEATURES = [
   "Personalized calorie & macro plan",
@@ -58,11 +41,19 @@ const FEATURES = [
 export default function OnboardingPaywallScreen() {
   const { theme } = useTheme();
   const router = useRouter();
-  const [selectedTier, setSelectedTier] = useState("annual");
+  const [isLoading, setIsLoading] = useState(false);
+  const { presentPaywall, restorePurchases, isPro } = useRevenueCat();
 
-  const handleStart = () => {
-    // In production: trigger StoreKit / Play Billing
-    router.push("/onboarding/complete" as any);
+  const handleStart = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
+    try {
+      await presentPaywall();
+    } finally {
+      setIsLoading(false);
+      // After paywall closes (purchased or dismissed), continue onboarding
+      router.push("/onboarding/complete" as any);
+    }
   };
 
   const handleSkip = () => {
@@ -119,85 +110,8 @@ export default function OnboardingPaywallScreen() {
 
           <TSpacer size="xl" />
 
-          {/* ── Pricing tiers ── */}
-          <Animated.View entering={FadeInDown.duration(400).delay(350)}>
-            <View style={styles.tierRow}>
-              {TIERS.map((tier) => {
-                const isActive = selectedTier === tier.id;
-                return (
-                  <Pressable
-                    key={tier.id}
-                    onPress={() => setSelectedTier(tier.id)}
-                    style={styles.tierPressable}
-                    testID={`tier-${tier.id}`}
-                  >
-                    <GlassSurface
-                      intensity={isActive ? "medium" : "light"}
-                      style={[
-                        styles.tierCard,
-                        {
-                          borderColor: isActive
-                            ? theme.colors.primary
-                            : "transparent",
-                          borderWidth: 2,
-                        },
-                      ]}
-                    >
-                      {tier.badge && (
-                        <View
-                          style={[
-                            styles.bestBadge,
-                            {
-                              backgroundColor: theme.colors.primary,
-                            },
-                          ]}
-                        >
-                          <TText style={styles.bestBadgeText}>
-                            {tier.badge}
-                          </TText>
-                        </View>
-                      )}
-                      <TText
-                        style={[
-                          styles.tierLabel,
-                          { color: theme.colors.textSecondary },
-                        ]}
-                      >
-                        {tier.label}
-                      </TText>
-                      <TSpacer size="xs" />
-                      <TText
-                        style={[styles.tierPrice, { color: theme.colors.text }]}
-                      >
-                        {tier.price}
-                      </TText>
-                      <TText
-                        style={[
-                          styles.tierPer,
-                          { color: theme.colors.textMuted },
-                        ]}
-                      >
-                        {tier.perMonth}
-                      </TText>
-                      {isActive && (
-                        <Ionicons
-                          name="checkmark-circle"
-                          size={22}
-                          color={theme.colors.primary}
-                          style={styles.tierCheck}
-                        />
-                      )}
-                    </GlassSurface>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </Animated.View>
-
-          <TSpacer size="xl" />
-
           {/* ── Feature list ── */}
-          <Animated.View entering={FadeInDown.duration(400).delay(500)}>
+          <Animated.View entering={FadeInDown.duration(400).delay(350)}>
             <GlassSurface intensity="light" style={styles.featureCard}>
               <TText
                 style={[
@@ -228,7 +142,7 @@ export default function OnboardingPaywallScreen() {
           <TSpacer size="xl" />
 
           {/* ── Testimonial ── */}
-          <Animated.View entering={FadeInUp.duration(400).delay(650)}>
+          <Animated.View entering={FadeInUp.duration(400).delay(500)}>
             <GlassSurface intensity="light" style={styles.testimonialCard}>
               <View style={styles.stars}>
                 {[1, 2, 3, 4, 5].map((s) => (
@@ -259,15 +173,17 @@ export default function OnboardingPaywallScreen() {
 
         {/* ── CTA ── */}
         <Animated.View
-          entering={FadeInUp.duration(500).delay(800)}
+          entering={FadeInUp.duration(500).delay(600)}
           style={styles.ctaArea}
         >
           <Pressable
             testID="paywall-start"
             onPress={handleStart}
+            disabled={isLoading}
             style={({ pressed }) => ({
-              opacity: pressed ? 0.9 : 1,
+              opacity: pressed || isLoading ? 0.9 : 1,
               transform: [{ scale: pressed ? 0.97 : 1 }],
+              width: "100%",
             })}
           >
             <LinearGradient
@@ -276,11 +192,15 @@ export default function OnboardingPaywallScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.ctaGradient}
             >
-              <TText
-                style={[styles.ctaText, { color: theme.colors.textInverse }]}
-              >
-                Start Free Trial
-              </TText>
+              {isLoading ? (
+                <ActivityIndicator color={theme.colors.textInverse} />
+              ) : (
+                <TText
+                  style={[styles.ctaText, { color: theme.colors.textInverse }]}
+                >
+                  {isPro ? "Continue" : "Start Free Trial"}
+                </TText>
+              )}
             </LinearGradient>
           </Pressable>
 
@@ -297,6 +217,16 @@ export default function OnboardingPaywallScreen() {
           <TText style={[styles.legalText, { color: theme.colors.textMuted }]}>
             Cancel anytime during trial. Subscription auto-renews.
           </TText>
+
+          <TSpacer size="xs" />
+
+          <Pressable onPress={restorePurchases} hitSlop={12}>
+            <TText
+              style={[styles.restoreText, { color: theme.colors.textMuted }]}
+            >
+              Restore Purchases
+            </TText>
+          </Pressable>
         </Animated.View>
       </SafeAreaView>
     </View>
@@ -339,52 +269,6 @@ const styles = StyleSheet.create({
   sub: {
     fontSize: 17,
     lineHeight: 24,
-  },
-  // Tier selector
-  tierRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  tierPressable: {
-    flex: 1,
-  },
-  tierCard: {
-    alignItems: "center",
-    paddingVertical: 20,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    position: "relative",
-    overflow: "hidden",
-  },
-  bestBadge: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingVertical: 3,
-    alignItems: "center",
-  },
-  bestBadgeText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#fff",
-    letterSpacing: 0.5,
-  },
-  tierLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    marginTop: 8,
-  },
-  tierPrice: {
-    fontSize: 20,
-    fontWeight: "800",
-  },
-  tierPer: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  tierCheck: {
-    marginTop: 8,
   },
   // Features
   featureCard: {
@@ -451,5 +335,9 @@ const styles = StyleSheet.create({
     fontSize: 11,
     textAlign: "center",
     lineHeight: 16,
+  },
+  restoreText: {
+    fontSize: 12,
+    textDecorationLine: "underline",
   },
 });

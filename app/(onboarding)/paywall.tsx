@@ -28,6 +28,7 @@ import { buildNewChallenge } from "../../src/features/challenge/challenge.servic
 import { useChallengeStore } from "../../src/features/challenge/challenge.store";
 import { createChallenge } from "../../src/features/challenge/challenge.sync";
 import type { UserChallenge } from "../../src/features/challenge/challenge.types";
+import { useRevenueCat } from "../../src/features/subscription/useRevenueCat";
 import { logger } from "../../src/logging/logger";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
@@ -59,6 +60,7 @@ export default function OnboardingChallengeScreen() {
   const setChallenge = useChallengeStore((s) => s.setChallenge);
   const existingChallenge = useChallengeStore((s) => s.challenge);
   const [isStarting, setIsStarting] = useState(false);
+  const { presentPaywall, restorePurchases, isPro } = useRevenueCat();
 
   const handleStart = async () => {
     if (isStarting) return;
@@ -243,6 +245,55 @@ export default function OnboardingChallengeScreen() {
           </Animated.View>
 
           <TSpacer size="xl" />
+
+          {/* ── Unlock Pro offer ── */}
+          <Animated.View entering={FadeInDown.duration(400).delay(600)}>
+            <GlassSurface intensity="light" style={styles.proCard}>
+              <View style={styles.proHeader}>
+                <Ionicons name="star" size={20} color="#FBBF24" />
+                <TText style={[styles.proTitle, { color: theme.colors.text }]}>
+                  {isPro ? "You're Pro!" : "Want to unlock everything?"}
+                </TText>
+              </View>
+              <TSpacer size="xs" />
+              <TText
+                style={[styles.proSub, { color: theme.colors.textSecondary }]}
+              >
+                {isPro
+                  ? "You have full access to all features."
+                  : "Get unlimited AI scans, detailed insights, and more with a Pro subscription."}
+              </TText>
+              {!isPro && (
+                <>
+                  <TSpacer size="md" />
+                  <Pressable
+                    onPress={presentPaywall}
+                    style={({ pressed }) => ({
+                      opacity: pressed ? 0.85 : 1,
+                    })}
+                  >
+                    <View
+                      style={[
+                        styles.proButton,
+                        { backgroundColor: theme.colors.primary },
+                      ]}
+                    >
+                      <TText
+                        style={[
+                          styles.proButtonText,
+                          { color: theme.colors.textInverse },
+                        ]}
+                      >
+                        View Plans
+                      </TText>
+                    </View>
+                  </Pressable>
+                </>
+              )}
+            </GlassSurface>
+          </Animated.View>
+
+          <TSpacer size="xl" />
         </ScrollView>
 
         {/* ── CTA ── */}
@@ -292,6 +343,16 @@ export default function OnboardingChallengeScreen() {
             Users who complete 21 days are invited to unlock the full app at a
             special rate.
           </TText>
+
+          <TSpacer size="xs" />
+
+          <Pressable onPress={restorePurchases} hitSlop={12}>
+            <TText
+              style={[styles.restoreText, { color: theme.colors.textMuted }]}
+            >
+              Restore Purchases
+            </TText>
+          </Pressable>
         </Animated.View>
       </SafeAreaView>
     </View>
@@ -422,5 +483,36 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 16,
     paddingHorizontal: 20,
+  },
+  restoreText: {
+    fontSize: 12,
+    textDecorationLine: "underline",
+  },
+  // Pro upsell card
+  proCard: {
+    padding: 20,
+    borderRadius: 16,
+  },
+  proHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  proTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  proSub: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  proButton: {
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  proButtonText: {
+    fontSize: 15,
+    fontWeight: "700",
   },
 });

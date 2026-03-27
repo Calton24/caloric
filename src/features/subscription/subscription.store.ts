@@ -10,6 +10,14 @@ interface SubscriptionStore {
   activateSubscription: (plan: Exclude<SubscriptionPlan, null>) => void;
   markPaywallSeen: () => void;
   resetSubscription: () => void;
+  /**
+   * Sync the store from a live RevenueCat (or other billing provider) entitlement.
+   * Called automatically by BillingGate on init and whenever RC fires an update.
+   */
+  syncFromEntitlement: (entitlement: {
+    isActive: boolean;
+    productId?: string;
+  }) => void;
 }
 
 export const initialSubscription: SubscriptionState = {

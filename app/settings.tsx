@@ -32,6 +32,7 @@ import {
     exportMealsCSV,
     exportWeightCSV,
 } from "../src/features/export/data-export.service";
+import { useRevenueCat } from "../src/features/subscription/useRevenueCat";
 import {
     useGoalsStore,
     useNutritionStore,
@@ -200,6 +201,13 @@ export default function SettingsScreen() {
   const subscription = useSubscriptionStore((s) => s.subscription);
   const meals = useNutritionStore((s) => s.meals);
   const weightLogs = useProgressStore((s) => s.weightLogs);
+  const {
+    isPro,
+    presentPaywall,
+    presentCustomerCenter,
+    restorePurchases,
+    isRestoring,
+  } = useRevenueCat();
 
   const handleExport = async (type: "meals" | "weight" | "all") => {
     try {
@@ -460,12 +468,22 @@ export default function SettingsScreen() {
                 showChevron={false}
               />
               <SettingsRow
+                icon="star-outline"
+                iconColor={theme.colors.primary}
+                label={isPro ? "You’re Pro" : "Upgrade to Pro"}
+                onPress={presentPaywall}
+              />
+              <SettingsRow
                 icon="arrow-undo-outline"
                 iconColor={theme.colors.textSecondary}
-                label="Restore Purchases"
-                onPress={() => {
-                  /* Restore purchases – wire to RevenueCat */
-                }}
+                label={isRestoring ? "Restoring…" : "Restore Purchases"}
+                onPress={isRestoring ? undefined : restorePurchases}
+              />
+              <SettingsRow
+                icon="settings-outline"
+                iconColor={theme.colors.textSecondary}
+                label="Manage Subscription"
+                onPress={presentCustomerCenter}
               />
             </View>
           </Animated.View>

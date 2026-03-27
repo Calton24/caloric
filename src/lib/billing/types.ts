@@ -65,6 +65,24 @@ export interface BillingProvider {
    * Get provider name for debugging
    */
   getProviderName(): string;
+
+  /**
+   * Present the Customer Center for subscription management.
+   * Supported by RevenueCat — no-op for other providers.
+   */
+  presentCustomerCenter?(): Promise<void>;
+
+  /**
+   * Identify the authenticated user with the billing provider.
+   * Call after sign-in so purchases are tied to the user account.
+   */
+  logIn?(userId: string): Promise<void>;
+
+  /**
+   * Log out the current user from the billing provider.
+   * Call after sign-out.
+   */
+  logOut?(): Promise<void>;
 }
 
 /**
@@ -95,6 +113,20 @@ export class NoBillingProvider implements BillingProvider {
 
   async restorePurchases(): Promise<void> {
     logger.warn("[Billing] Restore disabled (billing not enabled)");
+  }
+
+  async presentCustomerCenter(): Promise<void> {
+    logger.warn(
+      "[Billing] Customer Center not available (billing not enabled)"
+    );
+  }
+
+  async logIn(_userId: string): Promise<void> {
+    /* no-op */
+  }
+
+  async logOut(): Promise<void> {
+    /* no-op */
   }
 
   getProviderName(): string {
