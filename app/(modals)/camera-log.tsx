@@ -43,12 +43,15 @@ import {
     useCameraPermission,
     useCodeScanner,
 } from "react-native-vision-camera";
+import { useAccountGate } from "../../src/features/auth/useAccountGate";
 import {
-  computeFocusPoint,
-  deactivateCameraBeforeDismiss,
+    computeFocusPoint,
+    deactivateCameraBeforeDismiss,
 } from "../../src/features/camera/camera-log.helpers";
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
+import { useFeatureAccess } from "../../src/features/subscription/useFeatureAccess";
 import { useTheme } from "../../src/theme/useTheme";
+import { FeatureGatePaywall } from "../../src/ui/components/FeatureGatePaywall";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 
@@ -95,6 +98,9 @@ export default function CameraLoggingScreen() {
   const { theme } = useTheme();
   const router = useRouter();
   const { startFromImage, startFromInput, startFromBarcode } = useLoggingFlow();
+  const { requireAccount } = useAccountGate();
+  const { canScan, consumeScan, scansRemaining, isPro } = useFeatureAccess();
+  const [showScanGate, setShowScanGate] = useState(false);
 
   const cameraRef = useRef<Camera>(null);
   const device = useCameraDevice("back");
@@ -107,7 +113,9 @@ export default function CameraLoggingScreen() {
   const [description, setDescription] = useState("");
   const barcodeLockRef = useRef(false);
   const [cameraLayout, setCameraLayout] = useState({ width: 0, height: 0 });
-  const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
+  const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(
+    null
+  );
 
   // ── Barcode scanner ──────────────────────────────────────────────────
 
@@ -192,6 +200,14 @@ export default function CameraLoggingScreen() {
 
   const runPipeline = useCallback(
     async (uri: string, desc?: string) => {
+      // Gate: require account + scan credits for AI scans
+      if (!requireAccount("scan")) return;
+      const access = canScan();
+      if (!access.allowed) {
+        setShowScanGate(true);
+        return;
+      }
+
       setImageUri(uri);
       setTorch("off");
       setState("analyzing");
@@ -199,6 +215,8 @@ export default function CameraLoggingScreen() {
       try {
         const success = await startFromImage(uri, desc);
         if (success) {
+          // Consume a scan credit after successful analysis
+          await consumeScan();
           // Draft is populated with real data — navigate to confirm
           router.push("/(modals)/confirm-meal" as never);
         } else {
@@ -209,7 +227,7 @@ export default function CameraLoggingScreen() {
         setState("error");
       }
     },
-    [startFromImage, router]
+    [startFromImage, router, requireAccount, canScan, consumeScan]
   );
 
   // ── Describe & retry (user types what the food is) ───────────────────
@@ -503,6 +521,12 @@ export default function CameraLoggingScreen() {
             <TText style={styles.scanHint}>
               Point at food or scan a barcode
             </TText>
+            {!isPro && (
+              <TText style={styles.scanCredits}>
+                {scansRemaining} free scan{scansRemaining !== 1 ? "s" : ""}{" "}
+                remaining
+              </TText>
+            )}
           </View>
 
           {/* Bottom controls */}
@@ -788,6 +812,13 @@ export default function CameraLoggingScreen() {
           </SafeAreaView>
         </View>
       )}
+
+      {/* ── Scan credits gate paywall ── */}
+      <FeatureGatePaywall
+        visible={showScanGate}
+        onDismiss={() => setShowScanGate(false)}
+        feature="unlimited_scans"
+      />
     </View>
   );
 }
@@ -964,6 +995,15 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0,0,0,0.6)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
+  },
+  scanCredits: {
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 12,
+    fontWeight: "400",
+    marginTop: 4,
+    textShadowColor: "rgba(0,0,0,0.4)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   vfBottomBar: {
     position: "absolute",

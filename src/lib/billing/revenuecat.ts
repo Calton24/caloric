@@ -9,6 +9,7 @@
  * platforms without causing a hard crash on web / storybook.
  */
 
+import { Platform } from "react-native";
 import type { RevenueCatConfig } from "../../config/types";
 import { logger } from "../../logging/logger";
 import type { BillingProvider, Entitlement, SubscriptionTier } from "./types";
@@ -68,7 +69,18 @@ export class RevenueCatProvider implements BillingProvider {
     try {
       const RC = getPurchases();
 
-      RC.configure({ apiKey: this.config.apiKey });
+      // Enable verbose logging in dev for easier debugging
+      if (__DEV__) {
+        RC.setLogLevel(RC.LOG_LEVEL?.VERBOSE ?? 4);
+      }
+
+      // Use same key for both platforms (RevenueCat resolves per-platform in dashboard)
+      if (Platform.OS === "ios" || Platform.OS === "android") {
+        RC.configure({ apiKey: this.config.apiKey });
+      } else {
+        logger.warn("[RevenueCat] Unsupported platform:", Platform.OS);
+        return;
+      }
 
       // Real-time subscription status updates (renewals, expirations, purchases)
       RC.addCustomerInfoUpdateListener((customerInfo: any) => {
@@ -78,6 +90,25 @@ export class RevenueCatProvider implements BillingProvider {
 
       this.initialized = true;
       logger.log("[RevenueCat] Initialized successfully");
+
+      // Diagnostic: log identity + entitlement state on init
+      if (__DEV__) {
+        try {
+          const appUserID = await RC.getAppUserID();
+          const info = await RC.getCustomerInfo();
+          logger.log("[RevenueCat:diag] appUserID:", appUserID);
+          logger.log(
+            "[RevenueCat:diag] activeEntitlements:",
+            Object.keys(info?.entitlements?.active ?? {})
+          );
+          logger.log(
+            "[RevenueCat:diag] activeSubscriptions:",
+            info?.activeSubscriptions
+          );
+        } catch {
+          /* non-fatal */
+        }
+      }
     } catch (error) {
       logger.error("[RevenueCat] Initialization failed:", error);
       throw error;
@@ -177,11 +208,23 @@ export class RevenueCatProvider implements BillingProvider {
    * The paywall is configured entirely in the RevenueCat dashboard —
    * no code changes required when updating copy, pricing, or layout.
    */
-  async presentPaywall(_trigger?: string): Promise<void> {
+  async presentPaywall(_trigger?: string): Promise<boolean> {
     try {
       const RCUI = getRevenueCatUI();
-      const result = await RCUI.presentPaywall();
-      logger.log("[RevenueCat] Paywall closed with result:", result);
+      const { PAYWALL_RESULT } = require("react-native-purchases-ui"); // eslint-disable-line @typescript-eslint/no-require-imports
+      const paywallResult = await RCUI.presentPaywall({});
+      logger.log("[RevenueCat] Paywall closed with result:", paywallResult);
+
+      switch (paywallResult) {
+        case PAYWALL_RESULT.PURCHASED:
+        case PAYWALL_RESULT.RESTORED:
+          return true;
+        case PAYWALL_RESULT.NOT_PRESENTED:
+        case PAYWALL_RESULT.ERROR:
+        case PAYWALL_RESULT.CANCELLED:
+        default:
+          return false;
+      }
     } catch (error) {
       logger.error("[RevenueCat] presentPaywall failed:", error);
       throw error;
@@ -193,7 +236,9 @@ export class RevenueCatProvider implements BillingProvider {
    * specified entitlement (defaults to "pro").  Useful as a gate
    * before premium features.
    */
-  async presentPaywallIfNeeded(requiredEntitlementId = "pro"): Promise<void> {
+  async presentPaywallIfNeeded(
+    requiredEntitlementId = "Caloric Premium"
+  ): Promise<void> {
     try {
       const RCUI = getRevenueCatUI();
       const result = await RCUI.presentPaywallIfNeeded({
@@ -245,6 +290,42 @@ export class RevenueCatProvider implements BillingProvider {
 
   // ── Utilities ───────────────────────────────────────────────────────────
 
+  /**
+   * Purchase a specific package from an Offering.
+   * Returns the updated CustomerInfo after purchase.
+   */
+  async purchasePackage(pkg: any): Promise<any> {
+    if (!this.initialized) {
+      throw new Error("[RevenueCat] Must call initialize() first");
+    }
+    try {
+      const RC = getPurchases();
+      const { customerInfo } = await RC.purchasePackage(pkg);
+      const entitlement = this.mapCustomerInfo(customerInfo);
+      this.entitlementCallbacks.forEach((cb) => cb(entitlement));
+      logger.log("[RevenueCat] Package purchased:", pkg.identifier);
+
+      // Diagnostic: log entitlement state after purchase
+      if (__DEV__) {
+        const appUserID = await RC.getAppUserID();
+        logger.log("[RevenueCat:diag] post-purchase appUserID:", appUserID);
+        logger.log(
+          "[RevenueCat:diag] post-purchase activeEntitlements:",
+          Object.keys(customerInfo?.entitlements?.active ?? {})
+        );
+        logger.log("[RevenueCat:diag] post-purchase isPro:", entitlement.isPro);
+      }
+      return customerInfo;
+    } catch (error: any) {
+      if (error.userCancelled) {
+        logger.log("[RevenueCat] Purchase cancelled by user");
+        return null;
+      }
+      logger.error("[RevenueCat] Purchase failed:", error);
+      throw error;
+    }
+  }
+
   getProviderName(): string {
     return "revenueCat";
   }
@@ -252,11 +333,18 @@ export class RevenueCatProvider implements BillingProvider {
   /**
    * Map RevenueCat CustomerInfo → our unified Entitlement model.
    *
-   * Looks for an active entitlement named "pro" in the RevenueCat dashboard.
-   * If your entitlement has a different identifier, update the key below.
+   * Looks for an active entitlement named "Caloric Premium" in the RevenueCat dashboard.
    */
   private mapCustomerInfo(customerInfo: any): Entitlement {
-    const proEntitlement = customerInfo?.entitlements?.active?.pro;
+    const proEntitlement =
+      customerInfo?.entitlements?.active?.["Caloric Premium"];
+
+    if (__DEV__) {
+      const allActive = Object.keys(customerInfo?.entitlements?.active ?? {});
+      logger.log(
+        `[RevenueCat:diag] mapCustomerInfo — active keys: ${JSON.stringify(allActive)} | matched: ${!!proEntitlement}`
+      );
+    }
 
     if (proEntitlement) {
       return {

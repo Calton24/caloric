@@ -43,7 +43,7 @@ export const caloricConfig: AppProfileConfig = {
     revenueCat: {
       apiKey:
         process.env.EXPO_PUBLIC_REVENUECAT_API_KEY ||
-        "test_mLfKATfQnJlDhdbPfDPZjapShnI",
+        "test_VQEwjlSfYMXuTJXPySBUuVUEdSz",
     },
     superwall: {
       apiKey: "pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", // Replace with your Superwall API key

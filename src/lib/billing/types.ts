@@ -45,10 +45,15 @@ export interface BillingProvider {
   getEntitlements(): Promise<Entitlement>;
 
   /**
+   * Fetch available offerings (products/packages) from the billing provider.
+   */
+  getOfferings(): Promise<any>;
+
+  /**
    * Present paywall to user
    * @param trigger - Paywall trigger identifier
    */
-  presentPaywall(trigger?: string): Promise<void>;
+  presentPaywall(trigger?: string): Promise<boolean | void>;
 
   /**
    * Register callback for entitlement changes
@@ -103,8 +108,13 @@ export class NoBillingProvider implements BillingProvider {
     };
   }
 
-  async presentPaywall(_trigger?: string): Promise<void> {
+  async getOfferings(): Promise<any> {
+    return null;
+  }
+
+  async presentPaywall(_trigger?: string): Promise<boolean> {
     logger.warn("[Billing] Paywall disabled (billing not enabled)");
+    return false;
   }
 
   onEntitlementsChanged(_callback: (entitlement: Entitlement) => void): void {

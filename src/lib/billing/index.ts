@@ -100,7 +100,7 @@ export function getBillingProvider(): BillingProvider {
       cachedProvider = new NoBillingProvider();
   }
 
-  return cachedProvider;
+  return cachedProvider!;
 }
 
 /**

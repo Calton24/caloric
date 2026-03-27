@@ -65,6 +65,10 @@ export class StripeProvider implements BillingProvider {
     }
   }
 
+  async getOfferings(): Promise<any> {
+    return null;
+  }
+
   async getEntitlements(): Promise<Entitlement> {
     if (!this.initialized) {
       throw new Error("[Stripe] Must call initialize() first");

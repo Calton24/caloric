@@ -15,6 +15,7 @@ import { useAuth } from "./features/auth/useAuth";
 import { initFoodRegion } from "./features/nutrition/matching/region.service";
 import { rescheduleRemindersIfEnabled } from "./features/reminders/reschedule";
 import { useSubscriptionStore } from "./features/subscription";
+import { useScanCreditsStore } from "./features/subscription/scanCredits.store";
 import { useProgressSync } from "./features/sync/useProgressSync";
 import { initActivityMonitor } from "./infrastructure/activityMonitor";
 import { analytics, initAnalytics } from "./infrastructure/analytics";
@@ -52,6 +53,12 @@ function BillingGate({ children }: { children: React.ReactNode }) {
   const syncFromEntitlement = useSubscriptionStore(
     (s) => s.syncFromEntitlement
   );
+  const hydrateScanCredits = useScanCreditsStore((s) => s.hydrate);
+
+  // Hydrate scan credits from storage on mount
+  useEffect(() => {
+    hydrateScanCredits();
+  }, [hydrateScanCredits]);
 
   // Initialise billing SDK once on mount and subscribe to entitlement changes
   useEffect(() => {

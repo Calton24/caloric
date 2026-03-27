@@ -9,7 +9,7 @@
  *   const { isPro, presentPaywall, presentCustomerCenter, restorePurchases } = useRevenueCat();
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert } from "react-native";
 import { getBillingProvider } from "../../lib/billing";
 import { useSubscriptionStore } from "./subscription.store";
@@ -17,6 +17,47 @@ import { useSubscriptionStore } from "./subscription.store";
 export function useRevenueCat() {
   const subscription = useSubscriptionStore((s) => s.subscription);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [offerings, setOfferings] = useState<any>(null);
+  const [isLoadingOfferings, setIsLoadingOfferings] = useState(false);
+
+  // ── Offerings ───────────────────────────────────────────────────────────
+
+  const fetchOfferings = useCallback(async () => {
+    setIsLoadingOfferings(true);
+    try {
+      const provider = getBillingProvider();
+      const result = await provider.getOfferings();
+      setOfferings(result);
+      return result;
+    } catch {
+      // Silent — offerings may not be configured yet
+      return null;
+    } finally {
+      setIsLoadingOfferings(false);
+    }
+  }, []);
+
+  // Auto-fetch offerings on mount
+  useEffect(() => {
+    fetchOfferings();
+  }, [fetchOfferings]);
+
+  // ── Purchase ─────────────────────────────────────────────────────────────
+
+  const purchasePackage = useCallback(async (pkg: any) => {
+    try {
+      const provider = getBillingProvider() as any;
+      if (typeof provider.purchasePackage === "function") {
+        return await provider.purchasePackage(pkg);
+      }
+      // Fallback: present managed paywall
+      await provider.presentPaywall();
+      return null;
+    } catch {
+      Alert.alert("Error", "Purchase failed. Please try again.");
+      return null;
+    }
+  }, []);
 
   // ── Paywall ─────────────────────────────────────────────────────────────
 
@@ -33,7 +74,7 @@ export function useRevenueCat() {
   }, []);
 
   /**
-   * Present the paywall only if the user does not have the "pro" entitlement.
+   * Present the paywall only if the user does not have the "Caloric Premium" entitlement.
    * Silently does nothing when the user is already a subscriber.
    */
   const presentPaywallIfNeeded = useCallback(async () => {
@@ -95,6 +136,16 @@ export function useRevenueCat() {
     plan: subscription.plan,
     /** True while a restore is in progress */
     isRestoring,
+    /** Current offerings from RevenueCat (auto-fetched on mount) */
+    offerings,
+    /** True while offerings are being fetched */
+    isLoadingOfferings,
+    /** Convenience: current offering's available packages */
+    packages: offerings?.current?.availablePackages ?? [],
+    /** Re-fetch offerings from RevenueCat */
+    fetchOfferings,
+    /** Purchase a specific package */
+    purchasePackage,
     presentPaywall,
     presentPaywallIfNeeded,
     presentCustomerCenter,

@@ -72,6 +72,10 @@ export class SuperwallProvider implements BillingProvider {
     }
   }
 
+  async getOfferings(): Promise<any> {
+    return null;
+  }
+
   async getEntitlements(): Promise<Entitlement> {
     if (!this.initialized) {
       throw new Error("[Superwall] Must call initialize() first");

@@ -1,9 +1,9 @@
 /**
- * Onboarding Step 9 — 21-Day Challenge Activation
+ * Onboarding Step 11 — Entry Paywall (Day 0)
  *
- * Replaces the hard paywall with a free commitment screen.
- * Users start their challenge here; conversion offer appears
- * after they've proven the habit (day 14+).
+ * Clear messaging: "Start free → build habit → upgrade anytime"
+ * Shows 21-day challenge prominently, with optional upgrade plans below.
+ * Clear distinction: challenge is free, premium unlocks extra features.
  */
 
 import { Ionicons } from "@expo/vector-icons";
@@ -31,25 +31,26 @@ import type { UserChallenge } from "../../src/features/challenge/challenge.types
 import { useRevenueCat } from "../../src/features/subscription/useRevenueCat";
 import { logger } from "../../src/logging/logger";
 import { useTheme } from "../../src/theme/useTheme";
+import { PricingSelector } from "../../src/ui/components/PricingSelector";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 
 const PILLARS = [
   {
-    icon: "calendar-outline" as const,
-    title: "Log daily",
-    sub: "A few taps per meal is all it takes",
+    icon: "camera-outline" as const,
+    title: "Quick logging, every meal",
+    sub: "Snap a photo or search — takes seconds",
   },
   {
-    icon: "trending-up-outline" as const,
-    title: "See patterns",
-    sub: "Insights emerge after just a few days",
+    icon: "analytics-outline" as const,
+    title: "AI insights as you go",
+    sub: "See patterns after just a few days",
   },
   {
-    icon: "trophy-outline" as const,
-    title: "Finish strong",
-    sub: "Completers earn early access to the full app",
+    icon: "lock-open-outline" as const,
+    title: "Unlock full features when ready",
+    sub: "Upgrade anytime — no pressure",
   },
 ];
 
@@ -60,14 +61,19 @@ export default function OnboardingChallengeScreen() {
   const setChallenge = useChallengeStore((s) => s.setChallenge);
   const existingChallenge = useChallengeStore((s) => s.challenge);
   const [isStarting, setIsStarting] = useState(false);
-  const { presentPaywall, restorePurchases, isPro } = useRevenueCat();
+  const {
+    restorePurchases,
+    isPro,
+    packages,
+    purchasePackage,
+    isLoadingOfferings,
+  } = useRevenueCat();
 
   const handleStart = async () => {
     if (isStarting) return;
     setIsStarting(true);
 
     try {
-      // If a challenge already exists (e.g. user revisiting onboarding), skip.
       if (existingChallenge) {
         router.push("/(onboarding)/complete" as any);
         return;
@@ -76,17 +82,22 @@ export default function OnboardingChallengeScreen() {
       const userId = user?.id;
       const now = new Date().toISOString();
       const partial = buildNewChallenge(userId ?? "local");
+      const id = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+        /[xy]/g,
+        (c) => {
+          const r = (Math.random() * 16) | 0;
+          return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+        }
+      );
       const challenge: UserChallenge = {
         ...partial,
-        id: crypto.randomUUID(),
+        id,
         createdAt: now,
         updatedAt: now,
       };
 
-      // Persist locally immediately (offline-first)
       setChallenge(challenge);
 
-      // Push to Supabase in background (no-op if not authed yet)
       createChallenge(challenge).catch((e) =>
         logger.warn("[Challenge] Supabase insert failed:", e)
       );
@@ -106,7 +117,7 @@ export default function OnboardingChallengeScreen() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        {/* ── Close / Skip ── */}
+        {/* ── Close ── */}
         <Animated.View entering={FadeIn.duration(400)} style={styles.closeRow}>
           <Pressable onPress={handleSkip} hitSlop={12}>
             <Ionicons name="close" size={24} color={theme.colors.textMuted} />
@@ -119,37 +130,20 @@ export default function OnboardingChallengeScreen() {
         >
           {/* ── Heading ── */}
           <Animated.View entering={FadeInDown.duration(600).delay(100)}>
-            <View style={styles.headingRow}>
-              <TText
-                variant="heading"
-                style={[styles.heading, { color: theme.colors.text }]}
-              >
-                Your 21-Day Plan{"\n"}is Ready
-              </TText>
-              <View
-                style={[
-                  styles.freeBadge,
-                  { backgroundColor: theme.colors.success + "22" },
-                ]}
-              >
-                <TText
-                  style={[
-                    styles.freeBadgeText,
-                    { color: theme.colors.success },
-                  ]}
-                >
-                  100% FREE
-                </TText>
-              </View>
-            </View>
+            <TText
+              variant="heading"
+              style={[styles.heading, { color: theme.colors.text }]}
+            >
+              Start your free{"\n"}21-day challenge
+            </TText>
           </Animated.View>
 
           <TSpacer size="sm" />
 
           <Animated.View entering={FadeIn.duration(500).delay(250)}>
             <TText color="secondary" style={styles.sub}>
-              Most people see real results in 21 days.{"\n"}Log your meals.
-              Build the habit. Free.
+              Track your meals daily. Build consistency.{"\n"}Upgrade anytime to
+              unlock full features.
             </TText>
           </Animated.View>
 
@@ -246,54 +240,17 @@ export default function OnboardingChallengeScreen() {
 
           <TSpacer size="xl" />
 
-          {/* ── Unlock Pro offer ── */}
+          {/* ── Upgrade anytime — Pricing ── */}
           <Animated.View entering={FadeInDown.duration(400).delay(600)}>
-            <GlassSurface intensity="light" style={styles.proCard}>
-              <View style={styles.proHeader}>
-                <Ionicons name="star" size={20} color="#FBBF24" />
-                <TText style={[styles.proTitle, { color: theme.colors.text }]}>
-                  {isPro ? "You're Pro!" : "Want to unlock everything?"}
-                </TText>
-              </View>
-              <TSpacer size="xs" />
-              <TText
-                style={[styles.proSub, { color: theme.colors.textSecondary }]}
-              >
-                {isPro
-                  ? "You have full access to all features."
-                  : "Get unlimited AI scans, detailed insights, and more with a Pro subscription."}
-              </TText>
-              {!isPro && (
-                <>
-                  <TSpacer size="md" />
-                  <Pressable
-                    onPress={presentPaywall}
-                    style={({ pressed }) => ({
-                      opacity: pressed ? 0.85 : 1,
-                    })}
-                  >
-                    <View
-                      style={[
-                        styles.proButton,
-                        { backgroundColor: theme.colors.primary },
-                      ]}
-                    >
-                      <TText
-                        style={[
-                          styles.proButtonText,
-                          { color: theme.colors.textInverse },
-                        ]}
-                      >
-                        View Plans
-                      </TText>
-                    </View>
-                  </Pressable>
-                </>
-              )}
-            </GlassSurface>
+            <PricingSelector
+              packages={packages}
+              isLoading={isLoadingOfferings}
+              onPurchase={purchasePackage}
+              heading={isPro ? "You're subscribed ✓" : "Upgrade anytime"}
+            />
           </Animated.View>
 
-          <TSpacer size="xl" />
+          <TSpacer size="lg" />
         </ScrollView>
 
         {/* ── CTA ── */}
@@ -323,7 +280,7 @@ export default function OnboardingChallengeScreen() {
                 <TText
                   style={[styles.ctaText, { color: theme.colors.textInverse }]}
                 >
-                  Start My Challenge →
+                  Start 21-Day Challenge
                 </TText>
               )}
             </LinearGradient>
@@ -340,8 +297,7 @@ export default function OnboardingChallengeScreen() {
           <TSpacer size="xs" />
 
           <TText style={[styles.legalText, { color: theme.colors.textMuted }]}>
-            Users who complete 21 days are invited to unlock the full app at a
-            special rate.
+            Complete the challenge, then upgrade to unlock everything.
           </TText>
 
           <TSpacer size="xs" />
@@ -373,27 +329,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 8,
   },
-  headingRow: {
-    gap: 8,
-  },
   heading: {
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: "800",
-    lineHeight: 40,
-  },
-  freeBadge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  freeBadgeText: {
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 0.5,
+    lineHeight: 38,
   },
   sub: {
-    fontSize: 17,
+    fontSize: 16,
     lineHeight: 24,
   },
   // Progress preview
@@ -487,32 +429,5 @@ const styles = StyleSheet.create({
   restoreText: {
     fontSize: 12,
     textDecorationLine: "underline",
-  },
-  // Pro upsell card
-  proCard: {
-    padding: 20,
-    borderRadius: 16,
-  },
-  proHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  proTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  proSub: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  proButton: {
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  proButtonText: {
-    fontSize: 15,
-    fontWeight: "700",
   },
 });

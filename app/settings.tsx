@@ -229,7 +229,7 @@ export default function SettingsScreen() {
     subscription.plan === null
       ? "Free"
       : subscription.trialStarted
-        ? "Free Trial"
+        ? "Challenge"
         : subscription.plan === "monthly"
           ? "Monthly"
           : "Yearly";
