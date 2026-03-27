@@ -4,16 +4,16 @@ import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import React, { useState } from "react";
 import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    View,
 } from "react-native";
 import {
-  SafeAreaView,
-  useSafeAreaInsets,
+    SafeAreaView,
+    useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
 import { AuthCapabilities } from "../../src/features/auth/authCapabilities";
@@ -54,6 +54,9 @@ export default function AuthScreen() {
       const { error } = await signIn(email, password);
       if (error) {
         Alert.alert("Sign In Failed", error.message);
+      } else {
+        // Route through index so auth + onboarding state is evaluated once.
+        router.replace("/");
       }
     } finally {
       setLoading(false);

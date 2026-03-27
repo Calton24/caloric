@@ -18,6 +18,7 @@ import Animated, {
     withTiming,
 } from "react-native-reanimated";
 import Svg, { Circle } from "react-native-svg";
+import { haptics } from "../../infrastructure/haptics";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -188,7 +189,10 @@ export function DaySelector({
                     <Pressable
                       key={day.key}
                       onPress={() => {
-                        if (isCenterPage) onSelect(dayIdx);
+                        if (isCenterPage) {
+                          haptics.impact("light");
+                          onSelect(dayIdx);
+                        }
                       }}
                       accessibilityLabel={`${day.label} ${day.dayNumber}${isSelected ? ", selected" : ""}${day.isToday ? ", today" : ""}`}
                       accessibilityRole="button"

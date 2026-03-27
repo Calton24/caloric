@@ -12,6 +12,12 @@
 
 import { useEffect, useRef } from "react";
 import { useAuth } from "../auth/useAuth";
+import { useChallengeStore } from "../challenge/challenge.store";
+import {
+    createChallenge,
+    pullChallenge,
+    pushChallenge,
+} from "../challenge/challenge.sync";
 import { useGoalsStore } from "../goals/goals.store";
 import { useNutritionStore } from "../nutrition/nutrition.store";
 import type { MealEntry } from "../nutrition/nutrition.types";
@@ -130,6 +136,18 @@ export function useProgressSync(): void {
       // so the result is accurate even if the server RPC is stale.
       // force=true so local computation can correct downward too.
       computeLocalStreak(true);
+
+      // Restore challenge: remote wins (server is source of truth after login)
+      const remoteChallenge = await pullChallenge();
+      if (remoteChallenge) {
+        useChallengeStore.getState().setChallenge(remoteChallenge);
+      } else {
+        // If we have a local challenge that hasn't been pushed yet, push it now
+        const localChallenge = useChallengeStore.getState().challenge;
+        if (localChallenge) {
+          createChallenge(localChallenge);
+        }
+      }
     })();
   }, [userId]);
 
@@ -240,6 +258,24 @@ export function useProgressSync(): void {
       if (state.profile === prevProfile) return;
       prevProfile = state.profile;
       pushProfile(state.profile);
+    });
+
+    return unsub;
+  }, [userId]);
+
+  // ── Subscribe to challenge changes → push to Supabase ──
+  useEffect(() => {
+    if (!userId) return;
+
+    let prevChallenge = useChallengeStore.getState().challenge;
+
+    const unsub = useChallengeStore.subscribe((state) => {
+      const next = state.challenge;
+      if (next === prevChallenge) return;
+      prevChallenge = next;
+      if (next) {
+        pushChallenge(next);
+      }
     });
 
     return unsub;

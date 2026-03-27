@@ -27,7 +27,6 @@ import {
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
 import { AuthCapabilities } from "../../src/features/auth/authCapabilities";
 import { useAuth } from "../../src/features/auth/useAuth";
-import { useProfileStore } from "../../src/features/profile/profile.store";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassCard } from "../../src/ui/glass/GlassCard";
 import { TButton } from "../../src/ui/primitives/TButton";
@@ -40,9 +39,6 @@ export default function SignInScreen() {
   const { signIn, signUp, signInWithOAuth } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const onboardingCompleted = useProfileStore(
-    (state) => state.profile.onboardingCompleted
-  );
 
   const googleEnabled = AuthCapabilities.google;
   const appleEnabled = AuthCapabilities.apple;
@@ -67,12 +63,9 @@ export default function SignInScreen() {
       if (error) {
         Alert.alert("Sign In Failed", error.message);
       } else {
-        // Navigate to main app after successful sign-in
-        if (onboardingCompleted) {
-          router.replace("/(tabs)" as any);
-        } else {
-          router.replace("/(onboarding)/goal" as any);
-        }
+        // Let index.tsx evaluate auth + onboarding state so routing is
+        // always correct regardless of local store hydration timing.
+        router.replace("/");
       }
     } finally {
       setLoading(false);

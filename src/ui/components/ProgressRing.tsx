@@ -10,6 +10,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
+import { getOverLimitColor } from "../../../hooks/useOverLimitColor";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -59,12 +60,16 @@ export function ProgressRing({
   subtitle,
 }: ProgressRingProps) {
   const { theme } = useTheme();
-  const ringColor = color ?? theme.colors.primary;
 
   const hasTarget = target > 0;
   const rawProgress = hasTarget ? consumed / target : 0;
   const clampedProgress = Math.min(rawProgress, 1);
   const isOver = hasTarget && rawProgress > 1;
+
+  // Derive severity color directly from the ratio we already have, so the ring
+  // is never stuck on green due to a stale `color` prop from the parent.
+  const derivedColor = getOverLimitColor(rawProgress, theme.colors.primary);
+  const ringColor = isOver ? derivedColor : (color ?? derivedColor);
   const remaining = Math.max(target - consumed, 0);
   const overAmount = Math.max(consumed - target, 0);
 
@@ -94,7 +99,7 @@ export function ProgressRing({
     cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [clampedProgress]);
 
   //  Dot arc geometry

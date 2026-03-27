@@ -29,35 +29,7 @@ function RootStack() {
         options={{ headerShown: false, presentation: "modal" }}
       />
 
-      {/* ── Legacy routes (kept for backward compat) ── */}
-      <Stack.Screen
-        name="onboarding"
-        options={{ headerShown: false, gestureEnabled: false }}
-      />
-      <Stack.Screen
-        name="permissions"
-        options={{ headerShown: false, gestureEnabled: false }}
-      />
-      <Stack.Screen
-        name="live-activity-intro"
-        options={{ headerShown: false, gestureEnabled: false }}
-      />
-      <Stack.Screen
-        name="tracking"
-        options={{ headerShown: false, presentation: "modal" }}
-      />
-      <Stack.Screen name="progress" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="log-weight"
-        options={{ headerShown: false, presentation: "modal" }}
-      />
-      <Stack.Screen name="settings" options={{ headerShown: false }} />
-      <Stack.Screen name="goals" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="confirm-meal"
-        options={{ headerShown: false, presentation: "modal" }}
-      />
-      <Stack.Screen name="modal" options={{ presentation: "modal" }} />
+      {/* ── Auth screens ── */}
       <Stack.Screen
         name="auth/sign-in"
         options={{

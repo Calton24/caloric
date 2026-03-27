@@ -1,18 +1,17 @@
 /**
- * Onboarding Step 9 — Paywall
+ * Onboarding Step 9 — 21-Day Challenge Activation
  *
- * 7-day free trial gate. Shows annual vs monthly pricing,
- * a feature list, testimonial quote, and primary CTA.
- * "Skip" link at bottom for free-tier fallback.
+ * Replaces the hard paywall with a free commitment screen.
+ * Users start their challenge here; conversion offer appears
+ * after they've proven the habit (day 14+).
  */
 
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -24,113 +23,75 @@ import Animated, {
     FadeInUp,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "../../src/features/auth/useAuth";
+import { buildNewChallenge } from "../../src/features/challenge/challenge.service";
+import { useChallengeStore } from "../../src/features/challenge/challenge.store";
+import { createChallenge } from "../../src/features/challenge/challenge.sync";
+import type { UserChallenge } from "../../src/features/challenge/challenge.types";
 import { logger } from "../../src/logging/logger";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 
-// ── Pricing tiers ──
-interface PricingTier {
-  id: string;
-  label: string;
-  price: string;
-  perMonth: string;
-  badge?: string;
-}
-
-const TIERS: PricingTier[] = [
+const PILLARS = [
   {
-    id: "annual",
-    label: "Annual",
-    price: "$39.99/yr",
-    perMonth: "$3.33/mo",
-    badge: "Best Value",
+    icon: "calendar-outline" as const,
+    title: "Log daily",
+    sub: "A few taps per meal is all it takes",
   },
   {
-    id: "monthly",
-    label: "Monthly",
-    price: "$7.99/mo",
-    perMonth: "$7.99/mo",
+    icon: "trending-up-outline" as const,
+    title: "See patterns",
+    sub: "Insights emerge after just a few days",
+  },
+  {
+    icon: "trophy-outline" as const,
+    title: "Finish strong",
+    sub: "Completers earn early access to the full app",
   },
 ];
 
-const FEATURES = [
-  "Personalized calorie & macro plan",
-  "Barcode scanner & food database",
-  "Progress photos & measurements",
-  "Advanced analytics & insights",
-  "Unlimited meal logging",
-];
-
-export default function OnboardingPaywallScreen() {
+export default function OnboardingChallengeScreen() {
   const { theme } = useTheme();
   const router = useRouter();
-  const [selectedTier, setSelectedTier] = useState("annual");
-  const [isPurchasing, setIsPurchasing] = useState(false);
-  // RevenueCat packages keyed by tier id
-  const [packages, setPackages] = useState<Record<string, any>>({});
-
-  // Fetch RevenueCat offerings on mount
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const Purchases = require("react-native-purchases").default;
-        const offerings = await Purchases.getOfferings();
-        const current = offerings?.current;
-        if (!current || cancelled) return;
-
-        const pkgMap: Record<string, any> = {};
-        // Map RevenueCat package types to our tier ids
-        // annual = ANNUAL package, monthly = MONTHLY package
-        for (const pkg of current.availablePackages ?? []) {
-          const type: string = pkg.packageType;
-          if (type === "ANNUAL") pkgMap["annual"] = pkg;
-          else if (type === "MONTHLY") pkgMap["monthly"] = pkg;
-        }
-        if (!cancelled) setPackages(pkgMap);
-      } catch (e) {
-        logger.warn("[Paywall] Failed to fetch offerings:", e);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { user } = useAuth();
+  const setChallenge = useChallengeStore((s) => s.setChallenge);
+  const existingChallenge = useChallengeStore((s) => s.challenge);
+  const [isStarting, setIsStarting] = useState(false);
 
   const handleStart = async () => {
-    const pkg = packages[selectedTier];
-    if (!pkg) {
-      // No RevenueCat package available (SDK not configured, dev mode, etc.)
-      // Navigate through to complete so onboarding isn't blocked
-      logger.warn("[Paywall] No package for tier, skipping purchase");
-      router.push("/(onboarding)/complete" as any);
-      return;
-    }
+    if (isStarting) return;
+    setIsStarting(true);
 
-    setIsPurchasing(true);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const Purchases = require("react-native-purchases").default;
-      await Purchases.purchasePackage(pkg);
-      // Purchase successful — RevenueCat handles receipt validation
-      router.push("/(onboarding)/complete" as any);
-    } catch (e: any) {
-      if (e?.userCancelled) {
-        // User tapped cancel — do nothing, stay on paywall
-        logger.log("[Paywall] User cancelled purchase");
-      } else {
-        logger.error("[Paywall] Purchase failed:", e);
-        Alert.alert(
-          "Purchase Failed",
-          "Something went wrong. Please try again or skip for now.",
-          [{ text: "OK" }]
-        );
+      // If a challenge already exists (e.g. user revisiting onboarding), skip.
+      if (existingChallenge) {
+        router.push("/(onboarding)/complete" as any);
+        return;
       }
+
+      const userId = user?.id;
+      const now = new Date().toISOString();
+      const partial = buildNewChallenge(userId ?? "local");
+      const challenge: UserChallenge = {
+        ...partial,
+        id: crypto.randomUUID(),
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      // Persist locally immediately (offline-first)
+      setChallenge(challenge);
+
+      // Push to Supabase in background (no-op if not authed yet)
+      createChallenge(challenge).catch((e) =>
+        logger.warn("[Challenge] Supabase insert failed:", e)
+      );
+
+      router.push("/(onboarding)/complete" as any);
     } finally {
-      setIsPurchasing(false);
+      setIsStarting(false);
     }
   };
 
@@ -161,18 +122,21 @@ export default function OnboardingPaywallScreen() {
                 variant="heading"
                 style={[styles.heading, { color: theme.colors.text }]}
               >
-                Unlock Your{"\n"}Full Plan
+                Your 21-Day Plan{"\n"}is Ready
               </TText>
               <View
                 style={[
-                  styles.trialBadge,
+                  styles.freeBadge,
                   { backgroundColor: theme.colors.success + "22" },
                 ]}
               >
                 <TText
-                  style={[styles.trialText, { color: theme.colors.success }]}
+                  style={[
+                    styles.freeBadgeText,
+                    { color: theme.colors.success },
+                  ]}
                 >
-                  7-DAY FREE TRIAL
+                  100% FREE
                 </TText>
               </View>
             </View>
@@ -182,147 +146,99 @@ export default function OnboardingPaywallScreen() {
 
           <Animated.View entering={FadeIn.duration(500).delay(250)}>
             <TText color="secondary" style={styles.sub}>
-              Try everything free for 7 days.{"\n"}Cancel anytime — no charge.
+              Most people see real results in 21 days.{"\n"}Log your meals.
+              Build the habit. Free.
             </TText>
           </Animated.View>
 
           <TSpacer size="xl" />
 
-          {/* ── Pricing tiers ── */}
+          {/* ── Day progress preview ── */}
           <Animated.View entering={FadeInDown.duration(400).delay(350)}>
-            <View style={styles.tierRow}>
-              {TIERS.map((tier) => {
-                const isActive = selectedTier === tier.id;
-                const pkg = packages[tier.id];
-                // Use live price from RevenueCat if available
-                const displayPrice = pkg?.product?.priceString ?? tier.price;
-                return (
-                  <Pressable
-                    key={tier.id}
-                    onPress={() => setSelectedTier(tier.id)}
-                    style={styles.tierPressable}
-                    testID={`tier-${tier.id}`}
-                  >
-                    <GlassSurface
-                      intensity={isActive ? "medium" : "light"}
-                      style={[
-                        styles.tierCard,
-                        {
-                          borderColor: isActive
-                            ? theme.colors.primary
-                            : "transparent",
-                          borderWidth: 2,
-                        },
-                      ]}
-                    >
-                      {tier.badge && (
-                        <View
-                          style={[
-                            styles.bestBadge,
-                            {
-                              backgroundColor: theme.colors.primary,
-                            },
-                          ]}
-                        >
-                          <TText style={styles.bestBadgeText}>
-                            {tier.badge}
-                          </TText>
-                        </View>
-                      )}
-                      <TText
-                        style={[
-                          styles.tierLabel,
-                          { color: theme.colors.textSecondary },
-                        ]}
-                      >
-                        {tier.label}
-                      </TText>
-                      <TSpacer size="xs" />
-                      <TText
-                        style={[styles.tierPrice, { color: theme.colors.text }]}
-                      >
-                        {displayPrice}
-                      </TText>
-                      <TText
-                        style={[
-                          styles.tierPer,
-                          { color: theme.colors.textMuted },
-                        ]}
-                      >
-                        {tier.perMonth}
-                      </TText>
-                      {isActive && (
-                        <Ionicons
-                          name="checkmark-circle"
-                          size={22}
-                          color={theme.colors.primary}
-                          style={styles.tierCheck}
-                        />
-                      )}
-                    </GlassSurface>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </Animated.View>
-
-          <TSpacer size="xl" />
-
-          {/* ── Feature list ── */}
-          <Animated.View entering={FadeInDown.duration(400).delay(500)}>
-            <GlassSurface intensity="light" style={styles.featureCard}>
+            <GlassSurface intensity="light" style={styles.progressCard}>
+              <View style={styles.progressRow}>
+                <TText
+                  style={[
+                    styles.progressLabel,
+                    { color: theme.colors.textMuted },
+                  ]}
+                >
+                  Day 1
+                </TText>
+                <View style={styles.progressBarTrack}>
+                  <View
+                    style={[
+                      styles.progressBarFill,
+                      { backgroundColor: theme.colors.primary, width: "5%" },
+                    ]}
+                  />
+                </View>
+                <TText
+                  style={[
+                    styles.progressLabel,
+                    { color: theme.colors.textMuted },
+                  ]}
+                >
+                  Day 21
+                </TText>
+              </View>
+              <TSpacer size="xs" />
               <TText
                 style={[
-                  styles.featureHead,
+                  styles.progressSub,
                   { color: theme.colors.textSecondary },
                 ]}
               >
-                EVERYTHING INCLUDED
+                Each logged day fills the bar
               </TText>
-              <TSpacer size="md" />
-              {FEATURES.map((f, i) => (
-                <View key={i} style={styles.featureRow}>
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={20}
-                    color={theme.colors.success}
-                  />
-                  <TText
-                    style={[styles.featureText, { color: theme.colors.text }]}
-                  >
-                    {f}
-                  </TText>
-                </View>
-              ))}
             </GlassSurface>
           </Animated.View>
 
           <TSpacer size="xl" />
 
-          {/* ── Testimonial ── */}
-          <Animated.View entering={FadeInUp.duration(400).delay(650)}>
-            <GlassSurface intensity="light" style={styles.testimonialCard}>
-              <View style={styles.stars}>
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <Ionicons key={s} name="star" size={16} color="#FBBF24" />
-                ))}
-              </View>
-              <TSpacer size="sm" />
-              <TText
-                style={[styles.testimonialText, { color: theme.colors.text }]}
-              >
-                &ldquo;I lost 22 lbs in 3 months. The plan was easy to follow
-                and I never felt hungry.&rdquo;
-              </TText>
-              <TSpacer size="xs" />
-              <TText
-                style={[
-                  styles.testimonialAuthor,
-                  { color: theme.colors.textMuted },
-                ]}
-              >
-                — Sarah K., verified user
-              </TText>
+          {/* ── 3 Pillars ── */}
+          <Animated.View entering={FadeInDown.duration(400).delay(500)}>
+            <GlassSurface intensity="light" style={styles.pillarsCard}>
+              {PILLARS.map((p, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.pillarRow,
+                    i < PILLARS.length - 1 && {
+                      borderBottomWidth: StyleSheet.hairlineWidth,
+                      borderBottomColor: theme.colors.border,
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.pillarIcon,
+                      { backgroundColor: theme.colors.primary + "18" },
+                    ]}
+                  >
+                    <Ionicons
+                      name={p.icon}
+                      size={22}
+                      color={theme.colors.primary}
+                    />
+                  </View>
+                  <View style={styles.pillarText}>
+                    <TText
+                      style={[styles.pillarTitle, { color: theme.colors.text }]}
+                    >
+                      {p.title}
+                    </TText>
+                    <TText
+                      style={[
+                        styles.pillarSub,
+                        { color: theme.colors.textMuted },
+                      ]}
+                    >
+                      {p.sub}
+                    </TText>
+                  </View>
+                </View>
+              ))}
             </GlassSurface>
           </Animated.View>
 
@@ -331,16 +247,17 @@ export default function OnboardingPaywallScreen() {
 
         {/* ── CTA ── */}
         <Animated.View
-          entering={FadeInUp.duration(500).delay(800)}
+          entering={FadeInUp.duration(500).delay(700)}
           style={styles.ctaArea}
         >
           <Pressable
-            testID="paywall-start"
+            testID="challenge-start"
             onPress={handleStart}
-            disabled={isPurchasing}
+            disabled={isStarting}
             style={({ pressed }) => ({
-              opacity: pressed || isPurchasing ? 0.9 : 1,
+              opacity: pressed || isStarting ? 0.9 : 1,
               transform: [{ scale: pressed ? 0.97 : 1 }],
+              width: "100%",
             })}
           >
             <LinearGradient
@@ -349,13 +266,13 @@ export default function OnboardingPaywallScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.ctaGradient}
             >
-              {isPurchasing ? (
+              {isStarting ? (
                 <ActivityIndicator color={theme.colors.textInverse} />
               ) : (
                 <TText
                   style={[styles.ctaText, { color: theme.colors.textInverse }]}
                 >
-                  Start Free Trial
+                  Start My Challenge →
                 </TText>
               )}
             </LinearGradient>
@@ -365,14 +282,15 @@ export default function OnboardingPaywallScreen() {
 
           <Pressable onPress={handleSkip} hitSlop={12}>
             <TText style={[styles.skipText, { color: theme.colors.textMuted }]}>
-              No thanks, continue with limited features
+              Skip for now
             </TText>
           </Pressable>
 
           <TSpacer size="xs" />
 
           <TText style={[styles.legalText, { color: theme.colors.textMuted }]}>
-            Cancel anytime during trial. Subscription auto-renews.
+            Users who complete 21 days are invited to unlock the full app at a
+            special rate.
           </TText>
         </Animated.View>
       </SafeAreaView>
@@ -402,13 +320,13 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     lineHeight: 40,
   },
-  trialBadge: {
+  freeBadge: {
     alignSelf: "flex-start",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
   },
-  trialText: {
+  freeBadgeText: {
     fontSize: 12,
     fontWeight: "800",
     letterSpacing: 0.5,
@@ -417,90 +335,65 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 24,
   },
-  // Tier selector
-  tierRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  tierPressable: {
-    flex: 1,
-  },
-  tierCard: {
-    alignItems: "center",
-    paddingVertical: 20,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    position: "relative",
-    overflow: "hidden",
-  },
-  bestBadge: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingVertical: 3,
-    alignItems: "center",
-  },
-  bestBadgeText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#fff",
-    letterSpacing: 0.5,
-  },
-  tierLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    marginTop: 8,
-  },
-  tierPrice: {
-    fontSize: 20,
-    fontWeight: "800",
-  },
-  tierPer: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  tierCheck: {
-    marginTop: 8,
-  },
-  // Features
-  featureCard: {
+  // Progress preview
+  progressCard: {
     padding: 20,
     borderRadius: 16,
   },
-  featureHead: {
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 1,
-  },
-  featureRow: {
+  progressRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    marginBottom: 12,
   },
-  featureText: {
-    fontSize: 15,
+  progressLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    width: 38,
+  },
+  progressBarTrack: {
+    flex: 1,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "rgba(128,128,128,0.15)",
+    overflow: "hidden",
+  },
+  progressBarFill: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  progressSub: {
+    fontSize: 13,
+    textAlign: "center",
+  },
+  // Pillars
+  pillarsCard: {
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  pillarRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+  },
+  pillarIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pillarText: {
     flex: 1,
   },
-  // Testimonial
-  testimonialCard: {
-    padding: 18,
-    borderRadius: 16,
-    alignItems: "center",
-  },
-  stars: {
-    flexDirection: "row",
-    gap: 2,
-  },
-  testimonialText: {
+  pillarTitle: {
     fontSize: 15,
-    fontStyle: "italic",
-    textAlign: "center",
-    lineHeight: 22,
+    fontWeight: "700",
   },
-  testimonialAuthor: {
+  pillarSub: {
     fontSize: 13,
+    marginTop: 2,
   },
   // CTA
   ctaArea: {
@@ -528,5 +421,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     textAlign: "center",
     lineHeight: 16,
+    paddingHorizontal: 20,
   },
 });

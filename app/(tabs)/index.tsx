@@ -453,6 +453,7 @@ export default function HomeScreen() {
 
   // Arrow button handlers (with animation)
   const goToPrevDay = useCallback(() => {
+    haptics.impact("light");
     // Trigger slide-out animation
     contentOpacity.value = withTiming(0.3, { duration: 120 });
     contentOffsetX.value = withTiming(
@@ -478,6 +479,7 @@ export default function HomeScreen() {
   }, [changeToPrevDay, contentOffsetX, contentOpacity, SLIDE_OUT]);
 
   const goToNextDay = useCallback(() => {
+    haptics.impact("light");
     // Trigger slide-out animation
     contentOpacity.value = withTiming(0.3, { duration: 120 });
     contentOffsetX.value = withTiming(

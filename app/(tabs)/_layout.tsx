@@ -1,9 +1,10 @@
 import { FeatureFlags } from "@/config/features";
+import { useAuth } from "@/src/features/auth/useAuth";
 import { useLiveActivitySync } from "@/src/features/live-activity";
 import { haptics } from "@/src/infrastructure/haptics";
 import { useTheme } from "@/src/theme/useTheme";
 import { GlassTabBar } from "@/src/ui/tabs/GlassTabBar";
-import { Tabs, usePathname } from "expo-router";
+import { Redirect, Tabs, usePathname } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { useEffect, useRef } from "react";
 import { Platform, View } from "react-native";
@@ -127,7 +128,13 @@ function GlassTabLayout() {
 }
 
 export default function TabLayout() {
+  const { user, isLoading } = useAuth();
   useLiveActivitySync();
+
+  // Auth guard — redirect unauthenticated users back to the entry point.
+  // This handles sign-out, session expiry, and any accidental direct navigation.
+  if (isLoading) return null;
+  if (!user) return <Redirect href="/(onboarding)/landing" />;
 
   return USE_NATIVE_TABS ? <NativeTabLayout /> : <GlassTabLayout />;
 }
