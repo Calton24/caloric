@@ -60,4 +60,29 @@ export const useSubscriptionStore = create<SubscriptionStore>((set) => ({
     })),
 
   resetSubscription: () => set({ subscription: initialSubscription }),
+
+  syncFromEntitlement: (entitlement) =>
+    set((state) => {
+      if (!entitlement.isActive) {
+        return {
+          subscription: {
+            ...state.subscription,
+            hasActiveSubscription: false,
+            plan: null,
+          },
+        };
+      }
+      const plan: Exclude<SubscriptionPlan, null> = entitlement.productId
+        ?.toLowerCase()
+        .includes("annual")
+        ? "annual"
+        : "monthly";
+      return {
+        subscription: {
+          ...state.subscription,
+          hasActiveSubscription: true,
+          plan,
+        },
+      };
+    }),
 }));
