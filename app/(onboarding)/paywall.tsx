@@ -103,13 +103,8 @@ const FEATURES = [
 
 const TESTIMONIALS = [
   {
-    name: "Sarah M.",
-    text: "Lost 12 lbs in 21 days! The AI tracking made it so easy.",
-    rating: 5,
-  },
-  {
-    name: "Mike T.",
-    text: "Finally a calorie tracker that doesn't feel like work. Love it!",
+    name: "Alex R.",
+    text: "I didn't realise how much I was eating until this app broke it down. The AI scans are insane.",
     rating: 5,
   },
   {
@@ -118,28 +113,23 @@ const TESTIMONIALS = [
     rating: 5,
   },
   {
+    name: "Mike T.",
+    text: "Honestly just started to see what I was eating. Now I'm 3 months in and don't want to stop.",
+    rating: 5,
+  },
+  {
+    name: "Priya S.",
+    text: "I've tried every tracker. This is the first one that didn't feel like homework. The camera is magic.",
+    rating: 5,
+  },
+  {
     name: "Carlos R.",
-    text: "Down 18 pounds and feeling amazing. The 21-day structure works!",
+    text: "The 21-day structure actually worked. I built a real habit without even thinking about it.",
     rating: 5,
   },
   {
     name: "Emily K.",
-    text: "My entire relationship with food has changed. Worth every penny.",
-    rating: 5,
-  },
-  {
-    name: "Jason P.",
-    text: "Never thought I'd stick with it, but here I am 3 months later!",
-    rating: 5,
-  },
-  {
-    name: "Rachel D.",
-    text: "Best decision for my health. The insights are incredibly helpful.",
-    rating: 5,
-  },
-  {
-    name: "Tom B.",
-    text: "Lost 20 lbs and gained confidence. This app changed my life.",
+    text: "My relationship with food completely changed. I finally understand what I'm eating.",
     rating: 5,
   },
 ];
@@ -784,7 +774,7 @@ export default function OnboardingChallengeScreen() {
         </SafeAreaView>
       </LinearGradient>
 
-      {/* ══ MIDDLE — fills remaining space ══ */}
+      {/* ══ MIDDLE — challenge → movement (subtle) → testimonial ══ */}
       <View style={styles.middleArea}>
         <Animated.View entering={FadeInDown.duration(500).delay(400)}>
           <FeatureShowcase
@@ -798,7 +788,22 @@ export default function OnboardingChallengeScreen() {
 
         <TSpacer size="xs" />
 
-        <Animated.View entering={FadeInDown.duration(500).delay(460)}>
+        {/* Testimonial first — social proof before ask */}
+        <Animated.View
+          entering={FadeInDown.duration(500).delay(460)}
+          style={{ width: "100%" }}
+        >
+          <TestimonialCarousel
+            textColor={theme.colors.text}
+            secondaryColor={theme.colors.textSecondary}
+            primaryColor={theme.colors.primary}
+          />
+        </Animated.View>
+
+        <TSpacer size="xs" />
+
+        {/* Movement card — subtle, below social proof */}
+        <Animated.View entering={FadeInDown.duration(500).delay(520)}>
           <GlassSurface
             variant="card"
             intensity="medium"
@@ -844,20 +849,6 @@ export default function OnboardingChallengeScreen() {
             </TText>
           </GlassSurface>
         </Animated.View>
-
-        <TSpacer size="sm" />
-
-        {/* Testimonial Carousel */}
-        <Animated.View
-          entering={FadeInDown.duration(500).delay(520)}
-          style={{ width: "100%" }}
-        >
-          <TestimonialCarousel
-            textColor={theme.colors.text}
-            secondaryColor={theme.colors.textSecondary}
-            primaryColor={theme.colors.primary}
-          />
-        </Animated.View>
       </View>
 
       {/* ══ BOTTOM — pricing + CTAs + footer (natural height) ══ */}
@@ -890,7 +881,9 @@ export default function OnboardingChallengeScreen() {
                   onSelect={() => setSelectedPkg(pkg.identifier)}
                   label={getTierLabel(tier)}
                   priceStr={priceStr}
-                  badgeText={tier === "yearly" ? "Best value" : undefined}
+                  badgeText={
+                    tier === "yearly" ? "Best value — save 30%" : undefined
+                  }
                   primaryColor={theme.colors.primary}
                   borderColor={theme.colors.border}
                   bgColor={theme.colors.surface}
@@ -924,7 +917,9 @@ export default function OnboardingChallengeScreen() {
               <ActivityIndicator color="#fff" />
             ) : (
               <TText style={styles.ctaText}>
-                Subscribe{selectedPrice ? ` — ${selectedPrice}` : ""}
+                {selectedTier === "lifetime"
+                  ? "Unlock Lifetime Access"
+                  : "Unlock Full Experience"}
               </TText>
             )}
           </LinearGradient>
@@ -936,10 +931,10 @@ export default function OnboardingChallengeScreen() {
             style={[styles.billingContext, { color: theme.colors.textMuted }]}
           >
             {selectedTier === "yearly"
-              ? `${selectedPrice} billed annually`
+              ? `${selectedPrice} billed annually · Cancel anytime`
               : selectedTier === "monthly"
-                ? `${selectedPrice} billed monthly`
-                : `One-time purchase of ${selectedPrice}`}
+                ? `${selectedPrice}/month · Cancel anytime`
+                : `One-time purchase · Yours forever`}
           </TText>
         )}
 

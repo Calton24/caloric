@@ -52,6 +52,7 @@ import type { MealDraft } from "../../src/features/nutrition/nutrition.draft.typ
 import { useNutritionStore } from "../../src/features/nutrition/nutrition.store";
 import { useProfileStore } from "../../src/features/profile/profile.store";
 import { useStreakStore } from "../../src/features/streak/streak.store";
+import { useSubscriptionStore } from "../../src/features/subscription/subscription.store";
 import { useWaterStore } from "../../src/features/water/water.store";
 import { haptics } from "../../src/infrastructure/haptics";
 import { toISODate } from "../../src/lib/utils/date";
@@ -63,6 +64,8 @@ import { ManualLogSheet } from "../../src/ui/components/ManualLogSheet";
 import { MealCard } from "../../src/ui/components/MealCard";
 import { MonthlyView } from "../../src/ui/components/MonthlyView";
 import { ProgressRing } from "../../src/ui/components/ProgressRing";
+import { StreakAtRiskBanner } from "../../src/ui/components/StreakAtRiskBanner";
+import { StreakHero } from "../../src/ui/components/StreakHero";
 import { StreakModal } from "../../src/ui/components/StreakModal";
 import { VoiceLogSheet } from "../../src/ui/components/VoiceLogSheet";
 import { WaterCard } from "../../src/ui/components/WaterCard";
@@ -356,6 +359,10 @@ export default function HomeScreen() {
   const longestStreak = useStreakStore((s) => s.longestStreak);
   const lastLogDate = useStreakStore((s) => s.lastLogDate);
   const streakStartDate = useStreakStore((s) => s.streakStartDate);
+  const streakFreezeAvailable = useStreakStore((s) => s.streakFreezeAvailable);
+  const hasActiveSubscription = useSubscriptionStore(
+    (s) => s.subscription.hasActiveSubscription
+  );
 
   const todayMeals = dailySummary.meals;
 
@@ -1049,6 +1056,29 @@ export default function HomeScreen() {
 
           {viewMode === "D" && <TSpacer size="md" />}
 
+          {/* Streak hero card — visible identity + milestone progress */}
+          {viewMode === "D" && currentStreak > 0 && (
+            <>
+              <StreakHero
+                currentStreak={currentStreak}
+                onPress={() => {
+                  haptics.impact("medium");
+                  setShowStreakModal(true);
+                }}
+              />
+              <TSpacer size="sm" />
+            </>
+          )}
+
+          {/* Streak at risk banner — loss aversion nudge */}
+          {viewMode === "D" && (
+            <StreakAtRiskBanner
+              lastLogDate={lastLogDate ?? null}
+              currentStreak={currentStreak}
+              onPress={() => router.push("/tracking/text" as any)}
+            />
+          )}
+
           {/* ── Daily view ── */}
           {viewMode === "D" && (
             <>
@@ -1453,6 +1483,12 @@ export default function HomeScreen() {
         longestStreak={longestStreak ?? 0}
         lastLogDate={lastLogDate ?? null}
         streakStartDate={streakStartDate ?? null}
+        freezeAvailable={streakFreezeAvailable}
+        showFreezeUpsell={!hasActiveSubscription}
+        onFreezeUpsell={() => {
+          setShowStreakModal(false);
+          router.push("/(onboarding)/paywall" as any);
+        }}
       />
 
       {/* Water settings modal */}

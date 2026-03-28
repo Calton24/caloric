@@ -5,7 +5,17 @@ import { seedStreakCache } from "./streak.service";
 import type { StreakInfo } from "./streak.types";
 
 interface StreakStore extends StreakInfo {
+  /** Whether a streak freeze is available (pro users get one per streak) */
+  streakFreezeAvailable: boolean;
+  /** Whether the freeze was already used in the current streak */
+  streakFreezeUsed: boolean;
   setStreak: (info: StreakInfo) => void;
+  /** Grant a streak freeze (called when user goes pro) */
+  grantFreeze: () => void;
+  /** Consume the streak freeze (auto-called when streak would break) */
+  useFreeze: () => void;
+  /** Reset freeze when a new streak starts */
+  resetFreeze: () => void;
 }
 
 export const useStreakStore = create<StreakStore>()(
@@ -15,8 +25,16 @@ export const useStreakStore = create<StreakStore>()(
       longestStreak: 0,
       lastLogDate: null,
       streakStartDate: null,
+      streakFreezeAvailable: false,
+      streakFreezeUsed: false,
 
       setStreak: (info) => set(info),
+      grantFreeze: () =>
+        set({ streakFreezeAvailable: true, streakFreezeUsed: false }),
+      useFreeze: () =>
+        set({ streakFreezeAvailable: false, streakFreezeUsed: true }),
+      resetFreeze: () =>
+        set({ streakFreezeAvailable: false, streakFreezeUsed: false }),
     }),
     {
       name: "caloric-streak",

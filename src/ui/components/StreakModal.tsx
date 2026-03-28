@@ -15,6 +15,11 @@ import Animated, {
     withSpring,
     withTiming,
 } from "react-native-reanimated";
+import {
+    getNextMilestone,
+    getProgressionMessage,
+    getStreakLabel,
+} from "../../features/streak/streak-psychology.service";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -25,6 +30,12 @@ interface StreakModalProps {
   longestStreak: number;
   streakStartDate: string | null;
   lastLogDate: string | null;
+  /** Whether the user has a streak freeze available */
+  freezeAvailable?: boolean;
+  /** Show upsell for streak freeze (free users) */
+  showFreezeUpsell?: boolean;
+  /** Called when user taps the freeze upsell */
+  onFreezeUpsell?: () => void;
 }
 
 /** Day abbreviations starting Monday */
@@ -45,13 +56,9 @@ function getCurrentWeekDays(): string[] {
 }
 
 function getStreakMotivation(streak: number): string {
-  if (streak === 0) return "Log a meal today to start your streak!";
-  if (streak === 1) return "Great start! Come back tomorrow to keep it going.";
-  if (streak < 7)
-    return "You're on fire! Every day matters for hitting your goal!";
-  if (streak < 14) return "One week strong! You're building real habits. 💪";
-  if (streak < 30) return "Two weeks in! Consistency is your superpower.";
-  return `${streak} days of dedication. You're unstoppable! 🏆`;
+  return (
+    getProgressionMessage(streak) ?? "Log a meal today to start your streak!"
+  );
 }
 
 export function StreakModal({
@@ -61,6 +68,9 @@ export function StreakModal({
   longestStreak,
   streakStartDate,
   lastLogDate,
+  freezeAvailable = false,
+  showFreezeUpsell = false,
+  onFreezeUpsell,
 }: StreakModalProps) {
   const { theme } = useTheme();
   const isDark = theme.mode === "dark";
@@ -244,12 +254,96 @@ export function StreakModal({
               </TText>
             )}
 
+            {/* Identity label */}
+            {(() => {
+              const label = getStreakLabel(currentStreak);
+              return label ? (
+                <TText style={[styles.identityLabel, { color: FLAME_COLOR }]}>
+                  {label.emoji} {label.label}
+                </TText>
+              ) : null;
+            })()}
+
+            {/* Next milestone */}
+            {(() => {
+              const milestone = getNextMilestone(currentStreak);
+              return milestone ? (
+                <TText
+                  style={[
+                    styles.milestoneLabel,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  {milestone.remaining} day
+                  {milestone.remaining !== 1 ? "s" : ""} to {milestone.target}
+                  -day milestone
+                </TText>
+              ) : null;
+            })()}
+
             {/* Motivational message */}
             <TText
               style={[styles.message, { color: theme.colors.textSecondary }]}
             >
               {getStreakMotivation(currentStreak)}
             </TText>
+
+            {/* Streak freeze status */}
+            {freezeAvailable && (
+              <View
+                style={[
+                  styles.freezeRow,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(34,197,94,0.1)"
+                      : "rgba(34,197,94,0.08)",
+                  },
+                ]}
+              >
+                <TText style={styles.freezeIcon}>🧊</TText>
+                <TText
+                  style={[
+                    styles.freezeText,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  Streak Freeze available — miss a day without losing your
+                  streak
+                </TText>
+              </View>
+            )}
+
+            {/* Streak freeze upsell for free users */}
+            {showFreezeUpsell && !freezeAvailable && currentStreak >= 3 && (
+              <Pressable
+                onPress={onFreezeUpsell}
+                style={[
+                  styles.freezeUpsell,
+                  { borderColor: theme.colors.primary },
+                ]}
+              >
+                <TText style={styles.freezeIcon}>🧊</TText>
+                <View style={{ flex: 1 }}>
+                  <TText
+                    style={[
+                      styles.freezeUpsellTitle,
+                      { color: theme.colors.text },
+                    ]}
+                  >
+                    Protect your streak
+                  </TText>
+                  <TText
+                    style={[
+                      styles.freezeUpsellBody,
+                      { color: theme.colors.textMuted },
+                    ]}
+                  >
+                    Upgrade to Pro for a Streak Freeze — miss a day without
+                    losing progress
+                  </TText>
+                </View>
+              </Pressable>
+            )}
 
             {/* Continue button */}
             <Pressable
@@ -370,6 +464,18 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontWeight: "500",
   },
+  identityLabel: {
+    fontSize: 15,
+    fontWeight: "700",
+    marginTop: 8,
+    textAlign: "center",
+  },
+  milestoneLabel: {
+    fontSize: 12,
+    fontWeight: "400",
+    marginTop: 4,
+    textAlign: "center",
+  },
   message: {
     fontSize: 15,
     textAlign: "center",
@@ -387,5 +493,42 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 17,
     fontWeight: "700",
+  },
+  freezeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginBottom: 16,
+  },
+  freezeIcon: {
+    fontSize: 18,
+  },
+  freezeText: {
+    fontSize: 12,
+    fontWeight: "500",
+    flex: 1,
+  },
+  freezeUpsell: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    marginBottom: 16,
+  },
+  freezeUpsellTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  freezeUpsellBody: {
+    fontSize: 11,
+    fontWeight: "400",
+    marginTop: 2,
   },
 });

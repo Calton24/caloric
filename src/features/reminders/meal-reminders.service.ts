@@ -13,6 +13,8 @@ const IDS = {
   lunch: "meal-reminder-lunch",
   dinner: "meal-reminder-dinner",
   nudge: "meal-reminder-nudge",
+  streakWarning: "streak-risk-warning",
+  streakCritical: "streak-risk-critical",
 } as const;
 
 // ── Default schedule (24-h clock) ──
@@ -67,4 +69,42 @@ export async function cancelMealReminders(): Promise<void> {
   for (const id of Object.values(IDS)) {
     await notifications.cancelScheduled(id);
   }
+}
+
+// ── Streak-specific loss-aversion notifications ──
+
+const STREAK_SCHEDULE = [
+  {
+    identifier: IDS.streakWarning,
+    title: "Don't lose your streak 🔥",
+    body: "You haven't logged today. Keep your streak alive!",
+    hour: 18,
+    minute: 0,
+  },
+  {
+    identifier: IDS.streakCritical,
+    title: "Last chance — streak ends tonight ⚠️",
+    body: "Log one meal before midnight to save your streak.",
+    hour: 21,
+    minute: 0,
+  },
+] as const;
+
+/**
+ * Schedule streak-risk notifications (6pm warning + 9pm critical).
+ * Only call when the user has an active streak.
+ */
+export async function scheduleStreakReminders(): Promise<void> {
+  await cancelStreakReminders();
+  for (const item of STREAK_SCHEDULE) {
+    await notifications.scheduleDailyRepeat(item);
+  }
+}
+
+/**
+ * Cancel streak-risk notifications.
+ */
+export async function cancelStreakReminders(): Promise<void> {
+  await notifications.cancelScheduled(IDS.streakWarning);
+  await notifications.cancelScheduled(IDS.streakCritical);
 }

@@ -1,13 +1,15 @@
 /**
  * ShareCard — the viral share image component.
  *
- * Rendered off-screen inside a ViewShot, captured as a PNG for sharing.
+ * Rendered off-screen, captured as a PNG via captureRef for sharing.
  * Dark theme, bold typography, progress bar, subtle branding.
+ *
+ * NOTE: Uses a plain View (not ViewShot) so the module loads without
+ * the native binary. captureRef is called dynamically at share time.
  */
 
 import React, { forwardRef } from "react";
 import { StyleSheet, View } from "react-native";
-import ViewShot from "react-native-view-shot";
 import { TText } from "../../ui/primitives/TText";
 
 interface ShareCardProps {
@@ -22,54 +24,48 @@ interface ShareCardProps {
 // Card is rendered at a fixed size for consistent image output
 const CARD_WIDTH = 360;
 
-export const ShareCard = forwardRef<ViewShot, ShareCardProps>(
-  function ShareCard(
-    { day, streak, mealsLogged, challengeDays, emoji, quote },
-    ref
-  ) {
-    const progress = Math.min(day / challengeDays, 1);
+export const ShareCard = forwardRef<View, ShareCardProps>(function ShareCard(
+  { day, streak, mealsLogged, challengeDays, emoji, quote },
+  ref
+) {
+  const progress = Math.min(day / challengeDays, 1);
 
-    return (
-      <ViewShot
-        ref={ref}
-        options={{ format: "png", quality: 1, width: CARD_WIDTH }}
-        style={styles.shotWrapper}
-      >
-        <View style={styles.card}>
-          {/* Brand */}
-          <TText style={styles.brand}>Caloric</TText>
+  return (
+    <View ref={ref} collapsable={false} style={styles.shotWrapper}>
+      <View style={styles.card}>
+        {/* Brand */}
+        <TText style={styles.brand}>Caloric</TText>
 
-          {/* Title */}
-          <TText style={styles.title}>21-Day Challenge</TText>
+        {/* Title */}
+        <TText style={styles.title}>21-Day Challenge</TText>
 
-          {/* Progress bar */}
-          <View style={styles.progressTrack}>
-            <View
-              style={[styles.progressFill, { width: `${progress * 100}%` }]}
-            />
-          </View>
-
-          {/* Day badge */}
-          <TText style={styles.dayText}>
-            Day {day} {day >= challengeDays ? "✅" : emoji}
-          </TText>
-
-          {/* Stats */}
-          <View style={styles.statsRow}>
-            <TText style={styles.stat}>🔥 {streak} day streak</TText>
-            <TText style={styles.stat}>🍽️ {mealsLogged} meals logged</TText>
-          </View>
-
-          {/* Quote */}
-          <TText style={styles.quote}>&quot;{quote}&quot;</TText>
-
-          {/* Hashtag */}
-          <TText style={styles.hashtag}>#21DayCaloric</TText>
+        {/* Progress bar */}
+        <View style={styles.progressTrack}>
+          <View
+            style={[styles.progressFill, { width: `${progress * 100}%` }]}
+          />
         </View>
-      </ViewShot>
-    );
-  }
-);
+
+        {/* Day badge */}
+        <TText style={styles.dayText}>
+          Day {day} {day >= challengeDays ? "✅" : emoji}
+        </TText>
+
+        {/* Stats */}
+        <View style={styles.statsRow}>
+          <TText style={styles.stat}>🔥 {streak} day streak</TText>
+          <TText style={styles.stat}>🍽️ {mealsLogged} meals logged</TText>
+        </View>
+
+        {/* Quote */}
+        <TText style={styles.quote}>&quot;{quote}&quot;</TText>
+
+        {/* Hashtag */}
+        <TText style={styles.hashtag}>#21DayCaloric</TText>
+      </View>
+    </View>
+  );
+});
 
 const styles = StyleSheet.create({
   shotWrapper: {

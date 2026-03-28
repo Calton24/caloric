@@ -19,7 +19,6 @@ import Animated, {
     withSpring,
     withTiming,
 } from "react-native-reanimated";
-import ViewShot from "react-native-view-shot";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../../ui/primitives/TText";
 import { ShareCard } from "./ShareCard";
@@ -46,7 +45,7 @@ export function ShareMilestoneModal({
 }: ShareMilestoneModalProps) {
   const { theme } = useTheme();
   const isDark = theme.mode === "dark";
-  const cardRef = useRef<ViewShot>(null);
+  const cardRef = useRef<View>(null);
 
   // ── Animations ──
   const scale = useSharedValue(0.7);
@@ -94,11 +93,19 @@ export function ShareMilestoneModal({
     ],
   }));
 
-  // ── Share handler ──
+  // ── Share handler (dynamically loads captureRef to avoid native crash) ──
   const handleShare = useCallback(async () => {
     try {
       if (!cardRef.current) return;
-      const uri = await (cardRef.current as any).capture();
+      // Dynamic require — only loads the native module when user taps Share.
+      // If the native binary doesn't include RNViewShot yet, this fails
+      // gracefully and the modal just closes.
+      const { captureRef } = require("react-native-view-shot");
+      const uri = await captureRef(cardRef, {
+        format: "png",
+        quality: 1,
+        width: 360,
+      });
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, {
           mimeType: "image/png",
@@ -106,7 +113,7 @@ export function ShareMilestoneModal({
         });
       }
     } catch {
-      // Silently fail — don't block the celebration
+      // Native module not yet in binary, or capture failed — silently close
     }
     onClose();
   }, [onClose]);
