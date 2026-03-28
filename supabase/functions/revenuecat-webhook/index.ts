@@ -44,9 +44,16 @@ serve(async (req: Request) => {
     // ── Verify webhook secret ──
     const webhookSecret = Deno.env.get("REVENUECAT_WEBHOOK_SECRET");
     if (webhookSecret) {
-      const authHeader = req.headers.get("Authorization");
-      if (!authHeader || authHeader !== `Bearer ${webhookSecret}`) {
-        console.error("[rc-webhook] Invalid auth header");
+      const authHeader = req.headers.get("Authorization") ?? "";
+      // Accept: "Bearer <secret>", or just "<secret>" (RC sends the value as-is)
+      const token = authHeader.startsWith("Bearer ")
+        ? authHeader.slice(7)
+        : authHeader;
+      if (!token || token !== webhookSecret) {
+        console.error(
+          "[rc-webhook] Invalid auth header, got:",
+          authHeader.slice(0, 20)
+        );
         return json({ error: "Unauthorized" }, 401);
       }
     }
@@ -76,6 +83,12 @@ serve(async (req: Request) => {
     console.log(
       `[rc-webhook] event=${eventType} user=${appUserId} product=${productId} store=${store}`
     );
+
+    // ── Handle TEST events ──
+    if (eventType === "TEST") {
+      console.log("[rc-webhook] TEST event received, acknowledging");
+      return json({ ok: true, test: true });
+    }
 
     // ── Resolve Supabase user_id ──
     // Since we use Supabase user_id as RevenueCat app_user_id,
@@ -146,6 +159,11 @@ serve(async (req: Request) => {
       );
 
     if (upsertError) {
+      // FK constraint = user doesn't exist in auth.users yet — not an error
+      if (upsertError.message?.includes("violates foreign key constraint")) {
+        console.warn(`[rc-webhook] User ${userId} not in auth.users, skipping`);
+        return json({ ok: true, skipped: true, reason: "user_not_found" });
+      }
       console.error("[rc-webhook] Upsert failed:", upsertError.message);
       return json({ error: "Failed to update subscription state" }, 500);
     }

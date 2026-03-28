@@ -54,11 +54,13 @@ function BillingGate({ children }: { children: React.ReactNode }) {
     (s) => s.syncFromEntitlement
   );
   const hydrateScanCredits = useScanCreditsStore((s) => s.hydrate);
+  const hydrateSubscription = useSubscriptionStore((s) => s.hydrate);
 
-  // Hydrate scan credits from storage on mount
+  // Hydrate persisted stores from storage on mount
   useEffect(() => {
     hydrateScanCredits();
-  }, [hydrateScanCredits]);
+    hydrateSubscription();
+  }, [hydrateScanCredits, hydrateSubscription]);
 
   // Initialise billing SDK once on mount and subscribe to entitlement changes
   useEffect(() => {

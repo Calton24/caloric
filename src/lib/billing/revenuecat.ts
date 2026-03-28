@@ -66,6 +66,17 @@ export class RevenueCatProvider implements BillingProvider {
       return;
     }
 
+    // ── Guard: reject test keys in production builds ──
+    if (!__DEV__ && this.config.apiKey.startsWith("test_")) {
+      logger.error(
+        "[RevenueCat] FATAL: Test API key detected in production build. " +
+          "Set EXPO_PUBLIC_REVENUECAT_API_KEY to your production key."
+      );
+      throw new Error(
+        "[RevenueCat] Cannot use test API key in production build"
+      );
+    }
+
     try {
       const RC = getPurchases();
 
