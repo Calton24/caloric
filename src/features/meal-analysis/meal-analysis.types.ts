@@ -145,7 +145,7 @@ export interface AnalyzeMealRequest {
   timezoneOffset?: number;
 }
 
-/** Response from the Edge Function */
+/** Response from the ai-scan Edge Function */
 export interface AnalyzeMealResponse {
   /** Whether analysis succeeded */
   success: boolean;
@@ -157,6 +157,10 @@ export interface AnalyzeMealResponse {
   scanEventId?: string;
   /** Token usage from OpenAI */
   tokensUsed?: number;
+  /** Remaining free credits (from ai-scan choke point) */
+  remainingFreeCredits?: number;
+  /** Whether user has active pro subscription */
+  isPro?: boolean;
   /** Error message if failed */
   error?: string;
 }

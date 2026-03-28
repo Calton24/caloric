@@ -18,9 +18,9 @@ import { File } from "expo-file-system";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import { getSupabaseClient } from "../../lib/supabase/client";
 import type {
-  AnalyzeMealResponse,
-  MealAnalysisResult,
-  MealDecomposition,
+    AnalyzeMealResponse,
+    MealAnalysisResult,
+    MealDecomposition,
 } from "./meal-analysis.types";
 import { resolveDecomposition } from "./nutrition-resolver.service";
 
@@ -93,7 +93,7 @@ export async function analyzeMealImage(
     Authorization: `Bearer ${token}`,
   };
 
-  const { data, error } = await client.functions.invoke("analyze-meal", {
+  const { data, error } = await client.functions.invoke("ai-scan", {
     headers,
     body: {
       imageBase64: base64,
@@ -104,20 +104,41 @@ export async function analyzeMealImage(
   if (error) {
     // Try to extract detail from the Edge Function response
     let detail = "";
+    let errorCode: string | undefined;
     try {
       if (error.context && typeof error.context.json === "function") {
         const body = await error.context.json();
         detail = body?.detail || body?.error || "";
+        errorCode = body?.code;
       }
     } catch {
       // ignore parse errors
     }
+
+    // Map ai-scan error codes to user-facing messages
+    if (errorCode === "LIMIT_REACHED") {
+      throw new MealAnalysisError(
+        detail ||
+          "You've used all your free scans. Upgrade for unlimited scans.",
+        "edge_function_error"
+      );
+    }
+    if (errorCode === "BLOCKED") {
+      throw new MealAnalysisError(
+        "Your account has been restricted. Please contact support.",
+        "edge_function_error"
+      );
+    }
+
     const msg = detail || error.message || "Analysis failed. Please try again.";
     console.error("[MealAnalysis] Edge Function error:", msg);
     throw new MealAnalysisError(msg, "edge_function_error");
   }
 
-  const response = data as AnalyzeMealResponse;
+  // ai-scan wraps response in { ok, data: { ... } }
+  const envelope = data as { ok?: boolean; data?: AnalyzeMealResponse };
+  const response: AnalyzeMealResponse =
+    envelope?.data ?? (data as AnalyzeMealResponse);
 
   if (!response.success || !response.decomposition) {
     throw new MealAnalysisError(
@@ -144,6 +165,14 @@ export async function analyzeMealImage(
   if (response.tokensUsed) {
     (result as MealAnalysisResultWithMeta).tokensUsed = response.tokensUsed;
   }
+  // Attach credit/subscription info from ai-scan for UX sync
+  if (response.remainingFreeCredits !== undefined) {
+    (result as MealAnalysisResultWithMeta).remainingFreeCredits =
+      response.remainingFreeCredits;
+  }
+  if (response.isPro !== undefined) {
+    (result as MealAnalysisResultWithMeta).isPro = response.isPro;
+  }
 
   return result;
 }
@@ -154,6 +183,8 @@ export async function analyzeMealImage(
 export interface MealAnalysisResultWithMeta extends MealAnalysisResult {
   scanEventId?: string;
   tokensUsed?: number;
+  remainingFreeCredits?: number;
+  isPro?: boolean;
 }
 
 async function compressImage(uri: string): Promise<string> {

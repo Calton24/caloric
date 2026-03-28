@@ -51,6 +51,7 @@ import {
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
 import { useFeatureAccess } from "../../src/features/subscription/useFeatureAccess";
 import { useTheme } from "../../src/theme/useTheme";
+import { AuthGateModal } from "../../src/ui/components/AuthGateModal";
 import { FeatureGatePaywall } from "../../src/ui/components/FeatureGatePaywall";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
@@ -98,7 +99,8 @@ export default function CameraLoggingScreen() {
   const { theme } = useTheme();
   const router = useRouter();
   const { startFromImage, startFromInput, startFromBarcode } = useLoggingFlow();
-  const { requireAccount } = useAccountGate();
+  const { requireAccount, gateVisible, gateReason, dismissGate } =
+    useAccountGate();
   const { canScan, consumeScan, scansRemaining, isPro } = useFeatureAccess();
   const [showScanGate, setShowScanGate] = useState(false);
 
@@ -818,6 +820,13 @@ export default function CameraLoggingScreen() {
         visible={showScanGate}
         onDismiss={() => setShowScanGate(false)}
         feature="unlimited_scans"
+      />
+
+      {/* ── Auth gate modal ── */}
+      <AuthGateModal
+        visible={gateVisible}
+        onDismiss={dismissGate}
+        reason={gateReason}
       />
     </View>
   );

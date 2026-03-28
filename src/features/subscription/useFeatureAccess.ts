@@ -9,17 +9,22 @@
  *   Medium-cost (account required): barcode lookup, lightweight backend
  *   High-cost (premium or credit-gated): AI scan, LLM reasoning, OCR, insights, export
  *
+ * Two-layer enforcement:
+ *   Client-side: fast UX feedback (this hook — canScan, checkFeature)
+ *   Server-side: real enforcement in the ai-scan Edge Function (single choke point)
+ *
+ * The client NEVER verifies credits directly. The ai-scan Edge Function
+ * handles auth, credit check, decrement, AI call, and audit logging.
+ * This hook is purely for fast UX display.
+ *
  * Usage:
- *   const { canScan, consumeScan, gateFeature } = useFeatureAccess();
+ *   const { canScan, consumeScan, checkFeature } = useFeatureAccess();
  *
  *   async function handleScan() {
  *     const result = canScan();
- *     if (result.allowed) {
- *       await consumeScan();
- *       // ... do the scan
- *     } else {
- *       // result.reason tells you what to show
- *     }
+ *     if (!result.allowed) { // show paywall or gate }
+ *     // ... call ai-scan Edge Function (it enforces server-side)
+ *     await consumeScan();
  *   }
  */
 
@@ -34,7 +39,9 @@ import { useSubscriptionStore } from "./subscription.store";
 export type AccessDeniedReason =
   | "not_authenticated"
   | "no_credits"
-  | "premium_required";
+  | "premium_required"
+  | "blocked"
+  | "daily_limit";
 
 export type AccessResult =
   | { allowed: true }
@@ -59,7 +66,7 @@ export function useFeatureAccess() {
   const { hasCredits, remaining, consumeCredit } = useScanCreditsStore();
 
   /**
-   * Check if the user can perform an AI scan.
+   * Check if the user can perform an AI scan (client-side — fast UX).
    * - Premium: always allowed
    * - Free + authenticated: allowed if credits remain
    * - Unauthenticated: blocked (need account first)
@@ -72,7 +79,7 @@ export function useFeatureAccess() {
   }, [isPro, user, hasCredits]);
 
   /**
-   * Consume one AI scan credit. Call AFTER the scan succeeds.
+   * Consume one AI scan credit locally. Call AFTER the scan succeeds.
    * No-op for premium users.
    */
   const consumeScan = useCallback(async (): Promise<void> => {
@@ -101,9 +108,9 @@ export function useFeatureAccess() {
   return {
     /** Whether the user has an active premium subscription */
     isPro,
-    /** Check if AI scan is allowed */
+    /** Check if AI scan is allowed (client-side — instant UX) */
     canScan,
-    /** Consume one scan credit (no-op if premium) */
+    /** Consume one scan credit locally (no-op if premium) */
     consumeScan,
     /** Check access to any gated feature */
     checkFeature,

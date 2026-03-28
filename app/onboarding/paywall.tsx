@@ -1,31 +1,23 @@
 /**
  * Onboarding Step 9 — Paywall
  *
- * Presents the RevenueCat-managed paywall for subscription.
- * Falls back to a feature list + “View Plans” button if the
- * remote paywall is unavailable.
+ * Custom paywall using PricingSelector for direct in-app purchases.
+ * Shows feature list, testimonial, and inline plan selection.
  * “Skip” link at bottom for free-tier fallback.
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import {
-    ActivityIndicator,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Animated, {
-    FadeIn,
-    FadeInDown,
-    FadeInUp,
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRevenueCat } from "../../src/features/subscription/useRevenueCat";
 import { useTheme } from "../../src/theme/useTheme";
+import { PricingSelector } from "../../src/ui/components/PricingSelector";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
@@ -41,22 +33,20 @@ const FEATURES = [
 export default function OnboardingPaywallScreen() {
   const { theme } = useTheme();
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const { presentPaywall, restorePurchases, isPro } = useRevenueCat();
-
-  const handleStart = async () => {
-    if (isLoading) return;
-    setIsLoading(true);
-    try {
-      await presentPaywall();
-    } finally {
-      setIsLoading(false);
-      // After paywall closes (purchased or dismissed), continue onboarding
-      router.push("/onboarding/complete" as any);
-    }
-  };
+  const {
+    packages,
+    isLoadingOfferings,
+    purchasePackage,
+    restorePurchases,
+    isPro,
+  } = useRevenueCat();
 
   const handleSkip = () => {
+    router.push("/onboarding/complete" as any);
+  };
+
+  const handlePurchase = async (pkg: any) => {
+    await purchasePackage(pkg);
     router.push("/onboarding/complete" as any);
   };
 
@@ -171,38 +161,17 @@ export default function OnboardingPaywallScreen() {
           <TSpacer size="xl" />
         </ScrollView>
 
-        {/* ── CTA ── */}
+        {/* ── Pricing & CTA ── */}
         <Animated.View
           entering={FadeInUp.duration(500).delay(600)}
           style={styles.ctaArea}
         >
-          <Pressable
-            testID="paywall-start"
-            onPress={handleStart}
-            disabled={isLoading}
-            style={({ pressed }) => ({
-              opacity: pressed || isLoading ? 0.9 : 1,
-              transform: [{ scale: pressed ? 0.97 : 1 }],
-              width: "100%",
-            })}
-          >
-            <LinearGradient
-              colors={[theme.colors.primary, theme.colors.accent]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.ctaGradient}
-            >
-              {isLoading ? (
-                <ActivityIndicator color={theme.colors.textInverse} />
-              ) : (
-                <TText
-                  style={[styles.ctaText, { color: theme.colors.textInverse }]}
-                >
-                  {isPro ? "Continue" : "Start Free Trial"}
-                </TText>
-              )}
-            </LinearGradient>
-          </Pressable>
+          <PricingSelector
+            packages={packages}
+            isLoading={isLoadingOfferings}
+            onPurchase={handlePurchase}
+            heading={isPro ? "You're subscribed!" : "Choose your plan"}
+          />
 
           <TSpacer size="sm" />
 
@@ -314,18 +283,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 24,
     paddingBottom: 12,
-  },
-  ctaGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 18,
-    borderRadius: 16,
-    width: "100%",
-  },
-  ctaText: {
-    fontSize: 18,
-    fontWeight: "700",
   },
   skipText: {
     fontSize: 14,

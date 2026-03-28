@@ -8,65 +8,48 @@
  *   - Upgrading to premium (needs account for entitlement)
  *
  * Usage:
- *   const { requireAccount } = useAccountGate();
+ *   const { requireAccount, gateReason, gateVisible, dismissGate } = useAccountGate();
  *
  *   async function onScanPress() {
- *     if (!requireAccount("scan")) return; // shows auth prompt if needed
+ *     if (!requireAccount("scan")) return; // shows AuthGateModal
  *     // ... proceed with scan
  *   }
+ *
+ *   // In JSX:
+ *   <AuthGateModal visible={gateVisible} onDismiss={dismissGate} reason={gateReason} />
  */
 
-import { router } from "expo-router";
-import { useCallback } from "react";
-import { Alert } from "react-native";
+import { useCallback, useState } from "react";
+import type { AuthGateReason } from "../../ui/components/AuthGateModal";
 import { useAuth } from "./useAuth";
 
-type GateReason = "meal_save" | "scan" | "upgrade" | "export";
-
-const GATE_MESSAGES: Record<GateReason, { title: string; message: string }> = {
-  meal_save: {
-    title: "Create an Account",
-    message: "Sign up to save your meals and track your progress.",
-  },
-  scan: {
-    title: "Account Required",
-    message: "Create a free account to use AI food scanning.",
-  },
-  upgrade: {
-    title: "Sign In to Upgrade",
-    message: "Create an account to manage your subscription.",
-  },
-  export: {
-    title: "Account Required",
-    message: "Sign up to export your nutrition data.",
-  },
-};
+export type { AuthGateReason };
 
 export function useAccountGate() {
   const { user, isLoading } = useAuth();
+  const [gateVisible, setGateVisible] = useState(false);
+  const [gateReason, setGateReason] = useState<AuthGateReason>("scan");
 
   /**
    * Check if the user is authenticated.
-   * If not, shows a contextual prompt and navigates to sign-up.
+   * If not, shows AuthGateModal with contextual messaging.
    * Returns `true` if authenticated, `false` if gated.
    */
   const requireAccount = useCallback(
-    (reason: GateReason): boolean => {
+    (reason: AuthGateReason): boolean => {
       if (isLoading) return false;
       if (user) return true;
 
-      const { title, message } = GATE_MESSAGES[reason];
-      Alert.alert(title, message, [
-        { text: "Not Now", style: "cancel" },
-        {
-          text: "Sign Up",
-          onPress: () => router.push("/auth/sign-in"),
-        },
-      ]);
+      setGateReason(reason);
+      setGateVisible(true);
       return false;
     },
     [user, isLoading]
   );
+
+  const dismissGate = useCallback(() => {
+    setGateVisible(false);
+  }, []);
 
   return {
     /** Whether user is currently authenticated */
@@ -75,5 +58,9 @@ export function useAccountGate() {
     isLoading,
     /** Gate an action — returns true if allowed, false if auth required */
     requireAccount,
+    /** Current state for AuthGateModal */
+    gateVisible,
+    gateReason,
+    dismissGate,
   };
 }
