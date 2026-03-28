@@ -1,22 +1,199 @@
 /**
  * HardPaywall — Day 21 challenge completion conversion
  *
- * Shown when the user completes their 21-day challenge.
- * Celebrates their achievement, shows their streak data,
- * and presents the final conversion push.
+ * Design inspired by modern subscription paywalls:
+ *   - Hero area with large graphic + gradient fade
+ *   - Social proof (stars + stats overlay)
+ *   - Bold headline + checkmark benefits
+ *   - 3-column pricing selector
+ *   - Gradient CTA button
+ *   - Restore / Terms / Privacy footer
+ *
  * Not dismissible without action (subscribe or downgrade to free tier).
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
-import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
+import { useEffect, useState } from "react";
+import {
+    ActivityIndicator,
+    Dimensions,
+    Modal,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    View,
+} from "react-native";
+import Animated, {
+    FadeIn,
+    FadeInDown,
+    FadeInUp,
+    useAnimatedStyle,
+    useSharedValue,
+    withSequence,
+    withSpring,
+} from "react-native-reanimated";
 import type { ChallengeProgress } from "../../features/challenge/challenge.types";
 import { useRevenueCat } from "../../features/subscription/useRevenueCat";
 import { useTheme } from "../../theme/useTheme";
-import { GlassSurface } from "../glass/GlassSurface";
 import { TSpacer } from "../primitives/TSpacer";
 import { TText } from "../primitives/TText";
-import { PricingSelector } from "./PricingSelector";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const HERO_HEIGHT = 340;
+
+// ── Pricing helpers ────────────────────────────────────────────────────────
+
+type TierKey = "monthly" | "yearly" | "lifetime" | "other";
+
+function getTierKey(pkg: any): TierKey {
+  const id = pkg.identifier ?? "";
+  const type = pkg.packageType ?? "";
+  if (type === "MONTHLY" || id === "$rc_monthly") return "monthly";
+  if (type === "ANNUAL" || id === "$rc_annual") return "yearly";
+  if (type === "LIFETIME" || id === "$rc_lifetime") return "lifetime";
+  return "other";
+}
+
+function getTierLabel(tier: TierKey): string {
+  switch (tier) {
+    case "monthly":
+      return "Monthly";
+    case "yearly":
+      return "Yearly";
+    case "lifetime":
+      return "Lifetime";
+    default:
+      return "Plan";
+  }
+}
+
+const TIER_ORDER: TierKey[] = ["monthly", "yearly", "lifetime"];
+
+// ── Benefits ───────────────────────────────────────────────────────────────
+
+const BENEFITS: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  subtitle: string;
+}[] = [
+  {
+    icon: "scan-outline",
+    title: "Unlimited AI Food Scans",
+    subtitle: "Snap any meal for instant macro breakdown",
+  },
+  {
+    icon: "bar-chart-outline",
+    title: "Weekly Trends & Insights",
+    subtitle: "Track macros, streaks, and progress over time",
+  },
+  {
+    icon: "bulb-outline",
+    title: "Personalized Recommendations",
+    subtitle: "AI-powered tips based on your eating patterns",
+  },
+  {
+    icon: "share-outline",
+    title: "Export & Coach Sharing",
+    subtitle: "Download data or share with your nutritionist",
+  },
+];
+
+// ── Animated pricing card ──────────────────────────────────────────────────
+
+function PricingCardItem({
+  isSelected,
+  onSelect,
+  label,
+  priceStr,
+  badgeText,
+  primaryColor,
+  borderColor,
+  bgColor,
+  mutedColor,
+  secondaryColor,
+  textColor,
+}: {
+  isSelected: boolean;
+  onSelect: () => void;
+  label: string;
+  priceStr: string;
+  badgeText?: string;
+  primaryColor: string;
+  borderColor: string;
+  bgColor: string;
+  mutedColor: string;
+  secondaryColor: string;
+  textColor: string;
+}) {
+  const scale = useSharedValue(1);
+
+  useEffect(() => {
+    if (isSelected) {
+      scale.value = withSequence(
+        withSpring(1.05, { damping: 8, stiffness: 400 }),
+        withSpring(1, { damping: 12, stiffness: 280 })
+      );
+    }
+  }, [isSelected, scale]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <View style={styles.pricingCardWrapper}>
+      {badgeText && (
+        <View style={[styles.saveBadge, { backgroundColor: primaryColor }]}>
+          <TText style={styles.saveBadgeText}>{badgeText}</TText>
+        </View>
+      )}
+      <Animated.View
+        style={[
+          styles.pricingCard,
+          animStyle,
+          {
+            borderColor: isSelected ? primaryColor : borderColor + "60",
+            borderWidth: isSelected ? 1.5 : 1,
+            backgroundColor: isSelected ? primaryColor + "10" : bgColor,
+          },
+        ]}
+      >
+        <Pressable onPress={onSelect} style={styles.pricingCardInner}>
+          {/* Top row: plan name + checkbox */}
+          <View style={styles.cardTopRow}>
+            <TText
+              style={[
+                styles.pricingLabel,
+                {
+                  color: isSelected ? textColor : secondaryColor,
+                },
+              ]}
+            >
+              {label}
+            </TText>
+            <Ionicons
+              name={isSelected ? "checkmark-circle" : "ellipse-outline"}
+              size={22}
+              color={isSelected ? primaryColor : mutedColor + "80"}
+            />
+          </View>
+          {/* Price */}
+          <TText
+            style={[
+              styles.pricingPrice,
+              { color: isSelected ? textColor : secondaryColor },
+            ]}
+          >
+            {priceStr}
+          </TText>
+        </Pressable>
+      </Animated.View>
+    </View>
+  );
+}
+
+// ── Component ──────────────────────────────────────────────────────────────
 
 interface HardPaywallProps {
   visible: boolean;
@@ -34,7 +211,42 @@ export function HardPaywall({
     useRevenueCat();
 
   const completedDays = progress?.completedDays ?? 21;
-  const completionRate = Math.round((completedDays / 21) * 100);
+  const [selectedPkg, setSelectedPkg] = useState<string | null>(null);
+  const [isPurchasing, setIsPurchasing] = useState(false);
+
+  // Sort packages
+  const sorted = [...(packages ?? [])].sort((a, b) => {
+    const ai = TIER_ORDER.indexOf(getTierKey(a));
+    const bi = TIER_ORDER.indexOf(getTierKey(b));
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+  });
+
+  // Auto-select yearly (best value)
+  const effectiveSelection =
+    selectedPkg ??
+    sorted.find((p) => getTierKey(p) === "yearly")?.identifier ??
+    sorted[0]?.identifier;
+
+  // Selected product info for billing context
+  const selectedProduct = sorted.find(
+    (p) => p.identifier === effectiveSelection
+  );
+  const selectedPrice = selectedProduct
+    ? ((selectedProduct.product ?? selectedProduct.storeProduct)?.priceString ??
+      "")
+    : "";
+  const selectedTier = selectedProduct ? getTierKey(selectedProduct) : "yearly";
+
+  const handlePurchase = async () => {
+    const pkg = sorted.find((p) => p.identifier === effectiveSelection);
+    if (!pkg || isPurchasing) return;
+    setIsPurchasing(true);
+    try {
+      await purchasePackage(pkg);
+    } finally {
+      setIsPurchasing(false);
+    }
+  };
 
   return (
     <Modal
@@ -49,183 +261,246 @@ export function HardPaywall({
         <ScrollView
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
+          bounces={false}
         >
-          <TSpacer size="xxl" />
-
-          {/* ── Celebration ── */}
-          <Animated.View
-            entering={FadeInDown.duration(600).delay(100)}
-            style={styles.celebrationArea}
-          >
-            <TText style={styles.emoji}>🎉</TText>
-            <TSpacer size="md" />
-            <TText
-              variant="heading"
-              style={[styles.headline, { color: theme.colors.text }]}
-            >
-              Your 21-day challenge{"\n"}is complete!
-            </TText>
-            <TSpacer size="sm" />
-            <TText
-              style={[
-                styles.subheadline,
-                { color: theme.colors.textSecondary },
+          {/* ══════════════════════════════════════════════════════════
+              HERO AREA — gradient background with celebration content
+             ══════════════════════════════════════════════════════════ */}
+          <View style={styles.heroContainer}>
+            <LinearGradient
+              colors={[
+                theme.colors.primary + "30",
+                theme.colors.accent + "18",
+                theme.colors.background,
               ]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={styles.heroGradient}
+            />
+
+            {/* Celebration graphic */}
+            <Animated.View
+              entering={FadeIn.duration(800)}
+              style={styles.heroContent}
             >
-              You built a real habit. Here&apos;s what you accomplished:
-            </TText>
-          </Animated.View>
+              <TText style={styles.heroEmoji}>🏆</TText>
 
-          <TSpacer size="xl" />
-
-          {/* ── Stats card ── */}
-          <Animated.View entering={FadeInDown.duration(500).delay(300)}>
-            <GlassSurface intensity="light" style={styles.statsCard}>
-              <View style={styles.statsRow}>
-                <View style={styles.statItem}>
-                  <TText
-                    style={[styles.statValue, { color: theme.colors.primary }]}
-                  >
+              {/* Stats row overlaid on hero */}
+              <View style={styles.heroStatsRow}>
+                <View style={styles.heroStat}>
+                  <TText style={[styles.heroStatValue, { color: "#fff" }]}>
                     {completedDays}
                   </TText>
-                  <TText
-                    style={[
-                      styles.statLabel,
-                      { color: theme.colors.textMuted },
-                    ]}
-                  >
-                    Days logged
-                  </TText>
+                  <TText style={styles.heroStatLabel}>days logged</TText>
                 </View>
                 <View
                   style={[
-                    styles.statDivider,
-                    { backgroundColor: theme.colors.border },
+                    styles.heroStatDot,
+                    { backgroundColor: theme.colors.primary },
                   ]}
                 />
-                <View style={styles.statItem}>
-                  <TText
-                    style={[styles.statValue, { color: theme.colors.success }]}
-                  >
-                    {completionRate}%
+                <View style={styles.heroStat}>
+                  <TText style={[styles.heroStatValue, { color: "#fff" }]}>
+                    {Math.round((completedDays / 21) * 100)}%
                   </TText>
-                  <TText
-                    style={[
-                      styles.statLabel,
-                      { color: theme.colors.textMuted },
-                    ]}
-                  >
-                    Completion
-                  </TText>
+                  <TText style={styles.heroStatLabel}>completion</TText>
                 </View>
                 <View
                   style={[
-                    styles.statDivider,
-                    { backgroundColor: theme.colors.border },
+                    styles.heroStatDot,
+                    { backgroundColor: theme.colors.primary },
                   ]}
                 />
-                <View style={styles.statItem}>
-                  <TText
-                    style={[styles.statValue, { color: theme.colors.accent }]}
-                  >
+                <View style={styles.heroStat}>
+                  <TText style={[styles.heroStatValue, { color: "#fff" }]}>
                     21
                   </TText>
-                  <TText
-                    style={[
-                      styles.statLabel,
-                      { color: theme.colors.textMuted },
-                    ]}
-                  >
-                    Day streak
-                  </TText>
+                  <TText style={styles.heroStatLabel}>day streak</TText>
                 </View>
               </View>
-            </GlassSurface>
-          </Animated.View>
 
-          <TSpacer size="xl" />
+              {/* Social proof — stars */}
+              <View style={styles.starsRow}>
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Ionicons key={i} name="star" size={16} color="#FBBF24" />
+                ))}
+              </View>
+              <TText style={styles.proofText}>Loved by 1,000+ users</TText>
+            </Animated.View>
+          </View>
 
-          {/* ── What's next ── */}
-          <Animated.View entering={FadeInDown.duration(500).delay(450)}>
-            <TText style={[styles.sectionTitle, { color: theme.colors.text }]}>
-              Keep your momentum going
-            </TText>
-            <TSpacer size="sm" />
-            <GlassSurface intensity="light" style={styles.benefitsCard}>
-              {[
-                {
-                  icon: "infinite-outline" as const,
-                  text: "Unlimited AI food scans",
-                },
-                {
-                  icon: "trending-up-outline" as const,
-                  text: "Weekly macro & calorie trends",
-                },
-                {
-                  icon: "sparkles-outline" as const,
-                  text: "Personalized meal recommendations",
-                },
-                {
-                  icon: "download-outline" as const,
-                  text: "Export data & coach sharing",
-                },
-              ].map((b, i) => (
+          {/* ══════════════════════════════════════════════════════════
+              CONTENT AREA — headline, benefits, pricing
+             ══════════════════════════════════════════════════════════ */}
+          <View style={styles.contentArea}>
+            {/* Headline */}
+            <Animated.View entering={FadeInDown.duration(600).delay(200)}>
+              <TText
+                variant="heading"
+                style={[styles.headline, { color: theme.colors.text }]}
+              >
+                Get full access today
+              </TText>
+              <TSpacer size="xs" />
+              <TText
+                style={[
+                  styles.subheadline,
+                  { color: theme.colors.textSecondary },
+                ]}
+              >
+                Unlock everything from your 21-day journey
+              </TText>
+            </Animated.View>
+
+            <TSpacer size="lg" />
+
+            {/* Benefits — icon + title + subtitle (Bevel-style) */}
+            <Animated.View entering={FadeInDown.duration(500).delay(350)}>
+              {BENEFITS.map((b, i) => (
                 <View key={i} style={styles.benefitRow}>
-                  <Ionicons
-                    name={b.icon}
-                    size={18}
-                    color={theme.colors.primary}
-                  />
-                  <TText
-                    style={[styles.benefitText, { color: theme.colors.text }]}
+                  <View
+                    style={[
+                      styles.benefitIconCircle,
+                      { backgroundColor: theme.colors.primary + "18" },
+                    ]}
                   >
-                    {b.text}
-                  </TText>
+                    <Ionicons
+                      name={b.icon}
+                      size={20}
+                      color={theme.colors.primary}
+                    />
+                  </View>
+                  <View style={styles.benefitTextCol}>
+                    <TText
+                      style={[
+                        styles.benefitTitle,
+                        { color: theme.colors.text },
+                      ]}
+                    >
+                      {b.title}
+                    </TText>
+                    <TText
+                      style={[
+                        styles.benefitSub,
+                        { color: theme.colors.textSecondary },
+                      ]}
+                    >
+                      {b.subtitle}
+                    </TText>
+                  </View>
                 </View>
               ))}
-            </GlassSurface>
-          </Animated.View>
+            </Animated.View>
 
-          <TSpacer size="xl" />
+            <TSpacer size="xl" />
 
-          {/* ── Pricing ── */}
-          <Animated.View entering={FadeInDown.duration(400).delay(600)}>
-            <PricingSelector
-              packages={packages}
-              isLoading={isLoadingOfferings}
-              onPurchase={purchasePackage}
-              heading="Choose your plan"
-            />
-          </Animated.View>
+            {/* ── Pricing cards (Bevel-style) ── */}
+            <Animated.View entering={FadeInDown.duration(500).delay(500)}>
+              {isLoadingOfferings ? (
+                <ActivityIndicator size="small" color={theme.colors.primary} />
+              ) : sorted.length > 0 ? (
+                <View style={styles.pricingRow}>
+                  {sorted.map((pkg) => {
+                    const tier = getTierKey(pkg);
+                    const product = pkg.product ?? pkg.storeProduct;
+                    const priceStr =
+                      product?.priceString ?? product?.price ?? "—";
+                    return (
+                      <PricingCardItem
+                        key={pkg.identifier}
+                        isSelected={pkg.identifier === effectiveSelection}
+                        onSelect={() => setSelectedPkg(pkg.identifier)}
+                        label={getTierLabel(tier)}
+                        priceStr={priceStr}
+                        badgeText={tier === "yearly" ? "Best value" : undefined}
+                        primaryColor={theme.colors.primary}
+                        borderColor={theme.colors.border}
+                        bgColor={theme.colors.surface}
+                        mutedColor={theme.colors.textMuted}
+                        secondaryColor={theme.colors.textSecondary}
+                        textColor={theme.colors.text}
+                      />
+                    );
+                  })}
+                </View>
+              ) : null}
+            </Animated.View>
 
-          <TSpacer size="xl" />
+            <TSpacer size="lg" />
+
+            {/* ── CTA button ── */}
+            <Animated.View entering={FadeInUp.duration(500).delay(600)}>
+              <Pressable
+                onPress={handlePurchase}
+                disabled={isPurchasing || sorted.length === 0}
+                style={({ pressed }) => ({
+                  opacity: pressed || isPurchasing ? 0.9 : 1,
+                  transform: [{ scale: pressed ? 0.97 : 1 }],
+                })}
+              >
+                <LinearGradient
+                  colors={[theme.colors.primary, theme.colors.accent]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.ctaButton}
+                >
+                  {isPurchasing ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <TText style={styles.ctaText}>Continue</TText>
+                  )}
+                </LinearGradient>
+              </Pressable>
+            </Animated.View>
+
+            {/* Billing context */}
+            {effectiveSelection && (
+              <TText
+                style={[
+                  styles.billingContext,
+                  { color: theme.colors.textMuted },
+                ]}
+              >
+                {selectedTier === "yearly"
+                  ? `Single payment of ${selectedPrice} for 12 months`
+                  : selectedTier === "monthly"
+                    ? `${selectedPrice} billed every month`
+                    : `One-time payment of ${selectedPrice}`}
+              </TText>
+            )}
+
+            <TSpacer size="md" />
+
+            {/* ── Footer links ── */}
+            <Animated.View
+              entering={FadeIn.duration(400).delay(700)}
+              style={styles.footerRow}
+            >
+              <Pressable onPress={restorePurchases} hitSlop={12}>
+                <TText
+                  style={[styles.footerLink, { color: theme.colors.textMuted }]}
+                >
+                  Restore Purchases
+                </TText>
+              </Pressable>
+              <Pressable onPress={onContinueFree} hitSlop={12}>
+                <TText
+                  style={[styles.footerLink, { color: theme.colors.textMuted }]}
+                >
+                  Skip
+                </TText>
+              </Pressable>
+            </Animated.View>
+
+            <TSpacer size="xl" />
+          </View>
         </ScrollView>
-
-        {/* ── Bottom ── */}
-        <Animated.View
-          entering={FadeInUp.duration(400).delay(700)}
-          style={styles.bottomArea}
-        >
-          <Pressable onPress={onContinueFree} hitSlop={12}>
-            <TText
-              style={[styles.continueText, { color: theme.colors.textMuted }]}
-            >
-              Continue with limited features
-            </TText>
-          </Pressable>
-
-          <Pressable onPress={restorePurchases} hitSlop={12}>
-            <TText
-              style={[styles.restoreText, { color: theme.colors.textMuted }]}
-            >
-              Restore Purchases
-            </TText>
-          </Pressable>
-        </Animated.View>
       </View>
     </Modal>
   );
 }
+
+// ── Styles ─────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
@@ -233,87 +508,187 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flexGrow: 1,
-    paddingHorizontal: 24,
   },
-  celebrationArea: {
+
+  // Hero
+  heroContainer: {
+    height: HERO_HEIGHT,
+    width: SCREEN_WIDTH,
+    position: "relative",
+    justifyContent: "flex-end",
     alignItems: "center",
   },
-  emoji: {
-    fontSize: 56,
+  heroGradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  heroContent: {
+    alignItems: "center",
+    paddingBottom: 24,
+  },
+  heroEmoji: {
+    fontSize: 72,
+    marginBottom: 16,
+  },
+  heroStatsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 16,
+  },
+  heroStat: {
+    alignItems: "center",
+  },
+  heroStatValue: {
+    fontSize: 22,
+    fontWeight: "800",
+  },
+  heroStatLabel: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: "rgba(255,255,255,0.65)",
+    marginTop: 2,
+  },
+  heroStatDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    opacity: 0.5,
+  },
+  starsRow: {
+    flexDirection: "row",
+    gap: 2,
+    marginBottom: 4,
+  },
+  proofText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "rgba(255,255,255,0.55)",
+  },
+
+  // Content
+  contentArea: {
+    paddingHorizontal: 24,
+    paddingTop: 28,
   },
   headline: {
     fontSize: 28,
     fontWeight: "800",
     textAlign: "center",
-    lineHeight: 36,
+    lineHeight: 34,
   },
   subheadline: {
     fontSize: 15,
-    lineHeight: 22,
+    lineHeight: 21,
     textAlign: "center",
-    paddingHorizontal: 12,
   },
-  // Stats
-  statsCard: {
-    borderRadius: 16,
-    padding: 20,
-  },
-  statsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-around",
-  },
-  statItem: {
-    alignItems: "center",
-    flex: 1,
-  },
-  statValue: {
-    fontSize: 28,
-    fontWeight: "800",
-  },
-  statLabel: {
-    fontSize: 12,
-    fontWeight: "500",
-    marginTop: 4,
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-  },
-  // Benefits
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-  },
-  benefitsCard: {
-    borderRadius: 14,
-    padding: 18,
-    gap: 14,
-  },
+
+  // Benefits (Bevel-style: icon circle + title + subtitle)
   benefitRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 16,
+    marginBottom: 20,
+    paddingHorizontal: 4,
   },
-  benefitText: {
-    fontSize: 15,
-    fontWeight: "500",
-  },
-  // Bottom
-  bottomArea: {
+  benefitIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     alignItems: "center",
-    paddingHorizontal: 24,
-    paddingBottom: 32,
-    paddingTop: 12,
-    gap: 12,
+    justifyContent: "center",
   },
-  continueText: {
-    fontSize: 14,
-    fontWeight: "500",
-    textDecorationLine: "underline",
+  benefitTextCol: {
+    flex: 1,
   },
-  restoreText: {
+  benefitTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+  benefitSub: {
+    fontSize: 13,
+    fontWeight: "400",
+    lineHeight: 18,
+  },
+
+  // Pricing (Bevel-style horizontal cards)
+  pricingRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  pricingCardWrapper: {
+    flex: 1,
+    position: "relative",
+  },
+  saveBadge: {
+    position: "absolute",
+    top: -10,
+    left: 10,
+    zIndex: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  saveBadgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+  },
+  pricingCard: {
+    flex: 1,
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+  pricingCardInner: {
+    paddingTop: 14,
+    paddingBottom: 16,
+    paddingHorizontal: 12,
+    width: "100%",
+  },
+  cardTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  pricingLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  pricingPrice: {
+    fontSize: 20,
+    fontWeight: "800",
+  },
+
+  // CTA
+  ctaButton: {
+    height: 54,
+    borderRadius: 27,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ctaText: {
+    color: "#fff",
+    fontSize: 17,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+  },
+  billingContext: {
     fontSize: 12,
-    textDecorationLine: "underline",
+    fontWeight: "500",
+    textAlign: "center",
+    marginTop: 10,
+  },
+
+  // Footer
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 32,
+  },
+  footerLink: {
+    fontSize: 13,
+    fontWeight: "500",
   },
 });
