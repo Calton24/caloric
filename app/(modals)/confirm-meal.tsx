@@ -41,6 +41,10 @@ import {
 import { displayName } from "../../src/features/nutrition/nutrition-pipeline";
 import { getMealsForDate } from "../../src/features/nutrition/nutrition.selectors";
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
+import {
+    ShareMilestoneModal,
+    useShareMilestone,
+} from "../../src/features/share";
 import { useGoalsStore, useNutritionStore } from "../../src/stores";
 import { useTheme } from "../../src/theme/useTheme";
 import { ReportFoodSheet } from "../../src/ui/feedback/ReportFoodSheet";
@@ -51,10 +55,20 @@ import { useBottomSheet } from "../../src/ui/sheets/useBottomSheet";
 export default function ConfirmMealScreen() {
   const { theme } = useTheme();
   const router = useRouter();
-  const { draft, updateDraft, saveDraftAsMeal, clearDraft } = useLoggingFlow();
+  const {
+    draft,
+    updateDraft,
+    saveDraftAsMeal,
+    saveDraftWithoutNav,
+    navigateAfterSave,
+    clearDraft,
+  } = useLoggingFlow();
   const logDate = useNutritionDraftStore((s) => s.logDate);
   const setLogDate = useNutritionDraftStore((s) => s.setLogDate);
   const { open: openSheet } = useBottomSheet();
+
+  // Share milestone system
+  const shareMilestone = useShareMilestone();
 
   // Calorie budget & today's consumed
   const calorieBudget = useGoalsStore((s) => s.plan?.calorieBudget ?? 2000);
@@ -156,8 +170,18 @@ export default function ConfirmMealScreen() {
       }
     }
 
-    saveDraftAsMeal();
-  }, [saveDraftAsMeal, draft]);
+    saveDraftWithoutNav();
+
+    // Check for share milestone before navigating away.
+    // Small delay so stores update before the check runs.
+    setTimeout(() => {
+      const triggered = shareMilestone.check();
+      if (!triggered) {
+        navigateAfterSave();
+      }
+      // If triggered, modal shows → navigateAfterSave runs on dismiss
+    }, 50);
+  }, [saveDraftWithoutNav, draft, shareMilestone, navigateAfterSave]);
 
   /** Open the Report Food bottom sheet */
   const handleReportFood = useCallback(() => {
@@ -520,7 +544,11 @@ export default function ConfirmMealScreen() {
                   color={theme.colors.primary}
                 />
                 <TText
-                  style={{ fontSize: 13, fontWeight: "600", color: theme.colors.primary }}
+                  style={{
+                    fontSize: 13,
+                    fontWeight: "600",
+                    color: theme.colors.primary,
+                  }}
                 >
                   {new Date(logDate + "T12:00:00").toLocaleDateString("en-US", {
                     weekday: "short",
@@ -910,6 +938,22 @@ export default function ConfirmMealScreen() {
           </View>
         </Animated.View>
       </SafeAreaView>
+
+      {/* Share milestone celebration modal */}
+      {shareMilestone.milestone && (
+        <ShareMilestoneModal
+          visible={shareMilestone.visible}
+          milestone={shareMilestone.milestone}
+          day={shareMilestone.day}
+          streak={shareMilestone.streak}
+          mealsLogged={shareMilestone.mealsLogged}
+          challengeDays={shareMilestone.challengeDays}
+          onClose={() => {
+            shareMilestone.dismiss();
+            navigateAfterSave();
+          }}
+        />
+      )}
     </View>
   );
 }

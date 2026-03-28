@@ -15,11 +15,10 @@ import * as WebBrowser from "expo-web-browser";
 import React, { useState } from "react";
 import {
     Alert,
-    Platform,
     Pressable,
     StyleSheet,
     TextInput,
-    View,
+    View
 } from "react-native";
 import Animated, {
     FadeIn,
@@ -32,10 +31,7 @@ import { useAuth } from "../../src/features/auth/useAuth";
 import { useTheme } from "../../src/theme/useTheme";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
-import { OnboardingProgress } from "./_progress";
-
-const TOTAL_STEPS = 11;
-const CURRENT_STEP = 9;
+import { OnboardingHeader } from "./_progress";
 
 export default function SaveProgressScreen() {
   const { theme } = useTheme();
@@ -137,38 +133,13 @@ export default function SaveProgressScreen() {
     navigateNext();
   };
 
-  const handleBack = () => {
-    router.back();
-  };
-
   return (
     <View
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         {/* ── Header: Back + Progress ── */}
-        <Animated.View entering={FadeIn.duration(400)} style={styles.headerRow}>
-          <Pressable
-            testID="save-progress-back"
-            onPress={handleBack}
-            style={({ pressed }) => [
-              styles.backButton,
-              {
-                opacity: pressed ? 0.6 : 1,
-                backgroundColor: theme.colors.surface + "80",
-              },
-            ]}
-          >
-            <Ionicons name="chevron-back" size={22} color={theme.colors.text} />
-          </Pressable>
-          <View style={styles.progressContainer}>
-            <OnboardingProgress
-              step={CURRENT_STEP}
-              total={TOTAL_STEPS}
-              theme={theme}
-            />
-          </View>
-        </Animated.View>
+        <OnboardingHeader step={6} total={6} theme={theme} />
 
         {/* ── Heading ── */}
         <Animated.View
@@ -455,23 +426,7 @@ function EmailForm({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   safe: { flex: 1 },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === "android" ? 8 : 4,
-    gap: 12,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  progressContainer: {
-    flex: 1,
-  },
+
   headingArea: {
     paddingHorizontal: 24,
     paddingTop: 20,

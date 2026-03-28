@@ -1,40 +1,51 @@
 /**
  * Landing Screen — App Entry for Unauthenticated Users
  *
- * Cal AI-inspired design: camera preview hero with
- * "Calorie tracking made easy" headline.
- *
- * Funnels:
- *   - "Get Started" → onboarding flow (new users)
- *   - "Sign In"     → auth sign-in screen (existing users)
+ * Full-bleed hero image with gradient overlay,
+ * headline + dual CTAs at the bottom.
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React from "react";
-import {
-    Dimensions,
-    Platform,
-    Pressable,
-    StyleSheet,
-    View,
-} from "react-native";
+import React, { useEffect } from "react";
+import { Dimensions, Image, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
-    FadeIn,
+    Easing,
     FadeInDown,
     FadeInUp,
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withSequence,
+    withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../src/theme/useTheme";
+import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TText } from "../../src/ui/primitives/TText";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export default function LandingScreen() {
   const { theme } = useTheme();
   const router = useRouter();
+
+  // Subtle floating animation for the badge
+  const floatY = useSharedValue(0);
+  useEffect(() => {
+    floatY.value = withRepeat(
+      withSequence(
+        withTiming(-6, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(6, { duration: 2000, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
+  }, [floatY]);
+  const floatStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: floatY.value }],
+  }));
 
   const handleGetStarted = () => {
     router.push("/(onboarding)/goal" as any);
@@ -46,107 +57,44 @@ export default function LandingScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ── Background gradient to simulate camera-like hero ── */}
+      {/* ── Full-bleed hero image ── */}
+      <Image
+        source={require("../../assets/images/landing-hero.jpg")}
+        style={styles.heroImage}
+        resizeMode="cover"
+      />
+
+      {/* ── Gradient overlay — fades image into background ── */}
       <LinearGradient
         colors={[
-          theme.colors.primary + "15",
+          "transparent",
+          "transparent",
+          "rgba(0,0,0,0.25)",
           theme.colors.background,
           theme.colors.background,
         ]}
-        locations={[0, 0.45, 1]}
+        locations={[0, 0.35, 0.58, 0.8, 1]}
         style={StyleSheet.absoluteFill}
       />
 
-      {/* ── Camera preview mockup area ── */}
-      <Animated.View
-        entering={FadeIn.duration(800)}
-        style={styles.heroContainer}
-      >
-        <View
-          style={[
-            styles.cameraPreview,
-            {
-              backgroundColor: theme.mode === "dark" ? "#1a1a2e" : "#f0f0f5",
-              borderColor: theme.colors.border + "40",
-            },
-          ]}
+      {/* ── Floating AI badge ── */}
+      <SafeAreaView style={styles.topBadgeArea} edges={["top"]}>
+        <Animated.View
+          entering={FadeInDown.duration(600).delay(300)}
+          style={floatStyle}
         >
-          {/* Scanning frame corners */}
-          <View style={styles.scanFrame}>
-            <View
-              style={[
-                styles.cornerTL,
-                { borderColor: theme.colors.primary + "90" },
-              ]}
-            />
-            <View
-              style={[
-                styles.cornerTR,
-                { borderColor: theme.colors.primary + "90" },
-              ]}
-            />
-            <View
-              style={[
-                styles.cornerBL,
-                { borderColor: theme.colors.primary + "90" },
-              ]}
-            />
-            <View
-              style={[
-                styles.cornerBR,
-                { borderColor: theme.colors.primary + "90" },
-              ]}
-            />
-          </View>
-
-          {/* Center icon */}
-          <Animated.View entering={FadeInDown.duration(600).delay(300)}>
-            <View
-              style={[
-                styles.cameraIconBubble,
-                { backgroundColor: theme.colors.primary + "20" },
-              ]}
-            >
-              <Ionicons
-                name="camera-outline"
-                size={48}
-                color={theme.colors.primary}
-              />
-            </View>
-          </Animated.View>
-
-          {/* Bottom pill bar — like Cal AI's "Scan Food" bar */}
-          <Animated.View
-            entering={FadeInUp.duration(500).delay(500)}
-            style={styles.pillBarContainer}
+          <GlassSurface
+            variant="pill"
+            intensity="medium"
+            style={styles.aiBadge}
           >
-            <BlurView
-              intensity={Platform.OS === "ios" ? 40 : 0}
-              tint={theme.mode === "dark" ? "dark" : "light"}
-              style={[
-                styles.pillBar,
-                {
-                  backgroundColor:
-                    Platform.OS === "android"
-                      ? theme.mode === "dark"
-                        ? "rgba(30,30,40,0.85)"
-                        : "rgba(255,255,255,0.85)"
-                      : "transparent",
-                },
-              ]}
-            >
-              <Ionicons
-                name="scan-outline"
-                size={18}
-                color={theme.colors.primary}
-              />
-              <TText style={[styles.pillLabel, { color: theme.colors.text }]}>
-                Scan Food
-              </TText>
-            </BlurView>
-          </Animated.View>
-        </View>
-      </Animated.View>
+            <Ionicons name="sparkles" size={16} color={theme.colors.primary} />
+            <TText style={[styles.aiBadgeText, { color: theme.colors.text }]}>
+              AI-Powered
+            </TText>
+          </GlassSurface>
+        </Animated.View>
+      </SafeAreaView>
 
       {/* ── Bottom content area ── */}
       <SafeAreaView style={styles.bottomArea} edges={["bottom"]}>
@@ -159,7 +107,12 @@ export default function LandingScreen() {
             variant="heading"
             style={[styles.headline, { color: theme.colors.text }]}
           >
-            Calorie tracking{"\n"}made easy
+            Calorie tracking{"\n"}made effortless
+          </TText>
+          <TText
+            style={[styles.subline, { color: theme.colors.textSecondary }]}
+          >
+            Just snap a photo. Our AI does the rest.
           </TText>
         </Animated.View>
 
@@ -168,7 +121,6 @@ export default function LandingScreen() {
           entering={FadeInUp.duration(500).delay(600)}
           style={styles.ctaArea}
         >
-          {/* Get Started — primary CTA */}
           <Pressable
             testID="landing-get-started"
             onPress={handleGetStarted}
@@ -177,24 +129,24 @@ export default function LandingScreen() {
               transform: [{ scale: pressed ? 0.97 : 1 }],
             })}
           >
-            <View
-              style={[styles.ctaButton, { backgroundColor: theme.colors.text }]}
+            <LinearGradient
+              colors={[
+                theme.colors.primary,
+                theme.colors.accent || theme.colors.primary,
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.ctaButton}
             >
-              <TText
-                style={[styles.ctaText, { color: theme.colors.background }]}
-              >
-                Get Started
-              </TText>
-            </View>
+              <TText style={styles.ctaText}>Get Started</TText>
+              <Ionicons name="arrow-forward" size={20} color="#fff" />
+            </LinearGradient>
           </Pressable>
 
-          {/* Sign In — secondary link */}
           <Pressable
             testID="landing-sign-in"
             onPress={handleSignIn}
-            style={({ pressed }) => ({
-              opacity: pressed ? 0.7 : 1,
-            })}
+            style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
           >
             <View style={styles.signInRow}>
               <TText
@@ -216,139 +168,66 @@ export default function LandingScreen() {
   );
 }
 
-const CORNER_SIZE = 28;
-const CORNER_WIDTH = 3;
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  heroContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingTop: 60,
-    paddingHorizontal: 32,
-  },
-  cameraPreview: {
-    width: SCREEN_WIDTH - 64,
-    aspectRatio: 3 / 4,
-    maxHeight: "65%",
-    borderRadius: 24,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  scanFrame: {
-    ...StyleSheet.absoluteFillObject,
-    margin: 24,
-  },
-  cornerTL: {
+  container: { flex: 1, backgroundColor: "#000" },
+  heroImage: {
     position: "absolute",
     top: 0,
     left: 0,
-    width: CORNER_SIZE,
-    height: CORNER_SIZE,
-    borderTopWidth: CORNER_WIDTH,
-    borderLeftWidth: CORNER_WIDTH,
-    borderTopLeftRadius: 8,
+    right: 0,
+    height: SCREEN_HEIGHT,
+    width: "100%",
   },
-  cornerTR: {
+  topBadgeArea: {
     position: "absolute",
     top: 0,
-    right: 0,
-    width: CORNER_SIZE,
-    height: CORNER_SIZE,
-    borderTopWidth: CORNER_WIDTH,
-    borderRightWidth: CORNER_WIDTH,
-    borderTopRightRadius: 8,
-  },
-  cornerBL: {
-    position: "absolute",
-    bottom: 0,
     left: 0,
-    width: CORNER_SIZE,
-    height: CORNER_SIZE,
-    borderBottomWidth: CORNER_WIDTH,
-    borderLeftWidth: CORNER_WIDTH,
-    borderBottomLeftRadius: 8,
-  },
-  cornerBR: {
-    position: "absolute",
-    bottom: 0,
     right: 0,
-    width: CORNER_SIZE,
-    height: CORNER_SIZE,
-    borderBottomWidth: CORNER_WIDTH,
-    borderRightWidth: CORNER_WIDTH,
-    borderBottomRightRadius: 8,
-  },
-  cameraIconBubble: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
     alignItems: "center",
-    justifyContent: "center",
+    paddingTop: 8,
   },
-  pillBarContainer: {
-    position: "absolute",
-    bottom: 20,
-    alignSelf: "center",
-  },
-  pillBar: {
+  aiBadge: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    gap: 8,
-    overflow: "hidden",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    gap: 6,
   },
-  pillLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
+  aiBadgeText: { fontSize: 13, fontWeight: "600" },
   bottomArea: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
     paddingHorizontal: 24,
     paddingBottom: 8,
   },
-  headlineArea: {
-    alignItems: "center",
-    marginBottom: 24,
-  },
+  headlineArea: { alignItems: "center", marginBottom: 24 },
   headline: {
     fontSize: 32,
     fontWeight: "800",
     textAlign: "center",
     lineHeight: 40,
-    letterSpacing: -0.3,
+    letterSpacing: -0.5,
   },
-  ctaArea: {
-    alignItems: "center",
-    gap: 16,
-    paddingBottom: 8,
+  subline: {
+    fontSize: 16,
+    fontWeight: "500",
+    textAlign: "center",
+    marginTop: 8,
   },
+  ctaArea: { alignItems: "center", gap: 16, paddingBottom: 8 },
   ctaButton: {
     width: SCREEN_WIDTH - 48,
     paddingVertical: 18,
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-  },
-  ctaText: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  signInRow: {
     flexDirection: "row",
-    alignItems: "center",
+    gap: 8,
   },
-  signInLabel: {
-    fontSize: 15,
-  },
-  signInLink: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
+  ctaText: { color: "#fff", fontSize: 18, fontWeight: "700" },
+  signInRow: { flexDirection: "row", alignItems: "center" },
+  signInLabel: { fontSize: 15 },
+  signInLink: { fontSize: 15, fontWeight: "700" },
 });

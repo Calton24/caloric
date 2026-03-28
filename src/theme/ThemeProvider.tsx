@@ -48,15 +48,13 @@ export function ThemeProvider({
   defaultBrandHue = 141,
 }: ThemeProviderProps) {
   const systemColorScheme = useColorScheme();
-  const [mode, setModeState] = useState<ColorMode>(defaultMode || "dark");
+  const [mode, setModeState] = useState<ColorMode>("dark");
   const [brandHue, setBrandHueState] = useState<number>(defaultBrandHue);
 
   // Load persisted theme on mount (async, non-blocking)
   useEffect(() => {
     themeStorage.getPreferences().then((prefs) => {
-      if (prefs.mode) {
-        setModeState(prefs.mode);
-      }
+      // Only respect persisted brandHue — mode is always dark
       if (prefs.brandHue !== undefined && prefs.brandHue !== null) {
         // Migrate old blue default (220) → new green default (141)
         const hue = prefs.brandHue === 220 ? defaultBrandHue : prefs.brandHue;

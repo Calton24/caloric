@@ -18,7 +18,7 @@ import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TButton } from "../../src/ui/primitives/TButton";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
-import { OnboardingProgress } from "./_progress";
+import { OnboardingHeader } from "./_progress";
 
 interface TimeframeOption {
   id: string;
@@ -79,9 +79,9 @@ export default function OnboardingTimeframeScreen() {
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
         >
-          <OnboardingProgress step={6} total={9} theme={theme} />
+          <OnboardingHeader step={5} total={6} theme={theme} />
 
-          <TSpacer size="xl" />
+          <TSpacer size="lg" />
 
           <Animated.View entering={FadeInDown.duration(500).delay(100)}>
             <TText

@@ -25,7 +25,7 @@ import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TButton } from "../../src/ui/primitives/TButton";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
-import { OnboardingProgress } from "./_progress";
+import { OnboardingHeader } from "./_progress";
 
 const GENDERS = [
   { id: "male", icon: "male-outline" as const, label: "Male" },
@@ -62,9 +62,9 @@ export default function OnboardingBodyScreen() {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <OnboardingProgress step={3} total={9} theme={theme} />
+            <OnboardingHeader step={2} total={6} theme={theme} />
 
-            <TSpacer size="xl" />
+            <TSpacer size="lg" />
 
             <Animated.View entering={FadeInDown.duration(500).delay(100)}>
               <TText

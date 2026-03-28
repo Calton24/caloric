@@ -1,22 +1,21 @@
 /**
  * Onboarding Layout
  *
- * Sequential funnel with slide-from-right transitions.
- * No back gesture — the user advances forward only.
+ * Sequential funnel with smooth fade transitions.
+ * Back navigation enabled for user-friendly experience.
  *
  * Screens:
  *   1. landing       — Entry for unauthenticated users (Get Started / Sign In)
- *   2. welcome       — Value hook
- *   3. goal          — Goal selection
- *   4. body          — Body data (gender, age, height, weight)
- *   5. activity      — Activity level
- *   6. weight-goal   — Target weight
- *   7. timeframe     — Timeline selection
- *   8. calculating   — Plan calculation animation
- *   9. plan          — Personalized results
- *  10. save-progress — Auth gate (sign in / sign up / skip)
- *  11. paywall       — Subscription gate
- *  12. complete      — Celebration
+ *   2. goal          — Goal selection
+ *   3. body          — Body data (gender, age, height, weight)
+ *   4. activity      — Activity level
+ *   5. weight-goal   — Target weight
+ *   6. timeframe     — Timeline selection
+ *   7. calculating   — Plan calculation animation
+ *   8. plan          — Personalized results
+ *   9. save-progress — Auth gate (sign in / sign up / skip)
+ *  10. paywall       — Subscription gate
+ *  11. complete      — Celebration
  *
  * Guard: fully authenticated + onboarded users are redirected to (tabs)
  * so they cannot re-enter this funnel accidentally.
@@ -41,22 +40,24 @@ export default function OnboardingLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        animation: "slide_from_right",
-        gestureEnabled: false,
+        animation: "fade",
+        animationDuration: 300,
+        gestureEnabled: true,
+        gestureDirection: "horizontal",
       }}
     >
-      <Stack.Screen name="landing" />
+      <Stack.Screen name="landing" options={{ gestureEnabled: false }} />
       <Stack.Screen name="welcome" />
       <Stack.Screen name="goal" />
       <Stack.Screen name="body" />
       <Stack.Screen name="activity" />
       <Stack.Screen name="weight-goal" />
       <Stack.Screen name="timeframe" />
-      <Stack.Screen name="calculating" />
-      <Stack.Screen name="plan" />
+      <Stack.Screen name="calculating" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="plan" options={{ gestureEnabled: false }} />
       <Stack.Screen name="save-progress" />
-      <Stack.Screen name="paywall" />
-      <Stack.Screen name="complete" />
+      <Stack.Screen name="paywall" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="complete" options={{ gestureEnabled: false }} />
     </Stack>
   );
 }

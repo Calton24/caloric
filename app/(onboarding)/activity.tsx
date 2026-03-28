@@ -7,14 +7,14 @@ import { useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
+import type { ActivityLevel } from "../../src/features/profile/profile.types";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TButton } from "../../src/ui/primitives/TButton";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
-import { OnboardingProgress } from "./_progress";
-import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
-import type { ActivityLevel } from "../../src/features/profile/profile.types";
+import { OnboardingHeader } from "./_progress";
 
 const LEVELS = [
   {
@@ -59,9 +59,9 @@ export default function OnboardingActivityScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* Progress */}
-          <OnboardingProgress step={4} total={9} theme={theme} />
+          <OnboardingHeader step={3} total={6} theme={theme} />
 
-          <TSpacer size="xl" />
+          <TSpacer size="lg" />
 
           <Animated.View entering={FadeInDown.duration(500).delay(100)}>
             <TText

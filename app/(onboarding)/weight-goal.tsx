@@ -18,7 +18,7 @@ import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TButton } from "../../src/ui/primitives/TButton";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
-import { OnboardingProgress } from "./_progress";
+import { OnboardingHeader } from "./_progress";
 
 // Simple BMI helper (for demo — uses hardcoded 5'8" height)
 function getBmiCategory(weightLbs: number): {
@@ -66,7 +66,7 @@ export default function OnboardingWeightGoalScreen() {
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
         >
-          <OnboardingProgress step={5} total={9} theme={theme} />
+          <OnboardingHeader step={4} total={6} theme={theme} />
 
           <TSpacer size="xl" />
 

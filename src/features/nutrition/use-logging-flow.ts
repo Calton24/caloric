@@ -89,12 +89,15 @@ export function useLoggingFlow() {
     return true;
   }
 
-  function saveDraftAsMeal() {
+  /**
+   * Save the draft as a meal entry without navigating.
+   * Useful when caller needs to show a modal (e.g. milestone) before leaving.
+   */
+  function saveDraftWithoutNav() {
     if (!draft) {
       throw new Error("No meal draft available");
     }
 
-    // If a date override is set (logging for a past day), use it
     const logDate = useNutritionDraftStore.getState().logDate;
     const meal = buildMealEntryFromDraft({
       draft,
@@ -128,11 +131,17 @@ export function useLoggingFlow() {
 
     // Prompt for App Store review after enough meals (fire-and-forget)
     trackMealAndMaybePromptReview().catch(() => {});
+  }
 
-    // dismissAll() pops to the first screen in the modal stack (tracking).
-    // The extra back() closes the modal presentation and returns to home.
+  /** Navigate back to home after a save (or deferred milestone modal). */
+  function navigateAfterSave() {
     router.dismissAll();
     router.back();
+  }
+
+  function saveDraftAsMeal() {
+    saveDraftWithoutNav();
+    navigateAfterSave();
   }
 
   /**
@@ -470,6 +479,8 @@ export function useLoggingFlow() {
     startFromBarcode,
     detectFoodCandidates,
     saveDraftAsMeal,
+    saveDraftWithoutNav,
+    navigateAfterSave,
     cancelLogging,
   };
 }
