@@ -6,14 +6,15 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+
 import React, { useCallback, useEffect, useRef } from "react";
 import { Dimensions, Pressable, StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
     Easing,
-    FadeInDown,
     FadeInUp,
     interpolate,
     interpolateColor,
@@ -22,13 +23,11 @@ import Animated, {
     useAnimatedStyle,
     useSharedValue,
     withRepeat,
-    withSequence,
     withSpring,
     withTiming
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../src/theme/useTheme";
-import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TText } from "../../src/ui/primitives/TText";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -62,62 +61,120 @@ const TRACK_PAD = 6;
 const MAX_SLIDE = TRACK_WIDTH - THUMB_SIZE - TRACK_PAD * 2;
 const COMPLETION_THRESHOLD = 0.85;
 
+const SHIMMER_LABEL = "slide to get started";
+const SHIMMER_CHARS = SHIMMER_LABEL.split("");
+const CHAR_COUNT = SHIMMER_CHARS.length;
+const SWEEP_WIDTH = 6; // how many chars are lit at once
+const SWEEP_PAD = SWEEP_WIDTH / CHAR_COUNT + 0.1; // extra range so highlight is off-screen at loop boundaries
+
+// Per-letter animated text — brightens as the sweep passes over it
+const ShimmerChar = React.memo(function ShimmerChar({
+  char,
+  index,
+  shimmer,
+}: {
+  char: string;
+  index: number;
+  shimmer: SharedValue<number>;
+}) {
+  // Normalised position of this char in the string (0..1)
+  const center = (index + 0.5) / CHAR_COUNT;
+
+  const animatedStyle = useAnimatedStyle(() => {
+    // Map sweep 0→1 to a moving window; chars near the window center glow
+    // Extended range ensures highlight is fully off-screen at both ends for seamless looping
+    const sweepPos = interpolate(
+      shimmer.value,
+      [0, 1],
+      [-SWEEP_PAD, 1 + SWEEP_PAD]
+    );
+    const dist = Math.abs(sweepPos - center);
+    const halfSpan = SWEEP_WIDTH / CHAR_COUNT / 2;
+
+    // Opacity ramps from dim(0.3) → bright(1.0) based on proximity to sweep center
+    const opacity = interpolate(
+      dist,
+      [0, halfSpan, halfSpan * 2],
+      [1, 0.55, 0.3],
+      "clamp"
+    );
+
+    return {
+      color: `rgba(255,255,255,${opacity})`,
+    };
+  });
+
+  return (
+    <Animated.Text style={[sliderStyles.shimmerChar, animatedStyle]}>
+      {char}
+    </Animated.Text>
+  );
+});
+
 function SlideToUnlock({ onComplete }: { onComplete: () => void }) {
   const translateX = useSharedValue(0);
-  const completed = useRef(false);
+  const completed = useSharedValue(0); // 0 = active, 1 = done (worklet-safe)
 
-  // Shimmer — a value that cycles 0→1 continuously for the text highlight
+  // Reset slider when screen regains focus (e.g. navigating back)
+  useFocusEffect(
+    useCallback(() => {
+      translateX.value = 0;
+      completed.value = 0;
+    }, [translateX, completed])
+  );
+
+  // Shimmer sweep position: linear 0 → 1, seamless loop
   const shimmer = useSharedValue(0);
   useEffect(() => {
     shimmer.value = withRepeat(
-      withTiming(1, { duration: 2200, easing: Easing.inOut(Easing.ease) }),
+      withTiming(1, { duration: 2400, easing: Easing.linear }),
       -1,
       false
     );
   }, [shimmer]);
 
+  const fireHaptic = useCallback(() => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }, []);
+
   const panGesture = Gesture.Pan()
     .onUpdate((e) => {
-      if (completed.current) return;
+      if (completed.value === 1) return;
       translateX.value = Math.min(MAX_SLIDE, Math.max(0, e.translationX));
     })
     .onEnd(() => {
-      if (completed.current) return;
+      if (completed.value === 1) return;
       const progress = translateX.value / MAX_SLIDE;
       if (progress >= COMPLETION_THRESHOLD) {
-        // Snap to end
-        completed.current = true;
+        completed.value = 1;
         translateX.value = withSpring(MAX_SLIDE, {
           damping: 15,
           stiffness: 200,
         });
+        runOnJS(fireHaptic)();
         runOnJS(onComplete)();
       } else {
-        // Spring back
-        translateX.value = withSpring(0, { damping: 20, stiffness: 300 });
+        translateX.value = withSpring(0, {
+          damping: 20,
+          stiffness: 300,
+          overshootClamping: true,
+        });
       }
     });
 
   const thumbStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
+    transform: [
+      { translateX: Math.min(MAX_SLIDE, Math.max(0, translateX.value)) },
+    ],
   }));
 
   // Text fades out as thumb slides over it
-  const textStyle = useAnimatedStyle(() => {
+  const textContainerStyle = useAnimatedStyle(() => {
     const progress = translateX.value / MAX_SLIDE;
     return {
       opacity: interpolate(progress, [0, 0.5, 1], [1, 0.3, 0]),
     };
   });
-
-  // Shimmer mask — animates a bright spot across the text
-  const shimmerStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      shimmer.value,
-      [0, 0.4, 0.5, 0.6, 1],
-      [0.45, 0.45, 1, 0.45, 0.45]
-    ),
-  }));
 
   // Track glow when near completion
   const trackStyle = useAnimatedStyle(() => {
@@ -136,11 +193,13 @@ function SlideToUnlock({ onComplete }: { onComplete: () => void }) {
       testID="landing-get-started"
       style={[sliderStyles.track, trackStyle]}
     >
-      {/* Label */}
-      <Animated.View style={[sliderStyles.labelContainer, textStyle]}>
-        <Animated.Text style={[sliderStyles.labelText, shimmerStyle]}>
-          slide to get started
-        </Animated.Text>
+      {/* Label with per-letter shimmer */}
+      <Animated.View style={[sliderStyles.labelContainer, textContainerStyle]}>
+        <View style={sliderStyles.shimmerTextWrap}>
+          {SHIMMER_CHARS.map((char, i) => (
+            <ShimmerChar key={i} char={char} index={i} shimmer={shimmer} />
+          ))}
+        </View>
       </Animated.View>
 
       {/* Draggable thumb */}
@@ -168,11 +227,12 @@ const sliderStyles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  labelText: {
-    color: "rgba(255,255,255,0.45)",
+  shimmerTextWrap: {
+    flexDirection: "row",
+  },
+  shimmerChar: {
     fontSize: 17,
     fontWeight: "500",
-    letterSpacing: 0.5,
   },
   thumb: {
     width: THUMB_SIZE,
@@ -305,22 +365,6 @@ export default function LandingScreen() {
     ],
   }));
 
-  // ── Badge float animation ──
-  const floatY = useSharedValue(0);
-  useEffect(() => {
-    floatY.value = withRepeat(
-      withSequence(
-        withTiming(-6, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
-        withTiming(6, { duration: 2000, easing: Easing.inOut(Easing.ease) })
-      ),
-      -1,
-      true
-    );
-  }, [floatY]);
-  const floatStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: floatY.value }],
-  }));
-
   const handleGetStarted = () => {
     router.push("/(onboarding)/goal" as any);
   };
@@ -357,25 +401,6 @@ export default function LandingScreen() {
         locations={[0, 0.35, 0.58, 0.8, 1]}
         style={StyleSheet.absoluteFill}
       />
-
-      {/* ── Floating AI badge ── */}
-      <SafeAreaView style={styles.topBadgeArea} edges={["top"]}>
-        <Animated.View
-          entering={FadeInDown.duration(600).delay(300)}
-          style={floatStyle}
-        >
-          <GlassSurface
-            variant="pill"
-            intensity="medium"
-            style={styles.aiBadge}
-          >
-            <Ionicons name="sparkles" size={16} color={theme.colors.primary} />
-            <TText style={[styles.aiBadgeText, { color: theme.colors.text }]}>
-              AI-Powered
-            </TText>
-          </GlassSurface>
-        </Animated.View>
-      </SafeAreaView>
 
       {/* ── Bottom content area ── */}
       <SafeAreaView style={styles.bottomArea} edges={["bottom"]}>
@@ -450,22 +475,6 @@ const styles = StyleSheet.create({
     height: SCREEN_HEIGHT,
     width: "100%",
   },
-  topBadgeArea: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    paddingTop: 8,
-  },
-  aiBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    gap: 6,
-  },
-  aiBadgeText: { fontSize: 13, fontWeight: "600" },
   bottomArea: {
     position: "absolute",
     bottom: 0,
