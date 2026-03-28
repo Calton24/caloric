@@ -100,6 +100,7 @@ export function ShareMilestoneModal({
       // Dynamic require — only loads the native module when user taps Share.
       // If the native binary doesn't include RNViewShot yet, this fails
       // gracefully and the modal just closes.
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { captureRef } = require("react-native-view-shot");
       const uri = await captureRef(cardRef, {
         format: "png",

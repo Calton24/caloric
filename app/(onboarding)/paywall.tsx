@@ -620,13 +620,8 @@ export default function OnboardingChallengeScreen() {
   const existingChallenge = useChallengeStore((s) => s.challenge);
   const [isStarting, setIsStarting] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
-  const {
-    restorePurchases,
-    isPro,
-    packages,
-    purchasePackage,
-    isLoadingOfferings,
-  } = useRevenueCat();
+  const { restorePurchases, packages, purchasePackage, isLoadingOfferings } =
+    useRevenueCat();
   const markPaywallSeen = useSubscriptionStore((s) => s.markPaywallSeen);
 
   const [selectedPkg, setSelectedPkg] = useState<string | null>(null);
