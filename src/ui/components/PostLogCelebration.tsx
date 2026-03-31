@@ -23,6 +23,8 @@ interface PostLogCelebrationProps {
   emoji: string;
   visible: boolean;
   onDismiss: () => void;
+  /** Optional micro-trigger text shown on conversion days */
+  microTrigger?: string;
 }
 
 export function PostLogCelebration({
@@ -31,6 +33,7 @@ export function PostLogCelebration({
   emoji,
   visible,
   onDismiss,
+  microTrigger,
 }: PostLogCelebrationProps) {
   const { theme } = useTheme();
 
@@ -87,6 +90,17 @@ export function PostLogCelebration({
             />
           </View>
         </Animated.View>
+
+        {/* Micro-trigger nudge on conversion days */}
+        {microTrigger && (
+          <Animated.View entering={FadeInUp.duration(500).delay(700)}>
+            <TText
+              style={[styles.microTrigger, { color: theme.colors.primary }]}
+            >
+              {microTrigger}
+            </TText>
+          </Animated.View>
+        )}
       </Animated.View>
     </Animated.View>
   );
@@ -144,5 +158,11 @@ const styles = StyleSheet.create({
     height: "100%",
     width: "100%",
     borderRadius: 2,
+  },
+  microTrigger: {
+    fontSize: 13,
+    fontWeight: "600",
+    textAlign: "center",
+    marginTop: 8,
   },
 });

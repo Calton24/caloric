@@ -211,38 +211,36 @@ export function ShareMilestoneModal({
                 </View>
               </Animated.View>
 
-              {/* Share CTA */}
+              {/* Primary CTA - Keep going */}
               <Animated.View entering={FadeInDown.duration(400).delay(550)}>
                 <Pressable
-                  onPress={handleShare}
+                  onPress={onClose}
                   style={({ pressed }) => [
-                    styles.shareButton,
+                    styles.primaryButton,
                     { backgroundColor: theme.colors.primary },
                     pressed && { opacity: 0.9, transform: [{ scale: 0.97 }] },
                   ]}
                 >
-                  <TText style={styles.shareButtonText}>
-                    Share Progress 🔥
-                  </TText>
+                  <TText style={styles.primaryButtonText}>Keep going →</TText>
                 </Pressable>
               </Animated.View>
 
-              {/* Dismiss CTA */}
+              {/* Secondary CTA - Share */}
               <Animated.View entering={FadeInDown.duration(300).delay(650)}>
                 <Pressable
-                  onPress={onClose}
+                  onPress={handleShare}
                   style={({ pressed }) => [
-                    styles.dismissButton,
+                    styles.secondaryButton,
                     pressed && { opacity: 0.6 },
                   ]}
                 >
                   <TText
                     style={[
-                      styles.dismissText,
+                      styles.secondaryText,
                       { color: theme.colors.textMuted },
                     ]}
                   >
-                    Keep going →
+                    Share Progress 🔥
                   </TText>
                 </Pressable>
               </Animated.View>
@@ -309,7 +307,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  shareButton: {
+  primaryButton: {
     width: "100%",
     paddingVertical: 16,
     borderRadius: 14,
@@ -317,16 +315,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     minWidth: 260,
   },
-  shareButtonText: {
+  primaryButtonText: {
     color: "#fff",
     fontSize: 17,
     fontWeight: "700",
   },
-  dismissButton: {
+  secondaryButton: {
     paddingVertical: 8,
     alignItems: "center",
   },
-  dismissText: {
+  secondaryText: {
     fontSize: 15,
     fontWeight: "500",
   },

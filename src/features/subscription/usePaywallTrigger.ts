@@ -25,7 +25,7 @@ import { getStorage } from "../../infrastructure/storage";
 import type { GatedFeature } from "../../ui/components/FeatureGatePaywall";
 import type { SoftPaywallTrigger } from "../../ui/components/SoftPaywall";
 import { useChallengeStore } from "../challenge/challenge.store";
-import { getDayPaywall } from "../retention/day-journey";
+import { getDayPaywall, type PaywallTrigger } from "../retention/day-journey";
 import { useSubscriptionStore } from "../subscription/subscription.store";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -44,6 +44,13 @@ export type PaywallAction =
       type: "hard";
       /** Journey paywall copy (header + body). Null for non-journey triggers. */
       journeyCopy?: { headline: string; body: string };
+    }
+  | {
+      type: "journey";
+      /** Full paywall trigger from the day-journey system */
+      paywallTrigger: PaywallTrigger;
+      /** Current streak day that triggered this paywall */
+      streakDay: number;
     }
   | null;
 
@@ -111,22 +118,11 @@ export function usePaywallTrigger() {
 
       markSeen(key);
 
-      // Day 3 soft paywall = dismissible
-      if (journeyPaywall.strength === "soft") {
-        return {
-          type: "soft",
-          trigger: "streak_milestone",
-          milestoneValue: currentStreak,
-        };
-      }
-
-      // Day 7, 14, 21 = hard/strongest paywall
+      // All journey paywalls now use the dedicated journey type
       return {
-        type: "hard",
-        journeyCopy: {
-          headline: journeyPaywall.headline,
-          body: journeyPaywall.body,
-        },
+        type: "journey",
+        paywallTrigger: journeyPaywall,
+        streakDay: currentStreak,
       };
     },
     [isPro, triggerState, markSeen]

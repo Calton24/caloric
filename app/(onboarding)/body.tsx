@@ -2,12 +2,13 @@
  * Onboarding Step 3 — Body Data
  *
  * Collects gender, age, height, and weight.
- * Uses segmented control for gender, scroll pickers for the rest.
+ * Includes Metric/Imperial toggle with real-time conversion.
+ * Haptic feedback on all stepper buttons.
  */
 
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
     KeyboardAvoidingView,
     Platform,
@@ -16,10 +17,16 @@ import {
     StyleSheet,
     View,
 } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, {
+    FadeInDown,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useUnits } from "../../hooks/useUnits";
 import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
+import { useProfileStore } from "../../src/features/profile/profile.store";
+import { haptics } from "../../src/infrastructure/haptics";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TButton } from "../../src/ui/primitives/TButton";
@@ -27,26 +34,147 @@ import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 import { OnboardingHeader } from "./_progress";
 
+type MeasurementSystem = "imperial" | "metric";
+
 const GENDERS = [
   { id: "male", icon: "male-outline" as const, label: "Male" },
   { id: "female", icon: "female-outline" as const, label: "Female" },
-  { id: "other", icon: "person-outline" as const, label: "Other" },
 ] as const;
+
+// ── Conversion helpers ──
+
+const LBS_PER_KG = 2.20462;
+const CM_PER_INCH = 2.54;
+const CM_PER_FOOT = 30.48;
+
+function feetInchesToCm(ft: number, inches: number): number {
+  return Math.round(ft * CM_PER_FOOT + inches * CM_PER_INCH);
+}
+
+function cmToFeetInches(cm: number): { ft: number; inches: number } {
+  const totalInches = cm / CM_PER_INCH;
+  const ft = Math.floor(totalInches / 12);
+  const inches = Math.round(totalInches % 12);
+  return { ft, inches: inches >= 12 ? 11 : inches };
+}
+
+function lbsToKg(lbs: number): number {
+  return Math.round(lbs / LBS_PER_KG);
+}
+
+function kgToLbs(kg: number): number {
+  return Math.round(kg * LBS_PER_KG);
+}
 
 export default function OnboardingBodyScreen() {
   const { theme } = useTheme();
-  const units = useUnits();
   const router = useRouter();
   const { profile, saveBodyMeasurements } = useOnboarding();
+  const updateProfile = useProfileStore((s) => s.updateProfile);
   const [gender, setGender] = useState<string | null>(profile.gender);
   const [age, setAge] = useState(28);
-  const [heightFt, setHeightFt] = useState(5);
-  const [heightIn, setHeightIn] = useState(8);
-  const [weight, setWeight] = useState(
-    Number(units.display(profile.currentWeightLbs ?? 160))
+  const [system, setSystem] = useState<MeasurementSystem>(
+    profile.weightUnit === "kg" ? "metric" : "imperial"
   );
 
-  const isValid = gender !== null && age > 0 && weight > 0;
+  // Animation values for toggle buttons
+  const imperialScale = useSharedValue(profile.weightUnit === "kg" ? 0.95 : 1);
+  const imperialOpacity = useSharedValue(profile.weightUnit === "kg" ? 0 : 1);
+  const metricScale = useSharedValue(profile.weightUnit === "kg" ? 1 : 0.95);
+  const metricOpacity = useSharedValue(profile.weightUnit === "kg" ? 1 : 0);
+
+  // Height stored internally as cm for accurate conversion
+  const [heightCm, setHeightCm] = useState(
+    feetInchesToCm(5, 8) // default 5'8"
+  );
+
+  // Weight stored internally as lbs for accurate conversion
+  const [weightLbs, setWeightLbs] = useState(profile.currentWeightLbs ?? 160);
+
+  // Derived display values
+  const { ft: heightFt, inches: heightIn } = cmToFeetInches(heightCm);
+  const displayWeight = system === "imperial" ? weightLbs : lbsToKg(weightLbs);
+  const weightLabel = system === "imperial" ? "lbs" : "kg";
+
+  const isValid = gender !== null && age > 0 && displayWeight > 0;
+
+  // Haptic stepper helper
+  const step = useCallback((setter: () => void) => {
+    haptics.impact("light");
+    setter();
+  }, []);
+
+  // Toggle system with real-time conversion (values stay the same, just display changes)
+  const toggleSystem = useCallback(() => {
+    haptics.impact("medium");
+    setSystem((prev) => {
+      const next = prev === "imperial" ? "metric" : "imperial";
+      if (next === "imperial") {
+        imperialOpacity.value = withSpring(1, { damping: 15, stiffness: 200 });
+        imperialScale.value = withSpring(1, { damping: 15, stiffness: 200 });
+        metricOpacity.value = withSpring(0, { damping: 15, stiffness: 200 });
+        metricScale.value = withSpring(0.95, { damping: 15, stiffness: 200 });
+      } else {
+        imperialOpacity.value = withSpring(0, { damping: 15, stiffness: 200 });
+        imperialScale.value = withSpring(0.95, {
+          damping: 15,
+          stiffness: 200,
+        });
+        metricOpacity.value = withSpring(1, { damping: 15, stiffness: 200 });
+        metricScale.value = withSpring(1, { damping: 15, stiffness: 200 });
+      }
+      return next;
+    });
+  }, [imperialOpacity, imperialScale, metricOpacity, metricScale]);
+
+  // Animated styles for toggle buttons
+  const imperialBgStyle = useAnimatedStyle(() => ({
+    opacity: imperialOpacity.value,
+    transform: [{ scale: imperialScale.value }],
+  }));
+
+  const metricBgStyle = useAnimatedStyle(() => ({
+    opacity: metricOpacity.value,
+    transform: [{ scale: metricScale.value }],
+  }));
+
+  // Height steppers
+  const incHeightFt = () => {
+    const next = cmToFeetInches(heightCm);
+    setHeightCm(feetInchesToCm(Math.min(8, next.ft + 1), next.inches));
+  };
+  const decHeightFt = () => {
+    const next = cmToFeetInches(heightCm);
+    setHeightCm(feetInchesToCm(Math.max(3, next.ft - 1), next.inches));
+  };
+  const incHeightIn = () => {
+    const next = cmToFeetInches(heightCm);
+    if (next.inches >= 11) return;
+    setHeightCm(feetInchesToCm(next.ft, next.inches + 1));
+  };
+  const decHeightIn = () => {
+    const next = cmToFeetInches(heightCm);
+    if (next.inches <= 0) return;
+    setHeightCm(feetInchesToCm(next.ft, next.inches - 1));
+  };
+  const incHeightCm = () => setHeightCm((h) => Math.min(250, h + 1));
+  const decHeightCm = () => setHeightCm((h) => Math.max(100, h - 1));
+
+  // Weight steppers
+  const incWeight = () => {
+    if (system === "imperial") {
+      setWeightLbs((w) => Math.min(500, w + 1));
+    } else {
+      setWeightLbs((w) => Math.min(500, w + LBS_PER_KG));
+    }
+  };
+  const decWeight = () => {
+    if (system === "imperial") {
+      setWeightLbs((w) => Math.max(60, w - 1));
+    } else {
+      setWeightLbs((w) => Math.max(60, w - LBS_PER_KG));
+    }
+  };
 
   return (
     <View
@@ -85,6 +213,81 @@ export default function OnboardingBodyScreen() {
 
             <TSpacer size="lg" />
 
+            {/* ── Metric / Imperial Toggle ── */}
+            <Animated.View entering={FadeInDown.duration(400).delay(250)}>
+              <View
+                style={[
+                  styles.toggleRow,
+                  { backgroundColor: theme.colors.surface, borderRadius: 12 },
+                ]}
+              >
+                <Pressable
+                  onPress={() => {
+                    if (system !== "imperial") toggleSystem();
+                  }}
+                  style={({ pressed }) => [
+                    styles.toggleBtn,
+                    { opacity: pressed ? 0.8 : 1 },
+                  ]}
+                >
+                  <Animated.View
+                    style={[
+                      StyleSheet.absoluteFill,
+                      styles.toggleBtnBg,
+                      { backgroundColor: theme.colors.primary },
+                      imperialBgStyle,
+                    ]}
+                  />
+                  <TText
+                    style={[
+                      styles.toggleText,
+                      {
+                        color:
+                          system === "imperial"
+                            ? "#fff"
+                            : theme.colors.textSecondary,
+                      },
+                    ]}
+                  >
+                    Imperial
+                  </TText>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    if (system !== "metric") toggleSystem();
+                  }}
+                  style={({ pressed }) => [
+                    styles.toggleBtn,
+                    { opacity: pressed ? 0.8 : 1 },
+                  ]}
+                >
+                  <Animated.View
+                    style={[
+                      StyleSheet.absoluteFill,
+                      styles.toggleBtnBg,
+                      { backgroundColor: theme.colors.primary },
+                      metricBgStyle,
+                    ]}
+                  />
+                  <TText
+                    style={[
+                      styles.toggleText,
+                      {
+                        color:
+                          system === "metric"
+                            ? "#fff"
+                            : theme.colors.textSecondary,
+                      },
+                    ]}
+                  >
+                    Metric
+                  </TText>
+                </Pressable>
+              </View>
+            </Animated.View>
+
+            <TSpacer size="lg" />
+
             {/* ── Gender ── */}
             <Animated.View entering={FadeInDown.duration(400).delay(300)}>
               <TText
@@ -99,7 +302,7 @@ export default function OnboardingBodyScreen() {
                   return (
                     <Pressable
                       key={g.id}
-                      onPress={() => setGender(g.id)}
+                      onPress={() => step(() => setGender(g.id))}
                       style={styles.genderPressable}
                       testID={`gender-${g.id}`}
                     >
@@ -155,7 +358,7 @@ export default function OnboardingBodyScreen() {
               <TSpacer size="sm" />
               <GlassSurface intensity="light" style={styles.stepperCard}>
                 <Pressable
-                  onPress={() => setAge(Math.max(13, age - 1))}
+                  onPress={() => step(() => setAge(Math.max(13, age - 1)))}
                   style={[
                     styles.stepperBtn,
                     { backgroundColor: theme.colors.surface },
@@ -179,7 +382,7 @@ export default function OnboardingBodyScreen() {
                   </TText>
                 </View>
                 <Pressable
-                  onPress={() => setAge(Math.min(99, age + 1))}
+                  onPress={() => step(() => setAge(Math.min(99, age + 1)))}
                   style={[
                     styles.stepperBtn,
                     { backgroundColor: theme.colors.surface },
@@ -200,58 +403,116 @@ export default function OnboardingBodyScreen() {
                 Height
               </TText>
               <TSpacer size="sm" />
-              <View style={styles.heightRow}>
-                <GlassSurface intensity="light" style={styles.heightCard}>
-                  <Pressable
-                    onPress={() => setHeightFt(Math.max(3, heightFt - 1))}
-                    style={[
-                      styles.stepperBtnSm,
-                      { backgroundColor: theme.colors.surface },
-                    ]}
-                  >
-                    <Ionicons
-                      name="remove"
-                      size={18}
-                      color={theme.colors.text}
-                    />
-                  </Pressable>
-                  <View style={styles.stepperValue}>
-                    <TText
-                      style={[styles.stepperNum, { color: theme.colors.text }]}
-                    >
-                      {heightFt}
-                    </TText>
-                    <TText
-                      style={[
-                        styles.stepperUnit,
-                        { color: theme.colors.textMuted },
-                      ]}
-                    >
-                      ft
-                    </TText>
-                  </View>
-                  <Pressable
-                    onPress={() => setHeightFt(Math.min(8, heightFt + 1))}
-                    style={[
-                      styles.stepperBtnSm,
-                      { backgroundColor: theme.colors.surface },
-                    ]}
-                  >
-                    <Ionicons name="add" size={18} color={theme.colors.text} />
-                  </Pressable>
-                </GlassSurface>
 
-                <GlassSurface intensity="light" style={styles.heightCard}>
+              {system === "imperial" ? (
+                <View style={styles.heightRow}>
+                  <GlassSurface intensity="light" style={styles.heightCard}>
+                    <Pressable
+                      onPress={() => step(decHeightFt)}
+                      style={[
+                        styles.stepperBtnSm,
+                        { backgroundColor: theme.colors.surface },
+                      ]}
+                    >
+                      <Ionicons
+                        name="remove"
+                        size={18}
+                        color={theme.colors.text}
+                      />
+                    </Pressable>
+                    <View style={styles.stepperValue}>
+                      <TText
+                        style={[
+                          styles.stepperNum,
+                          { color: theme.colors.text },
+                        ]}
+                      >
+                        {heightFt}
+                      </TText>
+                      <TText
+                        style={[
+                          styles.stepperUnit,
+                          { color: theme.colors.textMuted },
+                        ]}
+                      >
+                        ft
+                      </TText>
+                    </View>
+                    <Pressable
+                      onPress={() => step(incHeightFt)}
+                      style={[
+                        styles.stepperBtnSm,
+                        { backgroundColor: theme.colors.surface },
+                      ]}
+                    >
+                      <Ionicons
+                        name="add"
+                        size={18}
+                        color={theme.colors.text}
+                      />
+                    </Pressable>
+                  </GlassSurface>
+
+                  <GlassSurface intensity="light" style={styles.heightCard}>
+                    <Pressable
+                      onPress={() => step(decHeightIn)}
+                      style={[
+                        styles.stepperBtnSm,
+                        { backgroundColor: theme.colors.surface },
+                      ]}
+                    >
+                      <Ionicons
+                        name="remove"
+                        size={18}
+                        color={theme.colors.text}
+                      />
+                    </Pressable>
+                    <View style={styles.stepperValue}>
+                      <TText
+                        style={[
+                          styles.stepperNum,
+                          { color: theme.colors.text },
+                        ]}
+                      >
+                        {heightIn}
+                      </TText>
+                      <TText
+                        style={[
+                          styles.stepperUnit,
+                          { color: theme.colors.textMuted },
+                        ]}
+                      >
+                        in
+                      </TText>
+                    </View>
+                    <Pressable
+                      onPress={() => step(incHeightIn)}
+                      style={[
+                        styles.stepperBtnSm,
+                        { backgroundColor: theme.colors.surface },
+                      ]}
+                    >
+                      <Ionicons
+                        name="add"
+                        size={18}
+                        color={theme.colors.text}
+                      />
+                    </Pressable>
+                  </GlassSurface>
+                </View>
+              ) : (
+                /* Metric — single cm stepper */
+                <GlassSurface intensity="light" style={styles.stepperCard}>
                   <Pressable
-                    onPress={() => setHeightIn(Math.max(0, heightIn - 1))}
+                    onPress={() => step(decHeightCm)}
                     style={[
-                      styles.stepperBtnSm,
+                      styles.stepperBtn,
                       { backgroundColor: theme.colors.surface },
                     ]}
                   >
                     <Ionicons
                       name="remove"
-                      size={18}
+                      size={22}
                       color={theme.colors.text}
                     />
                   </Pressable>
@@ -259,7 +520,7 @@ export default function OnboardingBodyScreen() {
                     <TText
                       style={[styles.stepperNum, { color: theme.colors.text }]}
                     >
-                      {heightIn}
+                      {heightCm}
                     </TText>
                     <TText
                       style={[
@@ -267,20 +528,20 @@ export default function OnboardingBodyScreen() {
                         { color: theme.colors.textMuted },
                       ]}
                     >
-                      in
+                      cm
                     </TText>
                   </View>
                   <Pressable
-                    onPress={() => setHeightIn(Math.min(11, heightIn + 1))}
+                    onPress={() => step(incHeightCm)}
                     style={[
-                      styles.stepperBtnSm,
+                      styles.stepperBtn,
                       { backgroundColor: theme.colors.surface },
                     ]}
                   >
-                    <Ionicons name="add" size={18} color={theme.colors.text} />
+                    <Ionicons name="add" size={22} color={theme.colors.text} />
                   </Pressable>
                 </GlassSurface>
-              </View>
+              )}
             </Animated.View>
 
             <TSpacer size="lg" />
@@ -295,7 +556,7 @@ export default function OnboardingBodyScreen() {
               <TSpacer size="sm" />
               <GlassSurface intensity="light" style={styles.stepperCard}>
                 <Pressable
-                  onPress={() => setWeight(Math.max(60, weight - 1))}
+                  onPress={() => step(decWeight)}
                   style={[
                     styles.stepperBtn,
                     { backgroundColor: theme.colors.surface },
@@ -307,7 +568,7 @@ export default function OnboardingBodyScreen() {
                   <TText
                     style={[styles.stepperNum, { color: theme.colors.text }]}
                   >
-                    {weight}
+                    {Math.round(displayWeight)}
                   </TText>
                   <TText
                     style={[
@@ -315,11 +576,11 @@ export default function OnboardingBodyScreen() {
                       { color: theme.colors.textMuted },
                     ]}
                   >
-                    {units.label}
+                    {weightLabel}
                   </TText>
                 </View>
                 <Pressable
-                  onPress={() => setWeight(Math.min(500, weight + 1))}
+                  onPress={() => step(incWeight)}
                   style={[
                     styles.stepperBtn,
                     { backgroundColor: theme.colors.surface },
@@ -336,22 +597,20 @@ export default function OnboardingBodyScreen() {
           {/* Bottom CTA */}
           <View style={styles.footer}>
             <TButton
-              onPress={() =>
-                (() => {
-                  // Convert age → birthYear, ft/in → cm, then save to store
-                  const birthYear = new Date().getFullYear() - age;
-                  const heightCm = Math.round(
-                    heightFt * 30.48 + heightIn * 2.54
-                  );
-                  saveBodyMeasurements({
-                    gender: gender as "male" | "female" | "other",
-                    birthYear,
-                    heightCm,
-                    currentWeightLbs: units.toLbs(weight),
-                  });
-                  router.push("/(onboarding)/activity" as any);
-                })()
-              }
+              onPress={() => {
+                const birthYear = new Date().getFullYear() - age;
+                saveBodyMeasurements({
+                  gender: gender as "male" | "female" | "other",
+                  birthYear,
+                  heightCm,
+                  currentWeightLbs: Math.round(weightLbs),
+                });
+                updateProfile({
+                  weightUnit: system === "metric" ? "kg" : "lbs",
+                  heightUnit: system === "metric" ? "cm" : "ft_in",
+                });
+                router.push("/(onboarding)/activity" as any);
+              }}
               disabled={!isValid}
               size="lg"
               testID="onboarding-next-body"
@@ -382,6 +641,24 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 17,
     lineHeight: 24,
+  },
+  toggleRow: {
+    flexDirection: "row",
+    padding: 4,
+  },
+  toggleBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: "center",
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  toggleBtnBg: {
+    borderRadius: 10,
+  },
+  toggleText: {
+    fontSize: 15,
+    fontWeight: "600",
   },
   label: {
     fontSize: 14,

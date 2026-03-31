@@ -1,8 +1,8 @@
 /**
  * Units Settings
  *
- * Pick between Metric, Imperial, or System default.
- * Reads/writes unitsPreference from useSettingsStore.
+ * Pick between Metric and Imperial.
+ * Reads/writes weightUnit from profile store via useUnits hook.
  */
 
 import { Ionicons } from "@expo/vector-icons";
@@ -10,8 +10,8 @@ import { useRouter } from "expo-router";
 import React, { useCallback } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useSettingsStore } from "../../../src/features/settings";
-import type { UnitsPreference } from "../../../src/features/settings/settings.types";
+import { useUnits } from "../../../hooks/useUnits";
+import type { WeightUnit } from "../../../src/features/profile/profile.types";
 import { useTheme } from "../../../src/theme/useTheme";
 import { TSpacer } from "../../../src/ui/primitives/TSpacer";
 import { TText } from "../../../src/ui/primitives/TText";
@@ -19,37 +19,30 @@ import { TText } from "../../../src/ui/primitives/TText";
 const UNIT_OPTIONS: {
   label: string;
   description: string;
-  value: UnitsPreference;
+  value: WeightUnit;
 }[] = [
   {
     label: "Metric",
     description: "Kilograms, centimeters",
-    value: "metric",
+    value: "kg",
   },
   {
     label: "Imperial",
     description: "Pounds, feet & inches",
-    value: "imperial",
-  },
-  {
-    label: "Use System",
-    description: "Follow your device settings",
-    value: "system",
+    value: "lbs",
   },
 ];
 
 export default function UnitsScreen() {
   const { theme } = useTheme();
   const router = useRouter();
-
-  const unitsPreference = useSettingsStore((s) => s.settings.unitsPreference);
-  const setUnitsPreference = useSettingsStore((s) => s.setUnitsPreference);
+  const { weightUnit, setWeightUnit } = useUnits();
 
   const handleSelect = useCallback(
-    (value: UnitsPreference) => {
-      setUnitsPreference(value);
+    (value: WeightUnit) => {
+      setWeightUnit(value);
     },
-    [setUnitsPreference]
+    [setWeightUnit]
   );
 
   return (
@@ -82,7 +75,7 @@ export default function UnitsScreen() {
             ]}
           >
             {UNIT_OPTIONS.map((option, index) => {
-              const isSelected = option.value === unitsPreference;
+              const isSelected = option.value === weightUnit;
               return (
                 <Pressable
                   key={option.value}

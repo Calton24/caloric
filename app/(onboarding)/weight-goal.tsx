@@ -13,6 +13,7 @@ import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUnits } from "../../hooks/useUnits";
 import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
+import { haptics } from "../../src/infrastructure/haptics";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TButton } from "../../src/ui/primitives/TButton";
@@ -93,7 +94,10 @@ export default function OnboardingWeightGoalScreen() {
           <Animated.View entering={FadeInDown.duration(400).delay(300)}>
             <GlassSurface intensity="light" style={styles.stepperCard}>
               <Pressable
-                onPress={() => setGoalWeight(Math.max(80, goalWeight - 1))}
+                onPress={() => {
+                  haptics.impact("light");
+                  setGoalWeight(Math.max(80, goalWeight - 1));
+                }}
                 style={[
                   styles.stepperBtn,
                   { backgroundColor: theme.colors.surface },
@@ -131,7 +135,10 @@ export default function OnboardingWeightGoalScreen() {
                 </View>
               </View>
               <Pressable
-                onPress={() => setGoalWeight(Math.min(400, goalWeight + 1))}
+                onPress={() => {
+                  haptics.impact("light");
+                  setGoalWeight(Math.min(400, goalWeight + 1));
+                }}
                 style={[
                   styles.stepperBtn,
                   { backgroundColor: theme.colors.surface },

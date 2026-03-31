@@ -7,12 +7,12 @@
 import React, { useEffect, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
-  cancelAnimation,
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withDelay,
-  withTiming,
+    cancelAnimation,
+    Easing,
+    useAnimatedProps,
+    useSharedValue,
+    withDelay,
+    withTiming,
 } from "react-native-reanimated";
 import Svg, { Circle } from "react-native-svg";
 import { useTheme } from "../../theme/useTheme";
@@ -24,9 +24,9 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const RING_SIZE = 84;
 const STROKE_W = 7;
 const RADIUS = (RING_SIZE - STROKE_W) / 2; // 38.5
-const CIRC = 2 * Math.PI * RADIUS;         // ~241.9
-const ARC_FRAC = 0.75;                     // 270 deg
-const ARC_LEN = CIRC * ARC_FRAC;           // ~181.4
+const CIRC = 2 * Math.PI * RADIUS; // ~241.9
+const ARC_FRAC = 0.75; // 270 deg
+const ARC_LEN = CIRC * ARC_FRAC; // ~181.4
 
 interface MacroCardProps {
   label: string;
@@ -54,14 +54,21 @@ export function MacroCard({
 
   const hasTarget = targetG > 0;
   const rawProgress = hasTarget ? consumedG / targetG : 0;
+  const isOver = hasTarget && consumedG > targetG;
   const progress = Math.min(rawProgress, 1);
 
   const displayNum =
     display === "remaining"
       ? hasTarget
-        ? Math.max(targetG - consumedG, 0)
+        ? isOver
+          ? consumedG - targetG
+          : targetG - consumedG
         : consumedG
       : consumedG;
+
+  // Over-budget: ring turns red, label says "over"
+  const overColor = "#F87171";
+  const ringColor = isOver ? overColor : color;
 
   const animProg = useSharedValue(0);
   const isFirstRender = useRef(true);
@@ -78,7 +85,10 @@ export function MacroCard({
       animProg.value = 0;
       animProg.value = withDelay(
         50,
-        withTiming(progress, { duration: 600, easing: Easing.out(Easing.cubic) })
+        withTiming(progress, {
+          duration: 600,
+          easing: Easing.out(Easing.cubic),
+        })
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -100,15 +110,40 @@ export function MacroCard({
       style={[styles.card, { backgroundColor: theme.colors.surface }]}
     >
       {/* Number */}
-      <TText style={[styles.number, { color: theme.colors.text }]}>
+      <TText
+        style={[
+          styles.number,
+          { color: isOver ? overColor : theme.colors.text },
+        ]}
+      >
+        {isOver && display === "remaining" ? "+" : ""}
         {Math.round(displayNum).toLocaleString()}
-        <TText style={[styles.unitText, { color: theme.colors.text }]}>{unit}</TText>
+        <TText
+          style={[
+            styles.unitText,
+            { color: isOver ? overColor : theme.colors.text },
+          ]}
+        >
+          {unit}
+        </TText>
       </TText>
 
       {/* Label */}
-      <TText style={[styles.label, { color: theme.colors.textSecondary }]}>
+      <TText
+        style={[
+          styles.label,
+          { color: isOver ? overColor : theme.colors.textSecondary },
+        ]}
+      >
         {label}{" "}
-        <TText style={[styles.leftText, { color: theme.colors.textMuted }]}>left</TText>
+        <TText
+          style={[
+            styles.leftText,
+            { color: isOver ? overColor : theme.colors.textMuted },
+          ]}
+        >
+          {isOver && display === "remaining" ? "over" : "left"}
+        </TText>
       </TText>
 
       {/* Arc ring */}
@@ -136,7 +171,7 @@ export function MacroCard({
             strokeDasharray={CIRC}
             rotation={135}
             origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
-            stroke={color}
+            stroke={ringColor}
             strokeWidth={STROKE_W}
             fill="none"
             strokeLinecap="round"

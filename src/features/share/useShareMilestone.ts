@@ -16,6 +16,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useActiveChallenge } from "../challenge/hooks/useActiveChallenge";
 import { useNutritionStore } from "../nutrition/nutrition.store";
 import { useStreakStore } from "../streak/streak.store";
+import { useSubscriptionStore } from "../subscription/subscription.store";
 import { checkMilestone } from "./share.service";
 import { useShareStore } from "./share.store";
 import type { MilestoneConfig } from "./share.types";
@@ -49,6 +50,9 @@ export function useShareMilestone(): UseShareMilestoneReturn {
   const challengeState = useActiveChallenge();
   const seenMilestones = useShareStore((s) => s.seenMilestones);
   const markSeen = useShareStore((s) => s.markSeen);
+  const hasActiveSubscription = useSubscriptionStore(
+    (s) => s.subscription.hasActiveSubscription
+  );
 
   const completedDays = challengeState?.progress.completedDays ?? 0;
   const currentDay = challengeState?.progress.currentDay ?? 0;
@@ -56,6 +60,11 @@ export function useShareMilestone(): UseShareMilestoneReturn {
 
   /** Returns true if a milestone was triggered (modal will show). */
   const check = useCallback((): boolean => {
+    // Don't show milestone celebrations for freemium users
+    if (!hasActiveSubscription) {
+      return false;
+    }
+
     const result = checkMilestone(
       completedDays,
       currentStreak,
@@ -69,7 +78,13 @@ export function useShareMilestone(): UseShareMilestoneReturn {
       return true;
     }
     return false;
-  }, [completedDays, currentStreak, seenMilestones, meals.length]);
+  }, [
+    completedDays,
+    currentStreak,
+    seenMilestones,
+    meals.length,
+    hasActiveSubscription,
+  ]);
 
   const dismiss = useCallback(() => {
     if (activeMilestone) {

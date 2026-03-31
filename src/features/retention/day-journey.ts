@@ -50,6 +50,14 @@ export interface PaywallTrigger {
   headline: string;
   /** Paywall body copy */
   body: string;
+  /** CTA button text */
+  cta: string;
+  /** Text for the skip/dismiss option */
+  skipText: string;
+  /** Optional bullet points shown below body (hard/strongest only) */
+  bullets?: string[];
+  /** After-log micro-trigger text (shown as a subtle nudge post-celebration) */
+  microTrigger?: string;
 }
 
 // ── Day-by-day content map ──
@@ -98,8 +106,11 @@ const JOURNEY: DayContent[] = [
     },
     paywall: {
       strength: "soft",
-      headline: "You're building momentum",
-      body: "Unlock full tracking to stay consistent",
+      headline: "You've started strong",
+      body: "Keep your momentum going with full tracking",
+      cta: "Continue My Progress →",
+      skipText: "You can keep going for free",
+      microTrigger: "You're ahead of most users",
     },
   },
 
@@ -157,8 +168,16 @@ const JOURNEY: DayContent[] = [
     notification: { title: "7-day streak", body: "Don't break it now." },
     paywall: {
       strength: "hard",
-      headline: "Don't lose your progress now",
-      body: "Unlock full insights & tracking",
+      headline: "You've made it further than most",
+      body: "Don't lose your progress now",
+      cta: "Stay Consistent →",
+      skipText: "Continue without upgrading",
+      bullets: [
+        "Full macro & calorie tracking",
+        "Weekly trends & insights",
+        "Unlimited AI scans",
+      ],
+      microTrigger: "You've built something real",
     },
   },
 
@@ -258,8 +277,16 @@ const JOURNEY: DayContent[] = [
     },
     paywall: {
       strength: "hard",
-      headline: "See your full progress & patterns",
-      body: "You've come too far to stop now",
+      headline: "This is who you are now",
+      body: "Someone who shows up. Every single day.",
+      cta: "Keep This Going →",
+      skipText: "Continue without upgrading",
+      bullets: [
+        "You don't need motivation anymore",
+        "See your full progress & patterns",
+        "Detailed trends & insights",
+      ],
+      microTrigger: "You don't need motivation anymore",
     },
   },
 
@@ -362,8 +389,15 @@ const JOURNEY: DayContent[] = [
     },
     paywall: {
       strength: "strongest",
-      headline: "Don't lose your progress",
-      body: "Continue your journey",
+      headline: "You did what most people couldn't",
+      body: "Don't lose this version of yourself",
+      cta: "Continue My Journey →",
+      skipText: "Continue without upgrading",
+      bullets: [
+        "21 days of consistency",
+        "A habit that's already built",
+        "Full tracking, trends & insights",
+      ],
     },
   },
 ];

@@ -52,6 +52,7 @@ import {
 import { usePaywallTrigger } from "../../src/features/subscription/usePaywallTrigger";
 import { useGoalsStore, useNutritionStore } from "../../src/stores";
 import { useTheme } from "../../src/theme/useTheme";
+import { JourneyPaywall } from "../../src/ui/components/JourneyPaywall";
 import { PostLogCelebration } from "../../src/ui/components/PostLogCelebration";
 import { ReportFoodSheet } from "../../src/ui/feedback/ReportFoodSheet";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
@@ -97,6 +98,13 @@ export default function ConfirmMealScreen() {
     message: string;
     sub: string;
     emoji: string;
+    microTrigger?: string;
+  } | null>(null);
+
+  // Journey paywall state (shown after celebration on conversion days)
+  const [journeyPaywall, setJourneyPaywall] = useState<{
+    paywallTrigger: import("../../src/features/retention/day-journey").PaywallTrigger;
+    streakDay: number;
   } | null>(null);
 
   // Calorie budget & today's consumed
@@ -206,10 +214,12 @@ export default function ConfirmMealScreen() {
 
     // Get after-log celebration content from the day journey
     const afterLog = retention.getAfterLogContent();
+    const dayPaywall = retention.dayPaywall;
     setCelebration({
       message: afterLog.message,
       sub: afterLog.sub,
       emoji: afterLog.emoji,
+      microTrigger: dayPaywall?.microTrigger,
     });
   }, [saveDraftWithoutNav, draft, retention]);
 
@@ -217,7 +227,29 @@ export default function ConfirmMealScreen() {
   const handleCelebrationDismiss = useCallback(() => {
     setCelebration(null);
 
+    // Check if this is a conversion day → show journey paywall
+    const streakDay = retention.dayContent.day;
+    const action = paywallTrigger.evaluateStreak(streakDay);
+    if (action && action.type === "journey") {
+      setJourneyPaywall({
+        paywallTrigger: action.paywallTrigger,
+        streakDay: action.streakDay,
+      });
+      return;
+    }
+
     // Check for share milestone then navigate
+    setTimeout(() => {
+      const triggered = shareMilestone.check();
+      if (!triggered) {
+        navigateAfterSave();
+      }
+    }, 50);
+  }, [shareMilestone, navigateAfterSave, retention, paywallTrigger]);
+
+  /** Called when journey paywall is dismissed (purchased or skipped) */
+  const handleJourneyPaywallDismiss = useCallback(() => {
+    setJourneyPaywall(null);
     setTimeout(() => {
       const triggered = shareMilestone.check();
       if (!triggered) {
@@ -974,12 +1006,23 @@ export default function ConfirmMealScreen() {
         />
       )}
 
+      {/* Journey paywall (shown on conversion days after celebration) */}
+      {journeyPaywall && (
+        <JourneyPaywall
+          visible={!!journeyPaywall}
+          onDismiss={handleJourneyPaywallDismiss}
+          paywallCopy={journeyPaywall.paywallTrigger}
+          streakDay={journeyPaywall.streakDay}
+        />
+      )}
+
       {/* Post-log celebration overlay (auto-dismisses after 2.5s) */}
       <PostLogCelebration
         visible={!!celebration}
         message={celebration?.message ?? ""}
         sub={celebration?.sub ?? ""}
         emoji={celebration?.emoji ?? ""}
+        microTrigger={celebration?.microTrigger}
         onDismiss={handleCelebrationDismiss}
       />
     </View>

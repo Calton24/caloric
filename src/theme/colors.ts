@@ -51,12 +51,12 @@ function generateNeutrals(mode: ColorMode): string[] {
   } else {
     return [
       "#000000", // 0 - pure black background
-      "#1C1C1E", // 1 - dark gray surfaces  
+      "#1C1C1E", // 1 - dark gray surfaces
       "#2C2C2E", // 2 - medium gray elevated surfaces
       "#3A3A3C", // 3 - lighter gray for higher elevation
       "#48484A", // 4 - mid-tone gray
       "#636366", // 5 - accent gray
-      "#8E8E93", // 6 - light gray 
+      "#8E8E93", // 6 - light gray
       "#AEAEB2", // 7 - lighter gray text
       "#C7C7CC", // 8 - very light gray
       "#F2F2F7", // 9 - near white
@@ -69,11 +69,12 @@ function generateNeutrals(mode: ColorMode): string[] {
  */
 function generateStatusColors(mode: ColorMode) {
   if (mode === "light") {
+    // WCAG AA compliant on white (#FFF) — all ≥ 4.5:1
     return {
-      success: "#10B981",
-      warning: "#F59E0B",
-      error: "#EF4444",
-      info: "#3B82F6",
+      success: "#047857", // Emerald-700, ~5.7:1
+      warning: "#B45309", // Amber-700, ~5.1:1
+      error: "#DC2626", // Red-600, ~4.6:1
+      info: "#2563EB", // Blue-600, ~5.2:1
     };
   } else {
     return {
@@ -108,17 +109,17 @@ export function generatePalette(
       surfaceSecondary: neutrals[1],
       surfaceElevated: neutrals[0],
 
-      // Text
-      text: neutrals[9],
-      textSecondary: neutrals[7],
-      textMuted: neutrals[6],
+      // Text — WCAG AA compliant on white
+      text: neutrals[9], // #212529, ~15.4:1 ✓
+      textSecondary: "#4B5563", // ~7.6:1 ✓ (was #868E96 at 3.5:1)
+      textMuted: "#6B7280", // ~4.9:1 ✓ (was #ADB5BD at 2.1:1)
       textInverse: neutrals[0],
 
-      // Interactive
-      primary: brandScale[5],
-      primaryPressed: brandScale[6],
-      secondary: brandScale[3],
-      accent: brandScale[4],
+      // Interactive — darkened for AA contrast on white
+      primary: brandScale[7], // L=30, ~5:1 ✓ (was [5] L=50 at 1.9:1)
+      primaryPressed: brandScale[8], // L=20
+      secondary: brandScale[3], // L=70, decorative fills
+      accent: brandScale[5], // L=50
 
       // Status
       success: status.success,
@@ -135,17 +136,17 @@ export function generatePalette(
       overlay: "rgba(0, 0, 0, 0.3)",
       overlayHeavy: "rgba(0, 0, 0, 0.6)",
 
-      // Glass Effects
-      glassBackground: "rgba(180, 184, 192, 0.55)",
-      glassBorder: "rgba(0, 0, 0, 0.08)",
+      // Glass Effects — opaque enough for readable content
+      glassBackground: "rgba(255, 255, 255, 0.78)",
+      glassBorder: "rgba(0, 0, 0, 0.12)",
       glassTint: neutrals[2],
 
       // Glass Widget Kit
-      glassTintLight: "rgba(140, 140, 148, 0.14)",
+      glassTintLight: "rgba(120, 120, 128, 0.16)",
       glassTintDark: "rgba(0, 0, 0, 0.10)",
-      glassBorderHighlight: "rgba(255, 255, 255, 0.60)",
-      glassShadow: "rgba(0, 0, 0, 0.18)",
-      glassActiveRing: brandScale[5],
+      glassBorderHighlight: "rgba(255, 255, 255, 0.80)",
+      glassShadow: "rgba(0, 0, 0, 0.10)",
+      glassActiveRing: brandScale[7],
     };
   } else {
     return {

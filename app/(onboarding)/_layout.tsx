@@ -41,7 +41,7 @@ export default function OnboardingLayout() {
       screenOptions={{
         headerShown: false,
         animation: "fade",
-        animationDuration: 300,
+        animationDuration: 450,
         gestureEnabled: true,
         gestureDirection: "horizontal",
       }}

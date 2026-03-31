@@ -51,6 +51,22 @@ function RootStack() {
           headerShown: false,
         }}
       />
+
+      {/* ── Standalone screens (custom headers) ── */}
+      <Stack.Screen name="progress" options={{ headerShown: false }} />
+      <Stack.Screen name="goals" options={{ headerShown: false }} />
+      <Stack.Screen name="settings" options={{ headerShown: false }} />
+      <Stack.Screen name="log-weight" options={{ headerShown: false }} />
+      <Stack.Screen name="confirm-meal" options={{ headerShown: false }} />
+      <Stack.Screen name="permissions" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="live-activity-intro"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="modal"
+        options={{ headerShown: false, presentation: "modal" }}
+      />
     </Stack>
   );
 }

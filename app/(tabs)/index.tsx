@@ -240,8 +240,15 @@ function SwipeTutorialOverlay({
   return (
     <Animated.View style={[styles.tutorialOverlay, overlayStyle]}>
       <Pressable style={styles.tutorialBackdrop} onPress={onDismiss}>
-        <View style={styles.tutorialContent}>
-          <TText style={styles.tutorialTitle}>Swipe to Delete</TText>
+        <View
+          style={[
+            styles.tutorialContent,
+            { backgroundColor: theme.colors.surfaceElevated },
+          ]}
+        >
+          <TText style={[styles.tutorialTitle, { color: theme.colors.text }]}>
+            Swipe to Delete
+          </TText>
           <TText
             style={[styles.tutorialHint, { color: theme.colors.textSecondary }]}
           >
@@ -249,8 +256,19 @@ function SwipeTutorialOverlay({
           </TText>
 
           <View style={styles.tutorialDemo}>
-            <Animated.View style={[styles.tutorialCard, cardStyle]}>
-              <View style={styles.tutorialIcon}>
+            <Animated.View
+              style={[
+                styles.tutorialCard,
+                { backgroundColor: theme.colors.surfaceSecondary },
+                cardStyle,
+              ]}
+            >
+              <View
+                style={[
+                  styles.tutorialIcon,
+                  { backgroundColor: theme.colors.backgroundTertiary },
+                ]}
+              >
                 <TText style={{ fontSize: 20 }}>🍎</TText>
               </View>
               <View style={{ flex: 1 }}>
@@ -1786,7 +1804,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
   },
   tutorialContent: {
-    backgroundColor: "#1C1C1E",
     borderRadius: 20,
     padding: 24,
     width: "100%",
@@ -1797,7 +1814,6 @@ const styles = StyleSheet.create({
   tutorialTitle: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#FFFFFF",
   },
   tutorialHint: {
     fontSize: 15,
@@ -1815,7 +1831,6 @@ const styles = StyleSheet.create({
     left: 0,
     width: "100%",
     height: "100%",
-    backgroundColor: "#2C2C2E",
     borderRadius: 14,
     flexDirection: "row",
     alignItems: "center",
@@ -1826,7 +1841,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.06)",
     alignItems: "center",
     justifyContent: "center",
   },

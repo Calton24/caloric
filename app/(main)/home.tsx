@@ -23,6 +23,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useHomeData } from "../../src/features/home/use-home-data";
 import { rebuildFoodMemory } from "../../src/features/nutrition/memory/food-memory.service";
 import { useNutritionStore } from "../../src/features/nutrition/nutrition.store";
+import { useSubscriptionStore } from "../../src/features/subscription/subscription.store";
 import { useTheme } from "../../src/theme/useTheme";
 import { DailyInsightsCard } from "../../src/ui/components/DailyInsightsCard";
 import { DaySelector } from "../../src/ui/components/DaySelector";
@@ -70,6 +71,9 @@ export default function HomeScreen() {
 
   const removeMeal = useNutritionStore((s) => s.removeMeal);
   const allMeals = useNutritionStore((s) => s.meals);
+  const isPro = useSubscriptionStore(
+    (s) => s.subscription.hasActiveSubscription
+  );
   const { open: openSheet, close: closeSheet } = useBottomSheet();
 
   // Rebuild food memory on mount so Quick Log has data
@@ -108,22 +112,26 @@ export default function HomeScreen() {
             )}
           </View>
           <View style={styles.headerRight}>
-            <Pressable
-              onPress={() => router.push("/(main)/progress" as any)}
-              style={[
-                styles.weightPill,
-                { backgroundColor: theme.colors.surfaceSecondary },
-              ]}
-            >
-              <Ionicons
-                name="trending-down"
-                size={14}
-                color={theme.colors.success}
-              />
-              <TText style={[styles.weightText, { color: theme.colors.text }]}>
-                {displayWeight} lbs
-              </TText>
-            </Pressable>
+            {isPro && (
+              <Pressable
+                onPress={() => router.push("/(main)/progress" as any)}
+                style={[
+                  styles.weightPill,
+                  { backgroundColor: theme.colors.surfaceSecondary },
+                ]}
+              >
+                <Ionicons
+                  name="trending-down"
+                  size={14}
+                  color={theme.colors.success}
+                />
+                <TText
+                  style={[styles.weightText, { color: theme.colors.text }]}
+                >
+                  {displayWeight} lbs
+                </TText>
+              </Pressable>
+            )}
             <Pressable
               onPress={() => router.push("/(main)/settings" as any)}
               hitSlop={12}
@@ -283,10 +291,7 @@ export default function HomeScreen() {
                   fat={meal.fat}
                   onPress={() =>
                     openSheet(
-                      <EditMealSheet
-                        mealId={meal.id}
-                        onClose={closeSheet}
-                      />,
+                      <EditMealSheet mealId={meal.id} onClose={closeSheet} />,
                       {
                         snapPoints: ["92%"],
                         enablePanDownToClose: true,
@@ -301,16 +306,18 @@ export default function HomeScreen() {
 
           <TSpacer size="lg" />
 
-          {/* Daily insights — comparison with yesterday, last week, etc. */}
-          <DailyInsightsCard
-            allMeals={allMeals}
-            todayDate={dailySummary.date}
-          />
+          {/* Daily insights — premium only */}
+          {isPro && (
+            <DailyInsightsCard
+              allMeals={allMeals}
+              todayDate={dailySummary.date}
+            />
+          )}
 
           <TSpacer size="lg" />
 
-          {/* Eat Again — quick-log from recent/frequent foods */}
-          <QuickLogSection />
+          {/* Eat Again — premium only */}
+          {isPro && <QuickLogSection isPro={isPro} />}
 
           {/* Bottom spacing for FAB */}
           <TSpacer size="xxl" />

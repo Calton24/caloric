@@ -31,6 +31,7 @@ import {
     endLiveActivity,
 } from "../../../src/features/live-activity";
 import { usePermissionsStore } from "../../../src/features/permissions";
+import { useProfileStore } from "../../../src/features/profile/profile.store";
 import {
     getLanguageLabel,
     getUnitsLabel,
@@ -162,7 +163,8 @@ export default function SettingsScreen() {
   // ── Settings store ──
   const settings = useSettingsStore((s) => s.settings);
   const languageLabel = getLanguageLabel(settings.inputLanguage);
-  const unitsLabel = getUnitsLabel(settings);
+  const profileWeightUnit = useProfileStore((s) => s.profile.weightUnit);
+  const unitsLabel = getUnitsLabel(settings, profileWeightUnit);
 
   // ── Permissions store ──
   const liveActivitiesEnabled = usePermissionsStore(

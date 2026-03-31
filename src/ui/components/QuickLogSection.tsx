@@ -44,7 +44,7 @@ function memoryToDraft(entry: FoodMemoryEntry): MealDraft {
   };
 }
 
-export function QuickLogSection() {
+export function QuickLogSection({ isPro = false }: { isPro?: boolean }) {
   const { theme } = useTheme();
   const router = useRouter();
   const setDraft = useNutritionDraftStore((s) => s.setDraft);
@@ -105,32 +105,34 @@ export function QuickLogSection() {
               Recent
             </TText>
           </Pressable>
-          <Pressable
-            onPress={() => setActiveTab("frequent")}
-            style={[
-              styles.tab,
-              {
-                backgroundColor:
-                  activeTab === "frequent"
-                    ? theme.colors.primary + "22"
-                    : "transparent",
-              },
-            ]}
-          >
-            <TText
+          {isPro && (
+            <Pressable
+              onPress={() => setActiveTab("frequent")}
               style={[
-                styles.tabLabel,
+                styles.tab,
                 {
-                  color:
+                  backgroundColor:
                     activeTab === "frequent"
-                      ? theme.colors.primary
-                      : theme.colors.textMuted,
+                      ? theme.colors.primary + "22"
+                      : "transparent",
                 },
               ]}
             >
-              Frequent
-            </TText>
-          </Pressable>
+              <TText
+                style={[
+                  styles.tabLabel,
+                  {
+                    color:
+                      activeTab === "frequent"
+                        ? theme.colors.primary
+                        : theme.colors.textMuted,
+                  },
+                ]}
+              >
+                Frequent
+              </TText>
+            </Pressable>
+          )}
         </View>
       </View>
 

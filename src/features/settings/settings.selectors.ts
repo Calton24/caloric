@@ -33,14 +33,10 @@ export function getLanguageLabel(code: string): string {
   return found?.label ?? code;
 }
 
-/** Get display label for units preference */
-export function getUnitsLabel(settings: AppSettings): string {
-  switch (settings.unitsPreference) {
-    case "metric":
-      return "Metric";
-    case "imperial":
-      return "Imperial";
-    default:
-      return "Use System";
-  }
+/** Get display label for a weight unit */
+export function getUnitsLabel(
+  _settings: AppSettings,
+  weightUnit?: "lbs" | "kg"
+): string {
+  return weightUnit === "kg" ? "Metric" : "Imperial";
 }

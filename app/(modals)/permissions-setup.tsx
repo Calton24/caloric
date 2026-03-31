@@ -10,7 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
     FadeIn,
     FadeInDown,
@@ -85,16 +85,20 @@ export default function PermissionsScreen() {
     // All granted now — navigate
     if (isFromVoiceLog) {
       router.back();
-    } else {
+    } else if (Platform.OS === "ios") {
       router.replace("/(modals)/live-activity-intro" as any);
+    } else {
+      router.replace("/(main)/home" as any);
     }
   };
 
   const handleSkip = () => {
     if (isFromVoiceLog) {
       router.back();
-    } else {
+    } else if (Platform.OS === "ios") {
       router.replace("/(modals)/live-activity-intro" as any);
+    } else {
+      router.replace("/(main)/home" as any);
     }
   };
 

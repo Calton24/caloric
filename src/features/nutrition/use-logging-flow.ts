@@ -134,16 +134,16 @@ export function useLoggingFlow() {
 
   /** Navigate back to home after a save (or deferred milestone modal). */
   function navigateAfterSave() {
-    // Dismiss confirm-meal modal first
-    router.dismiss();
-    // After the dismiss settles, dismiss any remaining modals (e.g. camera-log)
-    // and clear the draft once we're out of the modal stack
+    // Dismiss all modals and navigate to home
+    while (router.canDismiss()) {
+      router.dismiss();
+    }
+    // Navigate to home tab to show the logged food
+    router.push("/(tabs)" as never);
+    // Clear draft after navigation settles
     setTimeout(() => {
-      if (router.canDismiss()) {
-        router.dismiss();
-      }
       clearDraft();
-    }, 150);
+    }, 100);
   }
 
   function saveDraftAsMeal() {
