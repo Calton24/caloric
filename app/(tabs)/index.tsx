@@ -51,12 +51,14 @@ import { useNutritionDraftStore } from "../../src/features/nutrition/nutrition.d
 import type { MealDraft } from "../../src/features/nutrition/nutrition.draft.types";
 import { useNutritionStore } from "../../src/features/nutrition/nutrition.store";
 import { useProfileStore } from "../../src/features/profile/profile.store";
+import { useRetentionEngine } from "../../src/features/retention";
 import { useStreakStore } from "../../src/features/streak/streak.store";
 import { useSubscriptionStore } from "../../src/features/subscription/subscription.store";
 import { useWaterStore } from "../../src/features/water/water.store";
 import { haptics } from "../../src/infrastructure/haptics";
 import { toISODate } from "../../src/lib/utils/date";
 import { useTheme } from "../../src/theme/useTheme";
+import { DayJourneyBanner } from "../../src/ui/components/DailyMotivationBanner";
 import { DaySelector } from "../../src/ui/components/DaySelector";
 import { EditMealSheet } from "../../src/ui/components/EditMealSheet";
 import { MacroCard } from "../../src/ui/components/MacroCard";
@@ -67,6 +69,7 @@ import { ProgressRing } from "../../src/ui/components/ProgressRing";
 import { StreakAtRiskBanner } from "../../src/ui/components/StreakAtRiskBanner";
 import { StreakHero } from "../../src/ui/components/StreakHero";
 import { StreakModal } from "../../src/ui/components/StreakModal";
+import { StreakRecoveryBanner } from "../../src/ui/components/StreakRecoveryBanner";
 import { VoiceLogSheet } from "../../src/ui/components/VoiceLogSheet";
 import { WaterCard } from "../../src/ui/components/WaterCard";
 import { WaterSettingsModal } from "../../src/ui/components/WaterSettingsModal";
@@ -365,6 +368,28 @@ export default function HomeScreen() {
   );
 
   const todayMeals = dailySummary.meals;
+
+  // ── Retention engine ──
+  const retention = useRetentionEngine();
+
+  // Record app open once per session
+  useEffect(() => {
+    retention.recordOpen();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Day 0 auto-camera: redirect to camera on first launch with no meals
+  useEffect(() => {
+    if (retention.shouldShowCamera) {
+      retention.markCameraShown();
+      // Small delay to let the home screen render first
+      const timer = setTimeout(() => {
+        router.push("/tracking/camera" as any);
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [retention.shouldShowCamera]);
 
   // Group meals by category in display order
   const MEAL_ORDER: MealTime[] = ["breakfast", "lunch", "dinner", "snack"];
@@ -1077,6 +1102,30 @@ export default function HomeScreen() {
               currentStreak={currentStreak}
               onPress={() => router.push("/tracking/text" as any)}
             />
+          )}
+
+          {/* Streak recovery banner — shown when streak broke */}
+          {viewMode === "D" && retention.streakRecovery && (
+            <>
+              <StreakRecoveryBanner
+                recovery={retention.streakRecovery}
+                onPress={() => router.push("/tracking/text" as any)}
+              />
+              <TSpacer size="sm" />
+            </>
+          )}
+
+          {/* Day journey banner — exact day-by-day header + sub */}
+          {viewMode === "D" && retention.dayBanner && (
+            <>
+              <DayJourneyBanner
+                header={retention.dayBanner.header}
+                sub={retention.dayBanner.sub}
+                phase={retention.dayBanner.phase}
+                day={retention.dayBanner.day}
+              />
+              <TSpacer size="sm" />
+            </>
           )}
 
           {/* ── Daily view ── */}

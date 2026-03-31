@@ -42,11 +42,17 @@ import { displayName } from "../../src/features/nutrition/nutrition-pipeline";
 import { getMealsForDate } from "../../src/features/nutrition/nutrition.selectors";
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
 import {
+    useRetentionEngine,
+    useRetentionStore,
+} from "../../src/features/retention";
+import {
     ShareMilestoneModal,
     useShareMilestone,
 } from "../../src/features/share";
+import { usePaywallTrigger } from "../../src/features/subscription/usePaywallTrigger";
 import { useGoalsStore, useNutritionStore } from "../../src/stores";
 import { useTheme } from "../../src/theme/useTheme";
+import { PostLogCelebration } from "../../src/ui/components/PostLogCelebration";
 import { ReportFoodSheet } from "../../src/ui/feedback/ReportFoodSheet";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
@@ -69,6 +75,16 @@ export default function ConfirmMealScreen() {
 
   // Share milestone system
   const shareMilestone = useShareMilestone();
+  const recordFirstMeal = useRetentionStore((s) => s.recordFirstMeal);
+  const retention = useRetentionEngine();
+  const paywallTrigger = usePaywallTrigger();
+
+  // Post-log celebration state
+  const [celebration, setCelebration] = useState<{
+    message: string;
+    sub: string;
+    emoji: string;
+  } | null>(null);
 
   // Calorie budget & today's consumed
   const calorieBudget = useGoalsStore((s) => s.plan?.calorieBudget ?? 2000);
@@ -172,16 +188,30 @@ export default function ConfirmMealScreen() {
 
     saveDraftWithoutNav();
 
-    // Check for share milestone before navigating away.
-    // Small delay so stores update before the check runs.
+    // Record first meal for retention engine
+    recordFirstMeal();
+
+    // Get after-log celebration content from the day journey
+    const afterLog = retention.getAfterLogContent();
+    setCelebration({
+      message: afterLog.message,
+      sub: afterLog.sub,
+      emoji: afterLog.emoji,
+    });
+  }, [saveDraftWithoutNav, draft, retention]);
+
+  /** Called when the celebration overlay dismisses (auto or tap) */
+  const handleCelebrationDismiss = useCallback(() => {
+    setCelebration(null);
+
+    // Check for share milestone then navigate
     setTimeout(() => {
       const triggered = shareMilestone.check();
       if (!triggered) {
         navigateAfterSave();
       }
-      // If triggered, modal shows → navigateAfterSave runs on dismiss
     }, 50);
-  }, [saveDraftWithoutNav, draft, shareMilestone, navigateAfterSave]);
+  }, [shareMilestone, navigateAfterSave]);
 
   /** Open the Report Food bottom sheet */
   const handleReportFood = useCallback(() => {
@@ -954,6 +984,15 @@ export default function ConfirmMealScreen() {
           }}
         />
       )}
+
+      {/* Post-log celebration overlay (auto-dismisses after 2.5s) */}
+      <PostLogCelebration
+        visible={!!celebration}
+        message={celebration?.message ?? ""}
+        sub={celebration?.sub ?? ""}
+        emoji={celebration?.emoji ?? ""}
+        onDismiss={handleCelebrationDismiss}
+      />
     </View>
   );
 }

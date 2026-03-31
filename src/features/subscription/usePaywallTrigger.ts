@@ -5,12 +5,16 @@
  * whether to show a paywall, and which type. Consumers call `evaluate()`
  * and get back an action (or null if no paywall should show).
  *
- * Trigger rules:
- *   - SoftPaywall "streak_milestone" at streak days 3, 5, 7, 14
+ * Conversion days aligned to the 21-day journey:
+ *   - Day 3:  soft paywall (skip allowed)
+ *   - Day 7:  hard paywall (highest conversion so far)
+ *   - Day 14: hard paywall (strong emotional leverage)
+ *   - Day 21: strongest paywall (max emotional + conversion moment)
+ *
+ * Additional triggers:
  *   - SoftPaywall "scan_milestone" at 5, 10, 20 scans
  *   - SoftPaywall "insight_preview" when user hits insights with 3+ days
  *   - FeatureGatePaywall when user taps a gated feature
- *   - HardPaywall when challenge status === "completed"
  *
  * Uses AsyncStorage to track which triggers have already fired
  * (prevents re-showing the same milestone paywall repeatedly).
@@ -21,6 +25,7 @@ import { getStorage } from "../../infrastructure/storage";
 import type { GatedFeature } from "../../ui/components/FeatureGatePaywall";
 import type { SoftPaywallTrigger } from "../../ui/components/SoftPaywall";
 import { useChallengeStore } from "../challenge/challenge.store";
+import { getDayPaywall } from "../retention/day-journey";
 import { useSubscriptionStore } from "../subscription/subscription.store";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -37,6 +42,8 @@ export type PaywallAction =
     }
   | {
       type: "hard";
+      /** Journey paywall copy (header + body). Null for non-journey triggers. */
+      journeyCopy?: { headline: string; body: string };
     }
   | null;
 
@@ -48,7 +55,7 @@ interface TriggerState {
 
 const STORAGE_KEY = "caloric:paywall_triggers_seen";
 
-const STREAK_MILESTONES = [3, 5, 7, 14];
+/** Conversion days from the 21-day journey: 3, 7, 14, 21 */
 const SCAN_MILESTONES = [5, 10, 20];
 
 // ── Hook ───────────────────────────────────────────────────────────────────
@@ -88,29 +95,39 @@ export function usePaywallTrigger() {
   }, []);
 
   /**
-   * Evaluate whether a streak milestone should trigger a soft paywall.
-   * Call this after the user logs a meal / updates their streak.
+   * Evaluate whether the current streak day triggers a journey paywall.
+   * Day 3 = soft, Day 7/14 = hard, Day 21 = strongest (hard type).
    */
   const evaluateStreak = useCallback(
     (currentStreak: number): PaywallAction => {
       if (isPro || !triggerState.loaded) return null;
 
-      // Find the highest milestone the user has reached but hasn't seen
-      for (let i = STREAK_MILESTONES.length - 1; i >= 0; i--) {
-        const milestone = STREAK_MILESTONES[i];
-        if (
-          currentStreak >= milestone &&
-          !triggerState.seenTriggers.has(`streak_${milestone}`)
-        ) {
-          markSeen(`streak_${milestone}`);
-          return {
-            type: "soft",
-            trigger: "streak_milestone",
-            milestoneValue: currentStreak,
-          };
-        }
+      // Check if this is a conversion day from the journey
+      const journeyPaywall = getDayPaywall(currentStreak);
+      if (!journeyPaywall) return null;
+
+      const key = `streak_${currentStreak}`;
+      if (triggerState.seenTriggers.has(key)) return null;
+
+      markSeen(key);
+
+      // Day 3 soft paywall = dismissible
+      if (journeyPaywall.strength === "soft") {
+        return {
+          type: "soft",
+          trigger: "streak_milestone",
+          milestoneValue: currentStreak,
+        };
       }
-      return null;
+
+      // Day 7, 14, 21 = hard/strongest paywall
+      return {
+        type: "hard",
+        journeyCopy: {
+          headline: journeyPaywall.headline,
+          body: journeyPaywall.body,
+        },
+      };
     },
     [isPro, triggerState, markSeen]
   );
@@ -177,46 +194,21 @@ export function usePaywallTrigger() {
   }, [isPro, challenge]);
 
   /**
-   * Get a contextual nudge message for streak-based moments.
-   * Returns null if no nudge is appropriate.
+   * Get a contextual nudge message for journey-based moments.
+   * Uses the day-journey paywall copy when available.
    */
   const getStreakNudge = useCallback(
     (streakDays: number): { message: string; showPaywall: boolean } | null => {
       if (isPro) return null;
 
-      if (streakDays === 5) {
+      const journeyPaywall = getDayPaywall(streakDays);
+      if (journeyPaywall) {
         return {
-          message: "5 days strong! Pro users see weekly trends at this point.",
-          showPaywall: false,
+          message: `${journeyPaywall.headline}. ${journeyPaywall.body}`,
+          showPaywall: journeyPaywall.strength !== "soft" || streakDays >= 3,
         };
       }
-      if (streakDays === 7) {
-        return {
-          message:
-            "One week of consistency! Unlock detailed insights to see what's working.",
-          showPaywall: true,
-        };
-      }
-      if (streakDays === 10) {
-        return {
-          message:
-            "10 days — you're in the top 15% of users. See your full nutrition story with Pro.",
-          showPaywall: true,
-        };
-      }
-      if (streakDays === 14) {
-        return {
-          message:
-            "Two weeks of tracking! Your data has real trends now. Unlock them.",
-          showPaywall: true,
-        };
-      }
-      if (streakDays === 21) {
-        return {
-          message: "21 days — you built a habit! Time to see the full picture.",
-          showPaywall: true,
-        };
-      }
+
       return null;
     },
     [isPro]

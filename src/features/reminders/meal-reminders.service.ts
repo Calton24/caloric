@@ -2,10 +2,14 @@
  * Meal Reminders Service
  *
  * Schedules / cancels daily local notifications for breakfast, lunch, dinner,
- * and a "nothing logged today" nudge.
+ * and a "nothing logged today" nudge. Also includes retention-driven
+ * streak notifications with rotating psychology-based templates.
  */
 
 import { notifications } from "../../infrastructure/notifications";
+import { getDayNotification } from "../retention/day-journey";
+import { getNextNotification } from "../retention/notification-templates";
+import { getStreakRecoveryNotification } from "../retention/streak-recovery";
 
 // ── Identifiers ──
 const IDS = {
@@ -107,4 +111,61 @@ export async function scheduleStreakReminders(): Promise<void> {
 export async function cancelStreakReminders(): Promise<void> {
   await notifications.cancelScheduled(IDS.streakWarning);
   await notifications.cancelScheduled(IDS.streakCritical);
+}
+
+// ── Retention-driven daily notification ──
+
+const RETENTION_NUDGE_ID = "retention-daily-nudge";
+
+/**
+ * Schedule the evening retention notification for the current challenge day.
+ * Days 1-21 get the exact scripted notification from the journey.
+ * Post-Day-21 uses rotating psychology templates.
+ *
+ * @param rotationIndex — from retention store, incremented after each schedule
+ * @param currentStreak — user's current streak count
+ * @param currentDay — challenge day number
+ */
+export async function scheduleRetentionNotification(
+  rotationIndex: number,
+  currentStreak: number,
+  currentDay: number
+): Promise<void> {
+  await notifications.cancelScheduled(RETENTION_NUDGE_ID);
+
+  // Days 1-21: use exact journey notification (sent evening, 8pm)
+  // Post-21: use rotation system (sent morning, 10am)
+  const isDayJourney = currentDay >= 1 && currentDay <= 21;
+
+  const { title, body } = isDayJourney
+    ? getDayNotification(currentDay)
+    : getNextNotification(rotationIndex, currentStreak, currentDay);
+
+  await notifications.scheduleDailyRepeat({
+    identifier: RETENTION_NUDGE_ID,
+    title,
+    body,
+    hour: isDayJourney ? 20 : 10,
+    minute: 0,
+  });
+}
+
+/**
+ * Schedule a streak recovery notification for the morning after a break.
+ * Fires once at 9am with loss-aversion messaging.
+ */
+export async function scheduleStreakRecoveryNotification(
+  lostStreak: number
+): Promise<void> {
+  const { title, body } = getStreakRecoveryNotification(lostStreak);
+
+  await notifications.scheduleLocal({
+    title,
+    body,
+    delaySeconds: 0, // Immediate (for recovery, schedule from background)
+  });
+}
+
+export async function cancelRetentionNotification(): Promise<void> {
+  await notifications.cancelScheduled(RETENTION_NUDGE_ID);
 }

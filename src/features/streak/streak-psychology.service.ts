@@ -2,7 +2,8 @@
  * Streak Psychology Service
  *
  * Pure functions for identity labels, progression messages,
- * streak-at-risk detection, and streak freeze logic.
+ * streak-at-risk detection, streak freeze logic, and streak
+ * break recovery. Part of the 4-layer retention engine.
  */
 
 // ── Identity Labels ──────────────────────────────────────────
@@ -14,6 +15,18 @@ export interface StreakLabel {
 }
 
 const STREAK_LABELS: { minDays: number; label: StreakLabel }[] = [
+  {
+    minDays: 90,
+    label: { label: "Unstoppable", emoji: "👑", tier: "champion" },
+  },
+  {
+    minDays: 60,
+    label: { label: "Elite tracker", emoji: "💫", tier: "champion" },
+  },
+  {
+    minDays: 30,
+    label: { label: "Habit locked in", emoji: "🔒", tier: "champion" },
+  },
   {
     minDays: 21,
     label: { label: "Challenge completed", emoji: "🏆", tier: "champion" },
@@ -40,9 +53,12 @@ export function getStreakLabel(currentStreak: number): StreakLabel | null {
 // ── Progression Messages ─────────────────────────────────────
 
 const PROGRESSION_MESSAGES: { minDays: number; message: string }[] = [
+  { minDays: 90, message: "90 days. You're not tracking — you're living it." },
+  { minDays: 60, message: "60 days of showing up. That's elite." },
+  { minDays: 30, message: "A full month. This is permanent now." },
   { minDays: 21, message: "You've built a real habit. Keep it forever." },
   { minDays: 14, message: "Two weeks strong — this is who you are now." },
-  { minDays: 7, message: "One week in. Most people quit by now." },
+  { minDays: 7, message: "One week in. Most people quit by now. You didn't." },
   { minDays: 3, message: "Three days in — the hardest part is over." },
   { minDays: 1, message: "Day one done. Come back tomorrow." },
 ];
@@ -127,6 +143,29 @@ export function getNextMilestone(currentStreak: number): {
     }
   }
   return null;
+}
+
+// ── Streak Break Detection ───────────────────────────────────
+
+/**
+ * Detects if a streak was recently broken (user had a streak yesterday
+ * or earlier but it has now reset to 0). Returns the lost streak count
+ * for recovery messaging.
+ */
+export function detectStreakBreak(
+  currentStreak: number,
+  lastLogDate: string | null,
+  previousStreak: number,
+  today: string = toDateString(new Date())
+): number {
+  // If current streak is 0 and we had a previous streak, it broke
+  if (currentStreak === 0 && previousStreak > 0 && lastLogDate) {
+    const yesterday = subtractDays(today, 1);
+    if (lastLogDate < yesterday) {
+      return previousStreak;
+    }
+  }
+  return 0;
 }
 
 // ── Helpers ──────────────────────────────────────────────────

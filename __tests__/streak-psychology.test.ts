@@ -38,9 +38,15 @@ describe("getStreakLabel", () => {
     expect(getStreakLabel(14)!.tier).toBe("strong");
   });
 
-  it("returns 'Challenge completed' at day 21+", () => {
+  it("returns 'Challenge completed' at day 21", () => {
     expect(getStreakLabel(21)!.label).toBe("Challenge completed");
-    expect(getStreakLabel(100)!.label).toBe("Challenge completed");
+  });
+
+  it("returns higher identity tiers past day 21", () => {
+    expect(getStreakLabel(30)!.label).toBe("Habit locked in");
+    expect(getStreakLabel(60)!.label).toBe("Elite tracker");
+    expect(getStreakLabel(90)!.label).toBe("Unstoppable");
+    expect(getStreakLabel(100)!.label).toBe("Unstoppable");
   });
 
   it("picks highest matching tier for in-between values", () => {

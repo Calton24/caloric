@@ -10,26 +10,26 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Dimensions,
-  Image,
-  Pressable,
-  StyleSheet,
-  View,
+    ActivityIndicator,
+    Dimensions,
+    Image,
+    Pressable,
+    StyleSheet,
+    View,
 } from "react-native";
 import Animated, {
-  Easing,
-  FadeIn,
-  FadeInDown,
-  FadeInUp,
-  cancelAnimation,
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withSequence,
-  withSpring,
-  withTiming,
+    Easing,
+    FadeIn,
+    FadeInDown,
+    FadeInUp,
+    cancelAnimation,
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withDelay,
+    withSequence,
+    withSpring,
+    withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../src/features/auth/useAuth";
@@ -877,7 +877,7 @@ export default function OnboardingChallengeScreen() {
                   label={getTierLabel(tier)}
                   priceStr={priceStr}
                   badgeText={
-                    tier === "yearly" ? "Best value — save 30%" : undefined
+                    tier === "yearly" ? "Best Value ✦ Save 30%" : undefined
                   }
                   primaryColor={theme.colors.primary}
                   borderColor={theme.colors.border}
@@ -914,7 +914,9 @@ export default function OnboardingChallengeScreen() {
               <TText style={styles.ctaText}>
                 {selectedTier === "lifetime"
                   ? "Unlock Lifetime Access"
-                  : "Unlock Full Experience"}
+                  : selectedTier === "yearly"
+                    ? "Start Your Year — Best Value"
+                    : "Unlock Full Experience"}
               </TText>
             )}
           </LinearGradient>
@@ -926,7 +928,21 @@ export default function OnboardingChallengeScreen() {
             style={[styles.billingContext, { color: theme.colors.textMuted }]}
           >
             {selectedTier === "yearly"
-              ? `${selectedPrice} billed annually · Cancel anytime`
+              ? (() => {
+                  const product =
+                    selectedProduct?.product ?? selectedProduct?.storeProduct;
+                  const price = product?.price;
+                  if (typeof price === "number" && price > 0) {
+                    const symbol =
+                      product?.currencyCode === "GBP"
+                        ? "£"
+                        : product?.currencyCode === "EUR"
+                          ? "€"
+                          : "$";
+                    return `${symbol}${(price / 12).toFixed(2)}/month — billed annually · Cancel anytime`;
+                  }
+                  return `${selectedPrice} billed annually · Cancel anytime`;
+                })()
               : selectedTier === "monthly"
                 ? `${selectedPrice}/month · Cancel anytime`
                 : `One-time purchase · Yours forever`}

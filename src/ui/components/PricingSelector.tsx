@@ -48,17 +48,43 @@ function getTierLabel(tier: TierKey): string {
   }
 }
 
-function getTierSubtitle(pkg: any, tier: TierKey): string | null {
+function getCurrencySymbol(product: any): string {
+  const code = product?.currencyCode ?? "USD";
+  const symbols: Record<string, string> = {
+    USD: "$",
+    GBP: "£",
+    EUR: "€",
+    CAD: "CA$",
+    AUD: "A$",
+  };
+  return symbols[code] ?? code + " ";
+}
+
+function getTierSubtitle(
+  pkg: any,
+  tier: TierKey,
+  allPackages: any[]
+): string | null {
+  const product = pkg.product ?? pkg.storeProduct;
   if (tier === "yearly") {
-    // Calculate monthly equivalent
-    const product = pkg.product ?? pkg.storeProduct;
     const price = product?.price;
     if (typeof price === "number" && price > 0) {
+      const symbol = getCurrencySymbol(product);
       const monthly = (price / 12).toFixed(2);
-      const currency = product?.currencyCode ?? "USD";
-      const symbol = currency === "USD" ? "$" : "";
-      return `${symbol}${monthly}/mo`;
+      // Calculate savings vs monthly
+      const monthlyPkg = allPackages.find((p) => getTierKey(p) === "monthly");
+      const monthlyProduct = monthlyPkg?.product ?? monthlyPkg?.storeProduct;
+      const monthlyPrice = monthlyProduct?.price;
+      let savingsText = "";
+      if (typeof monthlyPrice === "number" && monthlyPrice > 0) {
+        const pct = Math.round((1 - price / (monthlyPrice * 12)) * 100);
+        if (pct > 0) savingsText = ` · Save ${pct}%`;
+      }
+      return `${symbol}${monthly}/mo — billed annually${savingsText}`;
     }
+  }
+  if (tier === "lifetime") {
+    return "One-time purchase · Yours forever";
   }
   return null;
 }
@@ -114,7 +140,7 @@ export function PricingSelector({
           const product = pkg.product ?? pkg.storeProduct;
           const priceStr = product?.priceString ?? product?.price ?? "—";
           const label = getTierLabel(tier);
-          const subtitle = getTierSubtitle(pkg, tier);
+          const subtitle = getTierSubtitle(pkg, tier, sorted);
           const isYearly = tier === "yearly";
           const isBuying = purchasingId === pkg.identifier;
 
@@ -154,7 +180,7 @@ export function PricingSelector({
                         { color: theme.colors.textInverse },
                       ]}
                     >
-                      Best value
+                      Best Value ✦
                     </TText>
                   </View>
                 )}

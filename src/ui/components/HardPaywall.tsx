@@ -412,7 +412,9 @@ export function HardPaywall({
                         onSelect={() => setSelectedPkg(pkg.identifier)}
                         label={getTierLabel(tier)}
                         priceStr={priceStr}
-                        badgeText={tier === "yearly" ? "Best value" : undefined}
+                        badgeText={
+                          tier === "yearly" ? "Best Value ✦" : undefined
+                        }
                         primaryColor={theme.colors.primary}
                         borderColor={theme.colors.border}
                         bgColor={theme.colors.surface}
@@ -462,10 +464,25 @@ export function HardPaywall({
                 ]}
               >
                 {selectedTier === "yearly"
-                  ? `Single payment of ${selectedPrice} for 12 months`
+                  ? (() => {
+                      const product =
+                        selectedProduct?.product ??
+                        selectedProduct?.storeProduct;
+                      const price = product?.price;
+                      if (typeof price === "number" && price > 0) {
+                        const symbol =
+                          product?.currencyCode === "GBP"
+                            ? "£"
+                            : product?.currencyCode === "EUR"
+                              ? "€"
+                              : "$";
+                        return `${symbol}${(price / 12).toFixed(2)}/month — billed annually`;
+                      }
+                      return `Single payment of ${selectedPrice} for 12 months`;
+                    })()
                   : selectedTier === "monthly"
                     ? `${selectedPrice} billed every month`
-                    : `One-time payment of ${selectedPrice}`}
+                    : `One-time payment of ${selectedPrice} · Yours forever`}
               </TText>
             )}
 
