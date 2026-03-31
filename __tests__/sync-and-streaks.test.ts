@@ -257,18 +257,16 @@ describe("Streak Service", () => {
 
   describe("fetchStreak", () => {
     it("loads streak from Supabase and caches locally", async () => {
-      // Use today's date so the streak-validity check doesn't reset currentStreak
-      const today = new Date().toISOString().slice(0, 10);
-      const chain = mockSupabaseChain({
-        current_streak: 5,
-        longest_streak: 12,
-        last_log_date: today,
-        streak_start_date: "2026-03-15",
+      mockRpc.mockResolvedValue({
+        data: [{ current_streak: 5, longest_streak: 12 }],
       });
 
       const info = await fetchStreak();
 
-      expect(mockFrom).toHaveBeenCalledWith("user_streaks");
+      expect(mockRpc).toHaveBeenCalledWith(
+        "update_user_streak",
+        expect.objectContaining({ p_user_id: "user-123" })
+      );
       expect(info.currentStreak).toBe(5);
       expect(info.longestStreak).toBe(12);
     });

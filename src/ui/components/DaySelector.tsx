@@ -149,10 +149,14 @@ export function DaySelector({
         { duration, easing: SNAP_EASING },
         (finished) => {
           if (!finished) return;
+          // Swipe right (positive target) → tray slides right → previous
+          // week slides into view → navigate to previous week.
+          // Swipe left (negative target) → tray slides left → next week
+          // slides into view → navigate to next week.
           if (target > 0) {
-            runOnJS(doNext)();
-          } else {
             runOnJS(doPrev)();
+          } else {
+            runOnJS(doNext)();
           }
           offsetX.value = 0;
         }

@@ -363,6 +363,7 @@ export default function HomeScreen() {
   const lastLogDate = useStreakStore((s) => s.lastLogDate);
   const streakStartDate = useStreakStore((s) => s.streakStartDate);
   const streakFreezeAvailable = useStreakStore((s) => s.streakFreezeAvailable);
+
   const hasActiveSubscription = useSubscriptionStore(
     (s) => s.subscription.hasActiveSubscription
   );

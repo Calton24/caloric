@@ -48,19 +48,32 @@ function toLocalDate(date: Date = new Date()): string {
 }
 
 /**
- * Compute streak from local meal data (no network needed).
- * Used as a fallback when offline or to reconcile after sync.
- * When `force` is true, always writes the computed value (remote sync just finished).
- * Otherwise only bumps the streak upward (offline-first pre-login path).
+ * Extract date from a meal's loggedAt ISO string.
+ * On the local device, new meals are stamped with new Date().toISOString()
+ * which uses UTC. Meals pulled from Supabase (TIMESTAMPTZ) are also returned
+ * as UTC ISO strings. The rest of the app (getMealsForDate, calendar grid)
+ * matches meals via `meal.loggedAt.startsWith(date)` where `date` comes from
+ * toLocalDate(). In most timezones during the day these agree, but near
+ * midnight they can diverge. We use toLocalDate(new Date(iso)) so that the
+ * streak date always reflects the user's wall-clock date, matching how
+ * toLocalDate() computes "today" in the walk-back.
  */
-function computeLocalStreak(force = false): void {
+function mealDate(loggedAt: string): string {
+  return toLocalDate(new Date(loggedAt));
+}
+
+/**
+ * Compute streak from local meal data (no network needed).
+ * Always writes the computed value — local meals are the source of truth.
+ */
+function computeLocalStreak(): void {
   const meals = useNutritionStore.getState().meals;
   if (meals.length === 0) return;
 
-  // Collect unique local dates that have at least one meal
+  // Collect unique local-timezone dates that have at least one meal
   const loggedDates = new Set<string>();
   for (const meal of meals) {
-    loggedDates.add(toLocalDate(new Date(meal.loggedAt)));
+    loggedDates.add(mealDate(meal.loggedAt));
   }
 
   // Walk backwards from today counting consecutive days
@@ -74,20 +87,50 @@ function computeLocalStreak(force = false): void {
     check.setDate(check.getDate() - 1);
   }
 
+  // If today has no meals yet, check if yesterday starts a streak
+  // (the streak is still alive until end of today)
+  if (streak === 0) {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const check2 = new Date(yesterday);
+    while (true) {
+      const dateStr = toLocalDate(check2);
+      if (!loggedDates.has(dateStr)) break;
+      streak++;
+      check2.setDate(check2.getDate() - 1);
+    }
+  }
+
+  if (__DEV__) {
+    const sortedDates = [...loggedDates].sort();
+    console.warn(
+      `[Streak] computeLocalStreak: today=${today}, totalMeals=${meals.length}, loggedDates=[${sortedDates.join(", ")}], streak=${streak}`
+    );
+    // Also dump a few sample loggedAt values to verify date extraction
+    const samples = meals
+      .slice(0, 8)
+      .map((m) => `${m.loggedAt} → ${mealDate(m.loggedAt)}`);
+    console.warn(`[Streak] meal samples: ${samples.join(" | ")}`);
+  }
+
   const currentInfo = useStreakStore.getState();
 
-  if (force || streak > currentInfo.currentStreak) {
-    // Compute streakStartDate by walking back `streak` days from today
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - (streak - 1));
+  // Determine the most recent logged day and compute streak start
+  const startedFromYesterday = streak > 0 && !loggedDates.has(today);
+  const mostRecentLogDay = startedFromYesterday
+    ? new Date(new Date().setDate(new Date().getDate() - 1))
+    : new Date();
+  const lastLoggedDay = toLocalDate(mostRecentLogDay);
 
-    useStreakStore.getState().setStreak({
-      currentStreak: streak,
-      longestStreak: Math.max(streak, currentInfo.longestStreak),
-      lastLogDate: today,
-      streakStartDate: streak > 0 ? toLocalDate(startDate) : null,
-    });
-  }
+  const startDate = new Date(mostRecentLogDay);
+  startDate.setDate(startDate.getDate() - (streak - 1));
+
+  useStreakStore.getState().setStreak({
+    currentStreak: streak,
+    longestStreak: Math.max(streak, currentInfo.longestStreak),
+    lastLogDate: lastLoggedDay,
+    streakStartDate: streak > 0 ? toLocalDate(startDate) : null,
+  });
 }
 
 export function useProgressSync(): void {
@@ -95,22 +138,66 @@ export function useProgressSync(): void {
   const userId = user?.id;
   const hasRestoredRef = useRef<string | null>(null);
 
-  // ── Compute streak from local meals (wait for store hydration) ──
+  // ── Compute streak from local meals ──
+  // Wait for BOTH nutrition and streak stores to finish hydrating from
+  // AsyncStorage before computing. Then subscribe to meal changes so the
+  // streak stays in sync when meals are added, removed, or restored from
+  // Supabase.
   useEffect(() => {
-    // Meals may not be hydrated yet when the component mounts.
-    // Try immediately, then subscribe so we catch post-hydration.
-    let done = false;
-    const tryCompute = () => {
-      if (done) return;
+    let cancelled = false;
+
+    const recompute = () => {
+      if (cancelled) return;
       const meals = useNutritionStore.getState().meals;
       if (meals.length > 0) {
-        done = true;
         computeLocalStreak();
       }
     };
+
+    // Wait for both persisted stores to finish hydrating.
+    // persist.hasHydrated() returns true if already done (common on
+    // hot reload). persist.onFinishHydration registers a callback
+    // for when hydration completes in the future.
+    const nutritionPersist = useNutritionStore.persist;
+    const streakPersist = useStreakStore.persist;
+
+    let nutritionReady = nutritionPersist.hasHydrated();
+    let streakReady = streakPersist.hasHydrated();
+
+    const tryCompute = () => {
+      if (nutritionReady && streakReady && !cancelled) {
+        recompute();
+      }
+    };
+
+    if (!nutritionReady) {
+      nutritionPersist.onFinishHydration(() => {
+        nutritionReady = true;
+        tryCompute();
+      });
+    }
+    if (!streakReady) {
+      streakPersist.onFinishHydration(() => {
+        streakReady = true;
+        tryCompute();
+      });
+    }
+
+    // If both already hydrated (e.g. hot reload), compute now
     tryCompute();
-    const unsub = useNutritionStore.subscribe(tryCompute);
-    return unsub;
+
+    // Recompute whenever meals change (restore, add, delete)
+    const unsub = useNutritionStore.subscribe(recompute);
+
+    // Safety-net: recompute after a short delay to catch any
+    // edge case where hydration or merge overwrites the streak.
+    const safetyTimer = setTimeout(recompute, 2000);
+
+    return () => {
+      cancelled = true;
+      unsub();
+      clearTimeout(safetyTimer);
+    };
   }, []);
 
   // ── On login: restore from Supabase + push local data ──
@@ -129,13 +216,19 @@ export function useProgressSync(): void {
       await pushAllToSupabase();
       // Then restore anything from remote we don't have locally
       await restoreFromSupabase();
-      // Fetch authoritative streak from the server
-      const remoteStreak = await fetchStreak();
-      useStreakStore.getState().setStreak(remoteStreak);
-      // Re-derive streak from the now-merged local+remote meals
-      // so the result is accurate even if the server RPC is stale.
-      // force=true so local computation can correct downward too.
-      computeLocalStreak(true);
+      // Re-derive streak from the now-merged local+remote meals.
+      // Local meals are the authoritative source after restore.
+      computeLocalStreak();
+      // Also fetch server streak and call RPC to ensure cloud is up-to-date.
+      // If the server knows a higher streak (e.g. from another device), adopt it.
+      fetchStreak()
+        .then((serverStreak) => {
+          const local = useStreakStore.getState();
+          if (serverStreak.currentStreak > local.currentStreak) {
+            useStreakStore.getState().setStreak(serverStreak);
+          }
+        })
+        .catch(() => {});
 
       // Restore challenge: remote wins (server is source of truth after login)
       const remoteChallenge = await pullChallenge();
@@ -166,10 +259,14 @@ export function useProgressSync(): void {
       const added = nextMeals.filter((m) => !prevIds.has(m.id));
       for (const meal of added) {
         pushMeal(meal);
-        // Record streak for each new meal
-        recordMealLogged(meal.calories, new Date(meal.loggedAt)).then((info) =>
-          useStreakStore.getState().setStreak(info)
+        // Record streak in daily_log_dates (fire-and-forget)
+        recordMealLogged(meal.calories, new Date(meal.loggedAt)).catch(
+          () => {}
         );
+      }
+      // Recompute streak from all local meals for accuracy
+      if (added.length > 0) {
+        computeLocalStreak();
       }
 
       // Detect removed meals — recompute streak since a day may now be empty
