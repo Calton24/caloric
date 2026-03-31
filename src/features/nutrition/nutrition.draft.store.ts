@@ -15,14 +15,28 @@ export const useNutritionDraftStore = create<NutritionDraftStore>((set) => ({
   draft: null,
   logDate: null,
 
-  setDraft: (draft) => set({ draft }),
+  setDraft: (draft) => {
+    console.log(
+      "[DraftStore] setDraft called:",
+      draft?.title,
+      "cal:",
+      draft?.calories
+    );
+    set({ draft });
+  },
 
   updateDraft: (updates) =>
     set((state) => ({
       draft: state.draft ? { ...state.draft, ...updates } : null,
     })),
 
-  clearDraft: () => set({ draft: null, logDate: null }),
+  clearDraft: () => {
+    console.log(
+      "[DraftStore] clearDraft called",
+      new Error().stack?.split("\n").slice(1, 4).join(" <- ")
+    );
+    set({ draft: null, logDate: null });
+  },
 
   setLogDate: (date) => set({ logDate: date }),
 }));

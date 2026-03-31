@@ -56,13 +56,26 @@ export default function ConfirmMealScreen() {
   const { theme } = useTheme();
   const router = useRouter();
   const {
-    draft,
+    draft: hookDraft,
     updateDraft,
     saveDraftAsMeal,
     saveDraftWithoutNav,
     navigateAfterSave,
     clearDraft,
   } = useLoggingFlow();
+
+  // Defensive: read store snapshot imperatively in case Zustand subscription
+  // hasn't fired yet on first render (potential React batching edge case)
+  const draft = hookDraft ?? useNutritionDraftStore.getState().draft;
+
+  // Debug: trace draft availability on mount
+  console.log(
+    "[ConfirmMeal] render — hookDraft:",
+    hookDraft?.title ?? "NULL",
+    "| imperativeDraft:",
+    useNutritionDraftStore.getState().draft?.title ?? "NULL"
+  );
+
   const logDate = useNutritionDraftStore((s) => s.logDate);
   const setLogDate = useNutritionDraftStore((s) => s.setLogDate);
   const { open: openSheet } = useBottomSheet();
@@ -248,35 +261,11 @@ export default function ConfirmMealScreen() {
   );
 
   if (!draft) {
+    // Return an empty view while navigating away — prevents "No draft meal found" flash
     return (
       <View
         style={[styles.container, { backgroundColor: theme.colors.background }]}
-      >
-        <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-          <View style={styles.emptyState}>
-            <TText
-              variant="heading"
-              style={[styles.emptyTitle, { color: theme.colors.text }]}
-            >
-              No draft meal found
-            </TText>
-            <TSpacer size="md" />
-            <Pressable
-              onPress={() => router.dismiss()}
-              style={[
-                styles.emptyBtn,
-                { backgroundColor: theme.colors.surfaceSecondary },
-              ]}
-            >
-              <TText
-                style={[styles.emptyBtnText, { color: theme.colors.primary }]}
-              >
-                Go Back
-              </TText>
-            </Pressable>
-          </View>
-        </SafeAreaView>
-      </View>
+      />
     );
   }
 

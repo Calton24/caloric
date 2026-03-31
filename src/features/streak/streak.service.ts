@@ -165,6 +165,26 @@ export async function fetchStreak(): Promise<StreakInfo> {
 
   try {
     const client = getSupabaseClient();
+    const today = toDateString();
+
+    // Recompute streak on the server from daily_log_dates (source of truth)
+    const { data: rpcData } = await client.rpc("update_user_streak", {
+      p_user_id: userId,
+      p_today: today,
+    });
+
+    if (rpcData && rpcData.length > 0) {
+      const row = rpcData[0];
+      cachedStreak = {
+        currentStreak: row.current_streak,
+        longestStreak: row.longest_streak,
+        lastLogDate: today,
+        streakStartDate: cachedStreak.streakStartDate,
+      };
+      return getStreakInfo();
+    }
+
+    // Fallback: read from user_streaks table if RPC didn't return data
     const { data, error } = await client
       .from("user_streaks")
       .select("*")
@@ -181,7 +201,6 @@ export async function fetchStreak(): Promise<StreakInfo> {
     };
 
     // Check if streak is still valid (user may have missed yesterday)
-    const today = toDateString();
     const yesterday = subtractDays(today, 1);
     if (
       cachedStreak.lastLogDate &&

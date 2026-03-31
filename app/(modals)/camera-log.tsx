@@ -216,9 +216,14 @@ export default function CameraLoggingScreen() {
       setDescription("");
       try {
         const success = await startFromImage(uri, desc);
+        console.log(
+          "[CameraLog] runPipeline — startFromImage returned:",
+          success
+        );
         if (success) {
           // Consume a scan credit after successful analysis
           await consumeScan();
+          console.log("[CameraLog] runPipeline — navigating to confirm-meal");
           // Draft is populated with real data — navigate to confirm
           router.push("/(modals)/confirm-meal" as never);
         } else {
@@ -239,12 +244,12 @@ export default function CameraLoggingScreen() {
     setState("analyzing");
     try {
       // Use text pipeline with the description
+      // NOTE: startFromInput already pushes to /(modals)/confirm-meal internally
       await startFromInput(description.trim(), "camera");
-      router.push("/(modals)/confirm-meal" as never);
     } catch {
       setState("error");
     }
-  }, [description, startFromInput, router]);
+  }, [description, startFromInput]);
 
   // ── Close / dismiss ──────────────────────────────────────────────────
 

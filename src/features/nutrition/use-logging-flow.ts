@@ -104,7 +104,6 @@ export function useLoggingFlow() {
       loggedAt: logDate ?? undefined,
     });
     addMeal(meal);
-    clearDraft();
 
     // Auto-export to Apple Health if write sync is enabled
     const { appleHealthSyncEnabled } = useSettingsStore.getState().settings;
@@ -135,8 +134,16 @@ export function useLoggingFlow() {
 
   /** Navigate back to home after a save (or deferred milestone modal). */
   function navigateAfterSave() {
-    router.dismissAll();
-    router.back();
+    // Dismiss confirm-meal modal first
+    router.dismiss();
+    // After the dismiss settles, dismiss any remaining modals (e.g. camera-log)
+    // and clear the draft once we're out of the modal stack
+    setTimeout(() => {
+      if (router.canDismiss()) {
+        router.dismiss();
+      }
+      clearDraft();
+    }, 150);
   }
 
   function saveDraftAsMeal() {
@@ -235,9 +242,18 @@ export function useLoggingFlow() {
       // and local LLM is not available, try the cloud-based meal analysis.
       if (!isLocalLlmReady()) {
         try {
+          console.log(
+            "[startFromImage] Stage B.5: calling analyzeMealImage..."
+          );
           const cloudResult: MealAnalysisResult = await analyzeMealImage(
             imagePath,
             description
+          );
+          console.log(
+            "[startFromImage] Stage B.5: got result, items:",
+            cloudResult.items.length,
+            "confidence:",
+            cloudResult.overallConfidence
           );
 
           if (
@@ -255,6 +271,9 @@ export function useLoggingFlow() {
               confidence: cloudResult.overallConfidence,
               parseMethod: "cloud-vision (gpt-4o-mini)",
             });
+            console.log(
+              "[startFromImage] Stage B.5: draft set, returning true"
+            );
             return true;
           }
         } catch (e) {
@@ -378,6 +397,9 @@ export function useLoggingFlow() {
       }
 
       // ── Stage D: No signals → no valid result ──────────────
+      console.log(
+        "[startFromImage] Stage D: all stages exhausted, returning false"
+      );
       return false;
     } catch (e) {
       console.warn("Image pipeline failed:", e);
