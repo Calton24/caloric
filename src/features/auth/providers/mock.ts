@@ -142,8 +142,18 @@ export class MockAuthClient implements AuthClient {
 
   async signInWithAppleNative(): Promise<AuthResponse> {
     await delay(500);
-    const user = createMockUser();
-    const session = createMockSession(user);
+    const user: User = {
+      id: "mock-apple-user-" + Date.now(),
+      email: "apple@example.com",
+      createdAt: new Date().toISOString(),
+    };
+    const session: Session = {
+      user,
+      accessToken: "mock-apple-access-token",
+      refreshToken: "mock-apple-refresh-token",
+    };
+    this.currentSession = session;
+    this.notifyListeners(session);
     return { user, session, error: null };
   }
 
