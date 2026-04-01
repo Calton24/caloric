@@ -47,8 +47,8 @@ function RootStack() {
       <Stack.Screen
         name="auth/reset-password"
         options={{
-          presentation: "modal",
           headerShown: false,
+          gestureEnabled: false,
         }}
       />
 

@@ -7,45 +7,45 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0E448D1765784B179A30BD70 /* PedometerLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A46A0E8D297494AA065B401 /* PedometerLiveActivity.swift */; };
+		070F51F2C66848F7A4D23AAA /* PedometerLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D8B9A4E3FC348148C53CE35 /* PedometerLiveActivity.swift */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		3D37F42798394D5F8D5ECBCC /* FitnessLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67EBBD37DC3D424AB4A3B865 /* FitnessLiveActivity.swift */; };
+		1DDE47E48B564D51BF628E0E /* CalorieBudgetLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA7E7623487F4E16B6D513E1 /* CalorieBudgetLiveActivity.swift */; };
+		29F37D5CB01C475E892FA69E /* caloric.icon in Resources */ = {isa = PBXBuildFile; fileRef = 789FD56C6F3247FDA3E64F46 /* caloric.icon */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		3F63B036777E674ABD3CDD09 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = FCBF1943365642F94E77DE42 /* PrivacyInfo.xcprivacy */; };
-		4217963AC0ABF75AE227B953 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAA145E77BB0399812AC6707 /* ExpoModulesProvider.swift */; };
-		5A5FC8167A6B4C06AC9638F3 /* CaloricWidgetLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8765DE261F482987888FB5 /* CaloricWidgetLiveActivity.swift */; };
-		5E5ED7385E5F4D5C81E191D8 /* CalorieBudgetLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = E851921402BA4EFDB2FB973F /* CalorieBudgetLiveActivity.swift */; };
-		6541759CC23F4FB2A58378C6 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43FDD87876CC4C4199E1A2FB /* WidgetKit.framework */; };
-		8721B6F4212A41C4ABCF847D /* CaloricWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 2DC6F59A316A4866B3D536D9 /* CaloricWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		8DCA222256974B319C21AC77 /* CaloricActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F91775219F4F8CBEDFFA26 /* CaloricActivity.swift */; };
-		98F494674F9D4C339F9183A5 /* CaloricWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5E12EECA8E5478FB6339C42 /* CaloricWidgetBundle.swift */; };
-		B9B34F4C433747AAAB796235 /* CalorieTrackerLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB38865FB6CB4630B7259E4D /* CalorieTrackerLiveActivity.swift */; };
-		BA71D092A3C542A0955B1B19 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8B9DE3260664424BBCCF7858 /* Assets.xcassets */; };
+		3F75913C53F7463A862D33DB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E4ED2725F7144C6691C9CC05 /* Assets.xcassets */; };
+		430D338A163CC08CEE2D0FA0 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AA9CA47E0862507B2D5F9D4 /* ExpoModulesProvider.swift */; };
+		492247C0A51F4058AB5A4608 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 37A908BAA1824B1A88633A6B /* WidgetKit.framework */; };
+		6777B5AE7E0E4D6D81F59F7D /* CaloricWidgetLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A17BB2D85E044A2AC7A16AF /* CaloricWidgetLiveActivity.swift */; };
+		846DA24B5EADD8A9551C77D0 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 84871C9CC0DBA72035E39203 /* PrivacyInfo.xcprivacy */; };
+		A80679F1E44048058D9C492F /* CaloricWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0C72FFCF3634251958CFDA1 /* CaloricWidgetBundle.swift */; };
+		AE8751D32DDF4C04B2B46CD2 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 205EDB284E3E40458C74F10C /* SwiftUI.framework */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		C08402BCD85241659C8E3977 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D440116E461B41AAB3E3D2C4 /* SwiftUI.framework */; };
-		EDD18239AA014775B1008952 /* caloric.icon in Resources */ = {isa = PBXBuildFile; fileRef = 67CADF34ABBF49DC969BC0D2 /* caloric.icon */; };
+		DA5C5AC768EF4EDCAC6AFF70 /* CalorieTrackerLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85247B95E8C745329DC4E70C /* CalorieTrackerLiveActivity.swift */; };
+		DD0D3E34F4D1DC25AC2A7198 /* libPods-Caloric.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4894B7C67401F5B66BD0EE80 /* libPods-Caloric.a */; };
+		EABA7000FFD14A87A4210A96 /* CaloricWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = ABD591CF38AE4ADDBA269FB1 /* CaloricWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		ED61B4E26B5C419C8D1D1C83 /* CaloricActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F007A1512D043D3AD5BED5D /* CaloricActivity.swift */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
-		F768CAF233AD2983D3944268 /* libPods-Caloric.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A196D978A2A577694649BAA /* libPods-Caloric.a */; };
+		FE4C94B735664E42881244C4 /* FitnessLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 861C2AD4B6824F78A71B7773 /* FitnessLiveActivity.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		1A2D59FF85024F6E8A26CE21 /* PBXContainerItemProxy */ = {
+		6A9747994D1A44EAA5CD3222 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 83CBB9F71A601CBA00E9B192 /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = 420C0740D64F4711A9ECCE23;
+			remoteGlobalIDString = CE1481DFA40D4293A40FB162;
 			remoteInfo = CaloricWidget;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		5AFE8FE92B0D4E219F8A0F8D /* Embed App Extensions */ = {
+		9BC3C679A3EE40E3AACD7ADD /* Embed App Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				8721B6F4212A41C4ABCF847D /* CaloricWidget.appex in Embed App Extensions */,
+				EABA7000FFD14A87A4210A96 /* CaloricWidget.appex in Embed App Extensions */,
 			);
 			name = "Embed App Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -56,29 +56,29 @@
 		13B07F961A680F5B00A75B9A /* Caloric.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Caloric.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = Caloric/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = Caloric/Info.plist; sourceTree = "<group>"; };
-		1A196D978A2A577694649BAA /* libPods-Caloric.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Caloric.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		2DC6F59A316A4866B3D536D9 /* CaloricWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CaloricWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		3A46A0E8D297494AA065B401 /* PedometerLiveActivity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PedometerLiveActivity.swift; sourceTree = "<group>"; };
-		43FDD87876CC4C4199E1A2FB /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
-		4B8765DE261F482987888FB5 /* CaloricWidgetLiveActivity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CaloricWidgetLiveActivity.swift; sourceTree = "<group>"; };
-		67CADF34ABBF49DC969BC0D2 /* caloric.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = caloric.icon; path = Caloric/caloric.icon; sourceTree = "<group>"; };
-		67EBBD37DC3D424AB4A3B865 /* FitnessLiveActivity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FitnessLiveActivity.swift; sourceTree = "<group>"; };
-		8B9DE3260664424BBCCF7858 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		A1F91775219F4F8CBEDFFA26 /* CaloricActivity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CaloricActivity.swift; sourceTree = "<group>"; };
+		1D8B9A4E3FC348148C53CE35 /* PedometerLiveActivity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PedometerLiveActivity.swift; sourceTree = "<group>"; };
+		205EDB284E3E40458C74F10C /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		2AA9CA47E0862507B2D5F9D4 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-Caloric/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		2F007A1512D043D3AD5BED5D /* CaloricActivity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CaloricActivity.swift; sourceTree = "<group>"; };
+		2F89FCA461C74B438A20CFEA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		37A908BAA1824B1A88633A6B /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		4894B7C67401F5B66BD0EE80 /* libPods-Caloric.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Caloric.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4A17BB2D85E044A2AC7A16AF /* CaloricWidgetLiveActivity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CaloricWidgetLiveActivity.swift; sourceTree = "<group>"; };
+		6293CB397EC5F811F0DA90D1 /* Pods-Caloric.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Caloric.release.xcconfig"; path = "Target Support Files/Pods-Caloric/Pods-Caloric.release.xcconfig"; sourceTree = "<group>"; };
+		789FD56C6F3247FDA3E64F46 /* caloric.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = caloric.icon; path = Caloric/caloric.icon; sourceTree = "<group>"; };
+		84871C9CC0DBA72035E39203 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = Caloric/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		85247B95E8C745329DC4E70C /* CalorieTrackerLiveActivity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CalorieTrackerLiveActivity.swift; sourceTree = "<group>"; };
+		861C2AD4B6824F78A71B7773 /* FitnessLiveActivity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FitnessLiveActivity.swift; sourceTree = "<group>"; };
+		A0C72FFCF3634251958CFDA1 /* CaloricWidgetBundle.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CaloricWidgetBundle.swift; sourceTree = "<group>"; };
+		A899C050D1030B4C23B9F551 /* Pods-Caloric.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Caloric.debug.xcconfig"; path = "Target Support Files/Pods-Caloric/Pods-Caloric.debug.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = Caloric/SplashScreen.storyboard; sourceTree = "<group>"; };
-		B052CCE20FF037FA1DCEECFC /* Pods-Caloric.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Caloric.debug.xcconfig"; path = "Target Support Files/Pods-Caloric/Pods-Caloric.debug.xcconfig"; sourceTree = "<group>"; };
+		ABD591CF38AE4ADDBA269FB1 /* CaloricWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CaloricWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		C64C47B8C88C425CBA7DF64C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		CAA145E77BB0399812AC6707 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-Caloric/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
-		D1412B1A94AD16379BEFC86D /* Pods-Caloric.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Caloric.release.xcconfig"; path = "Target Support Files/Pods-Caloric/Pods-Caloric.release.xcconfig"; sourceTree = "<group>"; };
-		D440116E461B41AAB3E3D2C4 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
-		E851921402BA4EFDB2FB973F /* CalorieBudgetLiveActivity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CalorieBudgetLiveActivity.swift; sourceTree = "<group>"; };
+		E4ED2725F7144C6691C9CC05 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Caloric/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* Caloric-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "Caloric-Bridging-Header.h"; path = "Caloric/Caloric-Bridging-Header.h"; sourceTree = "<group>"; };
-		F5E12EECA8E5478FB6339C42 /* CaloricWidgetBundle.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CaloricWidgetBundle.swift; sourceTree = "<group>"; };
-		FB38865FB6CB4630B7259E4D /* CalorieTrackerLiveActivity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CalorieTrackerLiveActivity.swift; sourceTree = "<group>"; };
-		FCBF1943365642F94E77DE42 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = Caloric/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		FA7E7623487F4E16B6D513E1 /* CalorieBudgetLiveActivity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CalorieBudgetLiveActivity.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -86,16 +86,16 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F768CAF233AD2983D3944268 /* libPods-Caloric.a in Frameworks */,
+				DD0D3E34F4D1DC25AC2A7198 /* libPods-Caloric.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		DD9C72F0271E48C7B497937F /* Frameworks */ = {
+		FB273BF273AE455C8669460E /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6541759CC23F4FB2A58378C6 /* WidgetKit.framework in Frameworks */,
-				C08402BCD85241659C8E3977 /* SwiftUI.framework in Frameworks */,
+				492247C0A51F4058AB5A4608 /* WidgetKit.framework in Frameworks */,
+				AE8751D32DDF4C04B2B46CD2 /* SwiftUI.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -111,37 +111,29 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				67CADF34ABBF49DC969BC0D2 /* caloric.icon */,
-				FCBF1943365642F94E77DE42 /* PrivacyInfo.xcprivacy */,
+				789FD56C6F3247FDA3E64F46 /* caloric.icon */,
+				84871C9CC0DBA72035E39203 /* PrivacyInfo.xcprivacy */,
 			);
 			name = Caloric;
+			sourceTree = "<group>";
+		};
+		26D7315304A3D35577BC09F8 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				A899C050D1030B4C23B9F551 /* Pods-Caloric.debug.xcconfig */,
+				6293CB397EC5F811F0DA90D1 /* Pods-Caloric.release.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				1A196D978A2A577694649BAA /* libPods-Caloric.a */,
+				4894B7C67401F5B66BD0EE80 /* libPods-Caloric.a */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		5D45D61F2F7D656D00F66AA3 /* Recovered References */ = {
-			isa = PBXGroup;
-			children = (
-				43FDD87876CC4C4199E1A2FB /* WidgetKit.framework */,
-				D440116E461B41AAB3E3D2C4 /* SwiftUI.framework */,
-			);
-			name = "Recovered References";
-			sourceTree = "<group>";
-		};
-		745548EF4931D2F27E38D5B5 /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				B052CCE20FF037FA1DCEECFC /* Pods-Caloric.debug.xcconfig */,
-				D1412B1A94AD16379BEFC86D /* Pods-Caloric.release.xcconfig */,
-			);
-			path = Pods;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -158,10 +150,9 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				ED06A99007E64AEB83A1A390 /* CaloricWidget */,
-				745548EF4931D2F27E38D5B5 /* Pods */,
-				A3A2A5928A9A1C095737B2B5 /* ExpoModulesProviders */,
-				5D45D61F2F7D656D00F66AA3 /* Recovered References */,
+				AB739201EE1B4545823DD4A2 /* CaloricWidget */,
+				26D7315304A3D35577BC09F8 /* Pods */,
+				C52B0D6A0B63EFB4CFF64AA9 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -172,17 +163,25 @@
 			isa = PBXGroup;
 			children = (
 				13B07F961A680F5B00A75B9A /* Caloric.app */,
-				2DC6F59A316A4866B3D536D9 /* CaloricWidget.appex */,
+				ABD591CF38AE4ADDBA269FB1 /* CaloricWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		A3A2A5928A9A1C095737B2B5 /* ExpoModulesProviders */ = {
+		AB739201EE1B4545823DD4A2 /* CaloricWidget */ = {
 			isa = PBXGroup;
 			children = (
-				DF49E99124FA342443F3D75B /* Caloric */,
+				2F007A1512D043D3AD5BED5D /* CaloricActivity.swift */,
+				A0C72FFCF3634251958CFDA1 /* CaloricWidgetBundle.swift */,
+				4A17BB2D85E044A2AC7A16AF /* CaloricWidgetLiveActivity.swift */,
+				861C2AD4B6824F78A71B7773 /* FitnessLiveActivity.swift */,
+				1D8B9A4E3FC348148C53CE35 /* PedometerLiveActivity.swift */,
+				FA7E7623487F4E16B6D513E1 /* CalorieBudgetLiveActivity.swift */,
+				85247B95E8C745329DC4E70C /* CalorieTrackerLiveActivity.swift */,
+				E4ED2725F7144C6691C9CC05 /* Assets.xcassets */,
+				2F89FCA461C74B438A20CFEA /* Info.plist */,
 			);
-			name = ExpoModulesProviders;
+			path = CaloricWidget;
 			sourceTree = "<group>";
 		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
@@ -194,28 +193,20 @@
 			path = Caloric/Supporting;
 			sourceTree = "<group>";
 		};
-		DF49E99124FA342443F3D75B /* Caloric */ = {
+		C52B0D6A0B63EFB4CFF64AA9 /* ExpoModulesProviders */ = {
 			isa = PBXGroup;
 			children = (
-				CAA145E77BB0399812AC6707 /* ExpoModulesProvider.swift */,
+				C91A96F97E6290473C7FEF59 /* Caloric */,
 			);
-			name = Caloric;
+			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
-		ED06A99007E64AEB83A1A390 /* CaloricWidget */ = {
+		C91A96F97E6290473C7FEF59 /* Caloric */ = {
 			isa = PBXGroup;
 			children = (
-				A1F91775219F4F8CBEDFFA26 /* CaloricActivity.swift */,
-				F5E12EECA8E5478FB6339C42 /* CaloricWidgetBundle.swift */,
-				4B8765DE261F482987888FB5 /* CaloricWidgetLiveActivity.swift */,
-				67EBBD37DC3D424AB4A3B865 /* FitnessLiveActivity.swift */,
-				3A46A0E8D297494AA065B401 /* PedometerLiveActivity.swift */,
-				E851921402BA4EFDB2FB973F /* CalorieBudgetLiveActivity.swift */,
-				FB38865FB6CB4630B7259E4D /* CalorieTrackerLiveActivity.swift */,
-				8B9DE3260664424BBCCF7858 /* Assets.xcassets */,
-				C64C47B8C88C425CBA7DF64C /* Info.plist */,
+				2AA9CA47E0862507B2D5F9D4 /* ExpoModulesProvider.swift */,
 			);
-			path = CaloricWidget;
+			name = Caloric;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -226,32 +217,32 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "Caloric" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				9C0CEAFF61C2D72CB8B8773A /* [Expo] Configure project */,
+				939094ECD6C78F45E39D2752 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				5AFE8FE92B0D4E219F8A0F8D /* Embed App Extensions */,
-				5462A442F11523677383AC9D /* [CP] Embed Pods Frameworks */,
+				9BC3C679A3EE40E3AACD7ADD /* Embed App Extensions */,
+				FC0EA716D9046D199A1BC3AF /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				2CB494113DBC4A9CAAEFD433 /* PBXTargetDependency */,
+				043B464837D546049F1C7C0E /* PBXTargetDependency */,
 			);
 			name = Caloric;
 			productName = Caloric;
 			productReference = 13B07F961A680F5B00A75B9A /* Caloric.app */;
 			productType = "com.apple.product-type.application";
 		};
-		420C0740D64F4711A9ECCE23 /* CaloricWidget */ = {
+		CE1481DFA40D4293A40FB162 /* CaloricWidget */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 76DC9A69171A44BFA2777D93 /* Build configuration list for PBXNativeTarget "CaloricWidget" */;
+			buildConfigurationList = 8650D4A71FCE43C9B4324611 /* Build configuration list for PBXNativeTarget "CaloricWidget" */;
 			buildPhases = (
-				604B7ADD85224330B9B46BA6 /* Sources */,
-				DD9C72F0271E48C7B497937F /* Frameworks */,
-				53BD80B50899404BA53A1671 /* Resources */,
+				006541A5FB104911AE60A454 /* Sources */,
+				FB273BF273AE455C8669460E /* Frameworks */,
+				A05668CE45FF4F8AB7770384 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -259,7 +250,7 @@
 			);
 			name = CaloricWidget;
 			productName = CaloricWidget;
-			productReference = 2DC6F59A316A4866B3D536D9 /* CaloricWidget.appex */;
+			productReference = ABD591CF38AE4ADDBA269FB1 /* CaloricWidget.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
@@ -289,7 +280,7 @@
 			projectRoot = "";
 			targets = (
 				13B07F861A680F5B00A75B9A /* Caloric */,
-				420C0740D64F4711A9ECCE23 /* CaloricWidget */,
+				CE1481DFA40D4293A40FB162 /* CaloricWidget */,
 			);
 		};
 /* End PBXProject section */
@@ -302,16 +293,16 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				EDD18239AA014775B1008952 /* caloric.icon in Resources */,
-				3F63B036777E674ABD3CDD09 /* PrivacyInfo.xcprivacy in Resources */,
+				29F37D5CB01C475E892FA69E /* caloric.icon in Resources */,
+				846DA24B5EADD8A9551C77D0 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		53BD80B50899404BA53A1671 /* Resources */ = {
+		A05668CE45FF4F8AB7770384 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BA71D092A3C542A0955B1B19 /* Assets.xcassets in Resources */,
+				3F75913C53F7463A862D33DB /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -355,28 +346,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
-		5462A442F11523677383AC9D /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-Caloric/Pods-Caloric-frameworks.sh",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/React.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ReactNativeDependencies.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Caloric/Pods-Caloric-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
@@ -463,7 +432,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Caloric/Pods-Caloric-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		9C0CEAFF61C2D72CB8B8773A /* [Expo] Configure project */ = {
+		939094ECD6C78F45E39D2752 /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -487,53 +456,74 @@
 			shellPath = /bin/sh;
 			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-Caloric/expo-configure-project.sh\"\n";
 		};
+		FC0EA716D9046D199A1BC3AF /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Caloric/Pods-Caloric-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/React.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ReactNativeDependencies.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Caloric/Pods-Caloric-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		006541A5FB104911AE60A454 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				ED61B4E26B5C419C8D1D1C83 /* CaloricActivity.swift in Sources */,
+				A80679F1E44048058D9C492F /* CaloricWidgetBundle.swift in Sources */,
+				6777B5AE7E0E4D6D81F59F7D /* CaloricWidgetLiveActivity.swift in Sources */,
+				FE4C94B735664E42881244C4 /* FitnessLiveActivity.swift in Sources */,
+				070F51F2C66848F7A4D23AAA /* PedometerLiveActivity.swift in Sources */,
+				1DDE47E48B564D51BF628E0E /* CalorieBudgetLiveActivity.swift in Sources */,
+				DA5C5AC768EF4EDCAC6AFF70 /* CalorieTrackerLiveActivity.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		13B07F871A680F5B00A75B9A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				4217963AC0ABF75AE227B953 /* ExpoModulesProvider.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		604B7ADD85224330B9B46BA6 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				8DCA222256974B319C21AC77 /* CaloricActivity.swift in Sources */,
-				98F494674F9D4C339F9183A5 /* CaloricWidgetBundle.swift in Sources */,
-				5A5FC8167A6B4C06AC9638F3 /* CaloricWidgetLiveActivity.swift in Sources */,
-				3D37F42798394D5F8D5ECBCC /* FitnessLiveActivity.swift in Sources */,
-				0E448D1765784B179A30BD70 /* PedometerLiveActivity.swift in Sources */,
-				5E5ED7385E5F4D5C81E191D8 /* CalorieBudgetLiveActivity.swift in Sources */,
-				B9B34F4C433747AAAB796235 /* CalorieTrackerLiveActivity.swift in Sources */,
+				430D338A163CC08CEE2D0FA0 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		2CB494113DBC4A9CAAEFD433 /* PBXTargetDependency */ = {
+		043B464837D546049F1C7C0E /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 420C0740D64F4711A9ECCE23 /* CaloricWidget */;
-			targetProxy = 1A2D59FF85024F6E8A26CE21 /* PBXContainerItemProxy */;
+			target = CE1481DFA40D4293A40FB162 /* CaloricWidget */;
+			targetProxy = 6A9747994D1A44EAA5CD3222 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = B052CCE20FF037FA1DCEECFC /* Pods-Caloric.debug.xcconfig */;
+			baseConfigurationReference = A899C050D1030B4C23B9F551 /* Pods-Caloric.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = caloric;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Caloric/Caloric.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 93HBV58WBY;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -564,14 +554,13 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = D1412B1A94AD16379BEFC86D /* Pods-Caloric.release.xcconfig */;
+			baseConfigurationReference = 6293CB397EC5F811F0DA90D1 /* Pods-Caloric.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = caloric;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Caloric/Caloric.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 93HBV58WBY;
 				INFOPLIST_FILE = Caloric/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -594,15 +583,16 @@
 			};
 			name = Release;
 		};
-		177B11D5B9E240A68CA6FBD7 /* Debug */ = {
+		254FE1A68C064A5B99362339 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = 93HBV58WBY;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CaloricWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
@@ -612,7 +602,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.calton24.caloric.dev.CaloricWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -620,7 +610,7 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
-			name = Debug;
+			name = Release;
 		};
 		83CBBA201A601CBA00E9B192 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -740,16 +730,15 @@
 			};
 			name = Release;
 		};
-		C13A88B16BA240D39501B15E /* Release */ = {
+		928B33A89F0547E08F80231C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_STYLE = Automatic;
-				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = 93HBV58WBY;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CaloricWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
@@ -759,7 +748,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = com.calton24.caloric.dev.CaloricWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -767,7 +756,7 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
-			name = Release;
+			name = Debug;
 		};
 /* End XCBuildConfiguration section */
 
@@ -781,20 +770,20 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		76DC9A69171A44BFA2777D93 /* Build configuration list for PBXNativeTarget "CaloricWidget" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				177B11D5B9E240A68CA6FBD7 /* Debug */,
-				C13A88B16BA240D39501B15E /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "Caloric" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				83CBBA201A601CBA00E9B192 /* Debug */,
 				83CBBA211A601CBA00E9B192 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		8650D4A71FCE43C9B4324611 /* Build configuration list for PBXNativeTarget "CaloricWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				928B33A89F0547E08F80231C /* Debug */,
+				254FE1A68C064A5B99362339 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

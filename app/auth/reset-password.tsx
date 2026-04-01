@@ -84,8 +84,7 @@ export default function ResetPasswordScreen() {
   };
 
   const handleBackToSignIn = () => {
-    router.dismissAll();
-    router.replace("/(tabs)/auth");
+    router.replace("/auth/sign-in");
   };
 
   // ── Loading: exchanging code ────────────────────────────────────────────────

@@ -225,7 +225,12 @@ export default function SignInScreen() {
 
       {/* Sign-up success screen */}
       {signUpSuccess && (
-        <View style={styles.successOverlay}>
+        <View
+          style={[
+            styles.successOverlay,
+            { backgroundColor: theme.colors.background },
+          ]}
+        >
           <SafeAreaView style={styles.successSafe} edges={["top", "bottom"]}>
             <View style={styles.successContent}>
               <View

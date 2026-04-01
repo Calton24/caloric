@@ -106,14 +106,37 @@ export async function analyzeMealImage(
     let detail = "";
     let errorCode: string | undefined;
     try {
+      // error.context is a raw Response object (FunctionsHttpError)
       if (error.context && typeof error.context.json === "function") {
         const body = await error.context.json();
-        detail = body?.detail || body?.error || "";
+        detail = body?.detail || body?.message || body?.error || "";
         errorCode = body?.code;
       }
     } catch {
-      // ignore parse errors
+      // Body may already be consumed; try .text() or clone
+      try {
+        if (error.context && typeof error.context.text === "function") {
+          const text = await error.context.text();
+          try {
+            const body = JSON.parse(text);
+            detail = body?.detail || body?.message || body?.error || "";
+            errorCode = body?.code;
+          } catch {
+            detail = text?.slice(0, 200) || "";
+          }
+        }
+      } catch {
+        // ignore
+      }
     }
+    console.warn(
+      "[MealAnalysis] error context:",
+      error.name,
+      "detail:",
+      detail,
+      "code:",
+      errorCode
+    );
 
     // Map ai-scan error codes to user-facing messages
     if (errorCode === "LIMIT_REACHED") {
@@ -173,6 +196,13 @@ export async function analyzeMealImage(
   if (response.isPro !== undefined) {
     (result as MealAnalysisResultWithMeta).isPro = response.isPro;
   }
+  if (response.vendor) {
+    (result as MealAnalysisResultWithMeta).vendor = response.vendor;
+  }
+
+  console.log(
+    `[MealAnalysis] vendor=${response.vendor ?? "unknown"} model=${response.model ?? "unknown"} latency=${response.modelLatencyMs}ms`
+  );
 
   return result;
 }
@@ -185,6 +215,7 @@ export interface MealAnalysisResultWithMeta extends MealAnalysisResult {
   tokensUsed?: number;
   remainingFreeCredits?: number;
   isPro?: boolean;
+  vendor?: string;
 }
 
 async function compressImage(uri: string): Promise<string> {

@@ -30,13 +30,14 @@
  *   - Unauthenticated rejection
  */
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { serve } from "std/http/server.ts";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4MB
 const OPENAI_TIMEOUT_MS = 30_000;
+const GEMINI_TIMEOUT_MS = 30_000;
 const RATE_LIMIT_PER_MINUTE = 10;
 const COOLDOWN_MS = 10_000; // 10 seconds between scans
 
@@ -50,6 +51,7 @@ type ScanResponse = {
   ok: boolean;
   code?: string;
   message?: string;
+  detail?: string;
   data?: unknown;
 };
 
@@ -215,13 +217,25 @@ serve(async (req: Request) => {
       global: { headers: { Authorization: authHeader } },
     });
 
+    // Pass JWT explicitly — Edge Functions have no persisted session,
+    // so getUser() without a token returns "Auth session missing!".
+    const jwt = authHeader.replace("Bearer ", "");
     const {
       data: { user },
       error: userErr,
-    } = await userClient.auth.getUser();
+    } = await userClient.auth.getUser(jwt);
 
     if (userErr || !user) {
-      return json({ ok: false, code: "UNAUTHENTICATED" }, 401);
+      console.error(
+        "[ai-scan] Auth failed:",
+        userErr?.message,
+        "user:",
+        !!user
+      );
+      return json(
+        { ok: false, code: "UNAUTHENTICATED", detail: userErr?.message },
+        401
+      );
     }
 
     // ── Rate limit (in-memory, per instance) ──
@@ -400,54 +414,15 @@ serve(async (req: Request) => {
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
 
-    // ── 6. Decrement credits (before vendor call, for free users) ──
+    // ── 6. Credits tracked but decremented AFTER successful AI call ──
     const creditsBefore = usage.ai_scan_credits_remaining;
     let creditsAfter = usage.ai_scan_credits_remaining;
 
-    if (!isPro) {
-      creditsAfter = creditsBefore - 1;
-
-      const decRes = await admin
-        .from("usage_state")
-        .update({
-          ai_scan_credits_remaining: creditsAfter,
-          ai_scan_daily_count: usage.ai_scan_daily_count + 1,
-          total_ai_scans_used: usage.total_ai_scans_used + 1,
-        })
-        .eq("user_id", user.id)
-        .eq("ai_scan_credits_remaining", creditsBefore) // optimistic concurrency
-        .select()
-        .single();
-
-      if (decRes.error) {
-        return json({ ok: false, code: "CREDIT_DECREMENT_FAILED" }, 409);
-      }
-    } else {
-      // Pro users: just increment counters
-      await admin
-        .from("usage_state")
-        .update({
-          ai_scan_daily_count: usage.ai_scan_daily_count + 1,
-          total_ai_scans_used: usage.total_ai_scans_used + 1,
-        })
-        .eq("user_id", user.id);
-    }
-
-    await logUsage(
-      admin,
-      user.id,
-      "scan_allowed",
-      creditsBefore,
-      creditsAfter,
-      {
-        isPro,
-        imageSha256,
-      }
-    );
-
-    // ── 7. Call AI vendor ──
+    // ── 7. Call AI vendor (primary: OpenAI, fallback: Gemini) ──
     const openaiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!openaiKey) {
+    const geminiKey = Deno.env.get("GEMINI_API_KEY");
+
+    if (!openaiKey && !geminiKey) {
       return json({ ok: false, code: "AI_NOT_CONFIGURED" }, 500);
     }
 
@@ -459,15 +434,23 @@ serve(async (req: Request) => {
       ? `Analyze this meal photo. User context: "${sanitizedHint}"`
       : "Analyze this meal photo. Decompose it into individual food components with estimated portions.";
 
-    const modelStart = Date.now();
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS);
+    type AiResult = {
+      content: string;
+      vendor: string;
+      model: string;
+      latencyMs: number;
+      inputTokens?: number;
+      outputTokens?: number;
+    };
 
-    let openaiResponse: Response;
-    try {
-      openaiResponse = await fetch(
-        "https://api.openai.com/v1/chat/completions",
-        {
+    /** Call OpenAI gpt-4o-mini */
+    const callOpenAI = async (): Promise<AiResult> => {
+      if (!openaiKey) throw new Error("OPENAI_API_KEY not set");
+      const start = Date.now();
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS);
+      try {
+        const res = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -499,53 +482,204 @@ serve(async (req: Request) => {
                 schema: MEAL_DECOMPOSITION_SCHEMA,
               },
             },
-            max_tokens: 1500,
+            max_tokens: 2000,
             temperature: 0.2,
           }),
           signal: controller.signal,
+        });
+        if (!res.ok) {
+          const errBody = await res.text().catch(() => "");
+          throw new Error(
+            `OpenAI HTTP ${res.status}: ${errBody.slice(0, 200)}`
+          );
         }
-      );
-    } finally {
-      clearTimeout(timeoutId);
-    }
-
-    const modelLatencyMs = Date.now() - modelStart;
-
-    if (!openaiResponse.ok) {
-      const statusCode = openaiResponse.status;
-      console.error(`[ai-scan] OpenAI error: status=${statusCode}`);
-      await logUsage(
-        admin,
-        user.id,
-        "scan_error_vendor",
-        creditsBefore,
-        creditsAfter,
-        {
-          isPro,
+        const result = await res.json();
+        const msg = result.choices?.[0]?.message;
+        // Check for refusal (structured outputs can refuse instead of returning content)
+        if (msg?.refusal) {
+          throw new Error(`OpenAI refused: ${msg.refusal}`);
+        }
+        const content = msg?.content;
+        if (!content) {
+          const finishReason = result.choices?.[0]?.finish_reason;
+          throw new Error(
+            `Empty OpenAI response (finish_reason: ${finishReason})`
+          );
+        }
+        return {
+          content,
           vendor: "openai",
-          statusCode,
-          imageSha256,
+          model: "gpt-4o-mini",
+          latencyMs: Date.now() - start,
+          inputTokens: result.usage?.prompt_tokens,
+          outputTokens: result.usage?.completion_tokens,
+        };
+      } finally {
+        clearTimeout(timeout);
+      }
+    };
+
+    /** Call Google Gemini 2.5 Flash */
+    const callGemini = async (): Promise<AiResult> => {
+      if (!geminiKey) throw new Error("GEMINI_API_KEY not set");
+      const start = Date.now();
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+      try {
+        // Gemini doesn't support "additionalProperties" in responseSchema
+        const geminiSchema = stripAdditionalProperties(
+          MEAL_DECOMPOSITION_SCHEMA
+        );
+
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+              contents: [
+                {
+                  role: "user",
+                  parts: [
+                    { text: userMessage },
+                    {
+                      inlineData: {
+                        mimeType: "image/jpeg",
+                        data: imageBase64,
+                      },
+                    },
+                  ],
+                },
+              ],
+              generationConfig: {
+                temperature: 0.2,
+                maxOutputTokens: 1500,
+                responseMimeType: "application/json",
+                responseSchema: geminiSchema,
+              },
+            }),
+            signal: controller.signal,
+          }
+        );
+        if (!res.ok) {
+          const errBody = await res.text().catch(() => "");
+          throw new Error(
+            `Gemini HTTP ${res.status}: ${errBody.slice(0, 200)}`
+          );
         }
+        const result = await res.json();
+        const content = result.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!content) throw new Error("Empty Gemini response");
+        return {
+          content,
+          vendor: "google",
+          model: "gemini-2.5-flash",
+          latencyMs: Date.now() - start,
+          inputTokens: result.usageMetadata?.promptTokenCount,
+          outputTokens: result.usageMetadata?.candidatesTokenCount,
+        };
+      } finally {
+        clearTimeout(timeout);
+      }
+    };
+
+    // Try primary, then fallback
+    let aiResult: AiResult;
+    try {
+      aiResult = openaiKey ? await callOpenAI() : await callGemini();
+    } catch (primaryErr) {
+      const primaryVendor = openaiKey ? "openai" : "google";
+      console.warn(
+        `[ai-scan] Primary vendor (${primaryVendor}) failed:`,
+        (primaryErr as Error).message
       );
-      return json(
-        { ok: false, code: "AI_VENDOR_ERROR", message: "AI analysis failed" },
-        502
-      );
+
+      // Try fallback
+      const fallbackAvailable = openaiKey ? !!geminiKey : !!openaiKey;
+      if (!fallbackAvailable) {
+        await logUsage(
+          admin,
+          user.id,
+          "scan_error_vendor",
+          creditsBefore,
+          creditsAfter,
+          {
+            isPro,
+            vendor: primaryVendor,
+            error: (primaryErr as Error).message,
+            imageSha256,
+          }
+        );
+        return json(
+          {
+            ok: false,
+            code: "AI_VENDOR_ERROR",
+            message: "AI analysis failed",
+            detail: (primaryErr as Error).message,
+          },
+          502
+        );
+      }
+
+      try {
+        aiResult = openaiKey ? await callGemini() : await callOpenAI();
+        console.log(`[ai-scan] Fallback vendor (${aiResult.vendor}) succeeded`);
+      } catch (fallbackErr) {
+        console.error(
+          `[ai-scan] Both vendors failed. Primary: ${(primaryErr as Error).message}, Fallback: ${(fallbackErr as Error).message}`
+        );
+        await logUsage(
+          admin,
+          user.id,
+          "scan_error_vendor",
+          creditsBefore,
+          creditsAfter,
+          {
+            isPro,
+            vendor: "both",
+            primaryError: (primaryErr as Error).message,
+            fallbackError: (fallbackErr as Error).message,
+            imageSha256,
+          }
+        );
+        return json(
+          {
+            ok: false,
+            code: "AI_VENDOR_ERROR",
+            message: "AI analysis failed",
+            detail: `Primary: ${(primaryErr as Error).message}, Fallback: ${(fallbackErr as Error).message}`,
+          },
+          502
+        );
+      }
     }
 
-    const openaiResult = await openaiResponse.json();
-    const content = openaiResult.choices?.[0]?.message?.content;
-
-    if (!content) {
-      return json({ ok: false, code: "EMPTY_AI_RESPONSE" }, 502);
-    }
+    const modelLatencyMs = aiResult.latencyMs;
 
     let decomposition: Record<string, unknown>;
     try {
-      decomposition = JSON.parse(content);
+      // Strip markdown code fences if present (```json ... ```)
+      let cleaned = aiResult.content.trim();
+      if (cleaned.startsWith("```")) {
+        cleaned = cleaned
+          .replace(/^```(?:json)?\s*\n?/, "")
+          .replace(/\n?\s*```$/, "");
+      }
+      decomposition = JSON.parse(cleaned);
     } catch {
-      console.error("[ai-scan] Failed to parse model JSON:", content);
-      return json({ ok: false, code: "MALFORMED_AI_RESPONSE" }, 502);
+      console.error(
+        "[ai-scan] Failed to parse model JSON:",
+        aiResult.content.slice(0, 300)
+      );
+      return json(
+        {
+          ok: false,
+          code: "MALFORMED_AI_RESPONSE",
+          detail: `Vendor: ${aiResult.vendor}, raw (first 200 chars): ${aiResult.content.slice(0, 200)}`,
+        },
+        502
+      );
     }
 
     if (
@@ -582,8 +716,38 @@ serve(async (req: Request) => {
       }
     }
 
+    // ── 6b. Decrement credits AFTER successful AI call (free users only) ──
+    if (!isPro) {
+      creditsAfter = creditsBefore - 1;
+
+      const decRes = await admin
+        .from("usage_state")
+        .update({
+          ai_scan_credits_remaining: creditsAfter,
+          ai_scan_daily_count: usage.ai_scan_daily_count + 1,
+          total_ai_scans_used: usage.total_ai_scans_used + 1,
+        })
+        .eq("user_id", user.id)
+        .eq("ai_scan_credits_remaining", creditsBefore) // optimistic concurrency
+        .select()
+        .single();
+
+      if (decRes.error) {
+        // Credit already consumed by a concurrent request — still return the result
+        console.warn("[ai-scan] Credit decrement raced, continuing anyway");
+      }
+    } else {
+      // Pro users: just increment counters
+      await admin
+        .from("usage_state")
+        .update({
+          ai_scan_daily_count: usage.ai_scan_daily_count + 1,
+          total_ai_scans_used: usage.total_ai_scans_used + 1,
+        })
+        .eq("user_id", user.id);
+    }
+
     // ── 8. Write audit event ──
-    const tokenUsage = openaiResult.usage;
     await logUsage(
       admin,
       user.id,
@@ -592,12 +756,12 @@ serve(async (req: Request) => {
       creditsAfter,
       {
         isPro,
-        vendor: "openai",
-        model: "gpt-4o-mini",
+        vendor: aiResult.vendor,
+        model: aiResult.model,
         imageSha256,
         latencyMs: modelLatencyMs,
-        inputTokens: tokenUsage?.prompt_tokens,
-        outputTokens: tokenUsage?.completion_tokens,
+        inputTokens: aiResult.inputTokens,
+        outputTokens: aiResult.outputTokens,
         foodCount: (decomposition.foods as unknown[]).length,
       }
     );
@@ -613,16 +777,19 @@ serve(async (req: Request) => {
         source: "camera",
         raw_input: userHint ?? null,
         classifier_result: {
-          model: "gpt-4o-mini",
+          model: aiResult.model,
+          vendor: aiResult.vendor,
           latencyMs: modelLatencyMs,
-          tokensUsed: tokenUsage?.total_tokens ?? null,
+          tokensUsed:
+            (aiResult.inputTokens ?? 0) + (aiResult.outputTokens ?? 0) || null,
           foodCount: (decomposition.foods as unknown[]).length,
         },
         candidate_result: decomposition,
         confidence: decomposition.sceneConfidence ?? null,
-        vision_model: "gpt-4o-mini",
+        vision_model: aiResult.model,
         vision_latency_ms: modelLatencyMs,
-        vision_tokens_used: tokenUsage?.total_tokens ?? null,
+        vision_tokens_used:
+          (aiResult.inputTokens ?? 0) + (aiResult.outputTokens ?? 0) || null,
         decomposition: decomposition,
         confidence_band:
           (decomposition.sceneConfidence as number) >= 0.75
@@ -647,11 +814,12 @@ serve(async (req: Request) => {
     // Small delay to allow DB insert
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    if (tokenUsage) {
-      console.log(
-        `[ai-scan] user=${user.id} pro=${isPro} credits=${creditsAfter} tokens=${tokenUsage.total_tokens} latency=${modelLatencyMs}ms`
-      );
-    }
+    const totalTokens =
+      (aiResult.inputTokens ?? 0) + (aiResult.outputTokens ?? 0) || undefined;
+
+    console.log(
+      `[ai-scan] user=${user.id} vendor=${aiResult.vendor} model=${aiResult.model} pro=${isPro} credits=${creditsAfter} tokens=${totalTokens ?? "n/a"} latency=${modelLatencyMs}ms`
+    );
 
     // ── 9. Return result ──
     return json({
@@ -660,8 +828,10 @@ serve(async (req: Request) => {
         success: true,
         decomposition,
         modelLatencyMs,
+        vendor: aiResult.vendor,
+        model: aiResult.model,
         scanEventId: scanEventId ?? undefined,
-        tokensUsed: tokenUsage?.total_tokens ?? undefined,
+        tokensUsed: totalTokens,
         remainingFreeCredits: isPro ? null : creditsAfter,
         isPro,
       },
@@ -680,6 +850,22 @@ serve(async (req: Request) => {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
+/** Recursively strip "additionalProperties" which Gemini doesn't support */
+// deno-lint-ignore no-explicit-any
+function stripAdditionalProperties(obj: any): any {
+  if (Array.isArray(obj)) return obj.map(stripAdditionalProperties);
+  if (obj && typeof obj === "object") {
+    // deno-lint-ignore no-explicit-any
+    const result: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (key === "additionalProperties") continue;
+      result[key] = stripAdditionalProperties(value);
+    }
+    return result;
+  }
+  return obj;
+}
+
 function json(body: ScanResponse, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -691,8 +877,7 @@ function json(body: ScanResponse, status = 200): Response {
 }
 
 async function logUsage(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  admin: any,
+  admin: SupabaseClient,
   userId: string,
   eventType: string,
   creditsBefore: number,

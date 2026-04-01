@@ -171,57 +171,68 @@ export default function ConfirmMealScreen() {
   }, [draft]);
 
   const handleConfirm = useCallback(() => {
-    // Track any corrections before saving
-    const correction = draft ? trackCorrection(draft) : null;
+    try {
+      // Track any corrections before saving
+      const correction = draft ? trackCorrection(draft) : null;
 
-    // Persist confirmation + corrections to Supabase (fire-and-forget)
-    const eventId = scanEventIdRef.current ?? getLastScanEventId();
-    if (eventId) {
-      markScanConfirmed(eventId, correction?.wasEdited ?? false, {
-        foodName: draft?.title ?? "",
-        calories: draft?.calories ?? 0,
-        protein: draft?.protein ?? 0,
-        carbs: draft?.carbs ?? 0,
-        fat: draft?.fat ?? 0,
-      });
-
-      // If user edited values, store the correction as ground truth
-      if (correction?.wasEdited) {
-        submitScanCorrection({
-          scanEventId: eventId,
-          originalFoodName: correction.original.title,
-          originalMacros: {
-            calories: correction.original.calories,
-            protein: correction.original.protein,
-            carbs: correction.original.carbs,
-            fat: correction.original.fat,
-          },
-          correctedFoodName: correction.confirmed.title,
-          correctedMacros: {
-            calories: correction.confirmed.calories,
-            protein: correction.confirmed.protein,
-            carbs: correction.confirmed.carbs,
-            fat: correction.confirmed.fat,
-          },
+      // Persist confirmation + corrections to Supabase (fire-and-forget)
+      const eventId = scanEventIdRef.current ?? getLastScanEventId();
+      if (eventId) {
+        markScanConfirmed(eventId, correction?.wasEdited ?? false, {
+          foodName: draft?.title ?? "",
+          calories: draft?.calories ?? 0,
+          protein: draft?.protein ?? 0,
+          carbs: draft?.carbs ?? 0,
+          fat: draft?.fat ?? 0,
         });
+
+        // If user edited values, store the correction as ground truth
+        if (correction?.wasEdited) {
+          submitScanCorrection({
+            scanEventId: eventId,
+            originalFoodName: correction.original.title,
+            originalMacros: {
+              calories: correction.original.calories,
+              protein: correction.original.protein,
+              carbs: correction.original.carbs,
+              fat: correction.original.fat,
+            },
+            correctedFoodName: correction.confirmed.title,
+            correctedMacros: {
+              calories: correction.confirmed.calories,
+              protein: correction.confirmed.protein,
+              carbs: correction.confirmed.carbs,
+              fat: correction.confirmed.fat,
+            },
+          });
+        }
       }
+
+      saveDraftWithoutNav();
+
+      // Record first meal for retention engine
+      recordFirstMeal();
+
+      // Get after-log celebration content from the day journey
+      const afterLog = retention.getAfterLogContent();
+      const dayPaywall = retention.dayPaywall;
+      setCelebration({
+        message: afterLog.message,
+        sub: afterLog.sub,
+        emoji: afterLog.emoji,
+        microTrigger: dayPaywall?.microTrigger,
+      });
+    } catch (err) {
+      console.error("[ConfirmMeal] handleConfirm error:", err);
+      // Fallback: save and navigate directly if celebration breaks
+      try {
+        saveDraftWithoutNav();
+      } catch {
+        /* already saved or draft missing */
+      }
+      navigateAfterSave();
     }
-
-    saveDraftWithoutNav();
-
-    // Record first meal for retention engine
-    recordFirstMeal();
-
-    // Get after-log celebration content from the day journey
-    const afterLog = retention.getAfterLogContent();
-    const dayPaywall = retention.dayPaywall;
-    setCelebration({
-      message: afterLog.message,
-      sub: afterLog.sub,
-      emoji: afterLog.emoji,
-      microTrigger: dayPaywall?.microTrigger,
-    });
-  }, [saveDraftWithoutNav, draft, retention]);
+  }, [saveDraftWithoutNav, navigateAfterSave, draft, retention]);
 
   /** Called when the celebration overlay dismisses (auto or tap) */
   const handleCelebrationDismiss = useCallback(() => {
