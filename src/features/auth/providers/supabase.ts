@@ -6,6 +6,8 @@
  * Feature code must never import this file directly — use createAuthClient().
  */
 
+import * as AppleAuthentication from "expo-apple-authentication";
+import * as Crypto from "expo-crypto";
 import { getAppConfig } from "../../../config";
 import { getSupabaseClient } from "../../../lib/supabase";
 import type {
@@ -195,6 +197,68 @@ export class SupabaseAuthClient implements AuthClient {
       return {
         url: null,
         error: err instanceof Error ? err : new Error("OAuth sign-in failed"),
+      };
+    }
+  }
+
+  async signInWithAppleNative(): Promise<AuthResponse> {
+    try {
+      const rawNonce = Crypto.randomUUID();
+      const hashedNonce = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        rawNonce
+      );
+
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+        nonce: hashedNonce,
+      });
+
+      if (!credential.identityToken) {
+        return {
+          user: null,
+          session: null,
+          error: new Error("No identity token returned from Apple"),
+        };
+      }
+
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: "apple",
+        token: credential.identityToken,
+        nonce: rawNonce,
+      });
+
+      if (error) {
+        return { user: null, session: null, error: new Error(error.message) };
+      }
+
+      if (!data.user || !data.session) {
+        return {
+          user: null,
+          session: null,
+          error: new Error("Invalid response from server"),
+        };
+      }
+
+      const user = mapUser(data.user);
+      const session = mapSession(user, data.session);
+      return { user, session, error: null };
+    } catch (err: any) {
+      if (err?.code === "ERR_REQUEST_CANCELED") {
+        return {
+          user: null,
+          session: null,
+          error: new Error("User cancelled"),
+        };
+      }
+      return {
+        user: null,
+        session: null,
+        error: err instanceof Error ? err : new Error("Apple sign-in failed"),
       };
     }
   }

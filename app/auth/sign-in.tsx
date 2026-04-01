@@ -11,20 +11,21 @@ import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import React, { useState } from "react";
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
 } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import {
-    SafeAreaView,
-    useSafeAreaInsets,
+  SafeAreaView,
+  useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
+import { getAppConfig } from "../../src/config";
 import { AuthCapabilities } from "../../src/features/auth/authCapabilities";
 import { useAuth } from "../../src/features/auth/useAuth";
 import { useTheme } from "../../src/theme/useTheme";
@@ -36,7 +37,13 @@ import { TText } from "../../src/ui/primitives/TText";
 
 export default function SignInScreen() {
   const { theme } = useTheme();
-  const { signIn, signUp, signInWithOAuth } = useAuth();
+  const {
+    signIn,
+    signUp,
+    signInWithOAuth,
+    exchangeCodeForSession,
+    signInWithAppleNative,
+  } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -132,22 +139,45 @@ export default function SignInScreen() {
         return;
       }
       if (url) {
-        await WebBrowser.openAuthSessionAsync(url);
+        const scheme = getAppConfig().app.scheme;
+        const redirectUrl = `${scheme}://auth/callback`;
+        const result = await WebBrowser.openAuthSessionAsync(url, redirectUrl);
+        if (result.type === "success" && result.url) {
+          const params = new URL(result.url).searchParams;
+          const code = params.get("code");
+          if (code) {
+            const { error: exchangeError } = await exchangeCodeForSession(code);
+            if (exchangeError) {
+              Alert.alert("Error", exchangeError.message);
+            } else {
+              router.replace("/");
+            }
+          }
+        }
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAppleSignIn = () => {
+  const handleAppleSignIn = async () => {
     if (!AuthCapabilities.apple) {
       Alert.alert("Unavailable", "Apple sign-in is disabled for this app.");
       return;
     }
-    Alert.alert(
-      "Coming Soon",
-      "Sign in with Apple will be available in a future update."
-    );
+    setLoading(true);
+    try {
+      const { error } = await signInWithAppleNative();
+      if (error) {
+        if (error.message !== "User cancelled") {
+          Alert.alert("Error", error.message);
+        }
+        return;
+      }
+      router.replace("/");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleBack = () => {

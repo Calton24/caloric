@@ -140,6 +140,13 @@ export class MockAuthClient implements AuthClient {
     return { url: "https://mock-oauth.example.com/authorize", error: null };
   }
 
+  async signInWithAppleNative(): Promise<AuthResponse> {
+    await delay(500);
+    const user = createMockUser();
+    const session = createMockSession(user);
+    return { user, session, error: null };
+  }
+
   async getSession(): Promise<{
     session: Session | null;
     error: Error | null;

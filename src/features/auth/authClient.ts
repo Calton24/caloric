@@ -45,6 +45,7 @@ export interface AuthClient {
   resetPasswordForEmail(email: string): Promise<{ error: Error | null }>;
   updatePassword(newPassword: string): Promise<{ error: Error | null }>;
   signInWithOAuth(provider: OAuthProvider): Promise<OAuthResponse>;
+  signInWithAppleNative(): Promise<AuthResponse>;
   exchangeCodeForSession(code: string): Promise<{ error: Error | null }>;
   getSession(): Promise<{ session: Session | null; error: Error | null }>;
   onAuthStateChange(callback: (session: Session | null) => void): () => void;
@@ -140,6 +141,8 @@ export const authClient: AuthClient = {
     }
     return client.signInWithOAuth(provider);
   },
+  signInWithAppleNative: async () =>
+    authBlocked() ?? client.signInWithAppleNative(),
   exchangeCodeForSession: (...args) => client.exchangeCodeForSession(...args),
   getSession: (...args) => client.getSession(...args),
   onAuthStateChange: (...args) => client.onAuthStateChange(...args),

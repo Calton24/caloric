@@ -33,11 +33,15 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - ExpoAppleAuthentication (8.0.8):
+    - ExpoModulesCore
   - ExpoAsset (12.0.12):
     - ExpoModulesCore
   - ExpoBlur (15.0.8):
     - ExpoModulesCore
   - ExpoClipboard (8.0.8):
+    - ExpoModulesCore
+  - ExpoCrypto (15.0.8):
     - ExpoModulesCore
   - ExpoDevice (8.0.10):
     - ExpoModulesCore
@@ -2355,9 +2359,11 @@ DEPENDENCIES:
   - EXImageLoader (from `../node_modules/expo-image-loader/ios`)
   - EXNotifications (from `../node_modules/expo-notifications/ios`)
   - Expo (from `../node_modules/expo`)
+  - ExpoAppleAuthentication (from `../node_modules/expo-apple-authentication/ios`)
   - ExpoAsset (from `../node_modules/expo-asset/ios`)
   - ExpoBlur (from `../node_modules/expo-blur/ios`)
   - ExpoClipboard (from `../node_modules/expo-clipboard/ios`)
+  - ExpoCrypto (from `../node_modules/expo-crypto/ios`)
   - ExpoDevice (from `../node_modules/expo-device/ios`)
   - ExpoFileSystem (from `../node_modules/expo-file-system/ios`)
   - ExpoFont (from `../node_modules/expo-font/ios`)
@@ -2513,12 +2519,16 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-notifications/ios"
   Expo:
     :path: "../node_modules/expo"
+  ExpoAppleAuthentication:
+    :path: "../node_modules/expo-apple-authentication/ios"
   ExpoAsset:
     :path: "../node_modules/expo-asset/ios"
   ExpoBlur:
     :path: "../node_modules/expo-blur/ios"
   ExpoClipboard:
     :path: "../node_modules/expo-clipboard/ios"
+  ExpoCrypto:
+    :path: "../node_modules/expo-crypto/ios"
   ExpoDevice:
     :path: "../node_modules/expo-device/ios"
   ExpoFileSystem:
@@ -2739,9 +2749,11 @@ SPEC CHECKSUMS:
   EXImageLoader: e501c001bc40b8326605e82e6e80363c80fe06b5
   EXNotifications: 2a3feb7af6194828d9aafda72f63a9a03866230a
   Expo: 7f5e64b5d18096dcec86814764b526b0cb97811c
+  ExpoAppleAuthentication: 31bb6cdc57d7169e5d994fff7ec4b97c62423534
   ExpoAsset: d999f3bbd998a750f3b74cb913229848901b926b
   ExpoBlur: 688c53d5d26575cbb6c72e7fbd4caef8d8cfadf6
   ExpoClipboard: 50fa3332136758be7ca2ea912bae585f74bb93c3
+  ExpoCrypto: 4d23a9ff67c25e2ed23ca792d81e58817a7ea1b9
   ExpoDevice: 0773c782b055558ca9b40b74aa4a8133a66cd0d2
   ExpoFileSystem: aefcd337b94b874f88752ebefc52813b84992fad
   ExpoFont: c625dbd97ed57e9089b172b2a7bb99003d074664

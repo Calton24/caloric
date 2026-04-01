@@ -83,6 +83,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       },
       entitlements: {
         "com.apple.developer.healthkit": true,
+        "com.apple.developer.applesignin": ["Default"],
       },
     },
 
