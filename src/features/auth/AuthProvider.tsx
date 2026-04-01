@@ -41,6 +41,7 @@ export interface AuthContextValue {
   exchangeCodeForSession: (code: string) => Promise<{ error: Error | null }>;
   signInWithOAuth: (provider: OAuthProvider) => Promise<OAuthResponse>;
   signInWithAppleNative: () => Promise<{ error: Error | null }>;
+  signInWithGoogleNative: () => Promise<{ error: Error | null }>;
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(
@@ -181,6 +182,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return { error };
   }, []);
 
+  const signInWithGoogleNative = useCallback(async () => {
+    const {
+      user: authUser,
+      session: authSession,
+      error,
+    } = await authClient.signInWithGoogleNative();
+    if (!error && authUser && authSession) {
+      setUser(authUser);
+      setSession(authSession);
+      analytics.track("sign_in", { method: "google_native" });
+    }
+    return { error };
+  }, []);
+
   const contextValue: AuthContextValue = {
     user,
     session,
@@ -194,6 +209,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     exchangeCodeForSession,
     signInWithOAuth,
     signInWithAppleNative,
+    signInWithGoogleNative,
   };
 
   return (

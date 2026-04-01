@@ -8,7 +8,6 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import React, { useState } from "react";
 import {
   Alert,
@@ -25,7 +24,6 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
-import { getAppConfig } from "../../src/config";
 import { AuthCapabilities } from "../../src/features/auth/authCapabilities";
 import { useAuth } from "../../src/features/auth/useAuth";
 import { useTheme } from "../../src/theme/useTheme";
@@ -37,13 +35,8 @@ import { TText } from "../../src/ui/primitives/TText";
 
 export default function SignInScreen() {
   const { theme } = useTheme();
-  const {
-    signIn,
-    signUp,
-    signInWithOAuth,
-    exchangeCodeForSession,
-    signInWithAppleNative,
-  } = useAuth();
+  const { signIn, signUp, signInWithAppleNative, signInWithGoogleNative } =
+    useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -133,28 +126,14 @@ export default function SignInScreen() {
     }
     setLoading(true);
     try {
-      const { url, error } = await signInWithOAuth("google");
+      const { error } = await signInWithGoogleNative();
       if (error) {
-        Alert.alert("Error", error.message);
+        if (error.message !== "User cancelled") {
+          Alert.alert("Error", error.message);
+        }
         return;
       }
-      if (url) {
-        const scheme = getAppConfig().app.scheme;
-        const redirectUrl = `${scheme}://auth/callback`;
-        const result = await WebBrowser.openAuthSessionAsync(url, redirectUrl);
-        if (result.type === "success" && result.url) {
-          const params = new URL(result.url).searchParams;
-          const code = params.get("code");
-          if (code) {
-            const { error: exchangeError } = await exchangeCodeForSession(code);
-            if (exchangeError) {
-              Alert.alert("Error", exchangeError.message);
-            } else {
-              router.replace("/");
-            }
-          }
-        }
-      }
+      router.replace("/");
     } finally {
       setLoading(false);
     }

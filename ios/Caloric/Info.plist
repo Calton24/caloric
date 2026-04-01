@@ -33,6 +33,12 @@
           <string>com.calton24.caloric.dev</string>
         </array>
       </dict>
+      <dict>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>com.googleusercontent.apps.390435728176-967pml00ib7jpm5hjto9ddj8ivb73l6g</string>
+        </array>
+      </dict>
     </array>
     <key>CFBundleVersion</key>
     <string>1</string>

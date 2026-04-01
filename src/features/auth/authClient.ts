@@ -46,6 +46,7 @@ export interface AuthClient {
   updatePassword(newPassword: string): Promise<{ error: Error | null }>;
   signInWithOAuth(provider: OAuthProvider): Promise<OAuthResponse>;
   signInWithAppleNative(): Promise<AuthResponse>;
+  signInWithGoogleNative(): Promise<AuthResponse>;
   exchangeCodeForSession(code: string): Promise<{ error: Error | null }>;
   getSession(): Promise<{ session: Session | null; error: Error | null }>;
   onAuthStateChange(callback: (session: Session | null) => void): () => void;
@@ -143,6 +144,8 @@ export const authClient: AuthClient = {
   },
   signInWithAppleNative: async () =>
     authBlocked() ?? client.signInWithAppleNative(),
+  signInWithGoogleNative: async () =>
+    authBlocked() ?? client.signInWithGoogleNative(),
   exchangeCodeForSession: (...args) => client.exchangeCodeForSession(...args),
   getSession: (...args) => client.getSession(...args),
   onAuthStateChange: (...args) => client.onAuthStateChange(...args),

@@ -6,6 +6,7 @@
  * Feature code must never import this file directly — use createAuthClient().
  */
 
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Crypto from "expo-crypto";
 import { getAppConfig } from "../../../config";
@@ -259,6 +260,63 @@ export class SupabaseAuthClient implements AuthClient {
         user: null,
         session: null,
         error: err instanceof Error ? err : new Error("Apple sign-in failed"),
+      };
+    }
+  }
+
+  async signInWithGoogleNative(): Promise<AuthResponse> {
+    try {
+      GoogleSignin.configure({
+        iosClientId:
+          "390435728176-967pml00ib7jpm5hjto9ddj8ivb73l6g.apps.googleusercontent.com",
+        webClientId:
+          "390435728176-7kpm8nrkos7f273aeb5ep3c3gfm8co1v.apps.googleusercontent.com",
+      });
+
+      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+
+      if (!response.data?.idToken) {
+        return {
+          user: null,
+          session: null,
+          error: new Error("No ID token returned from Google"),
+        };
+      }
+
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: "google",
+        token: response.data.idToken,
+      });
+
+      if (error) {
+        return { user: null, session: null, error: new Error(error.message) };
+      }
+
+      if (!data.user || !data.session) {
+        return {
+          user: null,
+          session: null,
+          error: new Error("Invalid response from server"),
+        };
+      }
+
+      const user = mapUser(data.user);
+      const session = mapSession(user, data.session);
+      return { user, session, error: null };
+    } catch (err: any) {
+      if (err?.code === "SIGN_IN_CANCELLED") {
+        return {
+          user: null,
+          session: null,
+          error: new Error("User cancelled"),
+        };
+      }
+      return {
+        user: null,
+        session: null,
+        error: err instanceof Error ? err : new Error("Google sign-in failed"),
       };
     }
   }

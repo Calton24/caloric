@@ -138,6 +138,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ],
       "expo-secure-store",
       [
+        "@react-native-google-signin/google-signin",
+        {
+          iosUrlScheme:
+            "com.googleusercontent.apps.390435728176-967pml00ib7jpm5hjto9ddj8ivb73l6g",
+        },
+      ],
+      [
         "expo-speech-recognition",
         {
           microphonePermission:

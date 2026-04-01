@@ -157,6 +157,23 @@ export class MockAuthClient implements AuthClient {
     return { user, session, error: null };
   }
 
+  async signInWithGoogleNative(): Promise<AuthResponse> {
+    await delay(500);
+    const user: User = {
+      id: "mock-google-user-" + Date.now(),
+      email: "google@example.com",
+      createdAt: new Date().toISOString(),
+    };
+    const session: Session = {
+      user,
+      accessToken: "mock-google-access-token",
+      refreshToken: "mock-google-refresh-token",
+    };
+    this.currentSession = session;
+    this.notifyListeners(session);
+    return { user, session, error: null };
+  }
+
   async getSession(): Promise<{
     session: Session | null;
     error: Error | null;

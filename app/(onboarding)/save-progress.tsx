@@ -11,7 +11,6 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import React, { useState } from "react";
 import { Alert, Pressable, StyleSheet, TextInput, View } from "react-native";
 import Animated, {
@@ -20,7 +19,6 @@ import Animated, {
     FadeInUp,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getAppConfig } from "../../src/config";
 import { AuthCapabilities } from "../../src/features/auth/authCapabilities";
 import { useAuth } from "../../src/features/auth/useAuth";
 import { useTheme } from "../../src/theme/useTheme";
@@ -31,13 +29,8 @@ import { OnboardingHeader } from "./_progress";
 export default function SaveProgressScreen() {
   const { theme } = useTheme();
   const router = useRouter();
-  const {
-    signIn,
-    signUp,
-    signInWithOAuth,
-    exchangeCodeForSession,
-    signInWithAppleNative,
-  } = useAuth();
+  const { signIn, signUp, signInWithAppleNative, signInWithGoogleNative } =
+    useAuth();
 
   const [loading, setLoading] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
@@ -80,26 +73,12 @@ export default function SaveProgressScreen() {
     }
     setLoading(true);
     try {
-      const { url, error } = await signInWithOAuth("google");
+      const { error } = await signInWithGoogleNative();
       if (error) {
-        Alert.alert("Error", error.message);
-        return;
-      }
-      if (url) {
-        const scheme = getAppConfig().app.scheme;
-        const redirectUrl = `${scheme}://auth/callback`;
-        const result = await WebBrowser.openAuthSessionAsync(url, redirectUrl);
-        if (result.type === "success" && result.url) {
-          const params = new URL(result.url).searchParams;
-          const code = params.get("code");
-          if (code) {
-            const { error: exchangeError } = await exchangeCodeForSession(code);
-            if (exchangeError) {
-              Alert.alert("Error", exchangeError.message);
-              return;
-            }
-          }
+        if (error.message !== "User cancelled") {
+          Alert.alert("Error", error.message);
         }
+        return;
       }
       navigateNext();
     } finally {
