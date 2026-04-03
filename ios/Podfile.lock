@@ -2116,7 +2116,7 @@ PODS:
   - RNPurchases (9.15.0):
     - PurchasesHybridCommon (= 17.53.0)
     - React-Core
-  - RNReanimated (4.1.6):
+  - RNReanimated (4.1.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2138,10 +2138,10 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
-    - RNReanimated/reanimated (= 4.1.6)
+    - RNReanimated/reanimated (= 4.1.1)
     - RNWorklets
     - Yoga
-  - RNReanimated/reanimated (4.1.6):
+  - RNReanimated/reanimated (4.1.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2163,10 +2163,10 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
-    - RNReanimated/reanimated/apple (= 4.1.6)
+    - RNReanimated/reanimated/apple (= 4.1.1)
     - RNWorklets
     - Yoga
-  - RNReanimated/reanimated/apple (4.1.6):
+  - RNReanimated/reanimated/apple (4.1.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2282,7 +2282,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - RNWorklets (0.6.1):
+  - RNWorklets (0.5.2):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2304,9 +2304,9 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
-    - RNWorklets/worklets (= 0.6.1)
+    - RNWorklets/worklets (= 0.5.2)
     - Yoga
-  - RNWorklets/worklets (0.6.1):
+  - RNWorklets/worklets (0.5.2):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2328,9 +2328,9 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
-    - RNWorklets/worklets/apple (= 0.6.1)
+    - RNWorklets/worklets/apple (= 0.5.2)
     - Yoga
-  - RNWorklets/worklets/apple (0.6.1):
+  - RNWorklets/worklets/apple (0.5.2):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2364,32 +2364,6 @@ PODS:
   - SDWebImageWebPCoder (0.14.6):
     - libwebp (~> 1.0)
     - SDWebImage/Core (~> 5.17)
-  - Superscript (0.2.8)
-  - superwall-react-native (2.1.7):
-    - hermes-engine
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-Core-prebuilt
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - ReactNativeDependencies
-    - SuperwallKit (= 4.5.0)
-    - Yoga
-  - SuperwallKit (4.5.0):
-    - Superscript (= 0.2.8)
   - VisionCamera (4.7.3):
     - VisionCamera/Core (= 4.7.3)
     - VisionCamera/React (= 4.7.3)
@@ -2515,7 +2489,6 @@ DEPENDENCIES:
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNSVG (from `../node_modules/react-native-svg`)
   - RNWorklets (from `../node_modules/react-native-worklets`)
-  - "superwall-react-native (from `../node_modules/@superwall/react-native-superwall`)"
   - VisionCamera (from `../node_modules/react-native-vision-camera`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
@@ -2556,8 +2529,6 @@ SPEC REPOS:
     - SDWebImageAVIFCoder
     - SDWebImageSVGCoder
     - SDWebImageWebPCoder
-    - Superscript
-    - SuperwallKit
 
 EXTERNAL SOURCES:
   EXApplication:
@@ -2791,8 +2762,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-svg"
   RNWorklets:
     :path: "../node_modules/react-native-worklets"
-  superwall-react-native:
-    :path: "../node_modules/@superwall/react-native-superwall"
   VisionCamera:
     :path: "../node_modules/react-native-vision-camera"
   Yoga:
@@ -2941,17 +2910,14 @@ SPEC CHECKSUMS:
   RNMLKitTextRecognition: 02e17c2274c9c98aeaab68be51f6921746ffc8e1
   RNPaywalls: 1cbc5f4d07c345f6ed831c565d634d74faf8e8c0
   RNPurchases: 41ca969b51935260a9b874d1358535286d496d3b
-  RNReanimated: 43f611f1c85c90e0273df7399bf1536f8e2bd125
+  RNReanimated: 0ec1c2aadcdd1b12c169c364315e7c5430d9eb3f
   RNScreens: dd61bc3a3e6f6901ad833efa411917d44827cf51
   RNSVG: 374baea1176279a8f8e6451495022db91086151f
-  RNWorklets: 83609071441ac7d623f1e0e63b9043f4f345e2a2
+  RNWorklets: 910011487cf1bd81f84a787c7579fce5f3648836
   SDWebImage: e9fc87c1aab89a8ab1bbd74eba378c6f53be8abf
   SDWebImageAVIFCoder: afe194a084e851f70228e4be35ef651df0fc5c57
   SDWebImageSVGCoder: 15a300a97ec1c8ac958f009c02220ac0402e936c
   SDWebImageWebPCoder: e38c0a70396191361d60c092933e22c20d5b1380
-  Superscript: 82dbb40f502823160e75503ebc1b6bac756a503d
-  superwall-react-native: 803b41e3464d4770a15a18aec97cbe6c85685377
-  SuperwallKit: 3ab5d4b65bf0b90da96aefc2bab31d3492c97d96
   VisionCamera: 3ea10c46a5c612f5f89fb46a54bef4a0de8b58a7
   Yoga: 3fd22c2cae22d7a2b0f0b538f55f7c2a17dc94d5
 

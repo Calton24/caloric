@@ -45,14 +45,6 @@ export const caloricConfig: AppProfileConfig = {
         process.env.EXPO_PUBLIC_REVENUECAT_API_KEY ||
         "test_VQEwjlSfYMXuTJXPySBUuVUEdSz",
     },
-    superwall: {
-      apiKey: "pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", // Replace with your Superwall API key
-      triggers: {
-        premium: "premium_paywall",
-        pro: "pro_subscription",
-        foodScanning: "food_scan_limit",
-      } satisfies Record<string, string>,
-    },
   },
 
   features: {

@@ -53,18 +53,11 @@ export interface FirebaseConfig {
   };
 }
 
-export type BillingProvider = "revenueCat" | "superwall" | "stripe";
+export type BillingProvider = "revenueCat" | "stripe";
 
 export interface RevenueCatConfig {
   /** RevenueCat public API key (safe for client) */
   apiKey: string;
-}
-
-export interface SuperwallConfig {
-  /** Superwall API key (safe for client) */
-  apiKey: string;
-  /** Paywall triggers (optional) - map trigger names to IDs */
-  triggers?: Record<string, string>;
 }
 
 export interface StripeConfig {
@@ -87,8 +80,6 @@ export interface BillingConfig {
   provider: BillingProvider;
   /** RevenueCat configuration (required if provider is "revenueCat") */
   revenueCat?: RevenueCatConfig;
-  /** Superwall configuration (optional, for paywall UI) */
-  superwall?: SuperwallConfig;
   /** Stripe configuration (required if provider is "stripe") */
   stripe?: StripeConfig;
 }

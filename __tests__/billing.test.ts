@@ -136,23 +136,6 @@ describe("Billing System", () => {
       expect(provider).toBeInstanceOf(NoBillingProvider);
     });
 
-    it("should return SuperwallProvider for intake profile", () => {
-      mockGetAppConfig.mockReturnValue({
-        features: { billing: true },
-        billing: {
-          provider: "superwall",
-          superwall: {
-            apiKey: "pk_test_superwall",
-            triggers: {},
-          },
-        },
-      } as any);
-
-      const provider = getBillingProvider();
-
-      expect(provider.getProviderName()).toBe("superwall");
-    });
-
     it("should return StripeProvider for default profile", () => {
       mockGetAppConfig.mockReturnValue({
         features: { billing: true },
@@ -177,12 +160,12 @@ describe("Billing System", () => {
       mockGetAppConfig.mockReturnValue({
         features: { billing: true },
         billing: {
-          provider: "superwall",
-          // Missing superwall config
+          provider: "stripe",
+          // Missing stripe config
         },
       } as any);
 
-      expect(() => getBillingProvider()).toThrow("no superwall config found");
+      expect(() => getBillingProvider()).toThrow("no stripe config found");
     });
 
     it("should cache provider instance", () => {
@@ -228,76 +211,6 @@ describe("Billing System", () => {
     it("should accept entitlement change callbacks", () => {
       const callback = jest.fn();
       expect(() => provider.onEntitlementsChanged(callback)).not.toThrow();
-    });
-  });
-
-  describe("Superwall Provider", () => {
-    beforeEach(() => {
-      mockGetAppConfig.mockReturnValue({
-        features: { billing: true },
-        billing: {
-          provider: "superwall",
-          superwall: {
-            apiKey: "pk_test_superwall_key",
-            triggers: {
-              premium: "premium_paywall",
-              pro: "pro_subscription",
-            },
-          },
-        },
-      } as any);
-    });
-
-    it("should initialize with API key", async () => {
-      const provider = getBillingProvider();
-      await expect(provider.initialize()).resolves.not.toThrow();
-    });
-
-    it("should throw if methods called before initialize", async () => {
-      __resetBillingProvider();
-      const provider = getBillingProvider();
-
-      await expect(provider.getEntitlements()).rejects.toThrow(
-        "Must call initialize() first"
-      );
-    });
-
-    it("should return free tier entitlement (mock)", async () => {
-      const provider = getBillingProvider();
-      await provider.initialize();
-
-      const entitlement = await provider.getEntitlements();
-
-      expect(entitlement).toHaveProperty("isPro");
-      expect(entitlement).toHaveProperty("tier");
-      expect(entitlement).toHaveProperty("isActive");
-    });
-
-    it("should present paywall with trigger", async () => {
-      const provider = getBillingProvider();
-      await provider.initialize();
-
-      await expect(
-        provider.presentPaywall("premium_paywall")
-      ).resolves.not.toThrow();
-    });
-
-    it("should restore purchases", async () => {
-      const provider = getBillingProvider();
-      await provider.initialize();
-
-      await expect(provider.restorePurchases()).resolves.not.toThrow();
-    });
-
-    it("should register entitlement change callbacks", async () => {
-      const provider = getBillingProvider();
-      await provider.initialize();
-
-      const callback = jest.fn();
-      provider.onEntitlementsChanged(callback);
-
-      // Callback registered successfully
-      expect(callback).not.toHaveBeenCalled(); // Not called yet
     });
   });
 
@@ -381,7 +294,7 @@ describe("Billing System", () => {
       mockGetAppConfig.mockReturnValue({
         features: { billing: true },
         billing: {
-          provider: "superwall",
+          provider: "stripe",
           // Missing config - will cause error
         },
       } as any);
@@ -392,23 +305,19 @@ describe("Billing System", () => {
 
   describe("Entitlement Model", () => {
     it("should have consistent entitlement structure across providers", async () => {
-      // Test Superwall entitlement structure
+      // Test NoBilling entitlement structure
       mockGetAppConfig.mockReturnValue({
-        features: { billing: true },
-        billing: {
-          provider: "superwall",
-          superwall: { apiKey: "pk_test", triggers: {} },
-        },
+        features: { billing: false },
       } as any);
 
-      const superwallProvider = getBillingProvider();
-      await superwallProvider.initialize();
-      const superwallEntitlement = await superwallProvider.getEntitlements();
+      const noBillingProvider = getBillingProvider();
+      await noBillingProvider.initialize();
+      const noBillingEntitlement = await noBillingProvider.getEntitlements();
 
-      expect(superwallEntitlement).toHaveProperty("isPro");
-      expect(superwallEntitlement).toHaveProperty("tier");
-      expect(superwallEntitlement).toHaveProperty("expiresAt");
-      expect(superwallEntitlement).toHaveProperty("isActive");
+      expect(noBillingEntitlement).toHaveProperty("isPro");
+      expect(noBillingEntitlement).toHaveProperty("tier");
+      expect(noBillingEntitlement).toHaveProperty("expiresAt");
+      expect(noBillingEntitlement).toHaveProperty("isActive");
 
       // Reset and test Stripe
       __resetBillingProvider();

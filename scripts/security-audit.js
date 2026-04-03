@@ -322,7 +322,6 @@ if (preReleaseDeps.length === 0) {
 // Run npm audit --production
 // Policy: warn (not fail) because all current findings are build-time CLI deps
 // that Metro never bundles into the JS runtime. Specifically:
-//   - fast-xml-parser (critical): @superwall → @react-native-community/cli → cli-doctor
 //   - minimatch (high): @expo/cli, @expo/fingerprint, eslint
 // If a RUNTIME dep ever shows critical/high, this MUST become fail().
 try {
@@ -375,9 +374,7 @@ const BUILD_TIME_ONLY_PACKAGES = new Set([
 
 // Packages that inherit "high" severity from build-time deps but are safe at runtime
 // These are marked "high" because they depend on CLI tools, not because they have runtime vulns
-const BUILD_TIME_INHERITED_PACKAGES = new Set([
-  "@superwall/react-native-superwall", // depends on @react-native-community/cli (build-time)
-]);
+const BUILD_TIME_INHERITED_PACKAGES = new Set([]);
 
 try {
   execSync("npm audit --omit=dev --audit-level=high --json 2>&1", {

@@ -105,8 +105,8 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   numberBlock: {
-    alignItems: "center",
-    minWidth: 56,
+    flexDirection: "row",
+    alignItems: "baseline",
   },
   streakNumber: {
     fontSize: 40,
@@ -114,9 +114,9 @@ const styles = StyleSheet.create({
     lineHeight: 44,
   },
   daysLabel: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "500",
-    marginTop: -2,
+    marginLeft: 4,
   },
   infoBlock: {
     flex: 1,

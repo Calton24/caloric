@@ -39,14 +39,9 @@ export const caloricConfig: AppProfileConfig = {
   },
 
   billing: {
-    provider: "superwall" as const,
-    superwall: {
-      apiKey: "pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", // Replace with your Superwall API key
-      triggers: {
-        premium: "premium_paywall",
-        pro: "pro_subscription",
-        foodScanning: "food_scan_limit",
-      } satisfies Record<string, string>,
+    provider: "revenueCat" as const,
+    revenueCat: {
+      apiKey: "placeholder_replace_with_actual_key",
     },
   },
 

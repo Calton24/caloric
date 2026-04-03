@@ -144,8 +144,7 @@ describe("Config System", () => {
       expect(config.billing?.provider).toBe("revenueCat");
       expect(config.billing?.revenueCat).toBeDefined();
       expect(config.billing?.revenueCat?.apiKey).toBeDefined();
-      expect(config.billing?.superwall).toBeDefined();
-      expect(config.billing?.superwall?.apiKey).toBeDefined();
+
     });
 
     it("should use Stripe for default profile", () => {

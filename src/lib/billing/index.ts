@@ -7,7 +7,6 @@ import { logger } from "../../logging/logger";
 import { getActiveConfig } from "../config";
 import { RevenueCatProvider } from "./revenuecat";
 import { StripeProvider } from "./stripe";
-import { SuperwallProvider } from "./superwall";
 import type { BillingProvider } from "./types";
 import { NoBillingProvider } from "./types";
 
@@ -18,7 +17,6 @@ let cachedProvider: BillingProvider | null = null;
  *
  * Returns:
  * - NoBillingProvider if billing is disabled
- * - SuperwallProvider if config.billing.provider === "superwall"
  * - StripeProvider if config.billing.provider === "stripe"
  *
  * Provider is cached and reused for the app lifecycle.
@@ -70,16 +68,6 @@ export function getBillingProvider(): BillingProvider {
         );
       }
       cachedProvider = new RevenueCatProvider(config.billing.revenueCat);
-      break;
-
-    case "superwall":
-      logger.log("[Billing] Using Superwall provider");
-      if (!config.billing.superwall) {
-        throw new Error(
-          "[Billing] Superwall provider selected but no superwall config found"
-        );
-      }
-      cachedProvider = new SuperwallProvider(config.billing.superwall);
       break;
 
     case "stripe":
@@ -138,7 +126,6 @@ export type { BillingProvider, Entitlement, SubscriptionTier } from "./types";
 export {
     NoBillingProvider,
     RevenueCatProvider,
-    StripeProvider,
-    SuperwallProvider
+    StripeProvider
 };
 

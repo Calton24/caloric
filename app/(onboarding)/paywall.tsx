@@ -213,6 +213,7 @@ const MILESTONES = [1, 7, 14, 21];
 const TOTAL_DAYS = 21;
 const TRACK_PADDING = 32;
 const MILESTONE_SIZE = 20;
+const MILESTONE_WRAP_WIDTH = 48;
 
 function DayProgressTrack({ primaryColor }: { primaryColor: string }) {
   const trackWidth = SCREEN_WIDTH - TRACK_PADDING * 2;
@@ -323,7 +324,7 @@ function DayProgressTrack({ primaryColor }: { primaryColor: string }) {
                 key={day}
                 style={[
                   trackStyles.milestoneWrap,
-                  { left: pct * (trackWidth - MILESTONE_SIZE) },
+                  { left: pct * (trackWidth - MILESTONE_SIZE) - (MILESTONE_WRAP_WIDTH - MILESTONE_SIZE) / 2 },
                 ]}
               >
                 <View
@@ -379,7 +380,7 @@ const trackStyles = StyleSheet.create({
   milestoneWrap: {
     position: "absolute",
     alignItems: "center",
-    width: MILESTONE_SIZE,
+    width: MILESTONE_WRAP_WIDTH,
   },
   milestoneDot: {
     width: MILESTONE_SIZE,

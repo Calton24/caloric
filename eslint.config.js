@@ -84,7 +84,6 @@ module.exports = defineConfig([
                 '@mixpanel/*',
 
                 // ── Payments ──
-                '@superwall/*',
                 '@stripe/*',
                 '@revenuecat/*',
                 'react-native-purchases',
