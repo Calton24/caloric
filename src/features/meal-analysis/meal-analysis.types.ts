@@ -161,6 +161,10 @@ export interface AnalyzeMealResponse {
   remainingFreeCredits?: number;
   /** Whether user has active pro subscription */
   isPro?: boolean;
+  /** AI vendor used for analysis */
+  vendor?: string;
+  /** AI model used for analysis */
+  model?: string;
   /** Error message if failed */
   error?: string;
 }
