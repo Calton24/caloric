@@ -324,7 +324,11 @@ function DayProgressTrack({ primaryColor }: { primaryColor: string }) {
                 key={day}
                 style={[
                   trackStyles.milestoneWrap,
-                  { left: pct * (trackWidth - MILESTONE_SIZE) - (MILESTONE_WRAP_WIDTH - MILESTONE_SIZE) / 2 },
+                  {
+                    left:
+                      pct * (trackWidth - MILESTONE_SIZE) -
+                      (MILESTONE_WRAP_WIDTH - MILESTONE_SIZE) / 2,
+                  },
                 ]}
               >
                 <View

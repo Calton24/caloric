@@ -123,9 +123,5 @@ export function __resetBillingProvider(): void {
 
 // Export types and providers for testing
 export type { BillingProvider, Entitlement, SubscriptionTier } from "./types";
-export {
-    NoBillingProvider,
-    RevenueCatProvider,
-    StripeProvider
-};
+export { NoBillingProvider, RevenueCatProvider, StripeProvider };
 
