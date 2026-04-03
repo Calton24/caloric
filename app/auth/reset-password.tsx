@@ -10,13 +10,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../src/features/auth/useAuth";
@@ -96,7 +96,19 @@ export default function ResetPasswordScreen() {
     }
   };
 
+  const handleContinue = () => {
+    // After successful password update the user has a session from verifyOtp,
+    // so dismiss the entire modal stack and go home.
+    if (router.canDismiss()) {
+      router.dismissAll();
+    }
+    router.replace("/(tabs)");
+  };
+
   const handleBackToSignIn = () => {
+    if (router.canDismiss()) {
+      router.dismissAll();
+    }
     router.replace("/auth/sign-in");
   };
 
@@ -189,8 +201,8 @@ export default function ResetPasswordScreen() {
 
           <TSpacer size="xl" />
 
-          <TButton testID="back-to-sign-in-button" onPress={handleBackToSignIn}>
-            Back to Sign In
+          <TButton testID="continue-button" onPress={handleContinue}>
+            Continue
           </TButton>
         </View>
       </SafeAreaView>
