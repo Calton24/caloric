@@ -159,17 +159,46 @@ export class SupabaseAuthClient implements AuthClient {
     }
   }
 
-  async exchangeCodeForSession(code: string): Promise<{ error: Error | null }> {
+  async exchangeCodeForSession(
+    code: string
+  ): Promise<{ error: Error | null; isRecovery?: boolean }> {
     try {
       const supabase = getSupabaseClient();
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
       if (error) {
         return { error: new Error(error.message) };
       }
-      return { error: null };
+      // The SDK stores "codeVerifier/PASSWORD_RECOVERY" during resetPasswordForEmail
+      // and returns redirectType from the exchange response (not typed but present at runtime)
+      const redirectType = (data as Record<string, unknown>)?.redirectType;
+      const isRecovery = redirectType === "PASSWORD_RECOVERY";
+      return { error: null, isRecovery };
     } catch (err) {
       return {
         error: err instanceof Error ? err : new Error("Code exchange failed"),
+      };
+    }
+  }
+
+  async verifyRecoveryToken(
+    tokenHash: string
+  ): Promise<{ error: Error | null; session?: any }> {
+    try {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: "recovery",
+      });
+      if (error) {
+        return { error: new Error(error.message) };
+      }
+      return { error: null, session: data.session };
+    } catch (err) {
+      return {
+        error:
+          err instanceof Error
+            ? err
+            : new Error("Recovery verification failed"),
       };
     }
   }

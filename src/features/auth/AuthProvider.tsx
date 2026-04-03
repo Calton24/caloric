@@ -38,7 +38,12 @@ export interface AuthContextValue {
   deleteAccount: () => Promise<{ error: Error | null }>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
   updatePassword: (newPassword: string) => Promise<{ error: Error | null }>;
-  exchangeCodeForSession: (code: string) => Promise<{ error: Error | null }>;
+  verifyRecoveryToken: (
+    tokenHash: string
+  ) => Promise<{ error: Error | null; session?: any }>;
+  exchangeCodeForSession: (
+    code: string
+  ) => Promise<{ error: Error | null; isRecovery?: boolean }>;
   signInWithOAuth: (provider: OAuthProvider) => Promise<OAuthResponse>;
   signInWithAppleNative: () => Promise<{ error: Error | null }>;
   signInWithGoogleNative: () => Promise<{ error: Error | null }>;
@@ -160,6 +165,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return await authClient.updatePassword(newPassword);
   }, []);
 
+  const verifyRecoveryToken = useCallback(async (tokenHash: string) => {
+    return await authClient.verifyRecoveryToken(tokenHash);
+  }, []);
+
   const exchangeCodeForSession = useCallback(async (code: string) => {
     return await authClient.exchangeCodeForSession(code);
   }, []);
@@ -206,6 +215,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     deleteAccount,
     resetPassword,
     updatePassword,
+    verifyRecoveryToken,
     exchangeCodeForSession,
     signInWithOAuth,
     signInWithAppleNative,

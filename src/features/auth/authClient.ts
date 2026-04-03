@@ -47,7 +47,12 @@ export interface AuthClient {
   signInWithOAuth(provider: OAuthProvider): Promise<OAuthResponse>;
   signInWithAppleNative(): Promise<AuthResponse>;
   signInWithGoogleNative(): Promise<AuthResponse>;
-  exchangeCodeForSession(code: string): Promise<{ error: Error | null }>;
+  exchangeCodeForSession(
+    code: string
+  ): Promise<{ error: Error | null; isRecovery?: boolean }>;
+  verifyRecoveryToken(
+    tokenHash: string
+  ): Promise<{ error: Error | null; session?: any }>;
   getSession(): Promise<{ session: Session | null; error: Error | null }>;
   onAuthStateChange(callback: (session: Session | null) => void): () => void;
 }
@@ -136,6 +141,7 @@ export const authClient: AuthClient = {
   deleteAccount: (...args) => client.deleteAccount(...args),
   resetPasswordForEmail: (...args) => client.resetPasswordForEmail(...args),
   updatePassword: (...args) => client.updatePassword(...args),
+  verifyRecoveryToken: (...args) => client.verifyRecoveryToken(...args),
   signInWithOAuth: (provider) => {
     if (maintenance.isBlocked("auth")) {
       return Promise.resolve({ url: null, error: SERVICE_UNAVAILABLE_ERROR });

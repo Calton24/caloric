@@ -128,10 +128,17 @@ export class MockAuthClient implements AuthClient {
 
   async exchangeCodeForSession(
     _code: string
-  ): Promise<{ error: Error | null }> {
+  ): Promise<{ error: Error | null; isRecovery?: boolean }> {
     await delay(300);
     // Mock: simulate successful code exchange
-    return { error: null };
+    return { error: null, isRecovery: false };
+  }
+
+  async verifyRecoveryToken(
+    _tokenHash: string
+  ): Promise<{ error: Error | null; session?: any }> {
+    await delay(300);
+    return { error: null, session: { user: { id: "mock-recovery-user" } } };
   }
 
   async signInWithOAuth(_provider: OAuthProvider): Promise<OAuthResponse> {
