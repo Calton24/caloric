@@ -64,7 +64,7 @@
 		29F254890F5C4C92A67A4462 /* CaloricWidgetBundle.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CaloricWidgetBundle.swift; sourceTree = "<group>"; };
 		31E5B056752E44B38B89F846 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		46CD6BF8E9C547C39212DADC /* CaloricWidgetLiveActivity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CaloricWidgetLiveActivity.swift; sourceTree = "<group>"; };
-		4D4DB9479EF24505CDDF2AC6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = Caloric/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		4D4DB9479EF24505CDDF2AC6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = Caloric/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		67280D3DDFA142D69462B31D /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		6ADB19C98FB44DF0B2B68FA7 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		86B8CA88C7ED41188E195A9E /* caloric.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = caloric.icon; path = Caloric/caloric.icon; sourceTree = "<group>"; };
@@ -123,7 +123,6 @@
 				2409ABFEC94918B2E135C1E3 /* Pods-Caloric.debug.xcconfig */,
 				0F760F5765E2E8E1F7724880 /* Pods-Caloric.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -152,6 +151,15 @@
 			path = CaloricWidget;
 			sourceTree = "<group>";
 		};
+		5D07BA5E2F807391003F3D25 /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				6ADB19C98FB44DF0B2B68FA7 /* WidgetKit.framework */,
+				67280D3DDFA142D69462B31D /* SwiftUI.framework */,
+			);
+			name = "Recovered References";
+			sourceTree = "<group>";
+		};
 		5FD374DF93EE17305C1E2288 /* ExpoModulesProviders */ = {
 			isa = PBXGroup;
 			children = (
@@ -177,6 +185,7 @@
 				358A4FD7F78C4C8C81FB44B6 /* CaloricWidget */,
 				21B82C37C2BCF37864A91BC4 /* Pods */,
 				5FD374DF93EE17305C1E2288 /* ExpoModulesProviders */,
+				5D07BA5E2F807391003F3D25 /* Recovered References */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -522,7 +531,7 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 93HBV58WBY;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CaloricWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
@@ -551,6 +560,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Caloric/Caloric.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 93HBV58WBY;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -588,6 +598,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Caloric/Caloric.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 93HBV58WBY;
 				INFOPLIST_FILE = Caloric/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -736,7 +747,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 93HBV58WBY;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CaloricWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
