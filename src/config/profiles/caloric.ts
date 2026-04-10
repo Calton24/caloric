@@ -41,9 +41,7 @@ export const caloricConfig: AppProfileConfig = {
   billing: {
     provider: "revenueCat" as const,
     revenueCat: {
-      apiKey:
-        process.env.EXPO_PUBLIC_REVENUECAT_API_KEY ||
-        "test_VQEwjlSfYMXuTJXPySBUuVUEdSz",
+      apiKey: process.env.EXPO_PUBLIC_REVENUECAT_API_KEY ?? "",
     },
   },
 

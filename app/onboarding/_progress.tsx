@@ -44,3 +44,5 @@ const styles = StyleSheet.create({
     height: 4,
   },
 });
+
+export default OnboardingProgress;

@@ -9,10 +9,10 @@
 const APP_PROFILES = {
   default: {
     app: {
-      name: "Caloric",
-      slug: "caloric",
-      bundleIdentifier: "com.calton24.caloric",
-      androidPackage: "com.calton24.caloric",
+      name: "CalCut",
+      slug: "caloric-dev",
+      bundleIdentifier: "com.calton.caloric",
+      androidPackage: "com.calton.caloric",
       version: "1.0.0",
       scheme: "caloric",
     },
@@ -20,7 +20,6 @@ const APP_PROFILES = {
       dev: {
         app: {
           name: "Caloric Dev",
-          slug: "caloric-dev",
           bundleIdentifier: "com.calton24.caloric.dev",
           androidPackage: "com.calton24.caloric.dev",
         },
@@ -38,10 +37,10 @@ const APP_PROFILES = {
 
   caloric: {
     app: {
-      name: "Caloric",
-      slug: "caloric",
-      bundleIdentifier: "com.calton24.caloric",
-      androidPackage: "com.calton24.caloric",
+      name: "CalCut",
+      slug: "caloric-dev",
+      bundleIdentifier: "com.calton.caloric",
+      androidPackage: "com.calton.caloric",
       version: "1.0.0",
       scheme: "caloric",
     },
@@ -49,7 +48,6 @@ const APP_PROFILES = {
       dev: {
         app: {
           name: "Caloric",
-          slug: "caloric-dev",
           bundleIdentifier: "com.calton24.caloric.dev",
           androidPackage: "com.calton24.caloric.dev",
         },

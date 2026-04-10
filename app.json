@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "caloric",
-    "slug": "caloric",
+    "slug": "caloric-dev",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",

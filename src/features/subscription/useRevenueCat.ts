@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Platform } from "react-native";
 import { getBillingProvider } from "../../lib/billing";
+import { logger } from "../../logging/logger";
 import { useChallengeStore } from "../challenge/challenge.store";
 import { useSubscriptionStore } from "./subscription.store";
 
@@ -72,15 +73,41 @@ export function useRevenueCat() {
 
   /**
    * Select the correct offering based on challenge state:
-   *   - challenge active → "challenge" offering (falls back to current)
-   *   - otherwise        → "default" offering (falls back to current)
+   *   - challenge active → "challenge" offering
+   *   - otherwise        → "default" offering
+   *
+   * PurchasesOfferings shape: { all: Record<string, PurchasesOffering>, current }
+   * Named offerings live under `all`, NOT as top-level properties.
+   *
+   * NO silent fallback to `current` — if the expected offering is missing,
+   * we return null so the UI shows a loading/unavailable state instead of
+   * silently charging the wrong price.
    */
   const activeOffering = useMemo(() => {
     if (!offerings) return null;
-    if (isChallengeActive) {
-      return offerings.challenge ?? offerings.current ?? null;
+    const all = offerings.all as Record<string, any> | undefined;
+    const expectedName = isChallengeActive ? "challenge" : "default";
+    const resolved = all?.[expectedName] ?? null;
+
+    if (__DEV__) {
+      if (resolved) {
+        logger.log(
+          `[Billing:offers] Active offering: ${resolved.identifier ?? expectedName}`
+        );
+        logger.log(
+          `[Billing:offers] Packages: ${(resolved.availablePackages ?? []).map((p: any) => p.product?.identifier ?? p.storeProduct?.identifier ?? p.identifier).join(", ")}`
+        );
+      } else if (all) {
+        // offerings loaded but expected name missing — loud error
+        logger.error(
+          `[Billing:offers] Missing expected offering "${expectedName}". ` +
+            `Available: [${Object.keys(all).join(", ")}]. ` +
+            `UI will show unavailable state — NOT falling back to wrong offering.`
+        );
+      }
     }
-    return offerings.default ?? offerings.current ?? null;
+
+    return resolved;
   }, [offerings, isChallengeActive]);
 
   const packages = activeOffering?.availablePackages ?? [];

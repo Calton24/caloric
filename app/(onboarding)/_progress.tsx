@@ -122,3 +122,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
 });
+
+export default OnboardingProgress;

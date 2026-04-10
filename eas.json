@@ -35,12 +35,12 @@
     },
 
     "caloric-prod": {
-      "distribution": "store",
+      "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_APP_PROFILE": "caloric",
         "EXPO_PUBLIC_APP_ENV": "prod"
       },
-      "prebuildCommand": "./scripts/eas-build-firebase-setup.sh",
+      "prebuildCommand": "npx expo prebuild --clean && ./scripts/eas-build-firebase-setup.sh",
       "ios": {
         "simulator": false
       }

@@ -14,6 +14,19 @@ import type { RevenueCatConfig } from "../../config/types";
 import { logger } from "../../logging/logger";
 import type { BillingProvider, Entitlement, SubscriptionTier } from "./types";
 
+/** Extract readable details from RevenueCat native errors (which serialize as `{}`). */
+function rcError(error: unknown): Record<string, unknown> {
+  if (error == null) return { raw: String(error) };
+  const e = error as any;
+  return {
+    message: e.message ?? e.readableErrorCode ?? String(error),
+    code: e.code,
+    readableErrorCode: e.readableErrorCode,
+    underlyingErrorMessage: e.underlyingErrorMessage,
+    userInfo: e.userInfo,
+  };
+}
+
 // ─── Lazy module references ─────────────────────────────────────────────────
 
 let _Purchases: any = null;
@@ -51,21 +64,37 @@ function getRevenueCatUI() {
 
 export class RevenueCatProvider implements BillingProvider {
   private config: RevenueCatConfig;
-  private initialized = false;
+  private initPromise: Promise<void> | null = null;
   private entitlementCallbacks: ((entitlement: Entitlement) => void)[] = [];
 
   constructor(config: RevenueCatConfig) {
     this.config = config;
   }
 
+  /**
+   * Wait for initialization to complete. All public methods call this
+   * so callers never hit the native SDK before configure() finishes.
+   */
+  private async ensureInitialized(): Promise<void> {
+    if (this.initPromise) {
+      await this.initPromise;
+      return;
+    }
+    throw new Error("[RevenueCat] initialize() has not been called yet");
+  }
+
   // ── Lifecycle ──────────────────────────────────────────────────────────
 
   async initialize(): Promise<void> {
-    if (this.initialized) {
-      logger.log("[RevenueCat] Already initialized, skipping");
-      return;
+    // Idempotent — return the same promise if already initializing/initialized
+    if (this.initPromise) {
+      return this.initPromise;
     }
+    this.initPromise = this._doInitialize();
+    return this.initPromise;
+  }
 
+  private async _doInitialize(): Promise<void> {
     // ── Guard: reject test keys in production builds ──
     if (!__DEV__ && this.config.apiKey.startsWith("test_")) {
       logger.error(
@@ -85,7 +114,9 @@ export class RevenueCatProvider implements BillingProvider {
         RC.setLogLevel(RC.LOG_LEVEL?.VERBOSE ?? 4);
       }
 
-      // Use same key for both platforms (RevenueCat resolves per-platform in dashboard)
+      // Always call configure() — the SDK handles duplicate calls gracefully.
+      // The previous isConfigured() guard caused "no singleton" errors on hot
+      // reload because the native singleton was dead but the flag was stale.
       if (Platform.OS === "ios" || Platform.OS === "android") {
         RC.configure({ apiKey: this.config.apiKey });
       } else {
@@ -99,11 +130,12 @@ export class RevenueCatProvider implements BillingProvider {
         this.entitlementCallbacks.forEach((cb) => cb(entitlement));
       });
 
-      this.initialized = true;
       logger.log("[RevenueCat] Initialized successfully");
 
-      // Diagnostic: log identity + entitlement state on init
+      // Diagnostic: log key + identity + entitlement state on init
       if (__DEV__) {
+        const keyPrefix = this.config.apiKey.slice(0, 10);
+        logger.log(`[RevenueCat:diag] apiKey: ${keyPrefix}...`);
         try {
           const appUserID = await RC.getAppUserID();
           const info = await RC.getCustomerInfo();
@@ -121,6 +153,8 @@ export class RevenueCatProvider implements BillingProvider {
         }
       }
     } catch (error) {
+      // Reset so a retry can attempt init again
+      this.initPromise = null;
       logger.error("[RevenueCat] Initialization failed:", error);
       throw error;
     }
@@ -133,7 +167,9 @@ export class RevenueCatProvider implements BillingProvider {
    * Call this after the user authenticates (use your backend user ID).
    */
   async logIn(userId: string): Promise<void> {
-    if (!this.initialized) {
+    try {
+      await this.ensureInitialized();
+    } catch {
       logger.warn("[RevenueCat] logIn called before initialize, skipping");
       return;
     }
@@ -146,7 +182,7 @@ export class RevenueCatProvider implements BillingProvider {
       this.entitlementCallbacks.forEach((cb) => cb(entitlement));
     } catch (error) {
       // Non-fatal — the user can still use the app anonymously
-      logger.error("[RevenueCat] logIn failed:", error);
+      logger.error("[RevenueCat] logIn failed:", rcError(error));
     }
   }
 
@@ -155,7 +191,11 @@ export class RevenueCatProvider implements BillingProvider {
    * SDK reverts to an anonymous session.
    */
   async logOut(): Promise<void> {
-    if (!this.initialized) return;
+    try {
+      await this.ensureInitialized();
+    } catch {
+      return;
+    }
     try {
       const RC = getPurchases();
       const isAnonymous = await RC.isAnonymous();
@@ -168,22 +208,20 @@ export class RevenueCatProvider implements BillingProvider {
       this.entitlementCallbacks.forEach((cb) => cb(entitlement));
       logger.log("[RevenueCat] Logged out");
     } catch (error) {
-      logger.error("[RevenueCat] logOut failed:", error);
+      logger.error("[RevenueCat] logOut failed:", rcError(error));
     }
   }
 
   // ── Entitlements ────────────────────────────────────────────────────────
 
   async getEntitlements(): Promise<Entitlement> {
-    if (!this.initialized) {
-      throw new Error("[RevenueCat] Must call initialize() first");
-    }
+    await this.ensureInitialized();
     try {
       const RC = getPurchases();
       const customerInfo = await RC.getCustomerInfo();
       return this.mapCustomerInfo(customerInfo);
     } catch (error) {
-      logger.error("[RevenueCat] Failed to get entitlements:", error);
+      logger.error("[RevenueCat] Failed to get entitlements:", rcError(error));
       throw error;
     }
   }
@@ -199,9 +237,7 @@ export class RevenueCatProvider implements BillingProvider {
    * Returns null if no offerings are configured yet.
    */
   async getOfferings(): Promise<any> {
-    if (!this.initialized) {
-      throw new Error("[RevenueCat] Must call initialize() first");
-    }
+    await this.ensureInitialized();
     try {
       const RC = getPurchases();
       const offerings = await RC.getOfferings();
@@ -283,9 +319,7 @@ export class RevenueCatProvider implements BillingProvider {
   // ── Restore ─────────────────────────────────────────────────────────────
 
   async restorePurchases(): Promise<void> {
-    if (!this.initialized) {
-      throw new Error("[RevenueCat] Must call initialize() first");
-    }
+    await this.ensureInitialized();
     try {
       const RC = getPurchases();
       logger.log("[RevenueCat] Restoring purchases…");
@@ -306,9 +340,7 @@ export class RevenueCatProvider implements BillingProvider {
    * Returns the updated CustomerInfo after purchase.
    */
   async purchasePackage(pkg: any): Promise<any> {
-    if (!this.initialized) {
-      throw new Error("[RevenueCat] Must call initialize() first");
-    }
+    await this.ensureInitialized();
     try {
       const RC = getPurchases();
       const { customerInfo } = await RC.purchasePackage(pkg);
