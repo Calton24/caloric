@@ -44,14 +44,13 @@ const HERO_HEIGHT = 340;
 
 // ── Pricing helpers ────────────────────────────────────────────────────────
 
-type TierKey = "monthly" | "yearly" | "lifetime" | "other";
+type TierKey = "monthly" | "yearly" | "other";
 
 function getTierKey(pkg: any): TierKey {
   const id = pkg.identifier ?? "";
   const type = pkg.packageType ?? "";
   if (type === "MONTHLY" || id === "$rc_monthly") return "monthly";
   if (type === "ANNUAL" || id === "$rc_annual") return "yearly";
-  if (type === "LIFETIME" || id === "$rc_lifetime") return "lifetime";
   return "other";
 }
 
@@ -61,14 +60,12 @@ function getTierLabel(tier: TierKey): string {
       return "Monthly";
     case "yearly":
       return "Yearly";
-    case "lifetime":
-      return "Lifetime";
     default:
       return "Plan";
   }
 }
 
-const TIER_ORDER: TierKey[] = ["monthly", "yearly", "lifetime"];
+const TIER_ORDER: TierKey[] = ["monthly", "yearly"];
 
 // ── Benefits ───────────────────────────────────────────────────────────────
 

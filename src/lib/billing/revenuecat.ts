@@ -248,7 +248,7 @@ export class RevenueCatProvider implements BillingProvider {
    * before premium features.
    */
   async presentPaywallIfNeeded(
-    requiredEntitlementId = "Caloric Premium"
+    requiredEntitlementId = "premium"
   ): Promise<void> {
     try {
       const RCUI = getRevenueCatUI();
@@ -344,11 +344,10 @@ export class RevenueCatProvider implements BillingProvider {
   /**
    * Map RevenueCat CustomerInfo → our unified Entitlement model.
    *
-   * Looks for an active entitlement named "Caloric Premium" in the RevenueCat dashboard.
+   * Looks for an active entitlement named "premium" in the RevenueCat dashboard.
    */
   private mapCustomerInfo(customerInfo: any): Entitlement {
-    const proEntitlement =
-      customerInfo?.entitlements?.active?.["Caloric Premium"];
+    const proEntitlement = customerInfo?.entitlements?.active?.["premium"];
 
     if (__DEV__) {
       const allActive = Object.keys(customerInfo?.entitlements?.active ?? {});

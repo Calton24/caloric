@@ -49,18 +49,17 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 // ── Pricing helpers ────────────────────────────────────────────────────────
 
-type TierKey = "monthly" | "yearly" | "lifetime" | "other";
+type TierKey = "monthly" | "yearly" | "other";
 
 function getTierKey(pkg: any): TierKey {
   const id = pkg.identifier ?? "";
   const type = pkg.packageType ?? "";
   if (type === "MONTHLY" || id === "$rc_monthly") return "monthly";
   if (type === "ANNUAL" || id === "$rc_annual") return "yearly";
-  if (type === "LIFETIME" || id === "$rc_lifetime") return "lifetime";
   return "other";
 }
 
-const TIER_ORDER: TierKey[] = ["monthly", "yearly", "lifetime"];
+const TIER_ORDER: TierKey[] = ["monthly", "yearly"];
 
 function getTierLabel(tier: TierKey): string {
   switch (tier) {
@@ -68,8 +67,6 @@ function getTierLabel(tier: TierKey): string {
       return "Monthly";
     case "yearly":
       return "Yearly";
-    case "lifetime":
-      return "Lifetime";
     default:
       return "Plan";
   }
@@ -917,11 +914,9 @@ export default function OnboardingChallengeScreen() {
               <ActivityIndicator color="#fff" />
             ) : (
               <TText style={styles.ctaText}>
-                {selectedTier === "lifetime"
-                  ? "Unlock Lifetime Access"
-                  : selectedTier === "yearly"
-                    ? "Start Your Year — Best Value"
-                    : "Unlock Full Experience"}
+                {selectedTier === "yearly"
+                  ? "Start Your Year — Best Value"
+                  : "Unlock Full Experience"}
               </TText>
             )}
           </LinearGradient>
@@ -948,9 +943,7 @@ export default function OnboardingChallengeScreen() {
                   }
                   return `${selectedPrice} billed annually · Cancel anytime`;
                 })()
-              : selectedTier === "monthly"
-                ? `${selectedPrice}/month · Cancel anytime`
-                : `One-time purchase · Yours forever`}
+              : `${selectedPrice}/month · Cancel anytime`}
           </TText>
         )}
 
