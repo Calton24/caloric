@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { getStorage } from "../../infrastructure/storage";
+import { getPackageType } from "./package-utils";
 import { SubscriptionPlan, SubscriptionState } from "./subscription.types";
 
 const STORAGE_KEY = "caloric:subscription_state";
@@ -118,11 +119,13 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => {
             },
           };
         }
-        const plan: Exclude<SubscriptionPlan, null> = entitlement.productId
-          ?.toLowerCase()
-          .includes("annual")
-          ? "annual"
-          : "monthly";
+        const detected = getPackageType(entitlement.productId);
+        const plan: Exclude<SubscriptionPlan, null> =
+          detected === "weekly"
+            ? "weekly"
+            : detected === "annual"
+              ? "annual"
+              : "monthly";
         return {
           subscription: {
             ...state.subscription,

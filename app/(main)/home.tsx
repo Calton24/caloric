@@ -12,7 +12,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Animated, {
     FadeIn,
@@ -20,16 +20,26 @@ import Animated, {
     FadeInUp,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import type { PaywallContext } from "../../src/features/challenge/challenge-monetisation.types";
+import {
+    buildPaywallContext,
+    resolvePhase,
+} from "../../src/features/challenge/challenge-phase.service";
+import { computeProgress } from "../../src/features/challenge/challenge.service";
+import { useChallengeStore } from "../../src/features/challenge/challenge.store";
 import { useHomeData } from "../../src/features/home/use-home-data";
 import { rebuildFoodMemory } from "../../src/features/nutrition/memory/food-memory.service";
 import { useNutritionStore } from "../../src/features/nutrition/nutrition.store";
 import { useSubscriptionStore } from "../../src/features/subscription/subscription.store";
+import { useRevenueCat } from "../../src/features/subscription/useRevenueCat";
 import { useTheme } from "../../src/theme/useTheme";
+import { ChallengeCompletionCard } from "../../src/ui/components/ChallengeCompletionCard";
 import { DailyInsightsCard } from "../../src/ui/components/DailyInsightsCard";
 import { DaySelector } from "../../src/ui/components/DaySelector";
 import { EditMealSheet } from "../../src/ui/components/EditMealSheet";
 import { MacroCard } from "../../src/ui/components/MacroCard";
 import { MealCard } from "../../src/ui/components/MealCard";
+import { Paywall } from "../../src/ui/components/Paywall";
 import { ProgressRing } from "../../src/ui/components/ProgressRing";
 import { QuickLogSection } from "../../src/ui/components/QuickLogSection";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
@@ -74,7 +84,72 @@ export default function HomeScreen() {
   const isPro = useSubscriptionStore(
     (s) => s.subscription.hasActiveSubscription
   );
+  const { isIntroEligible: storeIntroEligible } = useRevenueCat();
   const { open: openSheet, close: closeSheet } = useBottomSheet();
+
+  // ── Challenge monetisation phase ──
+  const challenge = useChallengeStore((s) => s.challenge);
+  const insightTriggered = useChallengeStore((s) => s.insightTriggered);
+  const introUsed = useChallengeStore((s) => s.introUsed);
+  const lastInsightMessage = useChallengeStore((s) => s.lastInsightMessage);
+  const milestonesSeen = useChallengeStore((s) => s.milestonesSeen);
+  const markIntroUsed = useChallengeStore((s) => s.markIntroUsed);
+  const markMilestoneSeen = useChallengeStore((s) => s.markMilestoneSeen);
+
+  const [challengePaywall, setChallengePaywall] =
+    useState<PaywallContext | null>(null);
+
+  /**
+   * Build paywall context with store-aware intro eligibility.
+   * Phase service says whether intro pricing SHOULD show (phase-based);
+   * store eligibility says whether it CAN show (billing-based).
+   * Both must agree.
+   */
+  const buildChallengePaywall = useCallback(
+    (
+      phase: Parameters<typeof buildPaywallContext>[0],
+      milestoneDay?: Parameters<typeof buildPaywallContext>[1]
+    ) => {
+      const ctx = buildPaywallContext(phase, milestoneDay, lastInsightMessage);
+      return {
+        ...ctx,
+        showIntroPricing: ctx.showIntroPricing && storeIntroEligible,
+      };
+    },
+    [storeIntroEligible, lastInsightMessage]
+  );
+
+  const challengePhase = (() => {
+    if (!challenge || challenge.status !== "active") return null;
+    // Use all meals logged dates for progress computation
+    const loggedDates = [
+      ...new Set(allMeals.map((m) => m.loggedAt.slice(0, 10))),
+    ];
+    const progress = computeProgress(challenge, loggedDates);
+    return {
+      result: resolvePhase({
+        challengeDay: progress.currentDay,
+        insightTriggered,
+        introUsed,
+        hasPurchased: isPro,
+        milestonesSeen,
+      }),
+      progress,
+    };
+  })();
+
+  const handlePaywallDismiss = useCallback(() => {
+    if (!challengePhase) return;
+    const { result } = challengePhase;
+    // Mark as displayed (one-time gates)
+    if (result.phase === "first_paywall") {
+      markIntroUsed();
+    }
+    if (result.phase === "structured_push" && result.milestoneDay) {
+      markMilestoneSeen(result.milestoneDay);
+    }
+    setChallengePaywall(null);
+  }, [challengePhase, markIntroUsed, markMilestoneSeen]);
 
   // Rebuild food memory on mount so Quick Log has data
   useEffect(() => {
@@ -306,18 +381,48 @@ export default function HomeScreen() {
 
           <TSpacer size="lg" />
 
-          {/* Daily insights — premium only */}
-          {isPro && (
+          {/* ── Challenge phase-aware section ── */}
+          {challengePhase?.result.phase === "identity" && (
+            <ChallengeCompletionCard
+              totalCalories={allMeals.reduce((s, m) => s + m.calories, 0)}
+              weeklyAvgCalories={Math.round(
+                allMeals.reduce((s, m) => s + m.calories, 0) / 3
+              )}
+              streakDays={challengePhase.progress.completedDays}
+              completedDays={challengePhase.progress.completedDays}
+            />
+          )}
+
+          {/* Daily insights — premium gets full view, free gets buffer in value_buffer */}
+          {isPro ? (
             <DailyInsightsCard
               allMeals={allMeals}
               todayDate={dailySummary.date}
             />
-          )}
+          ) : challengePhase?.result.phase === "value_buffer" ? (
+            <Paywall
+              visible={false}
+              context={buildChallengePaywall("value_buffer")}
+              onDismiss={() => {
+                const ctx = buildChallengePaywall("value_buffer");
+                setChallengePaywall(ctx);
+              }}
+            />
+          ) : null}
 
           <TSpacer size="lg" />
 
           {/* Eat Again — premium only */}
           {isPro && <QuickLogSection isPro={isPro} />}
+
+          {/* ── Challenge paywall modal ── */}
+          {challengePaywall && (
+            <Paywall
+              visible={true}
+              context={challengePaywall}
+              onDismiss={handlePaywallDismiss}
+            />
+          )}
 
           {/* Bottom spacing for FAB */}
           <TSpacer size="xxl" />

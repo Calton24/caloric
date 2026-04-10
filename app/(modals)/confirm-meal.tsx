@@ -14,41 +14,47 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Animated, {
-    FadeIn,
-    FadeInDown,
-    FadeInUp,
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-    getLastScanEventId,
-    markScanConfirmed,
-    recordScanEvent,
-    submitScanCorrection,
-    type ScanSource,
+  getLastScanEventId,
+  markScanConfirmed,
+  recordScanEvent,
+  submitScanCorrection,
+  type ScanSource,
 } from "../../src/features/feedback/scan-feedback.service";
 
 import { useNutritionDraftStore } from "../../src/features/nutrition/nutrition.draft.store";
 
+import { useChallengeStore } from "../../src/features/challenge/challenge.store";
 import {
-    detectMealTime,
-    type MealTime,
+  getInsightMessage,
+  isInsightMoment,
+} from "../../src/features/challenge/insight-trigger.service";
+import {
+  detectMealTime,
+  type MealTime,
 } from "../../src/features/nutrition/mealtime";
 import {
-    captureOriginalEstimate,
-    clearOriginalEstimate,
-    trackCorrection,
+  captureOriginalEstimate,
+  clearOriginalEstimate,
+  trackCorrection,
 } from "../../src/features/nutrition/memory/correction-tracker";
 import { displayName } from "../../src/features/nutrition/nutrition-pipeline";
 import { getMealsForDate } from "../../src/features/nutrition/nutrition.selectors";
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
 import {
-    useRetentionEngine,
-    useRetentionStore,
+  useRetentionEngine,
+  useRetentionStore,
 } from "../../src/features/retention";
 import {
-    ShareMilestoneModal,
-    useShareMilestone,
+  ShareMilestoneModal,
+  useShareMilestone,
 } from "../../src/features/share";
+import { useScanCreditsStore } from "../../src/features/subscription/scanCredits.store";
 import { usePaywallTrigger } from "../../src/features/subscription/usePaywallTrigger";
 import { useGoalsStore, useNutritionStore } from "../../src/stores";
 import { useTheme } from "../../src/theme/useTheme";
@@ -212,6 +218,42 @@ export default function ConfirmMealScreen() {
 
       // Record first meal for retention engine
       recordFirstMeal();
+
+      // ── Insight detection for challenge monetisation ──
+      // Check if this meal creates a behaviour-based insight moment
+      const scanCount = useScanCreditsStore.getState().credits.totalUsed;
+      const mealCalories = draft?.calories ?? 0;
+      const calorieDeviation = Math.abs(
+        consumedToday + mealCalories - calorieBudget
+      );
+      const proteinTarget = (calorieBudget * 0.3) / 4; // ~30% of cals from protein
+      const proteinRatio =
+        proteinTarget > 0 ? (draft?.protein ?? 0) / proteinTarget : 1;
+      const dailyIntakePercent =
+        calorieBudget > 0 ? (consumedToday + mealCalories) / calorieBudget : 0;
+      const timeOfDay = new Date().getHours();
+
+      const insightInput = {
+        scanCount,
+        calorieDeviation,
+        proteinRatio,
+        dailyIntakePercent,
+        timeOfDay,
+      };
+
+      if (isInsightMoment(insightInput)) {
+        // Only update if the message is materially different — avoids
+        // noisy rewrites that make the evidence feel unstable.
+        const message = getInsightMessage(insightInput);
+        const current = useChallengeStore.getState().lastInsightMessage;
+        if (message && message !== current) {
+          useChallengeStore.getState().markInsightTriggered(message);
+        } else if (!useChallengeStore.getState().insightTriggered) {
+          useChallengeStore
+            .getState()
+            .markInsightTriggered(message ?? undefined);
+        }
+      }
 
       // Get after-log celebration content from the day journey
       const afterLog = retention.getAfterLogContent();

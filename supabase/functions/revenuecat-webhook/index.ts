@@ -106,7 +106,7 @@ serve(async (req: Request) => {
 
     // ── Map event to subscription status ──
     let status: string;
-    const hasPremium = entitlementIds?.includes("Caloric Premium");
+    const hasPremium = entitlementIds?.includes("premium");
 
     switch (eventType) {
       case "INITIAL_PURCHASE":
@@ -146,7 +146,7 @@ serve(async (req: Request) => {
         {
           user_id: userId,
           app_user_id: appUserId,
-          entitlement_id: hasPremium ? "Caloric Premium" : null,
+          entitlement_id: hasPremium ? "premium" : null,
           product_id: productId ?? null,
           status,
           expires_at: expiresAt,

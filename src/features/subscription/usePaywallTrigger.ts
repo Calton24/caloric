@@ -20,13 +20,24 @@
  * (prevents re-showing the same milestone paywall repeatedly).
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getStorage } from "../../infrastructure/storage";
 import type { GatedFeature } from "../../ui/components/FeatureGatePaywall";
 import type { SoftPaywallTrigger } from "../../ui/components/SoftPaywall";
+import type {
+    ChallengePhase,
+    PaywallContext,
+} from "../challenge/challenge-monetisation.types";
+import {
+    buildPaywallContext,
+    resolvePhase,
+    shouldTriggerPaywall,
+} from "../challenge/challenge-phase.service";
+import { computeProgress } from "../challenge/challenge.service";
 import { useChallengeStore } from "../challenge/challenge.store";
 import { getDayPaywall, type PaywallTrigger } from "../retention/day-journey";
 import { useSubscriptionStore } from "../subscription/subscription.store";
+import { useRevenueCat } from "../subscription/useRevenueCat";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -52,6 +63,11 @@ export type PaywallAction =
       /** Current streak day that triggered this paywall */
       streakDay: number;
     }
+  | {
+      type: "challenge";
+      /** Full paywall context for the Paywall component */
+      paywallContext: PaywallContext;
+    }
   | null;
 
 interface TriggerState {
@@ -71,11 +87,20 @@ export function usePaywallTrigger() {
   const isPro = useSubscriptionStore(
     (s) => s.subscription.hasActiveSubscription
   );
+  const { isIntroEligible: storeIntroEligible } = useRevenueCat();
   const challenge = useChallengeStore((s) => s.challenge);
+  const insightTriggered = useChallengeStore((s) => s.insightTriggered);
+  const introUsed = useChallengeStore((s) => s.introUsed);
+  const lastInsightMessage = useChallengeStore((s) => s.lastInsightMessage);
+  const milestonesSeen = useChallengeStore((s) => s.milestonesSeen);
   const [triggerState, setTriggerState] = useState<TriggerState>({
     seenTriggers: new Set(),
     loaded: false,
   });
+
+  // ── Transient state for challenge phase tracking ──
+  const lastPaywallPhaseRef = useRef<ChallengePhase | undefined>(undefined);
+  const lastPaywallShownAtRef = useRef<number | undefined>(undefined);
 
   // Load seen triggers from storage
   useEffect(() => {
@@ -210,6 +235,71 @@ export function usePaywallTrigger() {
     [isPro]
   );
 
+  /**
+   * Evaluate the challenge monetisation phase and determine if a
+   * challenge-specific paywall should fire.
+   *
+   * Call after: scan complete, insight displayed, app resume, day change.
+   * Tracks lastPhase + lastShownAt internally (transient, not persisted).
+   */
+  const evaluateChallengeBehaviour = useCallback(
+    (opts: {
+      loggedDates: string[];
+      isInCriticalFlow: boolean;
+    }): PaywallAction => {
+      if (isPro) return null;
+      if (!challenge || challenge.status !== "active") return null;
+
+      const progress = computeProgress(challenge, opts.loggedDates);
+      const phaseResult = resolvePhase({
+        challengeDay: progress.currentDay,
+        insightTriggered,
+        introUsed,
+        hasPurchased: isPro,
+        milestonesSeen,
+      });
+
+      const now = Date.now();
+      const shouldShow = shouldTriggerPaywall({
+        phase: phaseResult.phase,
+        lastPhase: lastPaywallPhaseRef.current,
+        lastShownAt: lastPaywallShownAtRef.current,
+        currentTime: now,
+        isInCriticalFlow: opts.isInCriticalFlow,
+      });
+
+      if (!shouldShow) return null;
+
+      // Update transient tracking
+      lastPaywallPhaseRef.current = phaseResult.phase;
+      lastPaywallShownAtRef.current = now;
+
+      const paywallContext = buildPaywallContext(
+        phaseResult.phase,
+        phaseResult.milestoneDay,
+        lastInsightMessage
+      );
+
+      return {
+        type: "challenge",
+        paywallContext: {
+          ...paywallContext,
+          showIntroPricing:
+            paywallContext.showIntroPricing && storeIntroEligible,
+        },
+      };
+    },
+    [
+      isPro,
+      challenge,
+      insightTriggered,
+      introUsed,
+      milestonesSeen,
+      storeIntroEligible,
+      lastInsightMessage,
+    ]
+  );
+
   return {
     /** True when trigger state has been loaded from storage */
     isReady: triggerState.loaded,
@@ -225,5 +315,7 @@ export function usePaywallTrigger() {
     evaluateChallengeCompletion,
     /** Get contextual streak nudge copy */
     getStreakNudge,
+    /** Evaluate challenge monetisation phase */
+    evaluateChallengeBehaviour,
   };
 }
