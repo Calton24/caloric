@@ -10,7 +10,21 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.calton24.caloric"
+      "bundleIdentifier": "com.calton24.caloric.dev",
+      "infoPlist": {
+        "NSMotionUsageDescription": "This app uses the pedometer to track your steps, distance, and floors climbed for the Live Activity.",
+        "NSMicrophoneUsageDescription": "Allow Caloric to use the microphone for voice meal logging.",
+        "NSSpeechRecognitionUsageDescription": "Allow Caloric to use speech recognition to convert your voice to food entries.",
+        "NSCameraUsageDescription": "Allow Caloric to use the camera to scan and identify food for calorie tracking.",
+        "NSHealthShareUsageDescription": "Allow Caloric to read your weight data from Apple Health for progress tracking.",
+        "NSHealthUpdateUsageDescription": "Allow Caloric to save your meals and weight to Apple Health."
+      },
+      "entitlements": {
+        "com.apple.developer.healthkit": true,
+        "com.apple.developer.applesignin": [
+          "Default"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +35,11 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.calton24.caloric"
+      "package": "com.calton24.caloric.dev",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA"
+      ]
     },
     "web": {
       "output": "static",
@@ -45,6 +63,20 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "APP_PROFILE": "caloric",
+      "APP_ENV": "dev",
+      "enableSentryInDev": false,
+      "environment": "dev",
+      "router": {},
+      "eas": {
+        "projectId": "f4e04abd-0a14-493f-adcd-7bff9750ee56"
+      }
+    },
+    "runtimeVersion": "1.0.0",
+    "updates": {
+      "url": "https://u.expo.dev/f4e04abd-0a14-493f-adcd-7bff9750ee56"
     }
   }
 }

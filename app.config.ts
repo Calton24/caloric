@@ -108,6 +108,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         {
           ios: {
             deploymentTarget: "16.0",
+            // Suppress deprecation warnings from native dependencies
+            extraPodfilePropertiesAppend: {
+              CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS: "NO",
+              GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS: "NO",
+            },
           },
         },
       ],
@@ -179,7 +184,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       POSTHOG_API_KEY: process.env.EXPO_PUBLIC_POSTHOG_API_KEY,
       POSTHOG_HOST: process.env.EXPO_PUBLIC_POSTHOG_HOST,
       eas: {
-        projectId: process.env.EAS_PROJECT_ID || "your-eas-project-id",
+        projectId:
+          process.env.EAS_PROJECT_ID || "f4e04abd-0a14-493f-adcd-7bff9750ee56",
       },
     },
   };
