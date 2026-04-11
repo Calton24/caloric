@@ -189,6 +189,18 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       eas: {
         projectId:
           process.env.EAS_PROJECT_ID || "f4e04abd-0a14-493f-adcd-7bff9750ee56",
+        build: {
+          experimental: {
+            ios: {
+              appExtensions: [
+                {
+                  targetName: "CaloricWidget",
+                  bundleIdentifier: `${appConfig.bundleIdentifier}.CaloricWidget`,
+                },
+              ],
+            },
+          },
+        },
       },
     },
   };
