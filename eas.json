@@ -46,6 +46,19 @@
       }
     },
 
+    "caloric-store": {
+      "distribution": "store",
+      "env": {
+        "EXPO_PUBLIC_APP_PROFILE": "caloric",
+        "EXPO_PUBLIC_APP_ENV": "prod"
+      },
+      "prebuildCommand": "npx expo prebuild --clean",
+      "ios": {
+        "autoIncrement": true,
+        "image": "macos-sequoia-15.3-xcode-16.2"
+      }
+    },
+
     "preview": {
       "distribution": "internal",
       "channel": "preview",
@@ -60,7 +73,7 @@
   },
 
   "submit": {
-    "caloric-prod": {
+    "caloric-store": {
       "ios": {
         "appleId": "madire24@googlemail.com",
         "ascAppId": "6761738426",
