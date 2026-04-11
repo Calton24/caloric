@@ -343,12 +343,15 @@ function withWidgetTarget(config) {
     const configListUuid = proj.generateUuid();
 
     const appVersion = mod.version || "1.0.0";
+    // Use a known team ID — resolveDevTeam may return empty during prebuild
+    // since EAS injects signing after prebuild via fastlane
+    const teamId = devTeam && devTeam !== '""' ? devTeam : "93HBV58WBY";
     const sharedSettings = {
       ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: '"AccentColor"',
       ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME: '"WidgetBackground"',
       CODE_SIGN_STYLE: "Automatic",
       CURRENT_PROJECT_VERSION: '"1"',
-      DEVELOPMENT_TEAM: devTeam,
+      DEVELOPMENT_TEAM: teamId,
       GENERATE_INFOPLIST_FILE: "YES",
       INFOPLIST_FILE: `"${WIDGET_NAME}/Info.plist"`,
       IPHONEOS_DEPLOYMENT_TARGET: "16.2",
