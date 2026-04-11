@@ -42,7 +42,7 @@
       "ios": {
         "simulator": false,
         "autoIncrement": true,
-        "image": "macos-sequoia-15.4-xcode-16.2"
+        "image": "macos-sequoia-15.3-xcode-16.2"
       }
     },
 
