@@ -140,10 +140,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // ships a stable plugin. Until then the factory falls back to Noop.
       // See: src/infrastructure/liveActivity/factory.ts
       "./plugins/withLiveActivity",
-      [
-        "./plugins/withIconComposer",
-        { iconPath: "./assets/images/caloric.icon" },
-      ],
+      // withIconComposer disabled — .icon bundles require Xcode 26+, EAS uses Xcode 16.2
+      // ["./plugins/withIconComposer", { iconPath: "./assets/images/caloric.icon" }],
       "expo-secure-store",
       [
         "@react-native-google-signin/google-signin",
