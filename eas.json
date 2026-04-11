@@ -42,13 +42,7 @@
       "ios": {
         "simulator": false,
         "autoIncrement": true,
-        "image": "macos-sequoia-15.3-xcode-16.2",
-        "appExtensions": [
-          {
-            "targetName": "CaloricWidget",
-            "bundleIdentifier": "com.calton.caloric.CaloricWidget"
-          }
-        ]
+        "image": "macos-sequoia-15.3-xcode-16.2"
       }
     },
 
