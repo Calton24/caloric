@@ -40,7 +40,8 @@
       },
       "prebuildCommand": "npx expo prebuild --clean",
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "autoIncrement": true
       }
     },
 
