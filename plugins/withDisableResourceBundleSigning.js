@@ -17,8 +17,8 @@ const withDisableResourceBundleSigning = (config) => {
 
       let podfileContent = fs.readFileSync(podfilePath, "utf-8");
 
-      // Check if the fix is already applied
-      if (podfileContent.includes("CODE_SIGNING_ALLOWED")) {
+      // Check if the SPECIFIC bundle signing fix is already applied (not just any CODE_SIGNING_ALLOWED)
+      if (podfileContent.includes("com.apple.product-type.bundle")) {
         console.log("✓ Resource bundle signing fix already applied");
         return config;
       }
@@ -28,8 +28,8 @@ const withDisableResourceBundleSigning = (config) => {
     # Fix for Xcode 14+ resource bundle signing
     installer.pods_project.targets.each do |target|
       if target.respond_to?(:product_type) && target.product_type == "com.apple.product-type.bundle"
-        target.build_configurations.each do |config|
-          config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+        target.build_configurations.each do |bc|
+          bc.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
         end
       end
     end
