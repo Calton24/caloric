@@ -202,11 +202,13 @@ export default function SettingsScreen() {
           Alert.alert("iOS Only", "Live Activities are only available on iOS.");
           return;
         }
-        if (!areLiveActivitiesAvailable()) {
+        const available = areLiveActivitiesAvailable();
+        console.log("[Settings] Live Activities available:", available);
+        if (!available) {
           Alert.alert(
             "Live Activities Unavailable",
-            "Make sure you're running a development build (not Expo Go) on iOS 16.2+, " +
-              "and that Live Activities are enabled in iOS Settings > Caloric > Live Activities."
+            "Make sure Live Activities are enabled in iOS Settings > Caloric > Live Activities, " +
+              "and that you're running iOS 16.2 or later."
           );
           return;
         }

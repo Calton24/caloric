@@ -45,8 +45,8 @@ export default function LiveActivityIntroScreen() {
       // The native module isn't loaded (Expo Go) or user disabled LA in iOS Settings
       Alert.alert(
         "Live Activities Unavailable",
-        "Live Activities require a development build (not Expo Go) and iOS 16.2+. " +
-          "If you've built the app, check that Live Activities are enabled in iOS Settings > Caloric > Live Activities.",
+        "Please enable Live Activities in iOS Settings > Caloric > Live Activities, " +
+          "and make sure you're running iOS 16.2 or later.",
         [
           {
             text: "Continue Without",

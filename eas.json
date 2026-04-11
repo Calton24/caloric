@@ -36,7 +36,9 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_APP_PROFILE": "caloric",
-        "EXPO_PUBLIC_APP_ENV": "prod"
+        "EXPO_PUBLIC_APP_ENV": "prod",
+        "EXPO_PUBLIC_AUTH_GOOGLE": "1",
+        "EXPO_PUBLIC_AUTH_APPLE": "1"
       },
       "prebuildCommand": "npx expo prebuild --clean",
       "ios": {
@@ -50,7 +52,9 @@
       "distribution": "store",
       "env": {
         "EXPO_PUBLIC_APP_PROFILE": "caloric",
-        "EXPO_PUBLIC_APP_ENV": "prod"
+        "EXPO_PUBLIC_APP_ENV": "prod",
+        "EXPO_PUBLIC_AUTH_GOOGLE": "1",
+        "EXPO_PUBLIC_AUTH_APPLE": "1"
       },
       "prebuildCommand": "npx expo prebuild --clean",
       "ios": {

@@ -77,6 +77,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           "Allow Caloric to use speech recognition to convert your voice to food entries.",
         NSCameraUsageDescription:
           "Allow Caloric to use the camera to scan and identify food for calorie tracking.",
+        NSLocationWhenInUseUsageDescription:
+          "Allow Caloric to add location data to photos taken with the camera for food logging.",
         NSHealthShareUsageDescription:
           "Allow Caloric to read your weight data from Apple Health for progress tracking.",
         NSHealthUpdateUsageDescription:

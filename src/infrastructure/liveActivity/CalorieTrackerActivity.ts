@@ -57,7 +57,14 @@ try {
   nativeModule = requireNativeModule("LiveActivityModule");
   moduleAvailable =
     typeof nativeModule?.startCalorieTrackerActivity === "function";
-} catch {
+  console.log(
+    "[CalorieTrackerActivity] moduleAvailable:",
+    moduleAvailable,
+    "isSupported:",
+    nativeModule?.isSupported?.()
+  );
+} catch (e) {
+  console.warn("[CalorieTrackerActivity] Failed to load native module:", e);
   moduleAvailable = false;
 }
 
