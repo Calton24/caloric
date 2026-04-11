@@ -346,11 +346,26 @@ function withWidgetTarget(config) {
     // Use a known team ID — resolveDevTeam may return empty during prebuild
     // since EAS injects signing after prebuild via fastlane
     const teamId = devTeam && devTeam !== '""' ? devTeam : "93HBV58WBY";
+    // Read the parent app's CURRENT_PROJECT_VERSION so the widget version matches
+    const rootConfigListUuid = proj.getFirstProject().firstProject.buildConfigurationList;
+    const rootConfigList = objects["XCConfigurationList"][rootConfigListUuid];
+    let parentBuildVersion = "1";
+    if (rootConfigList && rootConfigList.buildConfigurations) {
+      for (const ref of rootConfigList.buildConfigurations) {
+        const uuid = ref.value || ref;
+        const bc = objects["XCBuildConfiguration"][uuid];
+        if (bc && bc.buildSettings && bc.buildSettings.CURRENT_PROJECT_VERSION) {
+          parentBuildVersion = bc.buildSettings.CURRENT_PROJECT_VERSION;
+          break;
+        }
+      }
+    }
+
     const sharedSettings = {
       ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: '"AccentColor"',
       ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME: '"WidgetBackground"',
       CODE_SIGN_STYLE: "Automatic",
-      CURRENT_PROJECT_VERSION: '"1"',
+      CURRENT_PROJECT_VERSION: parentBuildVersion,
       DEVELOPMENT_TEAM: teamId,
       GENERATE_INFOPLIST_FILE: "YES",
       INFOPLIST_FILE: `"${WIDGET_NAME}/Info.plist"`,

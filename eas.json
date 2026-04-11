@@ -60,11 +60,11 @@
   },
 
   "submit": {
-    "production": {
+    "caloric-prod": {
       "ios": {
-        "appleId": "your-apple-id@example.com",
-        "ascAppId": "your-app-store-connect-app-id",
-        "appleTeamId": "your-team-id"
+        "appleId": "madire24@googlemail.com",
+        "ascAppId": "6761738426",
+        "appleTeamId": "93HBV58WBY"
       },
       "android": {
         "serviceAccountKeyPath": "./secrets/google-play-service-account.json",
