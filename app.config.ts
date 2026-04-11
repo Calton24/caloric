@@ -112,11 +112,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
             extraPodfilePropertiesAppend: {
               CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS: "NO",
               GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS: "NO",
-              CODE_SIGNING_ALLOWED: "NO",
             },
           },
         },
       ],
+      // Fix Xcode 14+ resource bundle code signing
+      "./plugins/withDisableResourceBundleSigning",
       "expo-router",
       [
         "expo-splash-screen",
