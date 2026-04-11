@@ -15,7 +15,6 @@
         "EXPO_PUBLIC_APP_PROFILE": "caloric",
         "EXPO_PUBLIC_APP_ENV": "dev"
       },
-      "prebuildCommand": "./scripts/eas-build-firebase-setup.sh",
       "ios": {
         "simulator": true
       },
@@ -30,8 +29,7 @@
       "env": {
         "EXPO_PUBLIC_APP_PROFILE": "caloric",
         "EXPO_PUBLIC_APP_ENV": "staging"
-      },
-      "prebuildCommand": "./scripts/eas-build-firebase-setup.sh"
+      }
     },
 
     "caloric-prod": {
@@ -40,7 +38,7 @@
         "EXPO_PUBLIC_APP_PROFILE": "caloric",
         "EXPO_PUBLIC_APP_ENV": "prod"
       },
-      "prebuildCommand": "npx expo prebuild --clean && ./scripts/eas-build-firebase-setup.sh",
+      "prebuildCommand": "npx expo prebuild --clean",
       "ios": {
         "simulator": false
       }
