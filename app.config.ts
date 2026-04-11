@@ -68,6 +68,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       supportsTablet: true,
       bundleIdentifier: appConfig.bundleIdentifier,
       infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
         NSMotionUsageDescription:
           "This app uses the pedometer to track your steps, distance, and floors climbed for the Live Activity.",
         NSMicrophoneUsageDescription:
