@@ -38,11 +38,11 @@
         "EXPO_PUBLIC_APP_PROFILE": "caloric",
         "EXPO_PUBLIC_APP_ENV": "prod"
       },
-      "prebuildCommand": "npx expo prebuild --clean",
+      "prebuildCommand": "bash scripts/prebuild-ios.sh",
       "ios": {
         "simulator": false,
         "autoIncrement": true,
-        "image": "sdk-54"
+        "image": "macos-ventura-13.6-xcode-15.2"
       }
     },
 
