@@ -58,6 +58,7 @@ import { useWaterStore } from "../../src/features/water/water.store";
 import { haptics } from "../../src/infrastructure/haptics";
 import { toISODate } from "../../src/lib/utils/date";
 import { useTheme } from "../../src/theme/useTheme";
+import { CoachInsight } from "../../src/ui/components/CoachInsight";
 import { DayJourneyBanner } from "../../src/ui/components/DailyMotivationBanner";
 import { DaySelector } from "../../src/ui/components/DaySelector";
 import { EditMealSheet } from "../../src/ui/components/EditMealSheet";
@@ -196,13 +197,40 @@ function SwipeTutorialOverlay({
 }) {
   const translateX = useSharedValue(0);
   const opacity = useSharedValue(0);
+  const isMounted = React.useRef(true);
 
   React.useEffect(() => {
+    isMounted.current = true;
     // Fade in
     opacity.value = withTiming(1, { duration: 300 });
 
     // Auto-play swipe animation in a loop
-    const animate = () => {
+    const scheduleNext = () => {
+      if (!isMounted.current) return;
+      timerRef.current = setTimeout(() => {
+        if (!isMounted.current) return;
+        translateX.value = 0;
+        translateX.value = withTiming(
+          -90,
+          { duration: 800, easing: Easing.inOut(Easing.ease) },
+          (finished) => {
+            if (finished) {
+              translateX.value = withTiming(0, { duration: 600 }, (done) => {
+                if (done) {
+                  runOnJS(scheduleNext)();
+                }
+              });
+            }
+          }
+        );
+      }, 1000);
+    };
+
+    let timerRef = { current: null as ReturnType<typeof setTimeout> | null };
+
+    // Start after short delay
+    timerRef.current = setTimeout(() => {
+      if (!isMounted.current) return;
       translateX.value = 0;
       translateX.value = withTiming(
         -90,
@@ -211,18 +239,18 @@ function SwipeTutorialOverlay({
           if (finished) {
             translateX.value = withTiming(0, { duration: 600 }, (done) => {
               if (done) {
-                // Loop after 1 second delay
-                setTimeout(animate, 1000);
+                runOnJS(scheduleNext)();
               }
             });
           }
         }
       );
-    };
+    }, 500);
 
-    // Start after short delay
-    const timer = setTimeout(animate, 500);
-    return () => clearTimeout(timer);
+    return () => {
+      isMounted.current = false;
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, []);
 
   const cardStyle = useAnimatedStyle(() => ({
@@ -1142,6 +1170,21 @@ export default function HomeScreen() {
                 sub={retention.dayBanner.sub}
                 phase={retention.dayBanner.phase}
                 day={retention.dayBanner.day}
+              />
+              <TSpacer size="sm" />
+            </>
+          )}
+
+          {/* AI Coach nudge — passive, context-aware insight */}
+          {viewMode === "D" && (
+            <>
+              <CoachInsight
+                caloriesConsumed={totals.calories}
+                calorieGoal={targetCalories}
+                proteinLeft={Math.max(0, proteinTarget - totals.protein)}
+                carbsLeft={Math.max(0, carbsTarget - totals.carbs)}
+                fatLeft={Math.max(0, fatTarget - totals.fat)}
+                streakDays={currentStreak}
               />
               <TSpacer size="sm" />
             </>

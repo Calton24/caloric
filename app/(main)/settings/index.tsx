@@ -12,7 +12,6 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import React, { useCallback } from "react";
 import {
     Alert,
@@ -340,49 +339,55 @@ export default function SettingsScreen() {
             </View>
           </Animated.View>
 
-          <TSpacer size="lg" />
+          {/* ── Apple Health (iOS only) ── */}
+          {Platform.OS === "ios" && (
+            <>
+              <TSpacer size="lg" />
+              <Animated.View entering={FadeInDown.duration(400).delay(200)}>
+                <SectionHeader title="Apple Health" />
+                <View
+                  style={[
+                    styles.section,
+                    { backgroundColor: theme.colors.surfaceSecondary },
+                  ]}
+                >
+                  <SettingsRow
+                    icon="heart"
+                    iconColor="#F87171"
+                    label="Apple Health"
+                    onPress={() =>
+                      router.push("/(main)/settings/apple-health" as any)
+                    }
+                  />
+                </View>
+              </Animated.View>
+            </>
+          )}
 
-          {/* ── Apple Health ── */}
-          <Animated.View entering={FadeInDown.duration(400).delay(200)}>
-            <SectionHeader title="Apple Health" />
-            <View
-              style={[
-                styles.section,
-                { backgroundColor: theme.colors.surfaceSecondary },
-              ]}
-            >
-              <SettingsRow
-                icon="heart"
-                iconColor="#F87171"
-                label="Apple Health"
-                onPress={() =>
-                  router.push("/(main)/settings/apple-health" as any)
-                }
-              />
-            </View>
-          </Animated.View>
-
-          <TSpacer size="lg" />
-
-          {/* ── Extensions ── */}
-          <Animated.View entering={FadeInDown.duration(400).delay(300)}>
-            <SectionHeader title="Extensions" />
-            <View
-              style={[
-                styles.section,
-                { backgroundColor: theme.colors.surfaceSecondary },
-              ]}
-            >
-              <SettingsToggle
-                icon="phone-portrait-outline"
-                iconColor={theme.colors.primary}
-                label="Live Activities"
-                description="Showing the current progress on your lockscreen."
-                value={liveActivitiesEnabled}
-                onToggle={handleToggleLiveActivities}
-              />
-            </View>
-          </Animated.View>
+          {/* ── Extensions (iOS only) ── */}
+          {Platform.OS === "ios" && (
+            <>
+              <TSpacer size="lg" />
+              <Animated.View entering={FadeInDown.duration(400).delay(300)}>
+                <SectionHeader title="Extensions" />
+                <View
+                  style={[
+                    styles.section,
+                    { backgroundColor: theme.colors.surfaceSecondary },
+                  ]}
+                >
+                  <SettingsToggle
+                    icon="phone-portrait-outline"
+                    iconColor={theme.colors.primary}
+                    label="Live Activities"
+                    description="Showing the current progress on your lockscreen."
+                    value={liveActivitiesEnabled}
+                    onToggle={handleToggleLiveActivities}
+                  />
+                </View>
+              </Animated.View>
+            </>
+          )}
 
           {/* ── Legal ── */}
           <Animated.View entering={FadeInDown.duration(400).delay(350)}>
@@ -398,9 +403,15 @@ export default function SettingsScreen() {
                 iconColor={theme.colors.textSecondary}
                 label="Privacy Policy"
                 onPress={() =>
-                  WebBrowser.openBrowserAsync(
-                    "https://calton24.github.io/caloric/privacy-policy"
-                  )
+                  router.push({
+                    pathname: "/(modals)/web-viewer",
+                    params: {
+                      url: encodeURIComponent(
+                        "https://caloric-sage.vercel.app/privacy"
+                      ),
+                      title: encodeURIComponent("Privacy Policy"),
+                    },
+                  })
                 }
               />
               <SettingsRow
@@ -408,9 +419,15 @@ export default function SettingsScreen() {
                 iconColor={theme.colors.textSecondary}
                 label="Terms of Service"
                 onPress={() =>
-                  WebBrowser.openBrowserAsync(
-                    "https://calton24.github.io/caloric/terms-of-service"
-                  )
+                  router.push({
+                    pathname: "/(modals)/web-viewer",
+                    params: {
+                      url: encodeURIComponent(
+                        "https://caloric-sage.vercel.app/terms"
+                      ),
+                      title: encodeURIComponent("Terms of Service"),
+                    },
+                  })
                 }
               />
             </View>

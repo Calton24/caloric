@@ -13,7 +13,6 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import React from "react";
 import {
     Alert,
@@ -32,6 +31,7 @@ import {
     exportMealsCSV,
     exportWeightCSV,
 } from "../src/features/export/data-export.service";
+import { deleteUserAccount } from "../src/features/settings/account-deletion.service";
 import { useRevenueCat } from "../src/features/subscription/useRevenueCat";
 import {
     useGoalsStore,
@@ -504,9 +504,31 @@ export default function SettingsScreen() {
                 iconColor={theme.colors.textSecondary}
                 label="Privacy Policy"
                 onPress={() =>
-                  WebBrowser.openBrowserAsync(
-                    "https://calton24.github.io/caloric/privacy-policy"
-                  )
+                  router.push({
+                    pathname: "/(modals)/web-viewer",
+                    params: {
+                      url: encodeURIComponent(
+                        "https://caloric-sage.vercel.app/privacy"
+                      ),
+                      title: encodeURIComponent("Privacy Policy"),
+                    },
+                  })
+                }
+              />
+              <SettingsRow
+                icon="document-outline"
+                iconColor={theme.colors.textSecondary}
+                label="Terms of Service"
+                onPress={() =>
+                  router.push({
+                    pathname: "/(modals)/web-viewer",
+                    params: {
+                      url: encodeURIComponent(
+                        "https://caloric-sage.vercel.app/terms"
+                      ),
+                      title: encodeURIComponent("Terms of Service"),
+                    },
+                  })
                 }
               />
             </View>
@@ -532,6 +554,36 @@ export default function SettingsScreen() {
                   showChevron={false}
                 />
               )}
+              <SettingsRow
+                icon="trash-outline"
+                iconColor={theme.colors.error}
+                label="Delete Account"
+                onPress={() => {
+                  Alert.alert(
+                    "Delete Account",
+                    "This will permanently delete your account and all associated data. This action cannot be undone.\n\nAre you sure you want to continue?",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Delete",
+                        style: "destructive",
+                        onPress: async () => {
+                          const result = await deleteUserAccount();
+                          if (result.success) {
+                            router.replace("/(onboarding)/landing");
+                          } else {
+                            Alert.alert(
+                              "Deletion Failed",
+                              result.error ||
+                                "Unable to delete account. Please contact support at support@caloric.app"
+                            );
+                          }
+                        },
+                      },
+                    ]
+                  );
+                }}
+              />
               <SettingsRow
                 icon="log-out-outline"
                 iconColor={theme.colors.error}

@@ -15,7 +15,7 @@ export default function Home() {
       <h1
         style={{ fontSize: "2.5rem", fontWeight: 700, marginBottom: "0.5rem" }}
       >
-        Caloric
+        CalCut
       </h1>
       <p style={{ fontSize: "1.125rem", color: "#666" }}>
         Track your nutrition effortlessly.

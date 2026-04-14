@@ -17,13 +17,12 @@
         "NSSpeechRecognitionUsageDescription": "Allow Caloric to use speech recognition to convert your voice to food entries.",
         "NSCameraUsageDescription": "Allow Caloric to use the camera to scan and identify food for calorie tracking.",
         "NSHealthShareUsageDescription": "Allow Caloric to read your weight data from Apple Health for progress tracking.",
-        "NSHealthUpdateUsageDescription": "Allow Caloric to save your meals and weight to Apple Health."
+        "NSHealthUpdateUsageDescription": "Allow Caloric to save your meals and weight to Apple Health.",
+        "NSUserTrackingUsageDescription": "This allows us to provide you with personalized content and better ads. Your privacy is important to us."
       },
       "entitlements": {
         "com.apple.developer.healthkit": true,
-        "com.apple.developer.applesignin": [
-          "Default"
-        ]
+        "com.apple.developer.applesignin": ["Default"]
       }
     },
     "android": {

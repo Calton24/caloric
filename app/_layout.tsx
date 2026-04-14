@@ -2,8 +2,21 @@ import { CaloricProviders } from "@/src/CaloricProviders";
 import { useScreenTracking } from "@/src/infrastructure/analytics";
 import { useGrowthScreenTracking } from "@/src/infrastructure/growth";
 import { useTheme } from "@/src/theme/useTheme";
+import {
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
+    PlusJakartaSans_800ExtraBold_Italic,
+} from "@expo-google-fonts/plus-jakarta-sans";
+import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect } from "react";
 import "react-native-reanimated";
+
+SplashScreen.preventAutoHideAsync();
 
 function RootStack() {
   const { theme } = useTheme();
@@ -81,6 +94,25 @@ function RootStack() {
 export default function RootLayout() {
   useScreenTracking();
   useGrowthScreenTracking();
+
+  const [fontsLoaded] = useFonts({
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
+    PlusJakartaSans_800ExtraBold_Italic,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <CaloricProviders testID="app-ready">

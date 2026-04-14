@@ -42,6 +42,10 @@ export default function ModalsLayout() {
             <Stack.Screen name="permissions-setup" />
             <Stack.Screen name="live-activity-intro" />
             <Stack.Screen name="guide" />
+            <Stack.Screen
+              name="web-viewer"
+              options={{ presentation: "modal" }}
+            />
           </Stack>
         </BottomSheetProvider>
       </BottomSheetModalProvider>

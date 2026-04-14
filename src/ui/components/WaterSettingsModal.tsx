@@ -10,7 +10,16 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { FlatList, Modal, Pressable, StyleSheet, View } from "react-native";
+import {
+    Dimensions,
+    FlatList,
+    Modal,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useProfileStore } from "../../features/profile/profile.store";
 import { pushProfile } from "../../features/sync/sync.service";
 import { useTheme } from "../../theme/useTheme";
@@ -21,7 +30,8 @@ const SERVING_OPTIONS = [150, 200, 250, 330, 500, 750, 1000, 1250];
 const GOAL_OPTIONS = [1000, 1500, 2000, 2500, 3000, 3500, 4000];
 
 const ITEM_HEIGHT = 56;
-const VISIBLE_ITEMS = 5; // odd number so selection is centred
+const VISIBLE_ITEMS = 3; // odd number so selection is centred
+const WINDOW_H = Dimensions.get("window").height;
 
 interface Props {
   visible: boolean;
@@ -188,6 +198,7 @@ function DrumPicker({
 export function WaterSettingsModal({ visible, onClose }: Props) {
   const { theme } = useTheme();
   const isDark = theme.mode === "dark";
+  const insets = useSafeAreaInsets();
 
   const profile = useProfileStore((s) => s.profile);
   const setWaterSettings = useProfileStore((s) => s.setWaterSettings);
@@ -234,7 +245,14 @@ export function WaterSettingsModal({ visible, onClose }: Props) {
     >
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable
-          style={[styles.sheet, { backgroundColor: BG }]}
+          style={[
+            styles.sheet,
+            {
+              backgroundColor: BG,
+              maxHeight: WINDOW_H * 0.9,
+              paddingBottom: insets.bottom + 8,
+            },
+          ]}
           onPress={() => {}}
         >
           {/* Handle bar */}
@@ -267,77 +285,92 @@ export function WaterSettingsModal({ visible, onClose }: Props) {
             <View style={styles.closeBtn} />
           </View>
 
-          {/* Serving size row */}
-          <View style={[styles.row, { borderBottomColor: BORDER }]}>
-            <TText style={[styles.rowLabel, { color: theme.colors.text }]}>
-              Serving size
-            </TText>
-            <TText
-              style={[styles.rowValue, { color: theme.colors.textSecondary }]}
+          {/* Scrollable body */}
+          <ScrollView
+            bounces={false}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+          >
+            {/* Serving size row */}
+            <View style={[styles.row, { borderBottomColor: BORDER }]}>
+              <TText style={[styles.rowLabel, { color: theme.colors.text }]}>
+                Serving size
+              </TText>
+              <TText
+                style={[styles.rowValue, { color: theme.colors.textSecondary }]}
+              >
+                {servingMl >= 1000
+                  ? `${(servingMl / 1000).toFixed(servingMl % 1000 === 0 ? 0 : 1)} L`
+                  : `${servingMl} ml`}
+                {"  ✏️"}
+              </TText>
+            </View>
+
+            {/* Serving size picker */}
+            <DrumPicker
+              options={SERVING_OPTIONS}
+              selected={servingMl}
+              onSelect={setServingMl}
+              formatOption={(v) => v.toLocaleString()}
+            />
+
+            {/* Daily goal picker label */}
+            <View
+              style={[
+                styles.row,
+                {
+                  borderBottomColor: BORDER,
+                  borderTopColor: BORDER,
+                  borderTopWidth: StyleSheet.hairlineWidth,
+                },
+              ]}
             >
-              {servingMl >= 1000
-                ? `${(servingMl / 1000).toFixed(servingMl % 1000 === 0 ? 0 : 1)} L`
-                : `${servingMl} ml`}
-              {"  ✏️"}
-            </TText>
-          </View>
+              <TText style={[styles.rowLabel, { color: theme.colors.text }]}>
+                Daily goal
+              </TText>
+              <TText
+                style={[styles.rowValue, { color: theme.colors.textSecondary }]}
+              >
+                {goalMl >= 1000
+                  ? `${(goalMl / 1000).toFixed(goalMl % 1000 === 0 ? 0 : 1)} L`
+                  : `${goalMl} ml`}
+                {"  ✏️"}
+              </TText>
+            </View>
 
-          {/* Serving size picker */}
-          <DrumPicker
-            options={SERVING_OPTIONS}
-            selected={servingMl}
-            onSelect={setServingMl}
-            formatOption={(v) => v.toLocaleString()}
-          />
+            {/* Daily goal picker */}
+            <DrumPicker
+              options={GOAL_OPTIONS}
+              selected={goalMl}
+              onSelect={setGoalMl}
+              formatOption={(v) => `${(v / 1000).toFixed(1)} L`}
+            />
 
-          {/* Daily goal picker label */}
+            {/* Info text */}
+            <View style={styles.infoBox}>
+              <TText style={[styles.infoTitle, { color: theme.colors.text }]}>
+                How much water do you need to stay hydrated?
+              </TText>
+              <TText
+                style={[styles.infoBody, { color: theme.colors.textSecondary }]}
+              >
+                {
+                  "Everyone's needs are slightly different, but we recommend aiming for at least 2,000 ml (2 L) of water each day."
+                }
+              </TText>
+            </View>
+          </ScrollView>
+
+          {/* Cancel + Save buttons — always visible at bottom */}
           <View
             style={[
-              styles.row,
+              styles.buttons,
               {
-                borderBottomColor: BORDER,
                 borderTopColor: BORDER,
                 borderTopWidth: StyleSheet.hairlineWidth,
               },
             ]}
           >
-            <TText style={[styles.rowLabel, { color: theme.colors.text }]}>
-              Daily goal
-            </TText>
-            <TText
-              style={[styles.rowValue, { color: theme.colors.textSecondary }]}
-            >
-              {goalMl >= 1000
-                ? `${(goalMl / 1000).toFixed(goalMl % 1000 === 0 ? 0 : 1)} L`
-                : `${goalMl} ml`}
-              {"  ✏️"}
-            </TText>
-          </View>
-
-          {/* Daily goal picker */}
-          <DrumPicker
-            options={GOAL_OPTIONS}
-            selected={goalMl}
-            onSelect={setGoalMl}
-            formatOption={(v) => `${(v / 1000).toFixed(1)} L`}
-          />
-
-          {/* Info text */}
-          <View style={styles.infoBox}>
-            <TText style={[styles.infoTitle, { color: theme.colors.text }]}>
-              How much water do you need to stay hydrated?
-            </TText>
-            <TText
-              style={[styles.infoBody, { color: theme.colors.textSecondary }]}
-            >
-              {
-                "Everyone's needs are slightly different, but we recommend aiming for at least 2,000 ml (2 L) of water each day."
-              }
-            </TText>
-          </View>
-
-          {/* Cancel + Save buttons */}
-          <View style={styles.buttons}>
             <Pressable
               onPress={onClose}
               style={({ pressed }) => [
@@ -388,7 +421,6 @@ const styles = StyleSheet.create({
   sheet: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingBottom: 36,
   },
   handle: {
     width: 36,
