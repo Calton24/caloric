@@ -17,7 +17,7 @@
 
 import { analytics } from "../../infrastructure/analytics";
 import { getStorage } from "../../infrastructure/storage";
-import { supabase } from "../../lib/supabase/client";
+import { getSupabaseClient } from "../../lib/supabase/client";
 
 /**
  * Delete the user's account and all associated data.
@@ -37,6 +37,8 @@ export async function deleteUserAccount(): Promise<{
   error?: string;
 }> {
   try {
+    const supabase = getSupabaseClient();
+
     // Get current user
     const {
       data: { user },
@@ -52,8 +54,7 @@ export async function deleteUserAccount(): Promise<{
       timestamp: new Date().toISOString(),
     });
 
-    // Call Supabase Edge Function to delete user data
-    // This should be implemented server-side to ensure data integrity
+    // Call Supabase Edge Function to delete user data server-side
     const { error } = await supabase.functions.invoke("delete-account", {
       body: { userId: user.id },
     });
