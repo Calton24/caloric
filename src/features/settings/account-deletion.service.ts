@@ -90,6 +90,8 @@ export async function deleteUserAccount(): Promise<{
  */
 export async function exportUserDataBeforeDeletion(): Promise<string | null> {
   try {
+    const supabase = getSupabaseClient();
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
