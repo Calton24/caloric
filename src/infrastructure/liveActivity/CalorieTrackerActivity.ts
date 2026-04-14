@@ -16,6 +16,8 @@
  *   calorieTrackerActivity.end(result.activityId);
  */
 
+import { logger } from "../../logging/logger";
+
 export interface CalorieTrackerStartProps {
   calorieGoal: number;
   proteinGoal: number;
@@ -57,12 +59,10 @@ try {
   nativeModule = requireNativeModule("LiveActivityModule");
   moduleAvailable =
     typeof nativeModule?.startCalorieTrackerActivity === "function";
-  console.log(
-    "[CalorieTrackerActivity] moduleAvailable:",
+  logger.debug("[CalorieTrackerActivity] moduleAvailable:", {
     moduleAvailable,
-    "isSupported:",
-    nativeModule?.isSupported?.()
-  );
+    isSupported: nativeModule?.isSupported?.(),
+  });
 } catch (e) {
   console.warn("[CalorieTrackerActivity] Failed to load native module:", e);
   moduleAvailable = false;

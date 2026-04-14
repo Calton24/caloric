@@ -24,7 +24,7 @@ import {
     ScrollView,
     StyleSheet,
     Switch,
-    View
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../theme/useTheme";
@@ -122,7 +122,7 @@ export function ConsentModal({ visible, onComplete }: ConsentModalProps) {
             <TText
               style={[styles.subtitle, { color: theme.colors.textSecondary }]}
             >
-              We respect your privacy. Choose what data you're comfortable
+              We respect your privacy. Choose what data you&apos;re comfortable
               sharing with us.
             </TText>
           </View>
