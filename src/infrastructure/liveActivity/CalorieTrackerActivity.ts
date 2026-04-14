@@ -59,7 +59,7 @@ try {
   nativeModule = requireNativeModule("LiveActivityModule");
   moduleAvailable =
     typeof nativeModule?.startCalorieTrackerActivity === "function";
-  logger.debug("[CalorieTrackerActivity] moduleAvailable:", {
+  logger.log("[CalorieTrackerActivity] moduleAvailable:", {
     moduleAvailable,
     isSupported: nativeModule?.isSupported?.(),
   });
