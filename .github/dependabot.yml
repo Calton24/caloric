@@ -56,6 +56,21 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "@stripe/*"
         update-types: ["version-update:semver-major"]
+      # Block major SDK jumps — upgrade Expo/RN as a coordinated unit, not via bot PRs
+      - dependency-name: "expo"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "expo-*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@expo/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-native"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-native-*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "jest"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/jest"
+        update-types: ["version-update:semver-major"]
 
     # Security updates should bypass grouping
     commit-message:
