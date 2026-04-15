@@ -16,9 +16,6 @@ jobs:
     params:
       platform: ios
       profile: preview
-    env:
-      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
-      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
 
   run_maestro_tests:
     name: Run Maestro E2E Tests
@@ -29,6 +26,3 @@ jobs:
       flow_path: ./maestro/flows
       device_identifier: "iPhone 16 Plus"
       output_format: junit
-    env:
-      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
-      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
