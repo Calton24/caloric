@@ -1,6 +1,7 @@
-import { ColorPicker, HStack, Section, Text, VStack } from "@expo/ui/swift-ui";
+import { ColorPicker, HStack, Section, VStack } from "@expo/ui/swift-ui";
 import { background, cornerRadius, frame } from "@expo/ui/swift-ui/modifiers";
 import React, { useState } from "react";
+import { Text, View } from "react-native";
 
 export function ColorPickerSection() {
   const [color1, setColor1] = useState("#007AFF");
@@ -10,14 +11,12 @@ export function ColorPickerSection() {
   return (
     <Section title="🎨 Color Pickers">
       <VStack spacing={16}>
-        <Text size={14} color="gray">
-          Basic Color Picker
-        </Text>
+        <Text style={{ fontSize: 14, color: "gray" }}>Basic Color Picker</Text>
         <HStack spacing={12}>
           <ColorPicker
             selection={color1}
             label="Primary Color"
-            onValueChanged={setColor1}
+            onSelectionChange={setColor1}
           />
           <VStack
             modifiers={[
@@ -26,21 +25,17 @@ export function ColorPickerSection() {
               cornerRadius(8),
             ]}
           >
-            <Text size={1}> </Text>
+            <View style={{ width: 40, height: 40 }} />
           </VStack>
         </HStack>
-        <Text size={12} color="gray">
-          {`Selected: ${color1}`}
-        </Text>
+        <Text style={{ fontSize: 12, color: "gray" }}>{`Selected: ${color1}`}</Text>
 
-        <Text size={14} color="gray">
-          Another Color Picker
-        </Text>
+        <Text style={{ fontSize: 14, color: "gray" }}>Another Color Picker</Text>
         <HStack spacing={12}>
           <ColorPicker
             selection={color2}
             label="Accent Color"
-            onValueChanged={setColor2}
+            onSelectionChange={setColor2}
           />
           <VStack
             modifiers={[
@@ -49,22 +44,18 @@ export function ColorPickerSection() {
               cornerRadius(8),
             ]}
           >
-            <Text size={1}> </Text>
+            <View style={{ width: 40, height: 40 }} />
           </VStack>
         </HStack>
-        <Text size={12} color="gray">
-          {`Selected: ${color2}`}
-        </Text>
+        <Text style={{ fontSize: 12, color: "gray" }}>{`Selected: ${color2}`}</Text>
 
-        <Text size={14} color="gray">
-          With Opacity Support
-        </Text>
+        <Text style={{ fontSize: 14, color: "gray" }}>With Opacity Support</Text>
         <HStack spacing={12}>
           <ColorPicker
             selection={colorWithOpacity}
             label="Transparent Color"
             supportsOpacity={true}
-            onValueChanged={setColorWithOpacity}
+            onSelectionChange={setColorWithOpacity}
           />
           <VStack
             modifiers={[
@@ -73,12 +64,10 @@ export function ColorPickerSection() {
               cornerRadius(8),
             ]}
           >
-            <Text size={1}> </Text>
+            <View style={{ width: 40, height: 40 }} />
           </VStack>
         </HStack>
-        <Text size={12} color="gray">
-          {`Selected: ${colorWithOpacity}`}
-        </Text>
+        <Text style={{ fontSize: 12, color: "gray" }}>{`Selected: ${colorWithOpacity}`}</Text>
       </VStack>
     </Section>
   );

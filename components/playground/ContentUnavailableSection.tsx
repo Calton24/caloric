@@ -1,16 +1,16 @@
 import {
-    Button,
     ContentUnavailableView,
     Picker,
     Section,
-    Text,
+    Text as UIText,
     VStack,
 } from "@expo/ui/swift-ui";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { frame, pickerStyle, tag } from "@expo/ui/swift-ui/modifiers";
 import React, { useState } from "react";
+import { Button, Text } from "react-native";
 
 export function ContentUnavailableSection() {
-  const [selectedView, setSelectedView] = useState<number | null>(0);
+  const [selectedView, setSelectedView] = useState<number>(0);
   const [showContent, setShowContent] = useState(false);
 
   const viewTypes = ["No Results", "No Network", "Empty State"];
@@ -19,8 +19,8 @@ export function ContentUnavailableSection() {
     if (showContent) {
       return (
         <VStack spacing={8}>
-          <Text size={14}>Content is now available! 🎉</Text>
-          <Button onPress={() => setShowContent(false)}>Hide Content</Button>
+          <Text style={{ fontSize: 14 }}>Content is now available! 🎉</Text>
+          <Button onPress={() => setShowContent(false)} title="Hide Content" />
         </VStack>
       );
     }
@@ -61,26 +61,25 @@ export function ContentUnavailableSection() {
   return (
     <Section title="🚫 Content Unavailable Views">
       <VStack spacing={16}>
-        <Text size={14} color="gray">
-          Select a state to preview
-        </Text>
+        <Text style={{ fontSize: 14, color: "gray" }}>Select a state to preview</Text>
 
         <Picker
-          options={viewTypes}
-          selectedIndex={selectedView}
-          variant="segmented"
-          onOptionSelected={(e) => {
-            setSelectedView(e.nativeEvent.index);
+          selection={selectedView}
+          onSelectionChange={(v: number) => {
+            setSelectedView(v);
             setShowContent(false);
           }}
-        />
+          modifiers={[pickerStyle('segmented')]}
+        >
+          {viewTypes.map((label, i) => (
+            <UIText key={i} modifiers={[tag(i)]}>{label}</UIText>
+          ))}
+        </Picker>
 
         {renderUnavailableView()}
 
         {!showContent && (
-          <Button variant="bordered" onPress={() => setShowContent(true)}>
-            Load Content
-          </Button>
+          <Button onPress={() => setShowContent(true)} title="Load Content" />
         )}
       </VStack>
     </Section>

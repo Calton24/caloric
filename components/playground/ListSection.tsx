@@ -1,13 +1,12 @@
 import {
-    Button,
     List,
-    Picker,
     Section,
-    Switch,
-    Text,
+    Text as UIText,
     VStack,
 } from "@expo/ui/swift-ui";
+import { tag } from "@expo/ui/swift-ui/modifiers";
 import React, { useState } from "react";
+import { Text, Button } from "react-native";
 
 export function ListSection() {
   const [items, setItems] = useState([
@@ -17,95 +16,48 @@ export function ListSection() {
     "🍇 Grape",
     "🍓 Strawberry",
   ]);
-  const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
-  const [editModeEnabled, setEditModeEnabled] = useState(false);
-  const [listStyleIndex, setListStyleIndex] = useState<number | null>(0);
+  const [selectedTags, setSelectedTags] = useState<(string | number)[]>([]);
 
-  const listStyles = ["automatic", "plain", "inset", "insetGrouped", "grouped"];
-
-  const handleDelete = (index: number) => {
-    setItems((prev) => prev.filter((_, i) => i !== index));
+  const handleDelete = (indices: number[]) => {
+    setItems((prev) => prev.filter((_, i) => !indices.includes(i)));
   };
 
-  const handleMove = (from: number, to: number) => {
+  const handleMove = (sourceIndices: number[], destination: number) => {
     setItems((prev) => {
-      const newItems = [...prev];
-      const [movedItem] = newItems.splice(from, 1);
-      newItems.splice(to, 0, movedItem);
-      return newItems;
+      const movedItems = sourceIndices.map((i) => prev[i]);
+      const filtered = prev.filter((_, i) => !sourceIndices.includes(i));
+      filtered.splice(destination, 0, ...movedItems);
+      return filtered;
     });
   };
 
   const resetItems = () => {
-    setItems([
-      "🍎 Apple",
-      "🍌 Banana",
-      "🍊 Orange",
-      "🍇 Grape",
-      "🍓 Strawberry",
-    ]);
-    setSelectedIndices([]);
+    setItems(["🍎 Apple", "🍌 Banana", "🍊 Orange", "🍇 Grape", "🍓 Strawberry"]);
+    setSelectedTags([]);
   };
 
   return (
     <Section title="📝 Lists">
       <VStack spacing={12}>
-        <Text size={14} color="gray">
-          List Style
-        </Text>
-        <Picker
-          options={listStyles}
-          selectedIndex={listStyleIndex}
-          variant="segmented"
-          onOptionSelected={(e) => setListStyleIndex(e.nativeEvent.index)}
-        />
-
-        <Switch
-          value={editModeEnabled}
-          label="Edit Mode"
-          onValueChange={setEditModeEnabled}
-        />
-
-        <Text size={14} color="gray">
-          Swipe to delete, drag to reorder (in edit mode)
-        </Text>
+        <Text style={{ fontSize: 14, color: "gray" }}>Swipe to delete, drag to reorder</Text>
 
         <List
-          listStyle={
-            listStyleIndex !== null
-              ? (listStyles[listStyleIndex] as
-                  | "automatic"
-                  | "plain"
-                  | "inset"
-                  | "insetGrouped"
-                  | "grouped")
-              : "automatic"
-          }
-          selectEnabled={true}
-          moveEnabled={editModeEnabled}
-          deleteEnabled={true}
-          editModeEnabled={editModeEnabled}
-          onDeleteItem={handleDelete}
-          onMoveItem={handleMove}
-          onSelectionChange={setSelectedIndices}
+          selection={selectedTags}
+          onSelectionChange={setSelectedTags}
         >
-          {items.map((item, index) => (
-            <Text key={index} size={16}>
-              {item}
-            </Text>
-          ))}
+          <List.ForEach
+            onDelete={handleDelete}
+            onMove={handleMove}
+          >
+            {items.map((item, index) => (
+              <UIText key={index} modifiers={[tag(index)]}>{item}</UIText>
+            ))}
+          </List.ForEach>
         </List>
 
-        <Text size={12} color="gray">
-          {`Items: ${items.length}`}
-        </Text>
-        <Text size={12} color="gray">
-          {`Selected: ${selectedIndices.length > 0 ? selectedIndices.map((i) => items[i]).join(", ") : "None"}`}
-        </Text>
-
-        <Button variant="bordered" onPress={resetItems}>
-          Reset List
-        </Button>
+        <Text style={{ fontSize: 12, color: "gray" }}>{`Items: ${items.length}`}</Text>
+        <Text style={{ fontSize: 12, color: "gray" }}>{`Selected: ${selectedTags.length > 0 ? selectedTags.map((t) => items[t as number]).join(", ") : "None"}`}</Text>
+        <Button onPress={resetItems} title="Reset List" />
       </VStack>
     </Section>
   );

@@ -1,10 +1,12 @@
-import { Picker, Section, Text, VStack } from "@expo/ui/swift-ui";
+import { Picker, Section, Text as UIText, VStack } from "@expo/ui/swift-ui";
+import { pickerStyle, tag } from "@expo/ui/swift-ui/modifiers";
 import React, { useState } from "react";
+import { Text } from "react-native";
 
 export function PickerSection() {
-  const [segmentedIndex, setSegmentedIndex] = useState<number | null>(0);
-  const [wheelIndex, setWheelIndex] = useState<number | null>(0);
-  const [menuIndex, setMenuIndex] = useState<number | null>(0);
+  const [segmentedIndex, setSegmentedIndex] = useState<number>(0);
+  const [wheelIndex, setWheelIndex] = useState<number>(0);
+  const [menuIndex, setMenuIndex] = useState<number>(0);
 
   const options = ["Option A", "Option B", "Option C"];
   const fruits = ["Apple", "Banana", "Orange", "Mango", "Grape"];
@@ -13,45 +15,42 @@ export function PickerSection() {
   return (
     <Section title="🎯 Pickers">
       <VStack spacing={12}>
-        <Text size={14} color="gray">
-          Segmented Picker (Default)
-        </Text>
+        <Text style={{ fontSize: 14, color: "gray" }}>Segmented Picker (Default)</Text>
         <Picker
-          options={options}
-          selectedIndex={segmentedIndex}
-          variant="segmented"
-          onOptionSelected={(e) => setSegmentedIndex(e.nativeEvent.index)}
-        />
-        <Text size={12} color="gray">
-          {`Selected: ${segmentedIndex !== null ? options[segmentedIndex] : "None"}`}
-        </Text>
+          selection={segmentedIndex}
+          onSelectionChange={(v: number) => setSegmentedIndex(v)}
+          modifiers={[pickerStyle("segmented")]}
+        >
+          {options.map((opt, i) => (
+            <UIText key={i} modifiers={[tag(i)]}>{opt}</UIText>
+          ))}
+        </Picker>
+        <Text style={{ fontSize: 12, color: "gray" }}>{`Selected: ${options[segmentedIndex]}`}</Text>
 
-        <Text size={14} color="gray">
-          Menu Picker
-        </Text>
+        <Text style={{ fontSize: 14, color: "gray" }}>Menu Picker</Text>
         <Picker
-          options={sizes}
-          selectedIndex={menuIndex}
-          variant="menu"
           label="Select Size"
-          onOptionSelected={(e) => setMenuIndex(e.nativeEvent.index)}
-        />
-        <Text size={12} color="gray">
-          {`Size: ${menuIndex !== null ? sizes[menuIndex] : "None"}`}
-        </Text>
+          selection={menuIndex}
+          onSelectionChange={(v: number) => setMenuIndex(v)}
+          modifiers={[pickerStyle("menu")]}
+        >
+          {sizes.map((size, i) => (
+            <UIText key={i} modifiers={[tag(i)]}>{size}</UIText>
+          ))}
+        </Picker>
+        <Text style={{ fontSize: 12, color: "gray" }}>{`Size: ${sizes[menuIndex]}`}</Text>
 
-        <Text size={14} color="gray">
-          Wheel Picker
-        </Text>
+        <Text style={{ fontSize: 14, color: "gray" }}>Wheel Picker</Text>
         <Picker
-          options={fruits}
-          selectedIndex={wheelIndex}
-          variant="wheel"
-          onOptionSelected={(e) => setWheelIndex(e.nativeEvent.index)}
-        />
-        <Text size={12} color="gray">
-          {`Fruit: ${wheelIndex !== null ? fruits[wheelIndex] : "None"}`}
-        </Text>
+          selection={wheelIndex}
+          onSelectionChange={(v: number) => setWheelIndex(v)}
+          modifiers={[pickerStyle("wheel")]}
+        >
+          {fruits.map((fruit, i) => (
+            <UIText key={i} modifiers={[tag(i)]}>{fruit}</UIText>
+          ))}
+        </Picker>
+        <Text style={{ fontSize: 12, color: "gray" }}>{`Fruit: ${fruits[wheelIndex]}`}</Text>
       </VStack>
     </Section>
   );

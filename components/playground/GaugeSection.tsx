@@ -1,6 +1,7 @@
-import { Gauge, HStack, Section, Text, VStack } from "@expo/ui/swift-ui";
-import { frame } from "@expo/ui/swift-ui/modifiers";
+import { Gauge, HStack, Section, VStack } from "@expo/ui/swift-ui";
+import { frame, gaugeStyle } from "@expo/ui/swift-ui/modifiers";
 import React, { useEffect, useState } from "react";
+import { Text } from "react-native";
 
 export function GaugeSection() {
   const [progress, setProgress] = useState(0.65);
@@ -19,70 +20,54 @@ export function GaugeSection() {
   return (
     <Section title="📊 Gauges">
       <VStack spacing={16}>
-        <Text size={14} color="gray">
-          Circular Gauges
-        </Text>
+        <Text style={{ fontSize: 14, color: "gray" }}>Circular Gauges</Text>
         <HStack spacing={16}>
           <VStack spacing={4} alignment="center">
             <Gauge
-              current={{
-                value: progress,
-                label: `${Math.round(progress * 100)}%`,
-              }}
-              type="circular"
-              color="blue"
-              modifiers={[frame({ width: 80, height: 80 })]}
+              value={progress}
+              currentValueLabel={<Text style={{ fontSize: 10 }}>{`${Math.round(progress * 100)}%`}</Text>}
+              modifiers={[gaugeStyle("circular"), frame({ width: 80, height: 80 })]}
             />
-            <Text size={10} color="gray">
-              Circular
-            </Text>
+            <Text style={{ fontSize: 10, color: "gray" }}>Circular</Text>
           </VStack>
 
           <VStack spacing={4} alignment="center">
             <Gauge
-              current={{
-                value: progress,
-                label: `${Math.round(progress * 100)}%`,
-              }}
-              type="circularCapacity"
-              color="green"
-              modifiers={[frame({ width: 80, height: 80 })]}
+              value={progress}
+              currentValueLabel={<Text style={{ fontSize: 10 }}>{`${Math.round(progress * 100)}%`}</Text>}
+              modifiers={[gaugeStyle("circularCapacity"), frame({ width: 80, height: 80 })]}
             />
-            <Text size={10} color="gray">
-              Capacity
-            </Text>
+            <Text style={{ fontSize: 10, color: "gray" }}>Capacity</Text>
           </VStack>
         </HStack>
 
-        <Text size={14} color="gray">
-          Linear Gauges
-        </Text>
+        <Text style={{ fontSize: 14, color: "gray" }}>Linear Gauges</Text>
         <VStack spacing={12}>
           <Gauge
-            current={{ value: progress }}
-            min={{ value: 0, label: "0%" }}
-            max={{ value: 1, label: "100%" }}
-            type="linear"
-            color="purple"
-            label="Linear Gauge"
-          />
+            value={progress}
+            min={0}
+            max={1}
+            currentValueLabel={<Text style={{ fontSize: 10 }}>{`${Math.round(progress * 100)}%`}</Text>}
+            minimumValueLabel={<Text style={{ fontSize: 10 }}>0%</Text>}
+            maximumValueLabel={<Text style={{ fontSize: 10 }}>100%</Text>}
+            modifiers={[gaugeStyle("linear")]}
+          >
+            <Text style={{ fontSize: 12 }}>Linear Gauge</Text>
+          </Gauge>
 
           <Gauge
-            current={{ value: 0.75 }}
-            type="linearCapacity"
-            color="orange"
-            label="Storage Used"
-          />
+            value={0.75}
+            modifiers={[gaugeStyle("linearCapacity")]}
+          >
+            <Text style={{ fontSize: 12 }}>Storage Used</Text>
+          </Gauge>
         </VStack>
 
-        <Text size={14} color="gray">
-          Gradient Gauge
-        </Text>
+        <Text style={{ fontSize: 14, color: "gray" }}>Gradient Gauge</Text>
         <Gauge
-          current={{ value: progress, label: `${Math.round(progress * 100)}%` }}
-          type="circular"
-          color={["#FF6B6B", "#FFE66D", "#4ECDC4"]}
-          modifiers={[frame({ width: 100, height: 100 })]}
+          value={progress}
+          currentValueLabel={<Text style={{ fontSize: 12 }}>{`${Math.round(progress * 100)}%`}</Text>}
+          modifiers={[gaugeStyle("circular"), frame({ width: 100, height: 100 })]}
         />
       </VStack>
     </Section>

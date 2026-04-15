@@ -2,11 +2,11 @@ import {
     DisclosureGroup,
     Section,
     Slider,
-    Switch,
-    Text,
+    Toggle,
     VStack,
 } from "@expo/ui/swift-ui";
 import React, { useState } from "react";
+import { Text } from "react-native";
 
 export function DisclosureGroupSection() {
   const [isExpanded1, setIsExpanded1] = useState(false);
@@ -21,64 +21,44 @@ export function DisclosureGroupSection() {
   return (
     <Section title="📂 Disclosure Groups">
       <VStack spacing={12}>
-        <Text size={14} color="gray">
-          Expandable Content Sections
-        </Text>
+        <Text style={{ fontSize: 14, color: "gray" }}>Expandable Content Sections</Text>
 
         <DisclosureGroup
           label="General Settings"
           isExpanded={isExpanded1}
-          onStateChange={setIsExpanded1}
+          onIsExpandedChange={setIsExpanded1}
         >
           <VStack spacing={8}>
-            <Switch
-              value={notifications}
-              label="Push Notifications"
-              onValueChange={setNotifications}
-            />
-            <Switch
-              value={darkMode}
-              label="Dark Mode"
-              onValueChange={setDarkMode}
-            />
+            <Toggle isOn={notifications} label="Push Notifications" onIsOnChange={setNotifications} />
+            <Toggle isOn={darkMode} label="Dark Mode" onIsOnChange={setDarkMode} />
           </VStack>
         </DisclosureGroup>
 
         <DisclosureGroup
           label="Audio Settings"
           isExpanded={isExpanded2}
-          onStateChange={setIsExpanded2}
+          onIsExpandedChange={setIsExpanded2}
         >
           <VStack spacing={8}>
-            <Text size={12} color="gray">
-              Volume Level
-            </Text>
+            <Text style={{ fontSize: 12, color: "gray" }}>Volume Level</Text>
             <Slider value={volume} onValueChange={setVolume} />
-            <Text size={12} color="gray">
-              {`Volume: ${Math.round(volume * 100)}%`}
-            </Text>
+            <Text style={{ fontSize: 12, color: "gray" }}>{`Volume: ${Math.round(volume * 100)}%`}</Text>
           </VStack>
         </DisclosureGroup>
 
         <DisclosureGroup
           label="About This App"
           isExpanded={isExpanded3}
-          onStateChange={setIsExpanded3}
+          onIsExpandedChange={setIsExpanded3}
         >
           <VStack spacing={4}>
-            <Text size={12} color="gray">
-              Expo UI Playground
-            </Text>
-            <Text size={12} color="gray">
-              Version 1.0.0
-            </Text>
-            <Text size={12} color="gray">
-              Built with @expo/ui
-            </Text>
+            <Text style={{ fontSize: 12, color: "gray" }}>Expo UI Playground</Text>
+            <Text style={{ fontSize: 12, color: "gray" }}>Version 1.0.0</Text>
+            <Text style={{ fontSize: 12, color: "gray" }}>Built with @expo/ui</Text>
           </VStack>
         </DisclosureGroup>
 
-        <Text size={12} color="gray">
+        <Text style={{ fontSize: 12, color: "gray" }}>
           {`Expanded sections: ${[isExpanded1 ? "General" : "", isExpanded2 ? "Audio" : "", isExpanded3 ? "About" : ""].filter(Boolean).join(", ") || "None"}`}
         </Text>
       </VStack>
