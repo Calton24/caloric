@@ -4,10 +4,8 @@
 name: E2E Tests (iOS Simulator)
 
 on:
-  push:
-    branches: [main, develop, mvp-features]
-  pull_request:
-    branches: [main, develop]
+  # Disabled: preserving build allowance. Re-enable by restoring push/pull_request triggers.
+  workflow_dispatch: {}
 
 jobs:
   build_ios_simulator:
@@ -17,12 +15,16 @@ jobs:
       platform: ios
       profile: preview
 
-  run_maestro_tests:
-    name: Run Maestro E2E Tests
-    type: maestro
-    needs: [build_ios_simulator]
-    params:
-      build_id: ${{ needs.build_ios_simulator.outputs.build_id }}
-      flow_path: ./maestro/flows
-      device_identifier: "iPhone 16 Plus"
-      output_format: junit
+  # run_maestro_tests is disabled — requires EAS paid plan.
+  # To re-enable: subscribe at https://expo.dev/accounts/calton24/settings/billing
+  # then uncomment the block below.
+  #
+  # run_maestro_tests:
+  #   name: Run Maestro E2E Tests
+  #   type: maestro
+  #   needs: [build_ios_simulator]
+  #   params:
+  #     build_id: ${{ needs.build_ios_simulator.outputs.build_id }}
+  #     flow_path: ./maestro/flows
+  #     device_identifier: "iPhone 16 Plus"
+  #     output_format: junit
