@@ -109,7 +109,7 @@
     "@xmldom/xmldom": "^0.8.12"
   },
   "devDependencies": {
-    "@testing-library/react-native": "^12.9.0",
+    "@testing-library/react-native": "^13.3.3",
     "@types/jest": "^30.0.0",
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
