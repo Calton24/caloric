@@ -83,7 +83,7 @@
     "expo-widgets": "^55.0.13",
     "i18next": "^25.8.13",
     "live-activity-module": "file:./modules/live-activity",
-    "lucide-react-native": "^0.574.0",
+    "lucide-react-native": "^1.8.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-i18next": "^16.5.4",
