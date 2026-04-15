@@ -13,6 +13,7 @@ import { Platform } from "react-native";
 import type {
     NotificationsClient,
     PermissionStatus,
+    ScheduleDailyOpts,
     ScheduleLocalOpts,
 } from "./types";
 
@@ -160,6 +161,55 @@ export class ExpoNotificationsClient implements NotificationsClient {
       await Notifications.setBadgeCountAsync(0);
     } catch {
       // Swallow — non-fatal
+    }
+  }
+
+  async scheduleDailyRepeat(opts: ScheduleDailyOpts): Promise<void> {
+    if (!this.sdkAvailable) return;
+
+    try {
+      await Notifications.scheduleNotificationAsync({
+        identifier: opts.identifier,
+        content: {
+          title: opts.title,
+          body: opts.body,
+          data: opts.data ?? {},
+        },
+        trigger: {
+          type: "calendar" as const,
+          hour: opts.hour,
+          minute: opts.minute,
+          repeats: true,
+        },
+      });
+    } catch (error) {
+      if (__DEV__) {
+        console.warn("[Notifications] scheduleDailyRepeat failed:", error);
+      }
+    }
+  }
+
+  async cancelScheduled(identifier: string): Promise<void> {
+    if (!this.sdkAvailable) return;
+
+    try {
+      await Notifications.cancelScheduledNotificationAsync(identifier);
+    } catch (error) {
+      if (__DEV__) {
+        console.warn("[Notifications] cancelScheduled failed:", error);
+      }
+    }
+  }
+
+  async cancelAllScheduled(): Promise<void> {
+    if (!this.sdkAvailable) return;
+
+    try {
+      await Notifications.cancelAllScheduledNotificationsAsync();
+    } catch (error) {
+      if (__DEV__) {
+        console.warn("[Notifications] cancelAllScheduled failed:", error);
+      }
     }
   }
 }

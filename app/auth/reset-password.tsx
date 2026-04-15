@@ -1,20 +1,22 @@
 /**
  * Reset Password Screen
- * Reached via deep link after the user taps the reset link in their email.
- * Flow: extract code → exchange for recovery session → show password form → success.
+ *
+ * Owns the full recovery flow: parses token_hash and type from the deep link,
+ * verifies the token via verifyRecoveryToken, then gates the password form
+ * on successful verification.
  */
 
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../src/features/auth/useAuth";
@@ -25,36 +27,47 @@ import { TInput } from "../../src/ui/primitives/TInput";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 
-type ScreenState = "exchanging" | "form" | "success" | "error";
+type ScreenState = "verifying" | "form" | "success" | "invalid-link";
 
 export default function ResetPasswordScreen() {
   const { theme } = useTheme();
-  const { updatePassword, exchangeCodeForSession } = useAuth();
+  const { updatePassword, verifyRecoveryToken } = useAuth();
   const router = useRouter();
-  const params = useLocalSearchParams<{ code?: string }>();
+  const { token_hash, type } = useLocalSearchParams<{
+    token_hash?: string;
+    type?: string;
+  }>();
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [screenState, setScreenState] = useState<ScreenState>(
-    params.code ? "exchanging" : "form"
-  );
-  const [exchangeError, setExchangeError] = useState<string | null>(null);
+  const [screenState, setScreenState] = useState<ScreenState>("verifying");
+  const [errorMessage, setErrorMessage] = useState("");
 
-  // Exchange the recovery code for a session when the screen opens via deep link
+  // Verify the recovery token on mount
   useEffect(() => {
-    if (!params.code) return;
+    if (!token_hash || type !== "recovery") {
+      setErrorMessage("Invalid or missing reset link.");
+      setScreenState("invalid-link");
+      return;
+    }
 
+    let cancelled = false;
     (async () => {
-      const { error } = await exchangeCodeForSession(params.code!);
+      const { error } = await verifyRecoveryToken(token_hash);
+      if (cancelled) return;
       if (error) {
-        setExchangeError(error.message);
-        setScreenState("error");
+        setErrorMessage(error.message);
+        setScreenState("invalid-link");
       } else {
         setScreenState("form");
       }
     })();
-  }, [params.code, exchangeCodeForSession]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token_hash, type, verifyRecoveryToken]);
 
   const handleUpdatePassword = async () => {
     if (!newPassword) {
@@ -83,13 +96,24 @@ export default function ResetPasswordScreen() {
     }
   };
 
-  const handleBackToSignIn = () => {
-    router.dismissAll();
-    router.replace("/(tabs)/auth");
+  const handleContinue = () => {
+    // After successful password update the user has a session from verifyOtp,
+    // so dismiss the entire modal stack and go home.
+    if (router.canDismiss()) {
+      router.dismissAll();
+    }
+    router.replace("/(tabs)");
   };
 
-  // ── Loading: exchanging code ────────────────────────────────────────────────
-  if (screenState === "exchanging") {
+  const handleBackToSignIn = () => {
+    if (router.canDismiss()) {
+      router.dismissAll();
+    }
+    router.replace("/auth/sign-in");
+  };
+
+  // ── Verifying: checking token ───────────────────────────────────────────────
+  if (screenState === "verifying") {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: theme.colors.background }]}
@@ -97,14 +121,14 @@ export default function ResetPasswordScreen() {
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <TSpacer size="lg" />
-          <TText color="secondary">Verifying your reset link...</TText>
+          <TText color="secondary">Verifying reset link…</TText>
         </View>
       </SafeAreaView>
     );
   }
 
-  // ── Error: code exchange failed ─────────────────────────────────────────────
-  if (screenState === "error") {
+  // ── Invalid link: bad/missing/expired token ─────────────────────────────────
+  if (screenState === "invalid-link") {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: theme.colors.background }]}
@@ -113,22 +137,30 @@ export default function ResetPasswordScreen() {
           <View
             style={[
               styles.iconCircle,
-              { backgroundColor: "rgba(255,59,48,0.1)" },
+              { backgroundColor: "rgba(255,59,48,0.12)" },
             ]}
           >
-            <Ionicons name="alert-circle-outline" size={48} color="#FF3B30" />
+            <Ionicons name="close-circle-outline" size={48} color="#FF3B30" />
           </View>
+
           <TSpacer size="lg" />
+
           <TText variant="heading" style={styles.stateTitle}>
-            Link Expired
+            Invalid Link
           </TText>
+
           <TSpacer size="sm" />
+
           <TText color="secondary" style={styles.stateDescription}>
-            {exchangeError ||
+            {errorMessage ||
               "This reset link is invalid or has expired. Please request a new one."}
           </TText>
+
           <TSpacer size="xl" />
-          <TButton onPress={handleBackToSignIn}>Back to Sign In</TButton>
+
+          <TButton testID="back-to-sign-in-button" onPress={handleBackToSignIn}>
+            Back to Sign In
+          </TButton>
         </View>
       </SafeAreaView>
     );
@@ -169,8 +201,8 @@ export default function ResetPasswordScreen() {
 
           <TSpacer size="xl" />
 
-          <TButton testID="back-to-sign-in-button" onPress={handleBackToSignIn}>
-            Back to Sign In
+          <TButton testID="continue-button" onPress={handleContinue}>
+            Continue
           </TButton>
         </View>
       </SafeAreaView>

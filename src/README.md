@@ -1,4 +1,4 @@
-# Mobile Core UI
+# Caloric UI
 
 A simple, theme-aware UI layer for React Native with glass morphism effects.
 
@@ -22,13 +22,13 @@ Already included! Just one dependency was added:
 ### 1. Wrap your app with providers
 
 ```tsx
-import { MobileCoreProviders } from "./src";
+import { CaloricProviders } from "./src";
 
 export default function App() {
   return (
-    <MobileCoreProviders>
+    <CaloricProviders>
       <YourApp />
-    </MobileCoreProviders>
+    </CaloricProviders>
   );
 }
 ```
@@ -197,4 +197,4 @@ Run the dev menu to manually test all components:
 
 ## License
 
-Part of Mobile Core project.
+Part of Caloric project.

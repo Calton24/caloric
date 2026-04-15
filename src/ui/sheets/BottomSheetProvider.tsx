@@ -7,12 +7,13 @@ import type { BottomSheetModal as BottomSheetModalType } from "@gorhom/bottom-sh
 import {
     BottomSheetBackdrop,
     BottomSheetModal,
-    BottomSheetView,
+    BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
 import { BlurView } from "expo-blur";
 import React, {
     createContext,
     useCallback,
+    useEffect,
     useMemo,
     useRef,
     useState,
@@ -43,27 +44,61 @@ export function BottomSheetProvider({ children }: BottomSheetProviderProps) {
   const bottomSheetRef = useRef<BottomSheetModalType>(null);
   const [content, setContent] = useState<React.ReactNode | null>(null);
   const [snapPoints, setSnapPoints] = useState<string[] | number[]>(["50%"]);
-  const [modalKey, setModalKey] = useState(0);
+  const [pendingPresent, setPendingPresent] = useState(false);
+  const isShowingRef = useRef(false);
+  const pendingRef = useRef<{
+    content: React.ReactNode;
+    points: string[] | number[];
+  } | null>(null);
 
   const open = useCallback(
     (newContent: React.ReactNode, options?: BottomSheetOptions) => {
       const points = options?.snapPoints || ["50%"];
 
-      // Force remount with new key to ensure fresh snap points
-      setModalKey((prev) => prev + 1);
-      setContent(newContent);
-      setSnapPoints(points);
-
-      // Present after remount
-      setTimeout(() => {
-        bottomSheetRef.current?.present();
-      }, 100);
+      if (isShowingRef.current) {
+        // Sheet is visible — queue the new content and dismiss first.
+        // onDismiss will present the queued content once the animation ends.
+        pendingRef.current = { content: newContent, points };
+        bottomSheetRef.current?.dismiss();
+      } else {
+        // Nothing showing — set content and present directly
+        setContent(newContent);
+        setSnapPoints(points);
+        setPendingPresent(true);
+      }
     },
     []
   );
 
+  // Present the sheet after state updates have flushed and the
+  // BottomSheetModal has re-rendered with the new content/snapPoints.
+  useEffect(() => {
+    if (!pendingPresent) return;
+    // Use rAF to wait for the next frame after React commit
+    const id = requestAnimationFrame(() => {
+      bottomSheetRef.current?.present();
+      setPendingPresent(false);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [pendingPresent]);
+
+  const handleDismiss = useCallback(() => {
+    isShowingRef.current = false;
+    if (pendingRef.current) {
+      const { content: c, points: p } = pendingRef.current;
+      pendingRef.current = null;
+      setContent(c);
+      setSnapPoints(p);
+      setPendingPresent(true);
+    }
+  }, []);
+
+  const handleChange = useCallback((index: number) => {
+    isShowingRef.current = index >= 0;
+  }, []);
+
   const close = useCallback(() => {
-    bottomSheetRef.current?.close();
+    bottomSheetRef.current?.dismiss();
   }, []);
 
   const renderBackdrop = useCallback(
@@ -108,7 +143,6 @@ export function BottomSheetProvider({ children }: BottomSheetProviderProps) {
     <BottomSheetContext.Provider value={value}>
       {children}
       <BottomSheetModal
-        key={modalKey}
         ref={bottomSheetRef}
         snapPoints={snapPoints}
         index={0}
@@ -120,12 +154,14 @@ export function BottomSheetProvider({ children }: BottomSheetProviderProps) {
         handleIndicatorStyle={{
           backgroundColor: theme.colors.textSecondary,
         }}
+        onDismiss={handleDismiss}
+        onChange={handleChange}
       >
-        <BottomSheetView style={styles.contentContainer}>
+        <BottomSheetScrollView style={styles.contentContainer}>
           <BottomSheetContext.Provider value={value}>
             {content}
           </BottomSheetContext.Provider>
-        </BottomSheetView>
+        </BottomSheetScrollView>
       </BottomSheetModal>
     </BottomSheetContext.Provider>
   );

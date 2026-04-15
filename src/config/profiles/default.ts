@@ -1,5 +1,5 @@
 /**
- * Mobile Core Default Configuration
+ * Caloric Default Configuration
  */
 
 import { AppProfileConfig } from "../types";
@@ -9,7 +9,7 @@ export const defaultConfig: AppProfileConfig = {
   supabase: {
     url:
       process.env.EXPO_PUBLIC_SUPABASE_URL ||
-      "https://your-mobile-core-project.supabase.co",
+      "https://your-caloric-project.supabase.co",
     anonKey:
       process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "YOUR_SUPABASE_ANON_KEY", // Replace with actual anon key from Supabase dashboard
   },
@@ -19,21 +19,21 @@ export const defaultConfig: AppProfileConfig = {
       googleAppId: "1:987654321:ios:xyz789012345",
       gcmSenderId: "987654321",
       apiKey: "AIzaSyYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY",
-      projectId: "mobile-core-prod",
-      storageBucket: "mobile-core-prod.appspot.com",
+      projectId: "caloric-prod",
+      storageBucket: "caloric-prod.appspot.com",
       clientId:
         "987654321-yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy.apps.googleusercontent.com",
-      bundleId: "com.yourcompany.mobilecore",
+      bundleId: "com.yourcompany.caloric",
     },
     android: {
       googleAppId: "1:987654321:android:xyz789012345",
       apiKey: "AIzaSyYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY",
-      projectId: "mobile-core-prod",
-      storageBucket: "mobile-core-prod.appspot.com",
+      projectId: "caloric-prod",
+      storageBucket: "caloric-prod.appspot.com",
       gcmSenderId: "987654321",
       clientId:
         "987654321-yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy.apps.googleusercontent.com",
-      packageName: "com.yourcompany.mobilecore",
+      packageName: "com.yourcompany.caloric",
     },
   },
 
@@ -48,8 +48,8 @@ export const defaultConfig: AppProfileConfig = {
         premium: "price_premium_xxxxxxxxxxxxxx",
       },
       defaultPriceId: "price_monthly_xxxxxxxxxxxxxx",
-      successUrl: "mobilecore://checkout/success",
-      cancelUrl: "mobilecore://checkout/cancel",
+      successUrl: "caloric://checkout/success",
+      cancelUrl: "caloric://checkout/cancel",
     },
   },
 
@@ -61,9 +61,9 @@ export const defaultConfig: AppProfileConfig = {
     growth: false,
     haptics: true,
     notifications: true,
-    firebaseAnalytics: false, // Firebase not installed in mobile-core
-    crashReporting: false, // Firebase not installed in mobile-core
-    performanceMonitoring: false, // Firebase not installed in mobile-core
+    firebaseAnalytics: false, // Firebase not installed in caloric
+    crashReporting: false, // Firebase not installed in caloric
+    performanceMonitoring: false, // Firebase not installed in caloric
     billing: true, // Enable billing system (includes paywall UI)
     i18n: true,
     presence: true,
@@ -74,12 +74,12 @@ export const defaultConfig: AppProfileConfig = {
   },
 
   app: {
-    name: "Mobile Core",
-    slug: "mobile-core",
-    bundleIdentifier: "com.yourcompany.mobilecore",
-    androidPackage: "com.yourcompany.mobilecore",
+    name: "Caloric",
+    slug: "caloric",
+    bundleIdentifier: "com.yourcompany.caloric",
+    androidPackage: "com.yourcompany.caloric",
     version: "1.0.0",
-    scheme: "mobilecore",
+    scheme: "caloric",
   },
 
   // Environment-specific overrides
@@ -88,17 +88,17 @@ export const defaultConfig: AppProfileConfig = {
       // Supabase config comes from env vars (base config)
       firebase: {
         ios: {
-          projectId: "mobile-core-dev",
-          storageBucket: "mobile-core-dev.appspot.com",
-          bundleId: "com.yourcompany.mobilecore.dev",
+          projectId: "caloric-dev",
+          storageBucket: "caloric-dev.appspot.com",
+          bundleId: "com.yourcompany.caloric.dev",
           googleAppId: "1:987654321:ios:dev789012",
           gcmSenderId: "987654321",
           apiKey: "AIzaSyYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY",
         },
         android: {
-          projectId: "mobile-core-dev",
-          storageBucket: "mobile-core-dev.appspot.com",
-          packageName: "com.yourcompany.mobilecore.dev",
+          projectId: "caloric-dev",
+          storageBucket: "caloric-dev.appspot.com",
+          packageName: "com.yourcompany.caloric.dev",
           googleAppId: "1:987654321:android:dev789012",
           apiKey: "AIzaSyYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY",
           gcmSenderId: "987654321",
@@ -112,21 +112,21 @@ export const defaultConfig: AppProfileConfig = {
         billing: false, // Disable billing in dev
       },
       app: {
-        name: "Mobile Core",
-        slug: "mobile-core-dev",
-        bundleIdentifier: "com.yourcompany.mobilecore.dev",
-        androidPackage: "com.yourcompany.mobilecore.dev",
+        name: "Caloric",
+        slug: "caloric-dev",
+        bundleIdentifier: "com.yourcompany.caloric.dev",
+        androidPackage: "com.yourcompany.caloric.dev",
       },
     },
     staging: {
       supabase: {
-        url: "https://your-mobile-core-staging-project.supabase.co",
+        url: "https://your-caloric-staging-project.supabase.co",
         anonKey: "YOUR_STAGING_ANON_KEY", // Replace with staging anon key
       },
       app: {
-        name: "Mobile Core Staging",
-        bundleIdentifier: "com.yourcompany.mobilecore.staging",
-        androidPackage: "com.yourcompany.mobilecore.staging",
+        name: "Caloric Staging",
+        bundleIdentifier: "com.yourcompany.caloric.staging",
+        androidPackage: "com.yourcompany.caloric.staging",
       },
     },
     prod: {

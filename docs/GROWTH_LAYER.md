@@ -20,7 +20,7 @@ enabled.
 If the provider env is missing, Growth falls back to Noop and logs
 `[Growth] mode=enabled_missing_backend` at boot.
 
-## Mobile Core Done Gate (run before forking)
+## Caloric Done Gate (run before forking)
 
 ### A) Fork simulation (30 minutes, no code edits)
 
@@ -38,7 +38,7 @@ If the provider env is missing, Growth falls back to Noop and logs
 - `npx tsc --noEmit`
 - `npm test`
 - `npx expo start` (or iOS sim)
-- `npm run mobile-core:verify:deep`
+- `npm run caloric:verify:deep`
 
 4. Confirm:
 
@@ -47,7 +47,7 @@ If the provider env is missing, Growth falls back to Noop and logs
 - Growth request submission works (or clearly noops with structured mode log)
 - Analytics boot log shows expected mode
 
-**Pass condition:** Fork works by config/env only. If you edited a file, Mobile Core is not done.
+**Pass condition:** Fork works by config/env only. If you edited a file, Caloric is not done.
 
 ### B) Failure + abuse tests (15 minutes)
 

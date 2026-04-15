@@ -1,7 +1,7 @@
 /**
  * NotesScreen - VALIDATION HARNESS (Dev Only)
  *
- * This feature validates Mobile Core infrastructure under real pressure:
+ * This feature validates Caloric infrastructure under real pressure:
  * - Auth: Requires authenticated user
  * - Database: CRUD operations with Supabase
  * - Realtime: Broadcast channel subscriptions

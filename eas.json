@@ -9,13 +9,12 @@
       "distribution": "internal"
     },
 
-    "intake-dev": {
+    "caloric-dev": {
       "extends": "development",
       "env": {
-        "EXPO_PUBLIC_APP_PROFILE": "intake",
+        "EXPO_PUBLIC_APP_PROFILE": "caloric",
         "EXPO_PUBLIC_APP_ENV": "dev"
       },
-      "prebuildCommand": "./scripts/eas-build-firebase-setup.sh",
       "ios": {
         "simulator": true
       },
@@ -24,25 +23,43 @@
       }
     },
 
-    "intake-staging": {
+    "caloric-staging": {
       "extends": "development",
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_APP_PROFILE": "intake",
+        "EXPO_PUBLIC_APP_PROFILE": "caloric",
         "EXPO_PUBLIC_APP_ENV": "staging"
-      },
-      "prebuildCommand": "./scripts/eas-build-firebase-setup.sh"
+      }
     },
 
-    "intake-prod": {
+    "caloric-prod": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_APP_PROFILE": "caloric",
+        "EXPO_PUBLIC_APP_ENV": "prod",
+        "EXPO_PUBLIC_AUTH_GOOGLE": "1",
+        "EXPO_PUBLIC_AUTH_APPLE": "1"
+      },
+      "prebuildCommand": "npx expo prebuild --clean",
+      "ios": {
+        "simulator": false,
+        "autoIncrement": true,
+        "image": "macos-sequoia-15.3-xcode-16.2"
+      }
+    },
+
+    "caloric-store": {
       "distribution": "store",
       "env": {
-        "EXPO_PUBLIC_APP_PROFILE": "intake",
-        "EXPO_PUBLIC_APP_ENV": "prod"
+        "EXPO_PUBLIC_APP_PROFILE": "caloric",
+        "EXPO_PUBLIC_APP_ENV": "prod",
+        "EXPO_PUBLIC_AUTH_GOOGLE": "1",
+        "EXPO_PUBLIC_AUTH_APPLE": "1"
       },
-      "prebuildCommand": "./scripts/eas-build-firebase-setup.sh",
+      "prebuildCommand": "npx expo prebuild --clean",
       "ios": {
-        "simulator": false
+        "autoIncrement": true,
+        "image": "macos-sequoia-15.3-xcode-16.2"
       }
     },
 
@@ -60,11 +77,11 @@
   },
 
   "submit": {
-    "production": {
+    "caloric-store": {
       "ios": {
-        "appleId": "your-apple-id@example.com",
-        "ascAppId": "your-app-store-connect-app-id",
-        "appleTeamId": "your-team-id"
+        "appleId": "madire24@googlemail.com",
+        "ascAppId": "6761738426",
+        "appleTeamId": "93HBV58WBY"
       },
       "android": {
         "serviceAccountKeyPath": "./secrets/google-play-service-account.json",

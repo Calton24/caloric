@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Mobile Core Security Audit Script — v2
+ * Caloric Security Audit Script — v2
  *
  * Runs automated security checks:
  * - A) Secret scanning (API keys, service_role, private keys)
@@ -185,17 +185,17 @@ if (!foundJWTCheck) {
 section("C) Debug Screen Production Gating");
 
 const debugScreens = [
-  "app/(tabs)/mobile-core/growth.tsx",
-  "app/(tabs)/mobile-core/push.tsx",
-  "app/(tabs)/mobile-core/i18n.tsx",
-  "app/(tabs)/mobile-core/presence.tsx",
-  "app/(tabs)/mobile-core/activity.tsx",
-  "app/(tabs)/mobile-core/live-activity.tsx",
-  "app/(tabs)/mobile-core/maintenance.tsx",
-  "app/(tabs)/mobile-core/glass.tsx",
-  "app/(tabs)/mobile-core/widgets.tsx",
-  "app/(tabs)/mobile-core/primitives.tsx",
-  "app/(tabs)/mobile-core/patterns.tsx",
+  "app/(tabs)/caloric/growth.tsx",
+  "app/(tabs)/caloric/push.tsx",
+  "app/(tabs)/caloric/i18n.tsx",
+  "app/(tabs)/caloric/presence.tsx",
+  "app/(tabs)/caloric/activity.tsx",
+  "app/(tabs)/caloric/live-activity.tsx",
+  "app/(tabs)/caloric/maintenance.tsx",
+  "app/(tabs)/caloric/glass.tsx",
+  "app/(tabs)/caloric/widgets.tsx",
+  "app/(tabs)/caloric/primitives.tsx",
+  "app/(tabs)/caloric/patterns.tsx",
 ];
 
 let allGuarded = true;
@@ -322,7 +322,6 @@ if (preReleaseDeps.length === 0) {
 // Run npm audit --production
 // Policy: warn (not fail) because all current findings are build-time CLI deps
 // that Metro never bundles into the JS runtime. Specifically:
-//   - fast-xml-parser (critical): @superwall → @react-native-community/cli → cli-doctor
 //   - minimatch (high): @expo/cli, @expo/fingerprint, eslint
 // If a RUNTIME dep ever shows critical/high, this MUST become fail().
 try {
@@ -375,9 +374,7 @@ const BUILD_TIME_ONLY_PACKAGES = new Set([
 
 // Packages that inherit "high" severity from build-time deps but are safe at runtime
 // These are marked "high" because they depend on CLI tools, not because they have runtime vulns
-const BUILD_TIME_INHERITED_PACKAGES = new Set([
-  "@superwall/react-native-superwall", // depends on @react-native-community/cli (build-time)
-]);
+const BUILD_TIME_INHERITED_PACKAGES = new Set([]);
 
 try {
   execSync("npm audit --omit=dev --audit-level=high --json 2>&1", {

@@ -35,10 +35,18 @@ export interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<{ error: Error | null }>;
+  deleteAccount: () => Promise<{ error: Error | null }>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
   updatePassword: (newPassword: string) => Promise<{ error: Error | null }>;
-  exchangeCodeForSession: (code: string) => Promise<{ error: Error | null }>;
+  verifyRecoveryToken: (
+    tokenHash: string
+  ) => Promise<{ error: Error | null; session?: any }>;
+  exchangeCodeForSession: (
+    code: string
+  ) => Promise<{ error: Error | null; isRecovery?: boolean }>;
   signInWithOAuth: (provider: OAuthProvider) => Promise<OAuthResponse>;
+  signInWithAppleNative: () => Promise<{ error: Error | null }>;
+  signInWithGoogleNative: () => Promise<{ error: Error | null }>;
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(
@@ -139,12 +147,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return { error };
   }, []);
 
+  const deleteAccount = useCallback(async () => {
+    analytics.track("account_deleted");
+    const { error } = await authClient.deleteAccount();
+    if (!error) {
+      setUser(null);
+      setSession(null);
+    }
+    return { error };
+  }, []);
+
   const resetPassword = useCallback(async (email: string) => {
     return await authClient.resetPasswordForEmail(email);
   }, []);
 
   const updatePassword = useCallback(async (newPassword: string) => {
     return await authClient.updatePassword(newPassword);
+  }, []);
+
+  const verifyRecoveryToken = useCallback(async (tokenHash: string) => {
+    return await authClient.verifyRecoveryToken(tokenHash);
   }, []);
 
   const exchangeCodeForSession = useCallback(async (code: string) => {
@@ -155,6 +177,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return await authClient.signInWithOAuth(provider);
   }, []);
 
+  const signInWithAppleNative = useCallback(async () => {
+    const {
+      user: authUser,
+      session: authSession,
+      error,
+    } = await authClient.signInWithAppleNative();
+    if (!error && authUser && authSession) {
+      setUser(authUser);
+      setSession(authSession);
+      analytics.track("sign_in", { method: "apple_native" });
+    }
+    return { error };
+  }, []);
+
+  const signInWithGoogleNative = useCallback(async () => {
+    const {
+      user: authUser,
+      session: authSession,
+      error,
+    } = await authClient.signInWithGoogleNative();
+    if (!error && authUser && authSession) {
+      setUser(authUser);
+      setSession(authSession);
+      analytics.track("sign_in", { method: "google_native" });
+    }
+    return { error };
+  }, []);
+
   const contextValue: AuthContextValue = {
     user,
     session,
@@ -162,10 +212,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     signIn,
     signUp,
     signOut,
+    deleteAccount,
     resetPassword,
     updatePassword,
+    verifyRecoveryToken,
     exchangeCodeForSession,
     signInWithOAuth,
+    signInWithAppleNative,
+    signInWithGoogleNative,
   };
 
   return (

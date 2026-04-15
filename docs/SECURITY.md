@@ -16,10 +16,10 @@
 
 | Check             | Command                               | Frequency                      |
 | ----------------- | ------------------------------------- | ------------------------------ |
-| Secret scan       | `npm run mobile-core:security`        | Every commit (pre-commit hook) |
+| Secret scan       | `npm run caloric:security`        | Every commit (pre-commit hook) |
 | All tests         | `npm run validate`                    | Every commit                   |
 | Security tests    | `npm run test -- security.test.ts`    | Every commit                   |
-| Deep verification | `npm run mobile-core:verify:security` | Before merge                   |
+| Deep verification | `npm run caloric:verify:security` | Before merge                   |
 
 ---
 
@@ -398,10 +398,10 @@ You have multiple apps, each with its own Stripe account.
 Each app profile points to a different Supabase project:
 
 ```typescript
-// Intake app → intake-prod Supabase project
-export const intakeConfig = {
+// Caloric app → caloric-prod Supabase project
+export const caloricConfig = {
   supabase: {
-    url: "https://intake-prod.supabase.co",
+    url: "https://caloric-prod.supabase.co",
     anonKey: "...",
   },
 };
@@ -417,7 +417,7 @@ export const proxiConfig = {
 
 Then set different secrets in each Supabase project:
 
-- `intake-prod` project has Intake's Stripe key
+- `caloric-prod` project has Caloric's Stripe key
 - `proxi-prod` project has Proxi's Stripe key
 
 Edge Functions automatically use the correct project's secrets.
@@ -676,12 +676,12 @@ analytics.identify({
 All development screens must be inaccessible in production builds. Every debug screen requires this pattern:
 
 ```typescript
-// app/(tabs)/mobile-core/[debug-screen].tsx
+// app/(tabs)/caloric/[debug-screen].tsx
 import { Redirect } from "expo-router";
 
 export default function DebugScreen() {
   // ✅ Guards checked at module load time, removed in production
-  if (!__DEV__) return <Redirect href="/(tabs)/mobile-core" />;
+  if (!__DEV__) return <Redirect href="/(tabs)/caloric" />;
 
   return <View>
     {/* Debug UI only visible in development */}
@@ -710,7 +710,7 @@ console.log(redactSensitive(`User token: ${jwtToken}`));
 Run security audits before deployment:
 
 ```bash
-npm run mobile-core:security  # Scans for leaks and violations
+npm run caloric:security  # Scans for leaks and violations
 npm run test -- __tests__/security.test.ts  # 11 in-depth security tests
 ```
 
@@ -732,8 +732,8 @@ DATABASE_URL=your-prod-db ANON_KEY=your-key npm run build
 Pre-deployment checklist:
 
 ```bash
-npm run mobile-core:security          # Secret scan
-npm run mobile-core:verify:security   # Full security verification
+npm run caloric:security          # Secret scan
+npm run caloric:verify:security   # Full security verification
 npm run validate                      # All tests pass
 ```
 

@@ -45,23 +45,25 @@ interface ThemeProviderProps {
 export function ThemeProvider({
   children,
   defaultMode,
-  defaultBrandHue = 220,
+  defaultBrandHue = 141,
 }: ThemeProviderProps) {
   const systemColorScheme = useColorScheme();
-  const [mode, setModeState] = useState<ColorMode>(
-    defaultMode || (systemColorScheme as ColorMode) || "light"
-  );
+  const initialMode: ColorMode =
+    defaultMode ?? (systemColorScheme === "dark" ? "dark" : "light");
+  const [mode, setModeState] = useState<ColorMode>(initialMode);
   const [brandHue, setBrandHueState] = useState<number>(defaultBrandHue);
 
   // Load persisted theme on mount (async, non-blocking)
   useEffect(() => {
     themeStorage.getPreferences().then((prefs) => {
-      // Defensive fallbacks in case storage returns undefined
+      // Restore persisted mode (overrides system default)
       if (prefs.mode) {
         setModeState(prefs.mode);
       }
       if (prefs.brandHue !== undefined && prefs.brandHue !== null) {
-        setBrandHueState(prefs.brandHue);
+        // Migrate old blue default (220) → new green default (141)
+        const hue = prefs.brandHue === 220 ? defaultBrandHue : prefs.brandHue;
+        setBrandHueState(hue);
       }
     });
   }, []);

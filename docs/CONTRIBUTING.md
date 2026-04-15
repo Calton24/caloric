@@ -1,10 +1,10 @@
-# Contributing to Mobile Core
+# Contributing to Caloric
 
 ## Getting Started
 
 ```bash
 git clone <repo>
-cd mobile-core
+cd caloric
 npm install --legacy-peer-deps
 npx expo start
 ```

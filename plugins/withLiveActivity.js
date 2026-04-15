@@ -6,8 +6,8 @@
  *
  * What it does during `npx expo prebuild`:
  *   1. Sets NSSupportsLiveActivities = true in the main app's Info.plist
- *   2. Copies Swift widget sources into ios/MobileCoreWidget/
- *   3. Creates a new "MobileCoreWidget" app-extension target in the Xcode project
+ *   2. Copies Swift widget sources into ios/CaloricWidget/
+ *   3. Creates a new "CaloricWidget" app-extension target in the Xcode project
  *   4. Configures build settings, embed phase, and framework dependencies
  *
  * Uses direct PBX hash manipulation for reliability — the `xcode` library's
@@ -23,16 +23,30 @@ const {
 const path = require("path");
 const fs = require("fs");
 
-const WIDGET_NAME = "MobileCoreWidget";
+function copyDirSync(src, dest) {
+  fs.mkdirSync(dest, { recursive: true });
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      copyDirSync(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
+const WIDGET_NAME = "CaloricWidget";
 
 // Swift source files for the widget extension
 const WIDGET_SWIFT_FILES = [
-  "MobileCoreActivity.swift",
-  "MobileCoreWidgetBundle.swift",
-  "MobileCoreWidgetLiveActivity.swift",
+  "CaloricActivity.swift",
+  "CaloricWidgetBundle.swift",
+  "CaloricWidgetLiveActivity.swift",
   "FitnessLiveActivity.swift",
   "PedometerLiveActivity.swift",
   "CalorieBudgetLiveActivity.swift",
+  "CalorieTrackerLiveActivity.swift",
 ];
 
 // ────────────────────────────────────────────────────────
@@ -84,6 +98,14 @@ function withWidgetFiles(config) {
         }
       }
 
+      // Copy Assets.xcassets (contains app icon for Live Activity)
+      const assetsSrc = path.join(sourceDir, "Assets.xcassets");
+      const assetsDest = path.join(widgetDir, "Assets.xcassets");
+      if (fs.existsSync(assetsSrc)) {
+        copyDirSync(assetsSrc, assetsDest);
+        console.log(`[withLiveActivity] Copied Assets.xcassets → ${widgetDir}`);
+      }
+
       console.log(
         `[withLiveActivity] Copied ${allFiles.length} files → ${widgetDir}`
       );
@@ -132,6 +154,16 @@ function withWidgetTarget(config) {
       fileRefUuids[file] = uuid;
     }
 
+    // Assets.xcassets file ref
+    const assetsRefUuid = proj.generateUuid();
+    objects["PBXFileReference"][assetsRefUuid] = {
+      isa: "PBXFileReference",
+      lastKnownFileType: "folder.assetcatalog",
+      path: "Assets.xcassets",
+      sourceTree: '"<group>"',
+    };
+    objects["PBXFileReference"][`${assetsRefUuid}_comment`] = "Assets.xcassets";
+
     // Info.plist file ref
     const infoPlistRefUuid = proj.generateUuid();
     objects["PBXFileReference"][infoPlistRefUuid] = {
@@ -160,6 +192,7 @@ function withWidgetTarget(config) {
       value: fileRefUuids[f],
       comment: f,
     }));
+    groupChildren.push({ value: assetsRefUuid, comment: "Assets.xcassets" });
     groupChildren.push({ value: infoPlistRefUuid, comment: "Info.plist" });
 
     objects["PBXGroup"] = objects["PBXGroup"] || {};
@@ -277,14 +310,28 @@ function withWidgetTarget(config) {
     objects["PBXFrameworksBuildPhase"][`${frameworksBPUuid}_comment`] =
       "Frameworks";
 
-    // Resources (empty)
+    // Resources — include Assets.xcassets
+    const assetsBuildFileUuid = proj.generateUuid();
+    objects["PBXBuildFile"][assetsBuildFileUuid] = {
+      isa: "PBXBuildFile",
+      fileRef: assetsRefUuid,
+      fileRef_comment: "Assets.xcassets",
+    };
+    objects["PBXBuildFile"][`${assetsBuildFileUuid}_comment`] =
+      "Assets.xcassets in Resources";
+
     const resourcesBPUuid = proj.generateUuid();
     objects["PBXResourcesBuildPhase"] =
       objects["PBXResourcesBuildPhase"] || {};
     objects["PBXResourcesBuildPhase"][resourcesBPUuid] = {
       isa: "PBXResourcesBuildPhase",
       buildActionMask: 2147483647,
-      files: [],
+      files: [
+        {
+          value: assetsBuildFileUuid,
+          comment: "Assets.xcassets in Resources",
+        },
+      ],
       runOnlyForDeploymentPostprocessing: 0,
     };
     objects["PBXResourcesBuildPhase"][`${resourcesBPUuid}_comment`] =
@@ -295,18 +342,37 @@ function withWidgetTarget(config) {
     const releaseConfigUuid = proj.generateUuid();
     const configListUuid = proj.generateUuid();
 
+    const appVersion = mod.version || "1.0.0";
+    // Use a known team ID — resolveDevTeam may return empty during prebuild
+    // since EAS injects signing after prebuild via fastlane
+    const teamId = devTeam && devTeam !== '""' ? devTeam : "93HBV58WBY";
+    // Read the parent app's CURRENT_PROJECT_VERSION so the widget version matches
+    const rootConfigListUuid = proj.getFirstProject().firstProject.buildConfigurationList;
+    const rootConfigList = objects["XCConfigurationList"][rootConfigListUuid];
+    let parentBuildVersion = "1";
+    if (rootConfigList && rootConfigList.buildConfigurations) {
+      for (const ref of rootConfigList.buildConfigurations) {
+        const uuid = ref.value || ref;
+        const bc = objects["XCBuildConfiguration"][uuid];
+        if (bc && bc.buildSettings && bc.buildSettings.CURRENT_PROJECT_VERSION) {
+          parentBuildVersion = bc.buildSettings.CURRENT_PROJECT_VERSION;
+          break;
+        }
+      }
+    }
+
     const sharedSettings = {
       ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: '"AccentColor"',
       ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME: '"WidgetBackground"',
       CODE_SIGN_STYLE: "Automatic",
-      CURRENT_PROJECT_VERSION: '"1"',
-      DEVELOPMENT_TEAM: devTeam,
+      CURRENT_PROJECT_VERSION: parentBuildVersion,
+      DEVELOPMENT_TEAM: teamId,
       GENERATE_INFOPLIST_FILE: "YES",
       INFOPLIST_FILE: `"${WIDGET_NAME}/Info.plist"`,
       IPHONEOS_DEPLOYMENT_TARGET: "16.2",
       LD_RUNPATH_SEARCH_PATHS:
         '"$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks"',
-      MARKETING_VERSION: '"1.0"',
+      MARKETING_VERSION: `"${appVersion}"`,
       PRODUCT_BUNDLE_IDENTIFIER: `"${widgetBundleId}"`,
       PRODUCT_NAME: '"$(TARGET_NAME)"',
       SKIP_INSTALL: "YES",
@@ -488,7 +554,7 @@ function resolveMainBundleId(objects, appName) {
     const bid = configs[key]?.buildSettings?.PRODUCT_BUNDLE_IDENTIFIER;
     if (bid && !bid.includes("$(")) return bid.replace(/"/g, "");
   }
-  return "com.calton24.mobilecore";
+  return "com.calton24.caloric";
 }
 
 function resolveDevTeam(objects) {

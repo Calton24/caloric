@@ -9,7 +9,7 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import React, { useCallback } from "react";
+import { useCallback } from "react";
 import {
     LayoutChangeEvent,
     Platform,
@@ -35,7 +35,7 @@ const ICON_MAP: Record<string, { filled: string; outline: string }> = {
   notes: { filled: "document-text", outline: "document-text-outline" },
   auth: { filled: "person-circle", outline: "person-circle-outline" },
   playground: { filled: "sparkles", outline: "sparkles-outline" },
-  "mobile-core": { filled: "hammer", outline: "hammer-outline" },
+  caloric: { filled: "hammer", outline: "hammer-outline" },
 };
 
 const SPRING = { damping: 20, stiffness: 200, mass: 0.8 };

@@ -116,7 +116,7 @@ git push origin your-branch
 
 ### View Results
 
-1. **EAS Dashboard**: https://expo.dev/accounts/[your-account]/projects/mobile-core/workflows
+1. **EAS Dashboard**: https://expo.dev/accounts/[your-account]/projects/caloric/workflows
 2. **Workflow runs** show:
    - Build status and logs
    - Maestro test results (pass/fail)
@@ -130,7 +130,7 @@ git push origin your-branch
 
 ```yaml
 # maestro/flows/login-test.yaml
-appId: com.calton24.mobilecore.dev
+appId: com.calton24.caloric.dev
 ---
 # Test login flow
 - launchApp

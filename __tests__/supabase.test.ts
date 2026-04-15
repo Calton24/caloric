@@ -10,7 +10,7 @@ describe("Supabase Client", () => {
   beforeEach(() => {
     __resetSupabaseClient();
     resetConfigCache();
-    process.env.EXPO_PUBLIC_APP_PROFILE = "intake";
+    process.env.EXPO_PUBLIC_APP_PROFILE = "caloric";
     process.env.EXPO_PUBLIC_APP_ENV = "prod";
     process.env.APP_ENV = "prod";
   });
@@ -34,7 +34,7 @@ describe("Supabase Client", () => {
 
   describe("Config Integration", () => {
     it("should use config from active profile", () => {
-      process.env.EXPO_PUBLIC_APP_PROFILE = "intake";
+      process.env.EXPO_PUBLIC_APP_PROFILE = "caloric";
       const client = getSupabaseClient();
 
       expect(client).toBeDefined();

@@ -4,7 +4,7 @@
  * Bridges iOS ActivityKit to JavaScript via Expo Modules.
  * Provides start, update, end, and query functions for Live Activities.
  *
- * The MobileCoreActivityAttributes struct is shared with the widget extension
+ * The CaloricActivityAttributes struct is shared with the widget extension
  * (copied there by the config plugin during prebuild).
  *
  * Requires iOS 16.2+ and a device that supports Live Activities.
@@ -39,8 +39,8 @@ public class LiveActivityModule: Module {
             guard #available(iOS 16.2, *) else { return nil }
             guard ActivityAuthorizationInfo().areActivitiesEnabled else { return nil }
 
-            let attributes = MobileCoreActivityAttributes(name: name, icon: icon)
-            let state = MobileCoreActivityAttributes.ContentState(
+            let attributes = CaloricActivityAttributes(name: name, icon: icon)
+            let state = CaloricActivityAttributes.ContentState(
                 title: title,
                 value: value,
                 progress: progress,
@@ -68,9 +68,9 @@ public class LiveActivityModule: Module {
             guard #available(iOS 16.2, *) else { return nil }
             guard ActivityAuthorizationInfo().areActivitiesEnabled else { return nil }
 
-            let attributes = MobileCoreActivityAttributes(name: name, icon: icon)
+            let attributes = CaloricActivityAttributes(name: name, icon: icon)
             let endTime = Date(timeIntervalSince1970: endTimeInterval)
-            let state = MobileCoreActivityAttributes.ContentState(
+            let state = CaloricActivityAttributes.ContentState(
                 title: title,
                 value: value,
                 progress: nil,
@@ -97,7 +97,7 @@ public class LiveActivityModule: Module {
 
             guard #available(iOS 16.2, *) else { return false }
 
-            let state = MobileCoreActivityAttributes.ContentState(
+            let state = CaloricActivityAttributes.ContentState(
                 title: title,
                 value: value,
                 progress: progress,
@@ -106,7 +106,7 @@ public class LiveActivityModule: Module {
             )
 
             Task {
-                for activity in Activity<MobileCoreActivityAttributes>.activities {
+                for activity in Activity<CaloricActivityAttributes>.activities {
                     if activity.id == activityId {
                         await activity.update(
                             ActivityContent(state: state, staleDate: nil)
@@ -126,7 +126,7 @@ public class LiveActivityModule: Module {
             guard #available(iOS 16.2, *) else { return false }
 
             let endTime = Date(timeIntervalSince1970: endTimeInterval)
-            let state = MobileCoreActivityAttributes.ContentState(
+            let state = CaloricActivityAttributes.ContentState(
                 title: title,
                 value: value,
                 progress: nil,
@@ -135,7 +135,7 @@ public class LiveActivityModule: Module {
             )
 
             Task {
-                for activity in Activity<MobileCoreActivityAttributes>.activities {
+                for activity in Activity<CaloricActivityAttributes>.activities {
                     if activity.id == activityId {
                         await activity.update(
                             ActivityContent(state: state, staleDate: nil)
@@ -153,7 +153,7 @@ public class LiveActivityModule: Module {
             guard #available(iOS 16.2, *) else { return false }
 
             Task {
-                for activity in Activity<MobileCoreActivityAttributes>.activities {
+                for activity in Activity<CaloricActivityAttributes>.activities {
                     if activity.id == activityId {
                         await activity.end(nil, dismissalPolicy: .default)
                         return
@@ -174,7 +174,7 @@ public class LiveActivityModule: Module {
             self?.pedometerStartTime = nil
 
             Task {
-                for activity in Activity<MobileCoreActivityAttributes>.activities {
+                for activity in Activity<CaloricActivityAttributes>.activities {
                     await activity.end(nil, dismissalPolicy: .default)
                 }
                 for activity in Activity<FitnessActivityAttributes>.activities {
@@ -196,7 +196,7 @@ public class LiveActivityModule: Module {
             guard #available(iOS 16.2, *) else { return [] }
 
             var result: [[String: String]] = []
-            for activity in Activity<MobileCoreActivityAttributes>.activities {
+            for activity in Activity<CaloricActivityAttributes>.activities {
                 result.append([
                     "id": activity.id,
                     "type": "status",
@@ -237,16 +237,27 @@ public class LiveActivityModule: Module {
                     "activityState": Self.stateString(activity.activityState),
                 ])
             }
+            for activity in Activity<CalorieTrackerActivityAttributes>.activities {
+                result.append([
+                    "id": activity.id,
+                    "type": "calorieTracker",
+                    "name": "CalorieTrackerActivity",
+                    "title": "Calorie Tracker",
+                    "value": "\(activity.content.state.caloriesConsumed)/\(activity.attributes.calorieGoal) cal",
+                    "activityState": Self.stateString(activity.activityState),
+                ])
+            }
             return result
         }
 
         // ── Get count of all active activities ──
         Function("getActiveCount") { () -> Int in
             guard #available(iOS 16.2, *) else { return 0 }
-            return Activity<MobileCoreActivityAttributes>.activities.count
+            return Activity<CaloricActivityAttributes>.activities.count
                  + Activity<FitnessActivityAttributes>.activities.count
                  + Activity<PedometerActivityAttributes>.activities.count
                  + Activity<CalorieBudgetActivityAttributes>.activities.count
+                 + Activity<CalorieTrackerActivityAttributes>.activities.count
         }
 
         // ════════════════════════════════════════════════
@@ -617,6 +628,118 @@ public class LiveActivityModule: Module {
                     "mode": activity.attributes.mode,
                     "consumed": activity.content.state.consumed,
                     "activityBonus": activity.content.state.activityBonus,
+                    "activityState": Self.stateString(activity.activityState),
+                ])
+            }
+            return result
+        }
+
+        // ════════════════════════════════════════════════
+        // MARK: — Calorie Tracker Activity (CTAs + Macros)
+        // ════════════════════════════════════════════════
+
+        Function("startCalorieTrackerActivity") {
+            (calorieGoal: Int, proteinGoal: Int, carbsGoal: Int, fatGoal: Int,
+             caloriesConsumed: Int, proteinConsumed: Int, carbsConsumed: Int, fatConsumed: Int) -> String? in
+
+            guard #available(iOS 16.2, *) else { return nil }
+            guard ActivityAuthorizationInfo().areActivitiesEnabled else { return nil }
+
+            let attributes = CalorieTrackerActivityAttributes(
+                calorieGoal: calorieGoal,
+                proteinGoal: proteinGoal,
+                carbsGoal: carbsGoal,
+                fatGoal: fatGoal
+            )
+            let state = CalorieTrackerActivityAttributes.ContentState(
+                caloriesConsumed: caloriesConsumed,
+                proteinConsumed: proteinConsumed,
+                carbsConsumed: carbsConsumed,
+                fatConsumed: fatConsumed
+            )
+
+            do {
+                let activity = try Activity.request(
+                    attributes: attributes,
+                    content: .init(state: state, staleDate: nil),
+                    pushType: nil
+                )
+                return activity.id
+            } catch {
+                print("[LiveActivityModule] startCalorieTrackerActivity failed: \(error.localizedDescription)")
+                return nil
+            }
+        }
+
+        Function("updateCalorieTrackerActivity") {
+            (activityId: String, caloriesConsumed: Int, proteinConsumed: Int,
+             carbsConsumed: Int, fatConsumed: Int) -> Bool in
+
+            guard #available(iOS 16.2, *) else { return false }
+
+            let state = CalorieTrackerActivityAttributes.ContentState(
+                caloriesConsumed: caloriesConsumed,
+                proteinConsumed: proteinConsumed,
+                carbsConsumed: carbsConsumed,
+                fatConsumed: fatConsumed
+            )
+
+            Task {
+                for activity in Activity<CalorieTrackerActivityAttributes>.activities {
+                    if activity.id == activityId {
+                        await activity.update(
+                            ActivityContent(state: state, staleDate: nil)
+                        )
+                        return
+                    }
+                }
+            }
+
+            return true
+        }
+
+        Function("endCalorieTrackerActivity") { (activityId: String) -> Bool in
+            guard #available(iOS 16.2, *) else { return false }
+
+            Task {
+                for activity in Activity<CalorieTrackerActivityAttributes>.activities {
+                    if activity.id == activityId {
+                        await activity.end(nil, dismissalPolicy: .default)
+                        return
+                    }
+                }
+            }
+
+            return true
+        }
+
+        Function("endAllCalorieTrackerActivities") { () -> Bool in
+            guard #available(iOS 16.2, *) else { return false }
+
+            Task {
+                for activity in Activity<CalorieTrackerActivityAttributes>.activities {
+                    await activity.end(nil, dismissalPolicy: .default)
+                }
+            }
+
+            return true
+        }
+
+        Function("getActiveCalorieTrackerActivities") { () -> [[String: Any]] in
+            guard #available(iOS 16.2, *) else { return [] }
+
+            var result: [[String: Any]] = []
+            for activity in Activity<CalorieTrackerActivityAttributes>.activities {
+                result.append([
+                    "id": activity.id,
+                    "calorieGoal": activity.attributes.calorieGoal,
+                    "proteinGoal": activity.attributes.proteinGoal,
+                    "carbsGoal": activity.attributes.carbsGoal,
+                    "fatGoal": activity.attributes.fatGoal,
+                    "caloriesConsumed": activity.content.state.caloriesConsumed,
+                    "proteinConsumed": activity.content.state.proteinConsumed,
+                    "carbsConsumed": activity.content.state.carbsConsumed,
+                    "fatConsumed": activity.content.state.fatConsumed,
                     "activityState": Self.stateString(activity.activityState),
                 ])
             }

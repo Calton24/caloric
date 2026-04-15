@@ -103,6 +103,13 @@ export class MockAuthClient implements AuthClient {
     return { error: null };
   }
 
+  async deleteAccount(): Promise<{ error: Error | null }> {
+    await delay(500);
+    this.currentSession = null;
+    this.notifyListeners(null);
+    return { error: null };
+  }
+
   async resetPasswordForEmail(email: string): Promise<{ error: Error | null }> {
     await delay(800);
     if (!email || !email.includes("@")) {
@@ -121,16 +128,57 @@ export class MockAuthClient implements AuthClient {
 
   async exchangeCodeForSession(
     _code: string
-  ): Promise<{ error: Error | null }> {
+  ): Promise<{ error: Error | null; isRecovery?: boolean }> {
     await delay(300);
     // Mock: simulate successful code exchange
-    return { error: null };
+    return { error: null, isRecovery: false };
+  }
+
+  async verifyRecoveryToken(
+    _tokenHash: string
+  ): Promise<{ error: Error | null; session?: any }> {
+    await delay(300);
+    return { error: null, session: { user: { id: "mock-recovery-user" } } };
   }
 
   async signInWithOAuth(_provider: OAuthProvider): Promise<OAuthResponse> {
     await delay(500);
     // Mock returns a fake URL to simulate the OAuth flow
     return { url: "https://mock-oauth.example.com/authorize", error: null };
+  }
+
+  async signInWithAppleNative(): Promise<AuthResponse> {
+    await delay(500);
+    const user: User = {
+      id: "mock-apple-user-" + Date.now(),
+      email: "apple@example.com",
+      createdAt: new Date().toISOString(),
+    };
+    const session: Session = {
+      user,
+      accessToken: "mock-apple-access-token",
+      refreshToken: "mock-apple-refresh-token",
+    };
+    this.currentSession = session;
+    this.notifyListeners(session);
+    return { user, session, error: null };
+  }
+
+  async signInWithGoogleNative(): Promise<AuthResponse> {
+    await delay(500);
+    const user: User = {
+      id: "mock-google-user-" + Date.now(),
+      email: "google@example.com",
+      createdAt: new Date().toISOString(),
+    };
+    const session: Session = {
+      user,
+      accessToken: "mock-google-access-token",
+      refreshToken: "mock-google-refresh-token",
+    };
+    this.currentSession = session;
+    this.notifyListeners(session);
+    return { user, session, error: null };
   }
 
   async getSession(): Promise<{

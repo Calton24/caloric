@@ -13,16 +13,16 @@ describe("Config System", () => {
   });
 
   describe("Profile Selection", () => {
-    it("should load intake profile when EXPO_PUBLIC_APP_PROFILE=intake", () => {
-      process.env.EXPO_PUBLIC_APP_PROFILE = "intake";
+    it("should load caloric profile when EXPO_PUBLIC_APP_PROFILE=caloric", () => {
+      process.env.EXPO_PUBLIC_APP_PROFILE = "caloric";
       process.env.EXPO_PUBLIC_APP_ENV = "prod";
       process.env.APP_ENV = "prod";
 
       const config = getAppConfig();
 
-      expect(config.app.name).toBe("Mobile Core");
-      expect(config.app.slug).toBe("mobile-core");
-      expect(config.app.bundleIdentifier).toContain("mobilecore");
+      expect(config.app.name).toBe("Caloric");
+      expect(config.app.slug).toBe("caloric");
+      expect(config.app.bundleIdentifier).toContain("caloric");
     });
 
     it("should load default profile when EXPO_PUBLIC_APP_PROFILE=default", () => {
@@ -32,9 +32,9 @@ describe("Config System", () => {
 
       const config = getAppConfig();
 
-      expect(config.app.name).toBe("Mobile Core");
-      expect(config.app.slug).toBe("mobile-core");
-      expect(config.app.bundleIdentifier).toContain("mobilecore");
+      expect(config.app.name).toBe("Caloric");
+      expect(config.app.slug).toBe("caloric");
+      expect(config.app.bundleIdentifier).toContain("caloric");
     });
 
     it("should throw error for unknown profile", () => {
@@ -43,25 +43,25 @@ describe("Config System", () => {
       expect(() => getAppConfig()).toThrow();
     });
 
-    it("should default to intake if no profile specified", () => {
+    it("should default to caloric if no profile specified", () => {
       delete process.env.EXPO_PUBLIC_APP_PROFILE;
       process.env.EXPO_PUBLIC_APP_ENV = "prod";
       process.env.APP_ENV = "prod";
 
       const config = getAppConfig();
 
-      expect(config.app.name).toBe("Mobile Core");
+      expect(config.app.name).toBe("Caloric");
     });
   });
 
   describe("Environment Overrides", () => {
     it("should apply dev environment overrides", () => {
-      process.env.EXPO_PUBLIC_APP_PROFILE = "intake";
+      process.env.EXPO_PUBLIC_APP_PROFILE = "caloric";
       process.env.EXPO_PUBLIC_APP_ENV = "dev";
 
       const config = getAppConfig();
 
-      expect(config.features.billing).toBe(false);
+      expect(config.features.billing).toBe(true);
     });
 
     it("should apply staging environment overrides", () => {
@@ -74,7 +74,7 @@ describe("Config System", () => {
     });
 
     it("should use production config by default", () => {
-      process.env.EXPO_PUBLIC_APP_PROFILE = "intake";
+      process.env.EXPO_PUBLIC_APP_PROFILE = "caloric";
       process.env.EXPO_PUBLIC_APP_ENV = "prod";
       process.env.APP_ENV = "prod";
 
@@ -107,7 +107,7 @@ describe("Config System", () => {
 
   describe("Firebase Config", () => {
     it("should include Firebase config when configured", () => {
-      process.env.EXPO_PUBLIC_APP_PROFILE = "intake";
+      process.env.EXPO_PUBLIC_APP_PROFILE = "caloric";
       process.env.EXPO_PUBLIC_APP_ENV = "prod";
       process.env.APP_ENV = "prod";
 
@@ -120,7 +120,7 @@ describe("Config System", () => {
     });
 
     it("should have optional Firebase config", () => {
-      process.env.EXPO_PUBLIC_APP_PROFILE = "intake";
+      process.env.EXPO_PUBLIC_APP_PROFILE = "caloric";
       process.env.EXPO_PUBLIC_APP_ENV = "dev";
 
       const config = getAppConfig();
@@ -133,17 +133,17 @@ describe("Config System", () => {
   });
 
   describe("Billing Config", () => {
-    it("should use Superwall for intake profile", () => {
+    it("should use RevenueCat for caloric profile", () => {
       resetConfigCache();
-      process.env.EXPO_PUBLIC_APP_PROFILE = "intake";
+      process.env.EXPO_PUBLIC_APP_PROFILE = "caloric";
       process.env.EXPO_PUBLIC_APP_ENV = "prod";
       process.env.APP_ENV = "prod";
 
       const config = getAppConfig();
 
-      expect(config.billing?.provider).toBe("superwall");
-      expect(config.billing?.superwall).toBeDefined();
-      expect(config.billing?.superwall?.apiKey).toBeDefined();
+      expect(config.billing?.provider).toBe("revenueCat");
+      expect(config.billing?.revenueCat).toBeDefined();
+      expect(config.billing?.revenueCat?.apiKey).toBeDefined();
     });
 
     it("should use Stripe for default profile", () => {
@@ -159,13 +159,13 @@ describe("Config System", () => {
       expect(config.billing?.stripe?.publishableKey).toBeDefined();
     });
 
-    it("should disable billing in dev environment", () => {
-      process.env.EXPO_PUBLIC_APP_PROFILE = "intake";
+    it("should enable billing in dev environment", () => {
+      process.env.EXPO_PUBLIC_APP_PROFILE = "caloric";
       process.env.EXPO_PUBLIC_APP_ENV = "dev";
 
       const config = getAppConfig();
 
-      expect(config.features.billing).toBe(false);
+      expect(config.features.billing).toBe(true);
     });
 
     it("should reject Stripe secret keys in config", () => {
@@ -221,7 +221,7 @@ describe("Config System", () => {
 
   describe("Config Caching", () => {
     it("should cache config after first load", () => {
-      process.env.EXPO_PUBLIC_APP_PROFILE = "intake";
+      process.env.EXPO_PUBLIC_APP_PROFILE = "caloric";
 
       const config1 = getAppConfig();
       const config2 = getAppConfig();
@@ -230,19 +230,19 @@ describe("Config System", () => {
     });
 
     it("should use cached config even if env changes", () => {
-      process.env.EXPO_PUBLIC_APP_PROFILE = "intake";
+      process.env.EXPO_PUBLIC_APP_PROFILE = "caloric";
       const config1 = getAppConfig();
 
       process.env.EXPO_PUBLIC_APP_PROFILE = "proxi";
       const config2 = getAppConfig();
 
-      // Still returns intake because cached
+      // Still returns caloric because cached
       expect(config1).toBe(config2);
-      expect(config2.app.name).toBe("Mobile Core");
+      expect(config2.app.name).toBe("Caloric");
     });
 
     it("should reload config after cache clear", () => {
-      process.env.EXPO_PUBLIC_APP_PROFILE = "intake";
+      process.env.EXPO_PUBLIC_APP_PROFILE = "caloric";
       const config1 = getAppConfig();
 
       resetConfigCache();
@@ -251,8 +251,8 @@ describe("Config System", () => {
       const config2 = getAppConfig();
 
       expect(config1).not.toBe(config2);
-      expect(config1.app.name).toBe("Mobile Core");
-      expect(config2.app.name).toBe("Mobile Core");
+      expect(config1.app.name).toBe("Caloric");
+      expect(config2.app.name).toBe("Caloric");
     });
   });
 

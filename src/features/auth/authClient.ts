@@ -41,10 +41,18 @@ export interface AuthClient {
   signIn(email: string, password: string): Promise<AuthResponse>;
   signUp(email: string, password: string): Promise<AuthResponse>;
   signOut(): Promise<{ error: Error | null }>;
+  deleteAccount(): Promise<{ error: Error | null }>;
   resetPasswordForEmail(email: string): Promise<{ error: Error | null }>;
   updatePassword(newPassword: string): Promise<{ error: Error | null }>;
   signInWithOAuth(provider: OAuthProvider): Promise<OAuthResponse>;
-  exchangeCodeForSession(code: string): Promise<{ error: Error | null }>;
+  signInWithAppleNative(): Promise<AuthResponse>;
+  signInWithGoogleNative(): Promise<AuthResponse>;
+  exchangeCodeForSession(
+    code: string
+  ): Promise<{ error: Error | null; isRecovery?: boolean }>;
+  verifyRecoveryToken(
+    tokenHash: string
+  ): Promise<{ error: Error | null; session?: any }>;
   getSession(): Promise<{ session: Session | null; error: Error | null }>;
   onAuthStateChange(callback: (session: Session | null) => void): () => void;
 }
@@ -130,14 +138,20 @@ export const authClient: AuthClient = {
   signIn: async (...args) => authBlocked() ?? client.signIn(...args),
   signUp: async (...args) => authBlocked() ?? client.signUp(...args),
   signOut: (...args) => client.signOut(...args),
+  deleteAccount: (...args) => client.deleteAccount(...args),
   resetPasswordForEmail: (...args) => client.resetPasswordForEmail(...args),
   updatePassword: (...args) => client.updatePassword(...args),
+  verifyRecoveryToken: (...args) => client.verifyRecoveryToken(...args),
   signInWithOAuth: (provider) => {
     if (maintenance.isBlocked("auth")) {
       return Promise.resolve({ url: null, error: SERVICE_UNAVAILABLE_ERROR });
     }
     return client.signInWithOAuth(provider);
   },
+  signInWithAppleNative: async () =>
+    authBlocked() ?? client.signInWithAppleNative(),
+  signInWithGoogleNative: async () =>
+    authBlocked() ?? client.signInWithGoogleNative(),
   exchangeCodeForSession: (...args) => client.exchangeCodeForSession(...args),
   getSession: (...args) => client.getSession(...args),
   onAuthStateChange: (...args) => client.onAuthStateChange(...args),

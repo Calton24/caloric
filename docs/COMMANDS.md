@@ -113,7 +113,7 @@ cd ios && rm -rf build && cd ..
 cd ios
 rm -rf build
 rm -rf Pods
-rm -rf ~/Library/Developer/Xcode/DerivedData/MobileCoreDev-*
+rm -rf ~/Library/Developer/Xcode/DerivedData/Caloric-*
 bundle exec pod install --deployment --clean-install
 cd ..
 ```
@@ -170,16 +170,16 @@ npm run lint
 npm run validate
 ```
 
-### Mobile Core verify (fork gate)
+### Caloric verify (fork gate)
 
 ```bash
-npm run mobile-core:verify
+npm run caloric:verify
 ```
 
-### Mobile Core verify (deep, open handles)
+### Caloric verify (deep, open handles)
 
 ```bash
-npm run mobile-core:verify:deep
+npm run caloric:verify:deep
 ```
 
 ## Git Workflow
@@ -228,7 +228,7 @@ xcrun simctl erase "$UDID"
 ### Uninstall app from simulator
 
 ```bash
-xcrun simctl uninstall "$UDID" com.calton24.mobilecore.dev
+xcrun simctl uninstall "$UDID" com.calton24.caloric.dev
 ```
 
 ## GitHub Actions Management

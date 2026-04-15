@@ -30,7 +30,7 @@ jobs:
           fi
 
           # Never auto-merge sensitive packages
-          SENSITIVE_PACKAGES="@supabase|expo-secure-store|@stripe|superwall|react-native-keychain"
+          SENSITIVE_PACKAGES="@supabase|expo-secure-store|@stripe|react-native-keychain"
           if echo "${{ steps.metadata.outputs.dependency-names }}" | grep -qE "$SENSITIVE_PACKAGES"; then
             echo "Sensitive package, requires manual review"
             echo "safe=false" >> $GITHUB_OUTPUT

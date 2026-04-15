@@ -5,7 +5,7 @@
 
 export type AppEnvironment = "dev" | "staging" | "prod";
 
-export type AppProfile = "default" | "intake" | "proxi"; // Add new app profiles here
+export type AppProfile = "default" | "caloric" | "proxi"; // Add new app profiles here
 
 export interface SupabaseConfig {
   /** Supabase project URL */
@@ -53,13 +53,11 @@ export interface FirebaseConfig {
   };
 }
 
-export type BillingProvider = "superwall" | "stripe";
+export type BillingProvider = "revenueCat" | "stripe";
 
-export interface SuperwallConfig {
-  /** Superwall API key (safe for client) */
+export interface RevenueCatConfig {
+  /** RevenueCat public API key (safe for client) */
   apiKey: string;
-  /** Paywall triggers (optional) - map trigger names to IDs */
-  triggers?: Record<string, string>;
 }
 
 export interface StripeConfig {
@@ -80,8 +78,8 @@ export interface StripeConfig {
 export interface BillingConfig {
   /** Billing provider selection */
   provider: BillingProvider;
-  /** Superwall configuration (required if provider is "superwall") */
-  superwall?: SuperwallConfig;
+  /** RevenueCat configuration (required if provider is "revenueCat") */
+  revenueCat?: RevenueCatConfig;
   /** Stripe configuration (required if provider is "stripe") */
   stripe?: StripeConfig;
 }

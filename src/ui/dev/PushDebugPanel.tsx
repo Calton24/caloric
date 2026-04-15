@@ -9,7 +9,7 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { notifications } from "../../infrastructure/notifications";
 import type { PermissionStatus } from "../../infrastructure/notifications/types";
@@ -106,7 +106,7 @@ export function PushDebugPanel() {
   const handleScheduleLocal = useCallback(async () => {
     await notifications.scheduleLocal({
       title: "Test Notification",
-      body: "This is a local push test from Mobile Core dev panel.",
+      body: "This is a local push test from Caloric dev panel.",
       data: { source: "push_debug_panel" },
       delaySeconds: 5,
     });

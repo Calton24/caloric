@@ -7,8 +7,8 @@ if (!udid) {
   process.exit(1);
 }
 
-const workspace = process.env.IOS_WORKSPACE || "ios/MobileCoreDev.xcworkspace";
-const scheme = process.env.IOS_SCHEME || "MobileCoreDev";
+const workspace = process.env.IOS_WORKSPACE || "ios/Caloric.xcworkspace";
+const scheme = process.env.IOS_SCHEME || "Caloric";
 const configuration = process.env.IOS_CONFIGURATION || "Debug";
 const derivedData = process.env.IOS_DERIVED_DATA || "ios/build";
 

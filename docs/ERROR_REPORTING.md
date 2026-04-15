@@ -33,11 +33,11 @@ SENTRY_AUTH_TOKEN=your-auth-token
 
 ### 3. That's It!
 
-Error reporting is **automatically initialized** in `MobileCoreProviders` and works immediately.
+Error reporting is **automatically initialized** in `CaloricProviders` and works immediately.
 
 ## How It Works
 
-1. **Initialization**: `initErrorReporting()` is called when `MobileCoreProviders` mounts
+1. **Initialization**: `initErrorReporting()` is called when `CaloricProviders` mounts
 2. **No-op by default**: If `EXPO_PUBLIC_SENTRY_DSN` is not set, a no-op reporter is used
 3. **ErrorBoundary**: Wraps the entire app to catch React errors
 4. **Disabled in dev**: Sentry is disabled in `__DEV__` unless explicitly enabled
@@ -120,9 +120,9 @@ getErrorReporter().setTag("experiment", "new-flow-v2");
 | `EXPO_PUBLIC_ENABLE_SENTRY_IN_DEV=true`       | Sentry enabled even in dev   |
 | `EXPO_PUBLIC_SENTRY_DSN` set + production     | Sentry enabled automatically |
 
-## For New Apps (Forking mobile-core)
+## For New Apps (Forking caloric)
 
-When you fork/clone `mobile-core` for a new app:
+When you fork/clone `caloric` for a new app:
 
 1. **No code changes needed** - error reporting is already integrated
 2. **Add Sentry DSN** to your `.env` file (or leave unset to disable)

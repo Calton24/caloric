@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Realtime Notes Feed is a production-ready vertical feature built to validate Mobile Core infrastructure under real pressure. This is NOT a UI showcase—it's a stress test of infrastructure abstractions.
+The Realtime Notes Feed is a production-ready vertical feature built to validate Caloric infrastructure under real pressure. This is NOT a UI showcase—it's a stress test of infrastructure abstractions.
 
 ## Files Created
 

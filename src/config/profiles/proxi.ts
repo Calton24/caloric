@@ -59,9 +59,9 @@ export const proxiConfig: AppProfileConfig = {
     growth: false,
     haptics: true,
     notifications: true, // Critical for proximity alerts
-    firebaseAnalytics: false, // Firebase not installed in mobile-core
-    crashReporting: false, // Firebase not installed in mobile-core
-    performanceMonitoring: false, // Firebase not installed in mobile-core
+    firebaseAnalytics: false, // Firebase not installed in caloric
+    crashReporting: false, // Firebase not installed in caloric
+    performanceMonitoring: false, // Firebase not installed in caloric
     billing: true, // Enable billing system (includes paywall UI)
     i18n: true,
     presence: true,
@@ -72,10 +72,10 @@ export const proxiConfig: AppProfileConfig = {
   },
 
   app: {
-    name: "Mobile Core",
-    slug: "mobile-core",
-    bundleIdentifier: "com.yourcompany.mobilecore",
-    androidPackage: "com.yourcompany.mobilecore",
+    name: "Caloric",
+    slug: "caloric",
+    bundleIdentifier: "com.yourcompany.caloric",
+    androidPackage: "com.yourcompany.caloric",
     version: "1.0.0",
     scheme: "proxi",
   },
@@ -113,10 +113,10 @@ export const proxiConfig: AppProfileConfig = {
         billing: false, // Disable billing in dev
       },
       app: {
-        name: "Mobile Core",
-        slug: "mobile-core-dev",
-        bundleIdentifier: "com.yourcompany.mobilecore.dev",
-        androidPackage: "com.yourcompany.mobilecore.dev",
+        name: "Caloric",
+        slug: "caloric-dev",
+        bundleIdentifier: "com.yourcompany.caloric.dev",
+        androidPackage: "com.yourcompany.caloric.dev",
       },
     },
     staging: {
@@ -125,9 +125,9 @@ export const proxiConfig: AppProfileConfig = {
         anonKey: "YOUR_STAGING_ANON_KEY", // Replace with staging anon key
       },
       app: {
-        name: "Mobile Core Staging",
-        bundleIdentifier: "com.yourcompany.mobilecore.staging",
-        androidPackage: "com.yourcompany.mobilecore.staging",
+        name: "Caloric Staging",
+        bundleIdentifier: "com.yourcompany.caloric.staging",
+        androidPackage: "com.yourcompany.caloric.staging",
       },
     },
     prod: {

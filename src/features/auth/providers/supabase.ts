@@ -6,6 +6,9 @@
  * Feature code must never import this file directly — use createAuthClient().
  */
 
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import * as AppleAuthentication from "expo-apple-authentication";
+import * as Crypto from "expo-crypto";
 import { getAppConfig } from "../../../config";
 import { getSupabaseClient } from "../../../lib/supabase";
 import type {
@@ -101,6 +104,25 @@ export class SupabaseAuthClient implements AuthClient {
     }
   }
 
+  async deleteAccount(): Promise<{ error: Error | null }> {
+    try {
+      const supabase = getSupabaseClient();
+      const { error } = await supabase.functions.invoke("delete-account", {
+        method: "POST",
+      });
+      if (error) {
+        return { error: new Error(error.message) };
+      }
+      this.notifyListeners(null);
+      return { error: null };
+    } catch (err) {
+      return {
+        error:
+          err instanceof Error ? err : new Error("Account deletion failed"),
+      };
+    }
+  }
+
   async resetPasswordForEmail(email: string): Promise<{ error: Error | null }> {
     try {
       const supabase = getSupabaseClient();
@@ -137,17 +159,46 @@ export class SupabaseAuthClient implements AuthClient {
     }
   }
 
-  async exchangeCodeForSession(code: string): Promise<{ error: Error | null }> {
+  async exchangeCodeForSession(
+    code: string
+  ): Promise<{ error: Error | null; isRecovery?: boolean }> {
     try {
       const supabase = getSupabaseClient();
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
       if (error) {
         return { error: new Error(error.message) };
       }
-      return { error: null };
+      // The SDK stores "codeVerifier/PASSWORD_RECOVERY" during resetPasswordForEmail
+      // and returns redirectType from the exchange response (not typed but present at runtime)
+      const redirectType = (data as Record<string, unknown>)?.redirectType;
+      const isRecovery = redirectType === "PASSWORD_RECOVERY";
+      return { error: null, isRecovery };
     } catch (err) {
       return {
         error: err instanceof Error ? err : new Error("Code exchange failed"),
+      };
+    }
+  }
+
+  async verifyRecoveryToken(
+    tokenHash: string
+  ): Promise<{ error: Error | null; session?: any }> {
+    try {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: "recovery",
+      });
+      if (error) {
+        return { error: new Error(error.message) };
+      }
+      return { error: null, session: data.session };
+    } catch (err) {
+      return {
+        error:
+          err instanceof Error
+            ? err
+            : new Error("Recovery verification failed"),
       };
     }
   }
@@ -176,6 +227,125 @@ export class SupabaseAuthClient implements AuthClient {
       return {
         url: null,
         error: err instanceof Error ? err : new Error("OAuth sign-in failed"),
+      };
+    }
+  }
+
+  async signInWithAppleNative(): Promise<AuthResponse> {
+    try {
+      const rawNonce = Crypto.randomUUID();
+      const hashedNonce = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        rawNonce
+      );
+
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+        nonce: hashedNonce,
+      });
+
+      if (!credential.identityToken) {
+        return {
+          user: null,
+          session: null,
+          error: new Error("No identity token returned from Apple"),
+        };
+      }
+
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: "apple",
+        token: credential.identityToken,
+        nonce: rawNonce,
+      });
+
+      if (error) {
+        return { user: null, session: null, error: new Error(error.message) };
+      }
+
+      if (!data.user || !data.session) {
+        return {
+          user: null,
+          session: null,
+          error: new Error("Invalid response from server"),
+        };
+      }
+
+      const user = mapUser(data.user);
+      const session = mapSession(user, data.session);
+      return { user, session, error: null };
+    } catch (err: any) {
+      if (err?.code === "ERR_REQUEST_CANCELED") {
+        return {
+          user: null,
+          session: null,
+          error: new Error("User cancelled"),
+        };
+      }
+      return {
+        user: null,
+        session: null,
+        error: err instanceof Error ? err : new Error("Apple sign-in failed"),
+      };
+    }
+  }
+
+  async signInWithGoogleNative(): Promise<AuthResponse> {
+    try {
+      GoogleSignin.configure({
+        iosClientId:
+          "390435728176-967pml00ib7jpm5hjto9ddj8ivb73l6g.apps.googleusercontent.com",
+        webClientId:
+          "390435728176-7kpm8nrkos7f273aeb5ep3c3gfm8co1v.apps.googleusercontent.com",
+      });
+
+      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+
+      if (!response.data?.idToken) {
+        return {
+          user: null,
+          session: null,
+          error: new Error("No ID token returned from Google"),
+        };
+      }
+
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: "google",
+        token: response.data.idToken,
+      });
+
+      if (error) {
+        return { user: null, session: null, error: new Error(error.message) };
+      }
+
+      if (!data.user || !data.session) {
+        return {
+          user: null,
+          session: null,
+          error: new Error("Invalid response from server"),
+        };
+      }
+
+      const user = mapUser(data.user);
+      const session = mapSession(user, data.session);
+      return { user, session, error: null };
+    } catch (err: any) {
+      if (err?.code === "SIGN_IN_CANCELLED") {
+        return {
+          user: null,
+          session: null,
+          error: new Error("User cancelled"),
+        };
+      }
+      return {
+        user: null,
+        session: null,
+        error: err instanceof Error ? err : new Error("Google sign-in failed"),
       };
     }
   }

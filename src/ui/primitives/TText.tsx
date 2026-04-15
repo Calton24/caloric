@@ -40,11 +40,19 @@ export function TText({
           ? styles.caption
           : styles.body;
 
+  const fontFamily =
+    variant === "heading"
+      ? theme.typography.fontFamily.bold
+      : variant === "subheading"
+        ? theme.typography.fontFamily.semibold
+        : theme.typography.fontFamily.regular;
+
   return (
     <Text
       style={[
         variantStyle,
         {
+          fontFamily,
           color: textColor || theme.colors.text,
           fontSize:
             variant === "heading"

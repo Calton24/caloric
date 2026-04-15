@@ -82,6 +82,14 @@ export interface TypographyTokens {
     xxl: number;
     xxxl: number;
   };
+  fontFamily: {
+    regular: string;
+    medium: string;
+    semibold: string;
+    bold: string;
+    extrabold: string;
+    extraboldItalic: string;
+  };
   fontWeight: {
     regular: "400";
     medium: "500";
@@ -121,6 +129,14 @@ export const typography: TypographyTokens = {
     xl: 20,
     xxl: 24,
     xxxl: 32,
+  },
+  fontFamily: {
+    regular: "PlusJakartaSans_400Regular",
+    medium: "PlusJakartaSans_500Medium",
+    semibold: "PlusJakartaSans_600SemiBold",
+    bold: "PlusJakartaSans_700Bold",
+    extrabold: "PlusJakartaSans_800ExtraBold",
+    extraboldItalic: "PlusJakartaSans_800ExtraBold_Italic",
   },
   fontWeight: {
     regular: "400",

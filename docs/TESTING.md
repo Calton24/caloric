@@ -1,6 +1,6 @@
 # Testing Guide
 
-Comprehensive testing setup for mobile-core with Jest, TypeScript, and React Native Testing Library.
+Comprehensive testing setup for caloric with Jest, TypeScript, and React Native Testing Library.
 
 ## Quick Start
 
@@ -27,7 +27,7 @@ npm run validate
 ## Test Structure
 
 ```
-mobile-core/
+caloric/
 ├── __tests__/           # Test files
 │   ├── setup.ts         # Jest setup
 │   ├── config.test.ts   # Config system tests
@@ -99,7 +99,7 @@ Example:
 
 ```typescript
 it("should load intake profile when EXPO_PUBLIC_APP_PROFILE=intake", () => {
-  process.env.EXPO_PUBLIC_APP_PROFILE = "intake";
+  process.env.EXPO_PUBLIC_APP_PROFILE = "caloric";
   const config = getActiveConfig();
   expect(config.app.name).toBe("Intake");
 });
@@ -191,7 +191,7 @@ beforeEach(() => {
 
 ```typescript
 beforeEach(() => {
-  process.env.EXPO_PUBLIC_APP_PROFILE = "intake";
+  process.env.EXPO_PUBLIC_APP_PROFILE = "caloric";
   process.env.EXPO_PUBLIC_APP_ENV = "dev";
 });
 ```
@@ -202,7 +202,7 @@ beforeEach(() => {
 
 ```typescript
 it("should reload config after cache clear", () => {
-  process.env.EXPO_PUBLIC_APP_PROFILE = "intake";
+  process.env.EXPO_PUBLIC_APP_PROFILE = "caloric";
   const config1 = getActiveConfig();
 
   __clearConfigCache();

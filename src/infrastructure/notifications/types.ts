@@ -18,6 +18,18 @@ export interface ScheduleLocalOpts {
   delaySeconds?: number;
 }
 
+export interface ScheduleDailyOpts {
+  /** Unique identifier for this notification (used for cancellation) */
+  identifier: string;
+  title: string;
+  body: string;
+  /** Hour (0-23) to fire each day */
+  hour: number;
+  /** Minute (0-59) to fire each day */
+  minute: number;
+  data?: Record<string, unknown>;
+}
+
 export interface SendTestRemoteOpts {
   token: string;
   title: string;
@@ -37,6 +49,15 @@ export interface NotificationsClient {
 
   /** Schedule a local notification */
   scheduleLocal(opts: ScheduleLocalOpts): Promise<void>;
+
+  /** Schedule a daily repeating notification at a specific time */
+  scheduleDailyRepeat(opts: ScheduleDailyOpts): Promise<void>;
+
+  /** Cancel a previously scheduled notification by identifier */
+  cancelScheduled(identifier: string): Promise<void>;
+
+  /** Cancel all scheduled notifications */
+  cancelAllScheduled(): Promise<void>;
 
   /** Clear the app badge count */
   clearBadge(): Promise<void>;

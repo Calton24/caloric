@@ -1,8 +1,10 @@
 import { FeatureFlags } from "@/config/features";
+import { useAuth } from "@/src/features/auth/useAuth";
+import { useLiveActivitySync } from "@/src/features/live-activity";
 import { haptics } from "@/src/infrastructure/haptics";
 import { useTheme } from "@/src/theme/useTheme";
 import { GlassTabBar } from "@/src/ui/tabs/GlassTabBar";
-import { Tabs, usePathname } from "expo-router";
+import { Redirect, Tabs, usePathname } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { useEffect, useRef } from "react";
 import { Platform, View } from "react-native";
@@ -46,9 +48,9 @@ const TABS = [
     ionicon: "sparkles",
   },
   {
-    name: "mobile-core",
-    flag: FeatureFlags.SHOW_MOBILE_CORE,
-    label: "Mobile Core",
+    name: "caloric",
+    flag: FeatureFlags.SHOW_CALORIC,
+    label: "Caloric",
     sf: "hammer.fill",
     ionicon: "hammer",
   },
@@ -78,10 +80,7 @@ function NativeTabLayout() {
 
   // Use the app's own theme mode (not the device's useColorScheme)
   // so the wrapper background stays in sync with screen content.
-  const screenBg =
-    theme.mode === "dark"
-      ? "#000000" // iOS systemBackground (dark)
-      : "#FFFFFF"; // iOS systemBackground (light)
+  const screenBg = theme.colors.background;
 
   return (
     <View testID="tabs-root" style={{ flex: 1, backgroundColor: screenBg }}>
@@ -99,11 +98,19 @@ function NativeTabLayout() {
 
 // ─── Custom glass pill tabs (iOS < 26 & Android) ─────────────
 function GlassTabLayout() {
+  const { theme } = useTheme();
   return (
-    <View testID="tabs-root" style={{ flex: 1 }}>
+    <View
+      testID="tabs-root"
+      style={{ flex: 1, backgroundColor: theme.colors.background }}
+    >
       <Tabs
         tabBar={(props) => <GlassTabBar {...props} />}
-        screenOptions={{ headerShown: false }}
+        screenOptions={{
+          headerShown: false,
+          lazy: true,
+          sceneStyle: { backgroundColor: theme.colors.background },
+        }}
       >
         {TABS.map((t) => (
           <Tabs.Screen
@@ -121,5 +128,13 @@ function GlassTabLayout() {
 }
 
 export default function TabLayout() {
+  const { user, isLoading } = useAuth();
+  useLiveActivitySync();
+
+  // Auth guard — redirect unauthenticated users back to the entry point.
+  // This handles sign-out, session expiry, and any accidental direct navigation.
+  if (isLoading) return null;
+  if (!user) return <Redirect href="/(onboarding)/landing" />;
+
   return USE_NATIVE_TABS ? <NativeTabLayout /> : <GlassTabLayout />;
 }

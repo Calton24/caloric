@@ -121,7 +121,7 @@ Build hook automatically copies correct Firebase config:
 {
   "intake-dev": {
     "env": {
-      "EXPO_PUBLIC_APP_PROFILE": "intake",
+      "EXPO_PUBLIC_APP_PROFILE": "caloric",
       "EXPO_PUBLIC_APP_ENV": "dev"
     },
     "prebuildCommand": "./scripts/eas-build-firebase-setup.sh"

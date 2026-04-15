@@ -115,7 +115,10 @@ serve(async (req: Request) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("[Webhook] Error:", error);
+    console.error(
+      "[Webhook] Error processing event:",
+      error instanceof Error ? error.message : "unknown"
+    );
 
     // Determine appropriate status code
     const isMissingDataError =
@@ -130,8 +133,9 @@ serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({
-        error:
-          error instanceof Error ? error.message : "Webhook handler failed",
+        error: isMissingDataError
+          ? "Webhook skipped: missing required metadata"
+          : "Webhook processing failed",
         skipped: isMissingDataError,
       }),
       { status, headers: { "Content-Type": "application/json" } }
@@ -204,7 +208,7 @@ async function upsertSubscription(
     });
 
   if (error) {
-    console.error("[Webhook] Database error:", error);
+    console.error("[Webhook] Database upsert failed:", error.code ?? "UNKNOWN");
     throw error;
   }
 

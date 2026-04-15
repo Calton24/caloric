@@ -17,9 +17,10 @@ global.console = {
 };
 
 // Mock environment variables for testing
-process.env.EXPO_PUBLIC_APP_PROFILE = "intake";
+process.env.EXPO_PUBLIC_APP_PROFILE = "caloric";
 process.env.EXPO_PUBLIC_APP_ENV = "dev";
 process.env.APP_ENV = "dev"; // Also set APP_ENV for config loader
+process.env.EXPO_PUBLIC_REVENUECAT_API_KEY = "test_placeholder_api_key"; // Required for caloric profile
 
 // Clean up any pending timers after each test
 afterEach(() => {

@@ -1,8 +1,8 @@
-# Mobile Core
+# Caloric
 
 **Production-ready React Native infrastructure** for building authenticated, themed, real-time mobile applications with Expo.
 
-Mobile Core is a reusable foundation that combines essential infrastructure patterns:
+Caloric is a reusable foundation that combines essential infrastructure patterns:
 
 - 🎨 **Dynamic theming** with brand color customization
 - 🔐 **Authentication** with Supabase (swappable)
@@ -79,8 +79,8 @@ Mobile Core is a reusable foundation that combines essential infrastructure patt
 
 ```bash
 # Clone and install
-git clone https://github.com/Calton24/mobile-core.git
-cd mobile-core
+git clone https://github.com/Calton24/caloric.git
+cd caloric
 npm install
 
 # iOS: Install CocoaPods dependencies
@@ -134,19 +134,19 @@ npm start
 ## Repository Structure
 
 ```
-mobile-core/
+caloric/
 ├── app/                          # Expo Router entry points
 │   ├── (tabs)/                   # Tab navigation
 │   │   ├── index.tsx             # Home tab
 │   │   ├── notes.tsx             # Notes tab (dev-only)
 │   │   ├── auth.tsx              # Auth tab
 │   │   ├── playground.tsx        # Component playground
-│   │   └── mobile-core.tsx       # Mobile Core info (dev-only)
+│   │   └── caloric.tsx       # Caloric info (dev-only)
 │   ├── _layout.tsx               # Root layout with providers
 │   └── modal.tsx                 # Example modal
 │
 ├── src/
-│   ├── MobileCoreProviders.tsx   # Root provider composition
+│   ├── CaloricProviders.tsx   # Root provider composition
 │   │
 │   ├── analytics/                # Analytics abstraction (swappable)
 │   │   ├── analytics.types.ts    # Interface + noop client
@@ -324,7 +324,7 @@ npm start -- --clear  # Clear Metro cache
 
 ## Configuration System
 
-Mobile Core supports multiple apps from a single codebase.
+Caloric supports multiple apps from a single codebase.
 
 ### App Profiles
 
@@ -338,7 +338,7 @@ Each profile defines:
 
 **Available profiles:**
 
-- `default` - Mobile Core base configuration
+- `default` - Caloric base configuration
 - `intake` - Example: Food tracking app
 - `proxi` - Example: Social proximity app
 
@@ -368,10 +368,10 @@ See `docs/CONFIGURATION.md` for details.
 Already configured in `app/_layout.tsx`:
 
 ```tsx
-import { MobileCoreProviders } from "@/src/MobileCoreProviders";
+import { CaloricProviders } from "@/src/CaloricProviders";
 
 export default function RootLayout() {
-  return <MobileCoreProviders>{/* Your app */}</MobileCoreProviders>;
+  return <CaloricProviders>{/* Your app */}</CaloricProviders>;
 }
 ```
 
@@ -577,7 +577,7 @@ See [.github/workflows/ci.yml](.github/workflows/ci.yml) for full pipeline.
 
 ## Notes Validation Harness
 
-**Purpose:** Validates Mobile Core infrastructure under real pressure.
+**Purpose:** Validates Caloric infrastructure under real pressure.
 
 **What it validates:**
 
@@ -646,7 +646,7 @@ See [.github/workflows/ci.yml](.github/workflows/ci.yml) for full pipeline.
 
 **Fix:**
 
-1. Verify `MobileCoreProviders` is used in `app/_layout.tsx`
+1. Verify `CaloricProviders` is used in `app/_layout.tsx`
 2. Check `babel.config.js` has `"react-native-reanimated/plugin"` as **last plugin**
 3. Clear cache: `npm start -- --clear`
 
@@ -695,7 +695,7 @@ All PRs must pass the security gate before merge. This is enforced via CI and ma
 
 ```bash
 # MUST PASS before merge
-npm run mobile-core:verify:security
+npm run caloric:verify:security
 ```
 
 This runs 22+ automated checks including:
@@ -714,7 +714,7 @@ This runs 22+ automated checks including:
 
 Every PR uses the [PR template](.github/PULL_REQUEST_TEMPLATE.md) with security checkboxes:
 
-- [ ] `npm run mobile-core:verify:security` passes locally
+- [ ] `npm run caloric:verify:security` passes locally
 - [ ] No console.log outside logger
 - [ ] No hardcoded secrets or keys
 - [ ] No direct Supabase inserts (use Edge Functions for growth tables)
@@ -794,8 +794,8 @@ For app-specific features, create a new profile in `src/config/profiles/`.
 
 ## Support
 
-- **Issues:** https://github.com/Calton24/mobile-core/issues
-- **Discussions:** https://github.com/Calton24/mobile-core/discussions
+- **Issues:** https://github.com/Calton24/caloric/issues
+- **Discussions:** https://github.com/Calton24/caloric/discussions
 
 ---
 

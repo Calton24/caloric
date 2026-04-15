@@ -1,11 +1,11 @@
 /**
- * Mobile Core UI - Main Entry Point
+ * Caloric - Main Entry Point
  * Export all components, hooks, and utilities
  */
 
 // === PROVIDERS ===
+export { CaloricProviders } from "./CaloricProviders";
 export { AuthProvider } from "./features/auth/AuthProvider";
-export { MobileCoreProviders } from "./MobileCoreProviders";
 export { ThemeProvider } from "./theme/ThemeProvider";
 export { BottomSheetProvider } from "./ui/sheets/BottomSheetProvider";
 

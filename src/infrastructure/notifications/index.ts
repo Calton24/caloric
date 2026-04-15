@@ -9,13 +9,14 @@ export {
     setNotificationsClient
 } from "./notifications";
 
-// ── Bootstrap (called once in MobileCoreProviders) ──
+// ── Bootstrap (called once in CaloricProviders) ──
 export { initNotifications, resetNotifications } from "./factory";
 
 // ── Types ──
 export type {
     NotificationsClient,
     PermissionStatus,
+    ScheduleDailyOpts,
     ScheduleLocalOpts,
     SendTestRemoteOpts
 } from "./types";

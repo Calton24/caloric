@@ -2,7 +2,7 @@
 
 ## Architecture Overview
 
-This mobile-core billing system uses:
+This caloric billing system uses:
 
 - **Stripe** for payment processing (server-side via Supabase Edge Functions)
 - **Superwall** for native mobile paywalls (iOS/Android SDK integration)

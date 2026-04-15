@@ -5,7 +5,7 @@
 // ── Consumer API (feature code uses these) ──
 export { getPresenceClient, presence, setPresenceClient } from "./presence";
 
-// ── Bootstrap (called once in MobileCoreProviders) ──
+// ── Bootstrap (called once in CaloricProviders) ──
 export { initPresence, resetPresence } from "./factory";
 
 // ── Types ──

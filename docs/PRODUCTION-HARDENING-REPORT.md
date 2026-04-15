@@ -15,7 +15,7 @@ Successfully implemented production-grade hardening across 3 strategic phases:
 2. **Detox E2E Tests** - End-to-end validation framework
 3. **GitHub Actions CI** - Comprehensive automation pipeline
 
-This infrastructure ensures Mobile Core is battle-tested and production-ready.
+This infrastructure ensures Caloric is battle-tested and production-ready.
 
 ---
 

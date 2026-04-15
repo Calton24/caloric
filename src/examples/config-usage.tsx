@@ -220,7 +220,7 @@ export function ExampleProfileLogic() {
 
   // Different UI per app profile
   switch (config.profile) {
-    case "intake":
+    case "caloric":
       return <IntakeHomePage />;
 
     case "default":

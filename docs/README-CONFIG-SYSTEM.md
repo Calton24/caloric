@@ -26,7 +26,7 @@ src/config/
 ├── loader.ts             # Config loader with singleton pattern
 ├── index.ts              # Public API exports
 └── profiles/
-    ├── intake.ts         # Example: Intake app config (with Firebase)
+    ├── caloric.ts         # Example: Caloric app config (with Firebase)
     ├── proxi.ts          # Example: Proxi app config (with Firebase)
     └── index.ts          # Profile registry
 ```
@@ -93,10 +93,10 @@ src/examples/
 
 ```bash
 # 1. Clone repo
-git clone https://github.com/your-org/mobile-core.git mynewapp
+git clone https://github.com/your-org/caloric.git mynewapp
 
 # 2. Create profile
-cp src/config/profiles/intake.ts src/config/profiles/mynewapp.ts
+cp src/config/profiles/caloric.ts src/config/profiles/mynewapp.ts
 # Edit with your Supabase credentials
 
 # 3. Register profile
@@ -114,8 +114,8 @@ npm start
 ### Switch Between Apps
 
 ```bash
-# Run Intake
-EXPO_PUBLIC_APP_PROFILE=intake npm start
+# Run Caloric
+EXPO_PUBLIC_APP_PROFILE=caloric npm start
 
 # Run Proxi
 EXPO_PUBLIC_APP_PROFILE=proxi npm start
@@ -125,7 +125,7 @@ EXPO_PUBLIC_APP_PROFILE=proxi npm start
 
 ```bash
 # Dev build
-eas build --profile intake-dev --platform ios
+eas build --profile caloric-dev --platform ios
 
 # Production build
 eas build --profile proxi-prod --platform all
@@ -145,9 +145,9 @@ Each app profile contains:
 - Environment overrides (dev/staging/prod)
 
 ```typescript
-export const intakeConfig: AppProfileConfig = {
+export const caloricConfig: AppProfileConfig = {
   supabase: {
-    url: "https://intake-prod.supabase.co",
+    url: "https://caloric-prod.supabase.co",
     anonKey: "eyJ...",
   },
   features: {
@@ -156,8 +156,8 @@ export const intakeConfig: AppProfileConfig = {
     // ...
   },
   app: {
-    name: "Intake",
-    bundleIdentifier: "com.yourcompany.intake",
+    name: "Caloric",
+    bundleIdentifier: "com.yourcompany.caloric",
     // ...
   },
   environments: {
@@ -221,7 +221,7 @@ export const config = {
 };
 
 // Error message:
-// ❌ Config Validation Error in Profile: intake:
+// ❌ Config Validation Error in Profile: caloric:
 //   - supabase.url: Supabase URL must be a valid URL
 //   - supabase.anonKey: Supabase anon key appears invalid (too short)
 ```
@@ -281,9 +281,9 @@ See [`docs/SECURITY.md`](docs/SECURITY.md) for complete security guide.
 ```
 1. App starts
        ↓
-2. Read EXPO_PUBLIC_APP_PROFILE=intake
+2. Read EXPO_PUBLIC_APP_PROFILE=caloric
        ↓
-3. Load src/config/profiles/intake.ts
+3. Load src/config/profiles/caloric.ts
        ↓
 4. Read EXPO_PUBLIC_APP_ENV=dev
        ↓
@@ -295,7 +295,7 @@ See [`docs/SECURITY.md`](docs/SECURITY.md) for complete security guide.
        ↓
 8. Create Supabase client with credentials
        ↓
-9. App runs with Intake's features
+9. App runs with Caloric's features
 ```
 
 ---
@@ -379,7 +379,7 @@ Comprehensive guides included:
 ### Publisher Workflow
 
 ```
-1. Clone mobile-core
+1. Clone caloric
 2. Create new profile (15 min)
 3. Set 2 env vars
 4. Build with EAS

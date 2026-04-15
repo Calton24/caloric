@@ -9,8 +9,8 @@ export const AppEnvironmentSchema = z.enum(["dev", "staging", "prod"], {
   message: "APP_ENV must be one of: dev, staging, prod",
 });
 
-export const AppProfileSchema = z.enum(["intake", "default"], {
-  message: "APP_PROFILE must be one of: intake, default",
+export const AppProfileSchema = z.enum(["caloric", "default"], {
+  message: "APP_PROFILE must be one of: caloric, default",
 });
 
 /**
@@ -117,18 +117,29 @@ export const StripeConfigSchema = z.object({
   cancelUrl: z.string().url("Cancel URL must be a valid deep link"),
 });
 
-export const BillingProviderSchema = z.enum(["superwall", "stripe"], {
-  message: "Billing provider must be 'superwall' or 'stripe'",
+export const BillingProviderSchema = z.enum(
+  ["revenueCat", "superwall", "stripe"],
+  {
+    message: "Billing provider must be 'revenueCat', 'superwall', or 'stripe'",
+  }
+);
+
+export const RevenueCatConfigSchema = z.object({
+  apiKey: z.string().min(1, "RevenueCat API key is required"),
 });
 
 export const BillingConfigSchema = z
   .object({
     provider: BillingProviderSchema,
+    revenueCat: RevenueCatConfigSchema.optional(),
     superwall: SuperwallConfigSchema.optional(),
     stripe: StripeConfigSchema.optional(),
   })
   .refine(
     (data) => {
+      if (data.provider === "revenueCat") {
+        return !!data.revenueCat;
+      }
       if (data.provider === "superwall") {
         return !!data.superwall;
       }
@@ -139,7 +150,7 @@ export const BillingConfigSchema = z
     },
     {
       message:
-        "Billing config must include provider-specific configuration (superwall or stripe)",
+        "Billing config must include provider-specific configuration (revenueCat, superwall, or stripe)",
     }
   );
 
@@ -147,6 +158,7 @@ export const BillingConfigSchema = z
 export const PartialBillingConfigSchema = z
   .object({
     provider: BillingProviderSchema.optional(),
+    revenueCat: RevenueCatConfigSchema.optional(),
     superwall: SuperwallConfigSchema.optional(),
     stripe: StripeConfigSchema.optional(),
   })

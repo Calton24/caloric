@@ -1,19 +1,18 @@
 /* eslint-disable react/no-unescaped-entities */
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import React, { useState } from "react";
 import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    View,
 } from "react-native";
 import {
-  SafeAreaView,
-  useSafeAreaInsets,
+    SafeAreaView,
+    useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
 import { AuthCapabilities } from "../../src/features/auth/authCapabilities";
@@ -27,7 +26,14 @@ import { TText } from "../../src/ui/primitives/TText";
 
 export default function AuthScreen() {
   const { theme } = useTheme();
-  const { signIn, signUp, user, signOut, signInWithOAuth } = useAuth();
+  const {
+    signIn,
+    signUp,
+    user,
+    signOut,
+    signInWithAppleNative,
+    signInWithGoogleNative,
+  } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -54,6 +60,9 @@ export default function AuthScreen() {
       const { error } = await signIn(email, password);
       if (error) {
         Alert.alert("Sign In Failed", error.message);
+      } else {
+        // Route through index so auth + onboarding state is evaluated once.
+        router.replace("/");
       }
     } finally {
       setLoading(false);
@@ -116,28 +125,37 @@ export default function AuthScreen() {
     }
     setLoading(true);
     try {
-      const { url, error } = await signInWithOAuth("google");
+      const { error } = await signInWithGoogleNative();
       if (error) {
-        Alert.alert("Error", error.message);
+        if (error.message !== "User cancelled") {
+          Alert.alert("Error", error.message);
+        }
         return;
       }
-      if (url) {
-        await WebBrowser.openAuthSessionAsync(url);
-      }
+      router.replace("/");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAppleSignIn = () => {
+  const handleAppleSignIn = async () => {
     if (!AuthCapabilities.apple) {
       Alert.alert("Unavailable", "Apple sign-in is disabled for this app.");
       return;
     }
-    Alert.alert(
-      "Coming Soon",
-      "Sign in with Apple will be available in a future update."
-    );
+    setLoading(true);
+    try {
+      const { error } = await signInWithAppleNative();
+      if (error) {
+        if (error.message !== "User cancelled") {
+          Alert.alert("Error", error.message);
+        }
+        return;
+      }
+      router.replace("/");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSignOut = async () => {

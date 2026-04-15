@@ -39,8 +39,8 @@ These are real, documented risks — not theoretical:
 **Usage:**
 
 ```bash
-npm run mobile-core:security              # Quick audit
-npm run mobile-core:verify:security       # Full verification + tests
+npm run caloric:security              # Quick audit
+npm run caloric:verify:security       # Full verification + tests
 ```
 
 **Exit Code:** 0 (success) or 1 (failure) for CI/CD integration
@@ -75,8 +75,8 @@ npm run test -- __tests__/security.test.ts
 
 ```json
 {
-  "mobile-core:security": "node scripts/security-audit.js",
-  "mobile-core:verify:security": "npm run mobile-core:security && npm run check && npm run lint && npm run test"
+  "caloric:security": "node scripts/security-audit.js",
+  "caloric:verify:security": "npm run caloric:security && npm run check && npm run lint && npm run test"
 }
 ```
 
@@ -151,7 +151,7 @@ Before merging or deploying:
 
 ```bash
 # 1. Run security audit
-✓ npm run mobile-core:security
+✓ npm run caloric:security
 
 # 2. Run full test suite
 ✓ npm test
@@ -160,7 +160,7 @@ Before merging or deploying:
 ✓ npm run test -- __tests__/security.test.ts
 
 # 4. Run full verification
-✓ npm run mobile-core:verify:security
+✓ npm run caloric:verify:security
 
 # 5. Type check
 ✓ npm run typecheck
@@ -203,7 +203,7 @@ console.log(redactSensitive(message));
 // JWTs → [JWT_REDACTED], Keys → [KEY_REDACTED]
 
 // Debug screen gating
-if (!__DEV__) return <Redirect href="/(tabs)/mobile-core" />;
+if (!__DEV__) return <Redirect href="/(tabs)/caloric" />;
 // Checked at module load, evaluated before app renders
 ```
 
@@ -212,10 +212,10 @@ if (!__DEV__) return <Redirect href="/(tabs)/mobile-core" />;
 ```bash
 # In GitHub Actions or equivalent:
 - name: Security Audit
-  run: npm run mobile-core:security
+  run: npm run caloric:security
 
 - name: Full Verification
-  run: npm run mobile-core:verify:security
+  run: npm run caloric:verify:security
 
 # Exit code 0 = pass, 1 = fail (blocks merge)
 ```
@@ -260,8 +260,8 @@ if (!__DEV__) return <Redirect href="/(tabs)/mobile-core" />;
 
 1. **Review SECURITY.md** - Understand all constraints
 2. **Update environment variables** - Use your own secrets
-3. **Run security audit** - `npm run mobile-core:security`
-4. **Run full verification** - `npm run mobile-core:verify:security`
+3. **Run security audit** - `npm run caloric:security`
+4. **Run full verification** - `npm run caloric:verify:security`
 5. **Deploy with confidence** - All checks pass
 
 ### For Fork Maintainers
@@ -270,7 +270,7 @@ if (!__DEV__) return <Redirect href="/(tabs)/mobile-core" />;
 2. **Test with prod credentials** (in secure CI environment only)
 3. **Monitor logs post-deployment** for [REDACTED] patterns
 4. **Rotate secrets on schedule** (monthly recommended)
-5. **Review SECURITY.md updates** when upgrading mobile-core
+5. **Review SECURITY.md updates** when upgrading caloric
 
 ---
 

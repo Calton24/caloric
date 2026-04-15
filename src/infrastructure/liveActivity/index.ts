@@ -9,7 +9,7 @@ export {
     setLiveActivityClient
 } from "./liveActivity";
 
-// ── Bootstrap (called once in MobileCoreProviders) ──
+// ── Bootstrap (called once in CaloricProviders) ──
 export { initLiveActivity, resetLiveActivity } from "./factory";
 
 // ── Types ──

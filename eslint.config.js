@@ -31,6 +31,14 @@ module.exports = defineConfig([
     },
   },
 
+  // Allow require() in test files — necessary for Jest's dynamic mock patterns
+  {
+    files: ['__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
+
   // =========================================================================
   // ARCHITECTURE BOUNDARY: Vendor SDK Isolation
   // =========================================================================
@@ -76,7 +84,6 @@ module.exports = defineConfig([
                 '@mixpanel/*',
 
                 // ── Payments ──
-                '@superwall/*',
                 '@stripe/*',
                 '@revenuecat/*',
                 'react-native-purchases',

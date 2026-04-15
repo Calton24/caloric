@@ -1,6 +1,6 @@
 # UI Kit Reference
 
-Complete reference for all **primitives** and **patterns** in mobile-core. These are zero-business-logic, theme-driven building blocks designed to be forked into any app.
+Complete reference for all **primitives** and **patterns** in caloric. These are zero-business-logic, theme-driven building blocks designed to be forked into any app.
 
 ---
 

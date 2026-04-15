@@ -2,7 +2,7 @@
  * i18n — Public barrel export
  */
 
-// ── Bootstrap (called once in MobileCoreProviders) ──
+// ── Bootstrap (called once in CaloricProviders) ──
 export { getDeviceLocale, initI18n, resetI18n } from "./init";
 
 // ── Constants ──

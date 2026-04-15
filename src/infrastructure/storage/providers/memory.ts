@@ -20,8 +20,7 @@ export class InMemoryStore implements KeyValueStore {
     this.store.delete(key);
   }
 
-  /** Clear all entries (test helper) */
-  clear(): void {
+  async clear(): Promise<void> {
     this.store.clear();
   }
 }

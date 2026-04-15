@@ -1,6 +1,6 @@
-# Mobile Core Validation Checklist
+# Caloric Validation Checklist
 
-Complete step-by-step guide to validate all Mobile Core infrastructure is working correctly.
+Complete step-by-step guide to validate all Caloric infrastructure is working correctly.
 
 ---
 
@@ -40,14 +40,14 @@ Before starting, ensure you have:
 ### Step 1: Clone Repository
 
 ```bash
-git clone https://github.com/Calton24/mobile-core.git
-cd mobile-core
+git clone https://github.com/Calton24/caloric.git
+cd caloric
 ```
 
 **Expected Output:**
 
 ```
-Cloning into 'mobile-core'...
+Cloning into 'caloric'...
 remote: Enumerating objects: ...
 ```
 
@@ -99,7 +99,7 @@ npm start
 **Expected Output:**
 
 ```
-Starting project at /path/to/mobile-core
+Starting project at /path/to/caloric
 Metro waiting on ...
 › Press i │ open iOS simulator
 › Press a │ open Android emulator
@@ -133,7 +133,7 @@ npx expo run:android
 - [ ] Home tab visible
 - [ ] Auth tab visible
 - [ ] Playground tab visible (if `SHOW_PLAYGROUND` enabled)
-- [ ] Mobile Core tab visible (dev mode only)
+- [ ] Caloric tab visible (dev mode only)
 
 ---
 
@@ -144,7 +144,7 @@ npx expo run:android
 1. Go to https://supabase.com/dashboard
 2. Click "New Project"
 3. Enter project details:
-   - Name: `mobile-core-dev` (or your choice)
+   - Name: `caloric-dev` (or your choice)
    - Database Password: (save securely)
    - Region: Choose closest
 4. Click "Create new project"
@@ -229,9 +229,9 @@ npm start -- --clear
 ```
 📱 Loading config for profile: default, environment: dev
 ✅ Config loaded successfully:
-    App: Mobile Core Dev
+    App: Caloric Dev
     Supabase: https://your-project-id.supabase.co
-🔌 Initializing Supabase client for: Mobile Core Dev
+🔌 Initializing Supabase client for: Caloric Dev
     Project: https://your-project-id.supabase.co
 ```
 
@@ -795,12 +795,12 @@ const { theme } = useTheme();
 
 ## Validation Complete
 
-If all checkboxes are marked, your Mobile Core installation is fully validated! 🎉
+If all checkboxes are marked, your Caloric installation is fully validated! 🎉
 
 **Next Steps:**
 
 - Read [ARCHITECTURE.md](./ARCHITECTURE.md) for deep dive
-- Build your own features using Mobile Core infrastructure
+- Build your own features using Caloric infrastructure
 - Create additional app profiles in `src/config/profiles/`
 
 ---

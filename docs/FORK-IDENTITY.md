@@ -1,6 +1,6 @@
 # Fork Identity Guide
 
-How a fork app keeps its own brand identity while inheriting every component from `mobile-core`.
+How a fork app keeps its own brand identity while inheriting every component from `caloric`.
 
 ---
 
@@ -20,7 +20,7 @@ Components read from `ThemeTokens` — so changing tokens changes the whole app.
 In your fork's `ThemeProvider` setup, pass a different `brandHue` value:
 
 ```ts
-// mobile-core default
+// caloric default
 const BRAND_HUE = 220; // blue
 
 // your fork
@@ -91,7 +91,7 @@ export const glassIntensity = {
 
 ## Verification
 
-After changing tokens, open the **Mobile Core** catalog tab to visually verify that all components render correctly with your fork's identity.
+After changing tokens, open the **Caloric** catalog tab to visually verify that all components render correctly with your fork's identity.
 Every Tier A component is showcased there with interactive knobs.
 
 ---
@@ -100,7 +100,7 @@ Every Tier A component is showcased there with interactive knobs.
 
 ```ts
 // app/_layout.tsx in your fork
-import { ThemeProvider } from "mobile-core/src/theme/ThemeProvider";
+import { ThemeProvider } from "caloric/src/theme/ThemeProvider";
 
 export default function RootLayout() {
   return (

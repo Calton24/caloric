@@ -1,6 +1,6 @@
-# Mobile Core Architecture
+# Caloric Architecture
 
-Comprehensive architecture documentation for Mobile Core's infrastructure patterns, data flow, and component organization.
+Comprehensive architecture documentation for Caloric's infrastructure patterns, data flow, and component organization.
 
 ---
 
@@ -25,14 +25,14 @@ Comprehensive architecture documentation for Mobile Core's infrastructure patter
 ```
 GestureHandlerRootView (react-native-gesture-handler)
 └── SafeAreaProvider (@react-navigation/native)
-    └── ThemeProvider (Mobile Core custom)
-        └── AuthProvider (Mobile Core custom)
+    └── ThemeProvider (Caloric custom)
+        └── AuthProvider (Caloric custom)
             └── BottomSheetModalProvider (@gorhom/bottom-sheet)
-                └── BottomSheetProvider (Mobile Core custom)
+                └── BottomSheetProvider (Caloric custom)
                     └── {children} (Expo Router)
 ```
 
-**Location:** `src/MobileCoreProviders.tsx`
+**Location:** `src/CaloricProviders.tsx`
 
 **Why This Order:**
 
@@ -47,15 +47,15 @@ GestureHandlerRootView (react-native-gesture-handler)
 
 ```tsx
 // app/_layout.tsx
-import { MobileCoreProviders } from "@/src/MobileCoreProviders";
+import { CaloricProviders } from "@/src/CaloricProviders";
 
 export default function RootLayout() {
   return (
-    <MobileCoreProviders>
+    <CaloricProviders>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
-    </MobileCoreProviders>
+    </CaloricProviders>
   );
 }
 ```
@@ -64,7 +64,7 @@ export default function RootLayout() {
 
 ## Infrastructure Abstractions
 
-Mobile Core uses **swappable abstractions** for cross-cutting concerns. All follow the same pattern:
+Caloric uses **swappable abstractions** for cross-cutting concerns. All follow the same pattern:
 
 ### Pattern: Interface + Default + Swapper
 
@@ -305,7 +305,7 @@ function NotesScreen() {
 
 ## Realtime Architecture
 
-Mobile Core uses **Supabase Broadcast Channels** for realtime updates.
+Caloric uses **Supabase Broadcast Channels** for realtime updates.
 
 ### Pattern: Broadcast (NOT Postgres Changes)
 
@@ -639,7 +639,7 @@ const open = (content, options) => {
 
 ### Multi-App Architecture
 
-Mobile Core supports multiple apps from one codebase:
+Caloric supports multiple apps from one codebase:
 
 ```
 Single codebase

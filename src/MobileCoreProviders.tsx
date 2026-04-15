@@ -1,5 +1,5 @@
 /**
- * Mobile Core UI - Root Providers
+ * Caloric - Root Providers
  * Combine all providers for easy app setup
  */
 
@@ -28,24 +28,21 @@ import { NotificationToastProvider } from "./ui/components/NotificationToast";
 import { ToastProvider } from "./ui/components/Toast";
 import { BottomSheetProvider } from "./ui/sheets/BottomSheetProvider";
 
-interface MobileCoreProvidersProps {
+interface CaloricProvidersProps {
   children: React.ReactNode;
   testID?: string;
 }
 
 /**
- * Root provider that wraps all Mobile Core providers
+ * Root provider that wraps all Caloric providers
  * Use this at the root of your app
  */
-export function MobileCoreProviders({
-  children,
-  testID,
-}: MobileCoreProvidersProps) {
+export function CaloricProviders({ children, testID }: CaloricProvidersProps) {
   // Initialize cross-cutting infrastructure on mount
   useEffect(() => {
     const reporter = initErrorReporting();
     if (reporter.isEnabled()) {
-      console.log("[MobileCore] Error reporting initialized");
+      console.log("[Caloric] Error reporting initialized");
     }
 
     initAnalytics();

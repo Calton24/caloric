@@ -6,7 +6,7 @@ This repo supports:
 - Google OAuth (feature-flagged OFF by default)
 - Apple OAuth (feature-flagged OFF by default)
 
-OAuth is configured **per-app** (per Supabase project), not "once for mobile-core".
+OAuth is configured **per-app** (per Supabase project), not "once for caloric".
 
 So forking an app = new provider config, same auth code.
 
@@ -71,7 +71,7 @@ Supabase returns success even if the email doesn't exist (anti-enumeration). **T
 
 ## 2) Google OAuth (Supabase Auth)
 
-### What you see ("MobileCoreDev wants to use neumly…supabase.co")
+### What you see ("Caloric wants to use neumly…supabase.co")
 
 That iOS prompt is normal. iOS is saying: "This app is trying to sign you in via a web domain."
 
@@ -132,7 +132,7 @@ If you're not using a dedicated callback route and rely on session update + rout
 
 ### App-side notes
 
-In `mobile-core`, Google OAuth is behind `AuthCapabilities`:
+In `caloric`, Google OAuth is behind `AuthCapabilities`:
 
 - Default **OFF**
 - Enabled per app via env: `EXPO_PUBLIC_AUTH_GOOGLE=1`
@@ -176,7 +176,7 @@ You'll need:
 
 ## 4) Feature Flags Policy (recommended)
 
-Default behavior in `mobile-core`:
+Default behavior in `caloric`:
 
 | Capability      | Default | Key in `AuthCapabilities`           |
 | --------------- | ------- | ----------------------------------- |

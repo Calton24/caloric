@@ -11,7 +11,7 @@ const getConfig = (): any => {
   // During build time, we need to load config differently
   // Use process.env directly since Constants.expoConfig isn't available yet
   const appProfile =
-    process.env.EXPO_PUBLIC_APP_PROFILE || process.env.APP_PROFILE || "intake";
+    process.env.EXPO_PUBLIC_APP_PROFILE || process.env.APP_PROFILE || "caloric";
   const appEnv =
     process.env.EXPO_PUBLIC_APP_ENV || process.env.APP_ENV || "dev";
 
@@ -68,8 +68,25 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       supportsTablet: true,
       bundleIdentifier: appConfig.bundleIdentifier,
       infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
         NSMotionUsageDescription:
           "This app uses the pedometer to track your steps, distance, and floors climbed for the Live Activity.",
+        NSMicrophoneUsageDescription:
+          "Allow Caloric to use the microphone for voice meal logging.",
+        NSSpeechRecognitionUsageDescription:
+          "Allow Caloric to use speech recognition to convert your voice to food entries.",
+        NSCameraUsageDescription:
+          "Allow Caloric to use the camera to scan and identify food for calorie tracking.",
+        NSLocationWhenInUseUsageDescription:
+          "Allow Caloric to add location data to photos taken with the camera for food logging.",
+        NSHealthShareUsageDescription:
+          "Allow Caloric to read your weight data from Apple Health for progress tracking.",
+        NSHealthUpdateUsageDescription:
+          "Allow Caloric to save your meals and weight to Apple Health.",
+      },
+      entitlements: {
+        "com.apple.developer.healthkit": true,
+        "com.apple.developer.applesignin": ["Default"],
       },
     },
 
@@ -89,6 +106,21 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
 
     plugins: [
+      [
+        "expo-build-properties",
+        {
+          ios: {
+            deploymentTarget: "16.0",
+            // Suppress deprecation warnings from native dependencies
+            extraPodfilePropertiesAppend: {
+              CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS: "NO",
+              GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS: "NO",
+            },
+          },
+        },
+      ],
+      // Fix Xcode 14+ resource bundle code signing
+      "./plugins/withDisableResourceBundleSigning",
       "expo-router",
       [
         "expo-splash-screen",
@@ -110,7 +142,33 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // ships a stable plugin. Until then the factory falls back to Noop.
       // See: src/infrastructure/liveActivity/factory.ts
       "./plugins/withLiveActivity",
+      // withIconComposer disabled — .icon bundles require Xcode 26+, EAS uses Xcode 16.2
+      // ["./plugins/withIconComposer", { iconPath: "./assets/images/caloric.icon" }],
       "expo-secure-store",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          iosUrlScheme:
+            "com.googleusercontent.apps.390435728176-967pml00ib7jpm5hjto9ddj8ivb73l6g",
+        },
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          microphonePermission:
+            "Allow Caloric to use the microphone for voice meal logging.",
+          speechRecognitionPermission:
+            "Allow Caloric to use speech recognition to convert your voice to food entries.",
+        },
+      ],
+      [
+        "react-native-vision-camera",
+        {
+          cameraPermissionText:
+            "Allow Caloric to use the camera to scan and identify food for calorie tracking.",
+          enableCodeScanner: true,
+        },
+      ],
     ],
 
     experiments: {
@@ -129,7 +187,20 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       POSTHOG_API_KEY: process.env.EXPO_PUBLIC_POSTHOG_API_KEY,
       POSTHOG_HOST: process.env.EXPO_PUBLIC_POSTHOG_HOST,
       eas: {
-        projectId: process.env.EAS_PROJECT_ID || "your-eas-project-id",
+        projectId:
+          process.env.EAS_PROJECT_ID || "f4e04abd-0a14-493f-adcd-7bff9750ee56",
+        build: {
+          experimental: {
+            ios: {
+              appExtensions: [
+                {
+                  targetName: "CaloricWidget",
+                  bundleIdentifier: `${appConfig.bundleIdentifier}.CaloricWidget`,
+                },
+              ],
+            },
+          },
+        },
       },
     },
   };

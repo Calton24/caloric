@@ -1,16 +1,16 @@
 /**
- * Intake App Configuration
+ * Caloric App Configuration
  * Vision AI food tracking app
  */
 
 import { AppProfileConfig } from "../types";
 
-export const intakeConfig: AppProfileConfig = {
+export const caloricConfig: AppProfileConfig = {
   // Base configuration (production)
   supabase: {
     url:
       process.env.EXPO_PUBLIC_SUPABASE_URL ||
-      "https://your-intake-project.supabase.co",
+      "https://your-caloric-project.supabase.co",
     anonKey:
       process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "YOUR_SUPABASE_ANON_KEY", // Replace with actual anon key from Supabase dashboard
   },
@@ -20,47 +20,42 @@ export const intakeConfig: AppProfileConfig = {
       googleAppId: "1:123456789:ios:abcdef123456",
       gcmSenderId: "123456789",
       apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-      projectId: "intake-prod",
-      storageBucket: "intake-prod.appspot.com",
+      projectId: "caloric-prod",
+      storageBucket: "caloric-prod.appspot.com",
       clientId:
         "123456789-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com",
-      bundleId: "com.yourcompany.intake",
+      bundleId: "com.yourcompany.caloric",
     },
     android: {
       googleAppId: "1:123456789:android:abcdef123456",
       apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-      projectId: "intake-prod",
-      storageBucket: "intake-prod.appspot.com",
+      projectId: "caloric-prod",
+      storageBucket: "caloric-prod.appspot.com",
       gcmSenderId: "123456789",
       clientId:
         "123456789-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com",
-      packageName: "com.yourcompany.intake",
+      packageName: "com.yourcompany.caloric",
     },
   },
 
   billing: {
-    provider: "superwall" as const,
-    superwall: {
-      apiKey: "pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", // Replace with your Superwall API key
-      triggers: {
-        premium: "premium_paywall",
-        pro: "pro_subscription",
-        foodScanning: "food_scan_limit",
-      } satisfies Record<string, string>,
+    provider: "revenueCat" as const,
+    revenueCat: {
+      apiKey: "placeholder_replace_with_actual_key",
     },
   },
 
   features: {
     vision: true, // Vision AI enabled for food scanning
     water: true,
-    habit: false, // Not needed for intake
+    habit: false, // Not needed for caloric
     analytics: true,
     growth: false,
     haptics: true,
     notifications: true,
-    firebaseAnalytics: false, // Firebase not installed in mobile-core
-    crashReporting: false, // Firebase not installed in mobile-core
-    performanceMonitoring: false, // Firebase not installed in mobile-core
+    firebaseAnalytics: false, // Firebase not installed in caloric
+    crashReporting: false, // Firebase not installed in caloric
+    performanceMonitoring: false, // Firebase not installed in caloric
     billing: true, // Enable billing system (includes paywall UI)
     i18n: true,
     presence: true,
@@ -71,12 +66,12 @@ export const intakeConfig: AppProfileConfig = {
   },
 
   app: {
-    name: "Mobile Core",
-    slug: "mobile-core",
-    bundleIdentifier: "com.calton24.mobilecore",
-    androidPackage: "com.calton24.mobilecore",
+    name: "Caloric",
+    slug: "caloric",
+    bundleIdentifier: "com.calton24.caloric",
+    androidPackage: "com.calton24.caloric",
     version: "1.0.0",
-    scheme: "mobile-core",
+    scheme: "caloric",
   },
 
   // Environment-specific overrides
@@ -85,17 +80,17 @@ export const intakeConfig: AppProfileConfig = {
       // Supabase config comes from env vars (base config)
       firebase: {
         ios: {
-          projectId: "intake-dev",
-          storageBucket: "intake-dev.appspot.com",
-          bundleId: "com.yourcompany.intake.dev",
+          projectId: "caloric-dev",
+          storageBucket: "caloric-dev.appspot.com",
+          bundleId: "com.calton24.caloric.dev",
           googleAppId: "1:123456789:ios:dev123456",
           gcmSenderId: "123456789",
           apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
         },
         android: {
-          projectId: "intake-dev",
-          storageBucket: "intake-dev.appspot.com",
-          packageName: "com.yourcompany.intake.dev",
+          projectId: "caloric-dev",
+          storageBucket: "caloric-dev.appspot.com",
+          packageName: "com.calton24.caloric.dev",
           googleAppId: "1:123456789:android:dev123456",
           apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
           gcmSenderId: "123456789",
@@ -110,18 +105,18 @@ export const intakeConfig: AppProfileConfig = {
         billing: false, // Disable billing in dev (use test mode in staging)
       },
       app: {
-        name: "Mobile Core",
-        slug: "mobile-core-dev",
-        bundleIdentifier: "com.calton24.mobilecore.dev",
-        androidPackage: "com.calton24.mobilecore.dev",
+        name: "Caloric",
+        slug: "caloric-dev",
+        bundleIdentifier: "com.calton24.caloric.dev",
+        androidPackage: "com.calton24.caloric.dev",
       },
     },
     staging: {
       // Supabase config comes from env vars (base config)
       app: {
-        name: "Mobile Core Staging",
-        bundleIdentifier: "com.yourcompany.mobilecore.staging",
-        androidPackage: "com.yourcompany.mobilecore.staging",
+        name: "Caloric Staging",
+        bundleIdentifier: "com.calton24.caloric.staging",
+        androidPackage: "com.calton24.caloric.staging",
       },
     },
     prod: {

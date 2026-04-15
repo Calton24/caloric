@@ -2,7 +2,7 @@
 
 ## Overview
 
-This mobile-core repository uses a **profile-based configuration system** that allows you to:
+This caloric repository uses a **profile-based configuration system** that allows you to:
 
 - Clone the repo and launch multiple apps from the same codebase
 - Switch between apps by changing one environment variable: `EXPO_PUBLIC_APP_PROFILE`
@@ -16,7 +16,7 @@ This mobile-core repository uses a **profile-based configuration system** that a
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-org/mobile-core.git my-new-app
+git clone https://github.com/your-org/caloric.git my-new-app
 cd my-new-app
 
 # Create a new profile
@@ -171,13 +171,13 @@ export const APP_PROFILES: Record<AppProfile, AppProfileConfig> = {
 Add to `src/config/types.ts`:
 
 ```typescript
-export type AppProfile = "intake" | "proxi" | "mynewapp"; // Add here
+export type AppProfile = "caloric" | "proxi" | "mynewapp"; // Add here
 ```
 
 Also update the Zod schema in `src/config/schema.ts`:
 
 ```typescript
-export const AppProfileSchema = z.enum(["intake", "proxi", "mynewapp"], {
+export const AppProfileSchema = z.enum(["caloric", "proxi", "mynewapp"], {
   errorMap: () => ({
     message: "APP_PROFILE must be one of: intake, proxi, mynewapp",
   }),
@@ -215,7 +215,7 @@ EXPO_PUBLIC_APP_ENV=dev
   "build": {
     "intake-prod": {
       "env": {
-        "EXPO_PUBLIC_APP_PROFILE": "intake",
+        "EXPO_PUBLIC_APP_PROFILE": "caloric",
         "EXPO_PUBLIC_APP_ENV": "prod"
       }
     }
@@ -485,7 +485,7 @@ CREATE POLICY "Users can read config"
 ```sql
 INSERT INTO remote_config (app_profile, environment, feature_flags)
 VALUES (
-  'intake',
+  'caloric',
   'prod',
   '{"vision": true, "paywall": false}'::jsonb
 );
@@ -548,7 +548,7 @@ Available profiles: intake, proxi
 
 ## Cloning Checklist
 
-When cloning mobile-core for a new app:
+When cloning caloric for a new app:
 
 - [ ] 1. Create new profile in `src/config/profiles/mynewapp.ts`
 - [ ] 2. Add profile to `src/config/profiles/index.ts`
