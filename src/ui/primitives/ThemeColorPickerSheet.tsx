@@ -180,7 +180,7 @@ export function ThemeColorPickerSheet() {
 
       <ColorPicker
         selection={selectedColor}
-        onValueChanged={handleColorChange}
+        onSelectionChange={handleColorChange}
         supportsOpacity={false}
       />
     </View>

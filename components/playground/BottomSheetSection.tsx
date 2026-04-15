@@ -3,11 +3,11 @@ import {
     Button,
     Section,
     Slider,
-    Switch,
-    Text,
+    Toggle,
     VStack,
 } from "@expo/ui/swift-ui";
 import React, { useState } from "react";
+import { Text } from "react-native";
 
 export function BottomSheetSection() {
   const [isOpened, setIsOpened] = useState(false);
@@ -19,92 +19,48 @@ export function BottomSheetSection() {
   return (
     <Section title="📋 Bottom Sheets">
       <VStack spacing={12}>
-        <Text size={14} color="gray">
-          Sheet Sizes
-        </Text>
+        <Text style={{ fontSize: 14, color: "gray" }}>Sheet Sizes</Text>
 
-        <Button onPress={() => setIsOpened(true)}>Open Medium Sheet</Button>
-
-        <Button onPress={() => setIsLargeOpened(true)}>Open Large Sheet</Button>
-
-        <Button onPress={() => setIsCustomOpened(true)}>
-          Open Custom Height (40%)
-        </Button>
+        <Button label="Open Medium Sheet" onPress={() => setIsOpened(true)} />
+        <Button label="Open Large Sheet" onPress={() => setIsLargeOpened(true)} />
+        <Button label="Open Custom Height (40%)" onPress={() => setIsCustomOpened(true)} />
 
         {/* Medium Sheet */}
         <BottomSheet
-          isOpened={isOpened}
-          onIsOpenedChange={setIsOpened}
-          presentationDetents={["medium"]}
-          presentationDragIndicator="visible"
+          isPresented={isOpened}
+          onIsPresentedChange={setIsOpened}
         >
           <VStack spacing={16}>
-            <Text size={20} weight="bold">
-              Medium Sheet
-            </Text>
-            <Text size={14} color="gray">
-              This is a medium-sized bottom sheet. You can add any content here.
-            </Text>
-            <Switch
-              value={sheetToggle}
-              label="Toggle Option"
-              onValueChange={setSheetToggle}
-            />
+            <Text style={{ fontSize: 20, fontWeight: "bold" }}>Medium Sheet</Text>
+            <Text style={{ fontSize: 14, color: "gray" }}>This is a medium-sized bottom sheet.</Text>
+            <Toggle isOn={sheetToggle} label="Toggle Option" onIsOnChange={setSheetToggle} />
             <Slider value={sheetValue} onValueChange={setSheetValue} />
-            <Text size={12} color="gray">
-              {`Slider value: ${sheetValue.toFixed(2)}`}
-            </Text>
-            <Button
-              variant="borderedProminent"
-              onPress={() => setIsOpened(false)}
-            >
-              Close Sheet
-            </Button>
+            <Text style={{ fontSize: 12, color: "gray" }}>{`Slider value: ${sheetValue.toFixed(2)}`}</Text>
+            <Button label="Close Sheet" onPress={() => setIsOpened(false)} />
           </VStack>
         </BottomSheet>
 
         {/* Large Sheet */}
         <BottomSheet
-          isOpened={isLargeOpened}
-          onIsOpenedChange={setIsLargeOpened}
-          presentationDetents={["large"]}
-          presentationDragIndicator="visible"
+          isPresented={isLargeOpened}
+          onIsPresentedChange={setIsLargeOpened}
         >
           <VStack spacing={16}>
-            <Text size={20} weight="bold">
-              Large Sheet
-            </Text>
-            <Text size={14} color="gray">
-              This sheet takes up most of the screen. Great for complex forms or
-              content.
-            </Text>
-            <Text size={14} color="gray">
-              You can scroll down for more content...
-            </Text>
-            <Button variant="bordered" onPress={() => setIsLargeOpened(false)}>
-              Dismiss
-            </Button>
+            <Text style={{ fontSize: 20, fontWeight: "bold" }}>Large Sheet</Text>
+            <Text style={{ fontSize: 14, color: "gray" }}>This sheet takes up most of the screen.</Text>
+            <Button label="Dismiss" onPress={() => setIsLargeOpened(false)} />
           </VStack>
         </BottomSheet>
 
         {/* Custom Height Sheet */}
         <BottomSheet
-          isOpened={isCustomOpened}
-          onIsOpenedChange={setIsCustomOpened}
-          presentationDetents={[0.4, "medium", "large"]}
-          presentationDragIndicator="automatic"
+          isPresented={isCustomOpened}
+          onIsPresentedChange={setIsCustomOpened}
         >
           <VStack spacing={16}>
-            <Text size={20} weight="bold">
-              Custom Sheet
-            </Text>
-            <Text size={14} color="gray">
-              This sheet starts at 40% height but can be dragged to medium or
-              large.
-            </Text>
-            <Button role="destructive" onPress={() => setIsCustomOpened(false)}>
-              Close
-            </Button>
+            <Text style={{ fontSize: 20, fontWeight: "bold" }}>Custom Sheet</Text>
+            <Text style={{ fontSize: 14, color: "gray" }}>This sheet starts at 40% height.</Text>
+            <Button role="destructive" label="Close" onPress={() => setIsCustomOpened(false)} />
           </VStack>
         </BottomSheet>
       </VStack>

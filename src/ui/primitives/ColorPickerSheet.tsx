@@ -124,7 +124,7 @@ export function ColorPickerSheet() {
       <Host style={styles.pickerHost}>
         <ColorPicker
           selection={selectedColor}
-          onValueChanged={handleColorChange}
+          onSelectionChange={handleColorChange}
           supportsOpacity={false}
         />
       </Host>

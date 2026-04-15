@@ -1,6 +1,7 @@
+import { Section, Slider, VStack } from "@expo/ui/swift-ui";
 import { haptics } from "@/src/infrastructure/haptics";
-import { Section, Slider, Text, VStack } from "@expo/ui/swift-ui";
 import React, { useCallback, useRef, useState } from "react";
+import { Text } from "react-native";
 
 /**
  * Fires a selection haptic when the snapped value changes.
@@ -45,40 +46,21 @@ export function SliderSection() {
   return (
     <Section title="🎚️ Sliders">
       <VStack spacing={12}>
-        <Text size={14} color="gray">
-          Basic Slider (0 to 1)
-        </Text>
+        <Text style={{ fontSize: 14, color: "gray" }}>Basic Slider (0 to 1)</Text>
         <Slider value={value1} onValueChange={handleValue1} />
-        <Text size={12} color="gray">
-          {`Value: ${value1.toFixed(2)}`}
-        </Text>
+        <Text style={{ fontSize: 12, color: "gray" }}>{`Value: ${value1.toFixed(2)}`}</Text>
 
-        <Text size={14} color="gray">
-          Range Slider (0 to 100)
-        </Text>
+        <Text style={{ fontSize: 14, color: "gray" }}>Range Slider (0 to 100)</Text>
         <Slider value={value2} min={0} max={100} onValueChange={handleValue2} />
-        <Text size={12} color="gray">
-          {`Value: ${Math.round(value2)}`}
-        </Text>
+        <Text style={{ fontSize: 12, color: "gray" }}>{`Value: ${Math.round(value2)}`}</Text>
 
-        <Text size={14} color="gray">
-          Stepped Slider (10 steps)
-        </Text>
-        <Slider
-          value={steppedValue}
-          min={0}
-          max={10}
-          steps={10}
-          onValueChange={handleStepped}
-        />
-        <Text size={12} color="gray">
-          {`Step: ${Math.round(steppedValue)} of 10`}
-        </Text>
+        <Text style={{ fontSize: 14, color: "gray" }}>Stepped Slider (10 steps)</Text>
+        <Slider value={steppedValue} min={0} max={10} step={10} onValueChange={handleStepped} />
+        <Text style={{ fontSize: 12, color: "gray" }}>{`Step: ${Math.round(steppedValue)} of 10`}</Text>
 
-        <Text size={14} color="gray">
-          Colored Slider
-        </Text>
-        <Slider value={value1} color="orange" onValueChange={handleColored} />
+        <Text style={{ fontSize: 14, color: "gray" }}>Colored Slider</Text>
+        <Slider value={value1} onValueChange={handleColored} />
+        <Slider value={value1} onValueChange={handleColored} />
       </VStack>
     </Section>
   );

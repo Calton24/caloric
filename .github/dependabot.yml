@@ -71,8 +71,7 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "@types/jest"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "@testing-library/react-native"
-        update-types: ["version-update:semver-major"]
+
       - dependency-name: "eslint"
         update-types: ["version-update:semver-major"]
       - dependency-name: "i18next"
@@ -81,8 +80,9 @@ updates:
         update-types: ["version-update:semver-major"]
       # @expo/ui ships canary/pre-release builds — block all auto-bumps
       - dependency-name: "@expo/ui"
-      # expo-widgets has no SDK 54 version — block until SDK 55 upgrade
+      # expo-widgets version mirrors Expo SDK — block cross-SDK major jumps
       - dependency-name: "expo-widgets"
+        update-types: ["version-update:semver-major"]
 
     # Security updates should bypass grouping
     commit-message:

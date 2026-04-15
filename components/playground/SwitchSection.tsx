@@ -1,59 +1,38 @@
-import { Section, Switch, Text, VStack } from "@expo/ui/swift-ui";
+import { Section, Toggle, VStack } from "@expo/ui/swift-ui";
 import React, { useState } from "react";
+import { Text } from "react-native";
 
 export function SwitchSection() {
   const [isEnabled, setIsEnabled] = useState(false);
   const [checkboxValue, setCheckboxValue] = useState(true);
   const [buttonValue, setButtonValue] = useState(false);
-  const [coloredSwitch, setColoredSwitch] = useState(true);
 
   return (
     <Section title="🔀 Switches">
       <VStack spacing={12}>
-        <Text size={14} color="gray">
-          Switch Variants
-        </Text>
+        <Text style={{ fontSize: 14, color: "gray" }}>Toggle Variants</Text>
 
-        <Switch
-          value={isEnabled}
-          label="Standard Switch"
-          onValueChange={setIsEnabled}
+        <Toggle
+          isOn={isEnabled}
+          label="Standard Toggle"
+          onIsOnChange={setIsEnabled}
         />
 
-        <Switch
-          value={checkboxValue}
-          label="Checkbox Variant"
-          variant="checkbox"
-          onValueChange={setCheckboxValue}
+        <Toggle
+          isOn={checkboxValue}
+          label="Second Toggle"
+          onIsOnChange={setCheckboxValue}
         />
 
-        <Switch
-          value={buttonValue}
-          label="Button Variant"
-          variant="button"
-          onValueChange={setButtonValue}
+        <Toggle
+          isOn={buttonValue}
+          label="Third Toggle"
+          onIsOnChange={setButtonValue}
         />
 
-        <Text size={14} color="gray">
-          Colored Switch
-        </Text>
-
-        <Switch
-          value={coloredSwitch}
-          label="Green Switch"
-          color="green"
-          onValueChange={setColoredSwitch}
-        />
-
-        <Text size={12} color="gray">
-          {`Switch: ${isEnabled ? "ON" : "OFF"}`}
-        </Text>
-        <Text size={12} color="gray">
-          {`Checkbox: ${checkboxValue ? "Checked" : "Unchecked"}`}
-        </Text>
-        <Text size={12} color="gray">
-          {`Button: ${buttonValue ? "Active" : "Inactive"}`}
-        </Text>
+        <Text style={{ fontSize: 12, color: "gray" }}>{`Toggle 1: ${isEnabled ? "ON" : "OFF"}`}</Text>
+        <Text style={{ fontSize: 12, color: "gray" }}>{`Toggle 2: ${checkboxValue ? "ON" : "OFF"}`}</Text>
+        <Text style={{ fontSize: 12, color: "gray" }}>{`Toggle 3: ${buttonValue ? "ON" : "OFF"}`}</Text>
       </VStack>
     </Section>
   );
