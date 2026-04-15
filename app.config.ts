@@ -145,6 +145,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // withIconComposer disabled — .icon bundles require Xcode 26+, EAS uses Xcode 16.2
       // ["./plugins/withIconComposer", { iconPath: "./assets/images/caloric.icon" }],
       "expo-secure-store",
+      "expo-localization",
       [
         "@react-native-google-signin/google-signin",
         {
