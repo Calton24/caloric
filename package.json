@@ -81,7 +81,7 @@
     "expo-updates": "~55.0.20",
     "expo-web-browser": "~55.0.14",
     "expo-widgets": "^55.0.13",
-    "i18next": "^25.8.13",
+    "i18next": "^25.10.10",
     "live-activity-module": "file:./modules/live-activity",
     "lucide-react-native": "^0.574.0",
     "react": "19.2.0",
