@@ -10,27 +10,25 @@ on:
     branches: [main, develop]
 
 jobs:
-  build_and_test:
-    name: Build iOS Simulator and Run Tests
-    steps:
-      - type: build
-        id: ios_simulator_build
-        name: Build iOS Simulator App
-        with:
-          platform: ios
-          profile: preview
-        env:
-          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+  build_ios_simulator:
+    name: Build iOS Simulator App
+    type: build
+    params:
+      platform: ios
+      profile: preview
+    env:
+      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
 
-      - type: maestro
-        id: maestro_test
-        name: Run Maestro E2E Tests
-        with:
-          build_id: ${{ steps.ios_simulator_build.id }}
-          flow_path: ./maestro/flows
-          device_identifier: "iPhone 16 Plus"
-          output_format: junit
-        env:
-          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+  run_maestro_tests:
+    name: Run Maestro E2E Tests
+    type: maestro
+    needs: [build_ios_simulator]
+    params:
+      build_id: ${{ needs.build_ios_simulator.outputs.build_id }}
+      flow_path: ./maestro/flows
+      device_identifier: "iPhone 16 Plus"
+      output_format: junit
+    env:
+      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
