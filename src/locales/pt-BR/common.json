@@ -33,5 +33,13 @@
     "label": "Calorias",
     "value_one": "{{count}} caloria",
     "value_other": "{{count}} calorias"
+  },
+  "landing": {
+    "headline": "21 dias para melhores\nhábitos alimentares",
+    "subline": "Tire uma foto. A IA faz o resto.\nSem contar. Sem adivinhar.",
+    "cta": "Começar 21 dias",
+    "ctaConfirm": "O dia 1 começa agora",
+    "signInPrompt": "Já tem conta? ",
+    "signIn": "Entrar"
   }
 }

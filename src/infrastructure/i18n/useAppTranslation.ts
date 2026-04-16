@@ -34,7 +34,7 @@ export function useAppTranslation() {
     /** Translation function — `t("auth.signIn")` */
     t,
     /** Current active language code */
-    language: (i18n.language ?? "en") as SupportedLanguage,
+    language: (i18n.language ?? "en-GB") as SupportedLanguage,
     /** Switch language at runtime + persist to AsyncStorage */
     changeLanguage,
   };

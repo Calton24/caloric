@@ -5,7 +5,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { GoalType } from "../../src/features/goals/goals.types";
 import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
@@ -62,7 +62,12 @@ export default function OnboardingGoalScreen() {
 
           <TSpacer size="lg" />
 
-          <Animated.View entering={FadeInDown.duration(500).delay(100)}>
+          <Animated.View
+            entering={FadeInDown.duration(550)
+              .delay(150)
+              .springify()
+              .damping(18)}
+          >
             <TText
               variant="heading"
               style={[styles.heading, { color: theme.colors.text }]}
@@ -73,7 +78,7 @@ export default function OnboardingGoalScreen() {
 
           <TSpacer size="sm" />
 
-          <Animated.View entering={FadeInDown.duration(500).delay(200)}>
+          <Animated.View entering={FadeInDown.duration(500).delay(250)}>
             <TText color="secondary" style={styles.description}>
               We&lsquo;ll tailor your daily calorie targets.
             </TText>
@@ -86,7 +91,10 @@ export default function OnboardingGoalScreen() {
             return (
               <Animated.View
                 key={goal.id}
-                entering={FadeInDown.duration(400).delay(300 + i * 80)}
+                entering={FadeInDown.duration(450)
+                  .delay(350 + i * 90)
+                  .springify()
+                  .damping(20)}
               >
                 <Pressable
                   onPress={() => saveGoalType(goal.id as GoalType)}
@@ -150,7 +158,10 @@ export default function OnboardingGoalScreen() {
         </ScrollView>
 
         {/* Bottom CTA */}
-        <View style={styles.footer}>
+        <Animated.View
+          entering={FadeInUp.duration(500).delay(650).springify().damping(18)}
+          style={styles.footer}
+        >
           <TButton
             onPress={() => router.push("/(onboarding)/body" as any)}
             disabled={!goalType}
@@ -159,7 +170,7 @@ export default function OnboardingGoalScreen() {
           >
             Continue
           </TButton>
-        </View>
+        </Animated.View>
       </SafeAreaView>
     </View>
   );

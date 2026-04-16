@@ -33,7 +33,8 @@ import pt from "../../locales/pt/common.json";
 // ---------- Constants ----------
 
 export const SUPPORTED_LANGUAGES = [
-  "en",
+  "en-GB",
+  "en-US",
   "de",
   "es",
   "fr",
@@ -45,7 +46,8 @@ export const SUPPORTED_LANGUAGES = [
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 
 export const LANGUAGE_LABELS: Record<SupportedLanguage, string> = {
-  en: "English",
+  "en-GB": "English (UK)",
+  "en-US": "English (US)",
   de: "Deutsch",
   es: "Español",
   fr: "Français",
@@ -55,11 +57,12 @@ export const LANGUAGE_LABELS: Record<SupportedLanguage, string> = {
   "pt-BR": "Português (BR)",
 };
 
-const FALLBACK_LANGUAGE: SupportedLanguage = "en";
+const FALLBACK_LANGUAGE: SupportedLanguage = "en-GB";
 const STORAGE_KEY = "mobile_core_i18n_language";
 
 const resources = {
-  en: { common: en },
+  "en-GB": { common: en },
+  "en-US": { common: en },
   de: { common: de },
   es: { common: es },
   fr: { common: fr },
@@ -115,7 +118,7 @@ function resolveDeviceLocale(): string {
     if (Localization?.getLocales) {
       const locales = Localization.getLocales();
       if (Array.isArray(locales) && locales.length > 0) {
-        return locales[0].languageTag ?? locales[0].languageCode ?? "en";
+        return locales[0].languageTag ?? locales[0].languageCode ?? "en-GB";
       }
     }
     // Fallback to locale string
@@ -125,19 +128,22 @@ function resolveDeviceLocale(): string {
   } catch {
     // Swallow — non-fatal
   }
-  return "en";
+  return "en-GB";
 }
 
 function matchSupportedLanguage(deviceLocale: string): SupportedLanguage {
-  // Exact match first (e.g. "pt-BR")
+  // Exact match first (e.g. "pt-BR", "en-US", "en-GB")
   if (isSupportedLanguage(deviceLocale)) return deviceLocale;
 
-  // Try language code only (e.g. "pt-BR" → "pt" — no match, "de-AT" → "de")
   const langCode = deviceLocale.split("-")[0];
+
+  // English variants: US stays US, everything else → GB
+  if (langCode === "en") return "en-GB";
+
+  // Try language code only (e.g. "de-AT" → "de")
   if (isSupportedLanguage(langCode)) return langCode;
 
   // Special case: "pt" without region → pt (European Portuguese)
-  // pt-BR is matched via exact match above
   if (langCode === "pt") return "pt";
 
   return FALLBACK_LANGUAGE;

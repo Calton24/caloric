@@ -2,11 +2,15 @@
  * Onboarding Step 9 — Save Your Progress (Auth Gate)
  *
  * After the user sees their personalised plan, prompt them to
- * sign in / sign up so their data is saved. Mirrors Cal AI's
- * "Save your progress" screen with Apple + Google OAuth and a
- * "Skip" option for users who want to sign in later.
+ * sign in / sign up so their data is saved.
  *
- * On success or skip → continues to paywall.
+ * Psychological conversion tactics:
+ * - Social proof counter ("X users joined this week")
+ * - Loss aversion ("Don't lose your personalized plan")
+ * - Trust signal (privacy note)
+ * - Speed framing ("Takes 5 seconds")
+ *
+ * On success → continues to paywall.
  */
 
 import { Ionicons } from "@expo/vector-icons";
@@ -121,10 +125,6 @@ export default function SaveProgressScreen() {
     }
   };
 
-  const handleSkip = () => {
-    navigateNext();
-  };
-
   return (
     <View
       style={[styles.container, { backgroundColor: theme.colors.background }]}
@@ -142,8 +142,54 @@ export default function SaveProgressScreen() {
             variant="heading"
             style={[styles.heading, { color: theme.colors.text }]}
           >
-            Save your progress
+            Don't lose your{"\n"}personalized plan
           </TText>
+          <TSpacer size="sm" />
+          <TText color="secondary" style={styles.subheading}>
+            Create an account to keep your calorie targets, macros, and progress
+            synced across devices.
+          </TText>
+        </Animated.View>
+
+        {/* ── Social proof + trust signals ── */}
+        <Animated.View
+          entering={FadeInDown.duration(500).delay(250)}
+          style={styles.proofArea}
+        >
+          <View
+            style={[
+              styles.proofPill,
+              { backgroundColor: theme.colors.primary + "12" },
+            ]}
+          >
+            <Ionicons name="people" size={16} color={theme.colors.primary} />
+            <TText style={[styles.proofText, { color: theme.colors.primary }]}>
+              2,400+ users signed up this week
+            </TText>
+          </View>
+          <View style={styles.trustRow}>
+            <View style={styles.trustItem}>
+              <Ionicons
+                name="lock-closed"
+                size={14}
+                color={theme.colors.textMuted}
+              />
+              <TText
+                style={[styles.trustText, { color: theme.colors.textMuted }]}
+              >
+                Your data stays private
+              </TText>
+            </View>
+            <View style={styles.trustDot} />
+            <View style={styles.trustItem}>
+              <Ionicons name="flash" size={14} color={theme.colors.textMuted} />
+              <TText
+                style={[styles.trustText, { color: theme.colors.textMuted }]}
+              >
+                Takes 5 seconds
+              </TText>
+            </View>
+          </View>
         </Animated.View>
 
         {/* ── Spacer pushes buttons to center-ish ── */}
@@ -273,31 +319,6 @@ export default function SaveProgressScreen() {
               }}
             />
           )}
-
-          <TSpacer size="xl" />
-
-          {/* Skip */}
-          <Pressable
-            testID="save-progress-skip"
-            onPress={handleSkip}
-            style={({ pressed }) => ({
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <View style={styles.skipRow}>
-              <TText
-                style={[
-                  styles.skipLabel,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
-                {"Would you like to sign in later?  "}
-              </TText>
-              <TText style={[styles.skipLink, { color: theme.colors.text }]}>
-                Skip
-              </TText>
-            </View>
-          </Pressable>
         </Animated.View>
 
         {/* ── Bottom spacer ── */}
@@ -428,6 +449,47 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     lineHeight: 40,
   },
+  subheading: {
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  proofArea: {
+    paddingHorizontal: 24,
+    alignItems: "center",
+    gap: 12,
+    marginTop: 20,
+  },
+  proofPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 100,
+  },
+  proofText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  trustRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  trustItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  trustText: {
+    fontSize: 13,
+  },
+  trustDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: "#999",
+  },
   spacer: {
     flex: 1,
   },
@@ -445,19 +507,6 @@ const styles = StyleSheet.create({
   oauthLabel: {
     fontSize: 17,
     fontWeight: "600",
-  },
-  skipRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  skipLabel: {
-    fontSize: 15,
-  },
-  skipLink: {
-    fontSize: 15,
-    fontWeight: "700",
-    textDecorationLine: "underline",
   },
   bottomSpacer: {
     flex: 0.6,

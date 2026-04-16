@@ -33,5 +33,13 @@
     "label": "Kalorien",
     "value_one": "{{count}} Kalorie",
     "value_other": "{{count}} Kalorien"
+  },
+  "landing": {
+    "headline": "21 Tage zu besseren\nEssgewohnheiten",
+    "subline": "Mach ein Foto. Die KI erledigt den Rest.\nKein Zählen. Kein Raten.",
+    "cta": "21 Tage starten",
+    "ctaConfirm": "Tag 1 beginnt jetzt",
+    "signInPrompt": "Bereits ein Konto? ",
+    "signIn": "Anmelden"
   }
 }

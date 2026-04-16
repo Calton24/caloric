@@ -33,5 +33,13 @@
     "label": "Calorieën",
     "value_one": "{{count}} calorie",
     "value_other": "{{count}} calorieën"
+  },
+  "landing": {
+    "headline": "21 dagen naar betere\neetgewoonten",
+    "subline": "Maak een foto. AI doet de rest.\nNiet tellen. Niet gokken.",
+    "cta": "Start 21 dagen",
+    "ctaConfirm": "Dag 1 begint nu",
+    "signInPrompt": "Al een account? ",
+    "signIn": "Inloggen"
   }
 }

@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 18,
-    borderRadius: 16,
+    borderRadius: 9999,
     gap: 8,
   },
   ctaText: {

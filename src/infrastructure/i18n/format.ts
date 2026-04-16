@@ -18,7 +18,7 @@ import i18next from "i18next";
 
 /** Map i18n language codes to BCP 47 locale tags for Intl */
 function getIntlLocale(): string {
-  const lang = i18next.language ?? "en";
+  const lang = i18next.language ?? "en-GB";
   // Intl expects BCP 47 tags — our codes are already valid
   return lang;
 }

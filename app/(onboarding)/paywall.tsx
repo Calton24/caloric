@@ -708,11 +708,6 @@ export default function OnboardingChallengeScreen() {
     }
   };
 
-  const handleSkip = () => {
-    markPaywallSeen();
-    router.push("/(onboarding)/complete" as any);
-  };
-
   return (
     <View
       style={[styles.container, { backgroundColor: theme.colors.background }]}
@@ -1000,16 +995,6 @@ export default function OnboardingChallengeScreen() {
               Restore Purchases
             </TText>
           </Pressable>
-          <TText style={[styles.footerDot, { color: theme.colors.textMuted }]}>
-            ·
-          </TText>
-          <Pressable onPress={handleSkip} hitSlop={12}>
-            <TText
-              style={[styles.footerLink, { color: theme.colors.textMuted }]}
-            >
-              Skip
-            </TText>
-          </Pressable>
         </View>
       </Animated.View>
     </View>
@@ -1214,8 +1199,5 @@ const styles = StyleSheet.create({
   footerLink: {
     fontSize: 13,
     fontWeight: "500",
-  },
-  footerDot: {
-    fontSize: 13,
   },
 });

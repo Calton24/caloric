@@ -35,5 +35,13 @@
     "value_few": "{{count}} kalorie",
     "value_many": "{{count}} kalorii",
     "value_other": "{{count}} kalorii"
+  },
+  "landing": {
+    "headline": "21 dni do lepszych\nnawyków żywieniowych",
+    "subline": "Zrób zdjęcie. AI zrobi resztę.\nBez liczenia. Bez zgadywania.",
+    "cta": "Zacznij 21 dni",
+    "ctaConfirm": "Dzień 1 zaczyna się teraz",
+    "signInPrompt": "Masz już konto? ",
+    "signIn": "Zaloguj się"
   }
 }

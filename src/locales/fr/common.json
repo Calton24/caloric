@@ -33,5 +33,13 @@
     "label": "Calories",
     "value_one": "{{count}} calorie",
     "value_other": "{{count}} calories"
+  },
+  "landing": {
+    "headline": "21 jours pour de\nmeilleures habitudes",
+    "subline": "Prenez une photo. L’IA fait le reste.\nPas de comptage. Pas d’approximation.",
+    "cta": "Démarrer 21 jours",
+    "ctaConfirm": "Jour 1 commence",
+    "signInPrompt": "Déjà un compte ? ",
+    "signIn": "Se connecter"
   }
 }

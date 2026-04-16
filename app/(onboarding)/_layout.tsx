@@ -48,7 +48,10 @@ export default function OnboardingLayout() {
     >
       <Stack.Screen name="landing" options={{ gestureEnabled: false }} />
       <Stack.Screen name="welcome" />
-      <Stack.Screen name="goal" />
+      <Stack.Screen
+        name="goal"
+        options={{ animation: "slide_from_right", animationDuration: 300 }}
+      />
       <Stack.Screen name="body" />
       <Stack.Screen name="activity" />
       <Stack.Screen name="weight-goal" />

@@ -33,5 +33,13 @@
     "label": "Calories",
     "value_one": "{{count}} calorie",
     "value_other": "{{count}} calories"
+  },
+  "landing": {
+    "headline": "21 days to better\neating habits",
+    "subline": "Snap a photo. AI does the rest.\nNo counting. No guesswork.",
+    "cta": "Commit to 21 days",
+    "ctaConfirm": "Day 1 starts now",
+    "signInPrompt": "Already have an account? ",
+    "signIn": "Sign In"
   }
 }
