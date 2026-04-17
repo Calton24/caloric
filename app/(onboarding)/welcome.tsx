@@ -48,12 +48,12 @@ const VALUE_PROPS = [
 
 export default function OnboardingWelcomeScreen() {
   const { theme } = useTheme();
-  const { t, i18n } = useAppTranslation();
+  const { t, language } = useAppTranslation();
   const router = useRouter();
 
   // A/B experiment: welcome CTA copy
   const ctaVariant = useExperiment("welcome_cta_v1");
-  const locale = i18n.language;
+  const locale = language;
   const exposureTracked = useRef(false);
 
   // Track exposure once per component mount (i.e., once per screen visit).

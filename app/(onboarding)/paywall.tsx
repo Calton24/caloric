@@ -627,7 +627,7 @@ function SimplePricingButton({
 
 export default function OnboardingChallengeScreen() {
   const { theme } = useTheme();
-  const { t, i18n } = useAppTranslation();
+  const { t, language } = useAppTranslation();
   const router = useRouter();
   const { user } = useAuth();
   const setChallenge = useChallengeStore((s) => s.setChallenge);
@@ -642,7 +642,7 @@ export default function OnboardingChallengeScreen() {
 
   // A/B experiment: paywall CTA copy (ctaDefault only, not ctaYearly)
   const ctaVariant = useExperiment("paywall_cta_default_v1");
-  const locale = i18n.language;
+  const locale = language;
   const paywallExposureTracked = useRef(false);
 
   // Track exposure once per component mount (i.e., once per screen visit).

@@ -64,7 +64,7 @@ export function StreakHero({ currentStreak, onPress }: StreakHeroProps) {
               <TText
                 style={[styles.identityLabel, { color: theme.colors.text }]}
               >
-                {label.emoji} {label.label}
+                {label.emoji} {t(label.labelKey)}
               </TText>
             )}
 
