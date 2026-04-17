@@ -24,7 +24,10 @@
     "cannotRecalculate": "No se puede recalcular",
     "cannotRecalculateDesc": "Registra un peso y completa el onboarding primero.",
     "planUpdated": "Plan actualizado",
-    "planUpdatedDesc": "Tu plan ha sido recalculado con tu peso actual de {{weight}}."
+    "planUpdatedDesc": "Tu plan ha sido recalculado con tu peso actual de {{weight}}.",
+    "proteinShort": "P:",
+    "carbsShort": "C:",
+    "fatShort": "F:"
   },
   "logWeight": {
     "title": "Registrar peso",

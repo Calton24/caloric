@@ -3,7 +3,7 @@
  * Run: node scripts/generate-i18n-types.js
  *
  * Generated from 10 English locale files.
- * Total keys: 714 (658 simple, 56 with interpolation)
+ * Total keys: 792 (716 simple, 76 with interpolation)
  */
 
 /** All valid translation keys (no interpolation params) */
@@ -33,12 +33,20 @@ export type SimpleTranslationKey =
   | "common.search"
   | "common.like"
   | "common.nope"
+  | "common.now"
   | "calories.label"
   | "tabs.home"
   | "tabs.notes"
   | "tabs.auth"
   | "tabs.playground"
   | "tabs.caloric"
+  | "days.monShort"
+  | "days.tueShort"
+  | "days.wedShort"
+  | "days.thuShort"
+  | "days.friShort"
+  | "days.satShort"
+  | "days.sunShort"
   | "auth.signIn"
   | "auth.signUp"
   | "auth.signOut"
@@ -203,6 +211,20 @@ export type SimpleTranslationKey =
   | "paywall.loadingPlans"
   | "paywall.challengeOnly"
   | "paywall.challengePrice"
+  | "paywall.benefitUnlimitedScans"
+  | "paywall.benefitMacroTrends"
+  | "paywall.benefitRecommendations"
+  | "paywall.benefitScanTitle"
+  | "paywall.benefitScanSub"
+  | "paywall.benefitTrendsTitle"
+  | "paywall.benefitTrendsSub"
+  | "paywall.benefitRecsTitle"
+  | "paywall.benefitRecsSub"
+  | "paywall.benefitExportTitle"
+  | "paywall.benefitExportSub"
+  | "paywall.tierMonthly"
+  | "paywall.tierYearly"
+  | "paywall.tierPlan"
   | "welcome.heading"
   | "welcome.subheading"
   | "welcome.feature1Title"
@@ -239,10 +261,35 @@ export type SimpleTranslationKey =
   | "home.tapToLog"
   | "home.steps"
   | "home.activeCal"
+  | "home.noMoreCards"
+  | "home.dayShort"
+  | "home.weekShort"
+  | "home.monthShort"
   | "streak.startPrompt"
   | "streak.freezeAvailable"
   | "streak.protectStreak"
   | "streak.freezeUpsell"
+  | "streak.dayLabel_one"
+  | "streak.dayLabel_other"
+  | "streak.lastChance"
+  | "streak.logNowToKeep"
+  | "streak.streakReset"
+  | "streak.yourStreakReset"
+  | "streak.labels.unstoppable"
+  | "streak.labels.eliteTracker"
+  | "streak.labels.habitLockedIn"
+  | "streak.labels.challengeCompleted"
+  | "streak.labels.disciplined"
+  | "streak.labels.onAStreak"
+  | "streak.labels.gettingConsistent"
+  | "streak.progression.day90"
+  | "streak.progression.day60"
+  | "streak.progression.day30"
+  | "streak.progression.day21"
+  | "streak.progression.day14"
+  | "streak.progression.day7"
+  | "streak.progression.day3"
+  | "streak.progression.day1"
   | "review.writeReview"
   | "review.submit"
   | "review.terrible"
@@ -290,6 +337,8 @@ export type SimpleTranslationKey =
   | "monthly.daysLogged"
   | "monthly.daysInMonth"
   | "insights.header"
+  | "insights.pacingDetail"
+  | "insights.keepItGoing"
   | "settings.title"
   | "settings.appearance"
   | "settings.profile"
@@ -328,6 +377,7 @@ export type SimpleTranslationKey =
   | "settings.challenge"
   | "settings.monthly"
   | "settings.yearly"
+  | "settings.plan"
   | "settings.legal"
   | "settings.privacyPolicy"
   | "settings.termsOfService"
@@ -402,6 +452,11 @@ export type SimpleTranslationKey =
   | "settings.exportError"
   | "settings.exportFailed"
   | "settings.notSet"
+  | "settings.waterSettings"
+  | "settings.servingSize"
+  | "settings.dailyGoalLabel"
+  | "settings.hydrationTitle"
+  | "settings.hydrationBody"
   | "notificationSettings.title"
   | "notificationSettings.logReminder"
   | "notificationSettings.logReminderDesc"
@@ -576,6 +631,9 @@ export type SimpleTranslationKey =
   | "progress.avgKcalDay"
   | "progress.avgProtein"
   | "progress.onTarget"
+  | "progress.proteinShort"
+  | "progress.carbsShort"
+  | "progress.fatShort"
   | "progress.logWeight"
   | "progress.recalculatePlan"
   | "progress.cannotRecalculate"
@@ -670,6 +728,7 @@ export type SimpleTranslationKey =
 
 /** Translation keys that require interpolation params */
 export type ParamTranslationKey =
+  | "common.optionsA11y"
   | "calories.value_one"
   | "calories.value_other"
   | "auth.verificationSent"
@@ -678,6 +737,7 @@ export type ParamTranslationKey =
   | "auth.resendLinkCooldown"
   | "auth.sendResetLinkCooldown"
   | "onboarding.weightGoal.toLose"
+  | "onboarding.weightGoal.bmiDisplay"
   | "onboarding.timeframe.description"
   | "onboarding.timeframe.weeksCount"
   | "onboarding.timeframe.perWeek"
@@ -690,26 +750,44 @@ export type ParamTranslationKey =
   | "paywall.builtConsistency"
   | "paywall.dayStreakBadge"
   | "home.logged"
+  | "home.calTarget"
+  | "home.currentWeightA11y"
   | "streak.dayStreak_one"
   | "streak.dayStreak_other"
   | "streak.best_one"
   | "streak.best_other"
   | "streak.milestone_one"
   | "streak.milestone_other"
+  | "streak.atRisk"
+  | "streak.streakEnded"
   | "review.starLabel"
+  | "review.starA11y_one"
+  | "review.starA11y_other"
   | "analytics.budgetEquation"
   | "analytics.stepsGoal"
   | "challenge.daysCount"
   | "weekly.dayA11y"
+  | "insights.pacingAhead"
+  | "insights.pacingBehind"
+  | "insights.yesterday"
+  | "insights.lastWeek"
+  | "insights.macroBreakdown"
+  | "insights.similarMeal"
+  | "insights.similarSameCal"
+  | "insights.similarMoreCal"
+  | "insights.similarLessCal"
+  | "insights.streakMessage"
   | "dayJourney.dayBadge"
   | "settings.lastSynced"
   | "settings.syncCompleteDesc"
   | "settings.planSummary"
   | "settings.mealsCount"
   | "settings.entriesCount"
+  | "settings.egExample"
   | "featureRequest.cooldown"
   | "featureRequest.cooldownRetry"
   | "recalibration.applyBudgetA11y"
+  | "tracking.macroSummary"
   | "camera.freeScansRemaining"
   | "camera.freeScansRemaining_plural"
   | "mealConfirm.noMatchRich"
@@ -733,6 +811,7 @@ export type TranslationKey = SimpleTranslationKey | ParamTranslationKey;
 
 /** Maps parameterised keys to their required interpolation params */
 export interface TranslationParams {
+  "common.optionsA11y": { label: string | number };
   "calories.value_one": { count: string | number };
   "calories.value_other": { count: string | number };
   "auth.verificationSent": { email: string | number };
@@ -741,6 +820,7 @@ export interface TranslationParams {
   "auth.resendLinkCooldown": { seconds: string | number };
   "auth.sendResetLinkCooldown": { seconds: string | number };
   "onboarding.weightGoal.toLose": { count: string | number; unit: string | number };
+  "onboarding.weightGoal.bmiDisplay": { label: string | number };
   "onboarding.timeframe.description": { weight: string | number; unit: string | number };
   "onboarding.timeframe.weeksCount": { count: string | number };
   "onboarding.timeframe.perWeek": { rate: string | number; unit: string | number };
@@ -753,26 +833,44 @@ export interface TranslationParams {
   "paywall.builtConsistency": { count: string | number };
   "paywall.dayStreakBadge": { count: string | number };
   "home.logged": { count: string | number };
+  "home.calTarget": { target: string | number };
+  "home.currentWeightA11y": { weight: string | number };
   "streak.dayStreak_one": { count: string | number };
   "streak.dayStreak_other": { count: string | number };
   "streak.best_one": { count: string | number };
   "streak.best_other": { count: string | number };
   "streak.milestone_one": { remaining: string | number; target: string | number };
   "streak.milestone_other": { remaining: string | number; target: string | number };
+  "streak.atRisk": { count: string | number };
+  "streak.streakEnded": { count: string | number };
   "review.starLabel": { count: string | number };
+  "review.starA11y_one": { count: string | number };
+  "review.starA11y_other": { count: string | number };
   "analytics.budgetEquation": { base: string | number; earned: string | number; total: string | number };
   "analytics.stepsGoal": { goal: string | number };
   "challenge.daysCount": { count: string | number };
   "weekly.dayA11y": { label: string | number; number: string | number };
+  "insights.pacingAhead": { calories: string | number };
+  "insights.pacingBehind": { calories: string | number };
+  "insights.yesterday": { calories: string | number };
+  "insights.lastWeek": { weekday: string | number; calories: string | number };
+  "insights.macroBreakdown": { protein: string | number; carbs: string | number; fat: string | number };
+  "insights.similarMeal": { mealTitle: string | number; weekday: string | number };
+  "insights.similarSameCal": { pastCalories: string | number };
+  "insights.similarMoreCal": { pastCalories: string | number; diff: string | number };
+  "insights.similarLessCal": { pastCalories: string | number; diff: string | number };
+  "insights.streakMessage": { count: string | number };
   "dayJourney.dayBadge": { day: string | number };
   "settings.lastSynced": { date: string | number };
   "settings.syncCompleteDesc": { weightImported: string | number; mealsExported: string | number };
   "settings.planSummary": { calories: string | number; weeks: string | number };
   "settings.mealsCount": { count: string | number };
   "settings.entriesCount": { count: string | number };
+  "settings.egExample": { example: string | number };
   "featureRequest.cooldown": { seconds: string | number };
   "featureRequest.cooldownRetry": { seconds: string | number };
   "recalibration.applyBudgetA11y": { calories: string | number };
+  "tracking.macroSummary": { protein: string | number; unit: string | number; carbs: string | number; fat: string | number };
   "camera.freeScansRemaining": { count: string | number };
   "camera.freeScansRemaining_plural": { count: string | number };
   "mealConfirm.noMatchRich": { food: string | number };

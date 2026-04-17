@@ -29,7 +29,8 @@
     "scan": "Scannen",
     "kcal": "kcal",
     "unnamedMeal": "Unnamed Meal",
-    "adjustHint": "Tap any value to adjust. These are estimates—close enough is good enough!"
+    "adjustHint": "Tap any value to adjust. These are estimates—close enough is good enough!",
+    "macroSummary": "P {{protein}}{{unit}} · C {{carbs}}{{unit}} · F {{fat}}{{unit}}"
   },
   "camera": {
     "scanFood": "Eten scannen",

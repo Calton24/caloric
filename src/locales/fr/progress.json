@@ -24,7 +24,10 @@
     "cannotRecalculate": "Impossible de recalculer",
     "cannotRecalculateDesc": "Enregistrez un poids et terminez l'onboarding d'abord.",
     "planUpdated": "Plan mis à jour",
-    "planUpdatedDesc": "Votre plan a été recalculé avec votre poids actuel de {{weight}}."
+    "planUpdatedDesc": "Votre plan a été recalculé avec votre poids actuel de {{weight}}.",
+    "proteinShort": "P:",
+    "carbsShort": "C:",
+    "fatShort": "F:"
   },
   "logWeight": {
     "title": "Enregistrer le poids",

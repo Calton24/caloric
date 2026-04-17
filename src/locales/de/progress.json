@@ -24,7 +24,10 @@
     "cannotRecalculate": "Kann nicht neu berechnen",
     "cannotRecalculateDesc": "Erfasse einen Gewichtseintrag und schließe das Onboarding ab.",
     "planUpdated": "Plan aktualisiert",
-    "planUpdatedDesc": "Dein Plan wurde mit deinem aktuellen Gewicht von {{weight}} neu berechnet."
+    "planUpdatedDesc": "Dein Plan wurde mit deinem aktuellen Gewicht von {{weight}} neu berechnet.",
+    "proteinShort": "P:",
+    "carbsShort": "C:",
+    "fatShort": "F:"
   },
   "logWeight": {
     "title": "Gewicht erfassen",

@@ -36,6 +36,7 @@
     "i18n:check": "node scripts/validate-locales.js && node scripts/generate-i18n-types.js",
     "i18n:ci": "bash scripts/i18n-ci.sh",
     "i18n:audit": "node scripts/i18n-audit.js",
+    "test:i18n": "jest __tests__/i18n-switching.test.ts __tests__/i18n-runtime-stale.test.ts --no-coverage",
     "prepare": "husky",
     "postinstall": "patch-package"
   },

@@ -24,7 +24,10 @@
     "cannotRecalculate": "Nie można przeliczyć",
     "cannotRecalculateDesc": "Zarejestruj wagę i ukończ onboarding.",
     "planUpdated": "Plan zaktualizowany",
-    "planUpdatedDesc": "Twój plan został przeliczony z aktualną wagą {{weight}}."
+    "planUpdatedDesc": "Twój plan został przeliczony z aktualną wagą {{weight}}.",
+    "proteinShort": "P:",
+    "carbsShort": "C:",
+    "fatShort": "F:"
   },
   "logWeight": {
     "title": "Zarejestruj wagę",

@@ -26,7 +26,9 @@
     "notNow": "Not now",
     "search": "Search",
     "like": "LIKE",
-    "nope": "NOPE"
+    "nope": "NOPE",
+    "now": "now",
+    "optionsA11y": "{{label}} options"
   },
   "calories": {
     "label": "Calorieën",

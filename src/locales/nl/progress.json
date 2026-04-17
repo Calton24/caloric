@@ -24,7 +24,10 @@
     "cannotRecalculate": "Kan niet herberekenen",
     "cannotRecalculateDesc": "Registreer een gewicht en voltooi het onboarding eerst.",
     "planUpdated": "Plan bijgewerkt",
-    "planUpdatedDesc": "Je plan is herberekend met je huidige gewicht van {{weight}}."
+    "planUpdatedDesc": "Je plan is herberekend met je huidige gewicht van {{weight}}.",
+    "proteinShort": "P:",
+    "carbsShort": "C:",
+    "fatShort": "F:"
   },
   "logWeight": {
     "title": "Gewicht registreren",
