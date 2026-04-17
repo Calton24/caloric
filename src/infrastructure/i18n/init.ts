@@ -20,15 +20,108 @@ import { initReactI18next } from "react-i18next";
 import { getAppConfig } from "../../config";
 import { logger } from "../../logging/logger";
 
-// Translation resources — static imports (bundled)
-import de from "../../locales/de/common.json";
-import en from "../../locales/en/common.json";
-import es from "../../locales/es/common.json";
-import fr from "../../locales/fr/common.json";
-import nl from "../../locales/nl/common.json";
-import pl from "../../locales/pl/common.json";
-import ptBR from "../../locales/pt-BR/common.json";
-import pt from "../../locales/pt/common.json";
+// Translation resources — static imports, split by feature namespace
+// Each feature file exports its own top-level keys (e.g. auth.json → { auth: { ... } })
+// They are deep-merged into a single "common" namespace for i18next.
+
+import enAuth from "../../locales/en/auth.json";
+import enCommon from "../../locales/en/common.json";
+import enGoals from "../../locales/en/goals.json";
+import enGuide from "../../locales/en/guide.json";
+import enHome from "../../locales/en/home.json";
+import enOnboarding from "../../locales/en/onboarding.json";
+import enPermissions from "../../locales/en/permissions.json";
+import enProgress from "../../locales/en/progress.json";
+import enSettings from "../../locales/en/settings.json";
+import enTracking from "../../locales/en/tracking.json";
+
+import deAuth from "../../locales/de/auth.json";
+import deCommon from "../../locales/de/common.json";
+import deGoals from "../../locales/de/goals.json";
+import deGuide from "../../locales/de/guide.json";
+import deHome from "../../locales/de/home.json";
+import deOnboarding from "../../locales/de/onboarding.json";
+import dePermissions from "../../locales/de/permissions.json";
+import deProgress from "../../locales/de/progress.json";
+import deSettings from "../../locales/de/settings.json";
+import deTracking from "../../locales/de/tracking.json";
+
+import esAuth from "../../locales/es/auth.json";
+import esCommon from "../../locales/es/common.json";
+import esGoals from "../../locales/es/goals.json";
+import esGuide from "../../locales/es/guide.json";
+import esHome from "../../locales/es/home.json";
+import esOnboarding from "../../locales/es/onboarding.json";
+import esPermissions from "../../locales/es/permissions.json";
+import esProgress from "../../locales/es/progress.json";
+import esSettings from "../../locales/es/settings.json";
+import esTracking from "../../locales/es/tracking.json";
+
+import frAuth from "../../locales/fr/auth.json";
+import frCommon from "../../locales/fr/common.json";
+import frGoals from "../../locales/fr/goals.json";
+import frGuide from "../../locales/fr/guide.json";
+import frHome from "../../locales/fr/home.json";
+import frOnboarding from "../../locales/fr/onboarding.json";
+import frPermissions from "../../locales/fr/permissions.json";
+import frProgress from "../../locales/fr/progress.json";
+import frSettings from "../../locales/fr/settings.json";
+import frTracking from "../../locales/fr/tracking.json";
+
+import nlAuth from "../../locales/nl/auth.json";
+import nlCommon from "../../locales/nl/common.json";
+import nlGoals from "../../locales/nl/goals.json";
+import nlGuide from "../../locales/nl/guide.json";
+import nlHome from "../../locales/nl/home.json";
+import nlOnboarding from "../../locales/nl/onboarding.json";
+import nlPermissions from "../../locales/nl/permissions.json";
+import nlProgress from "../../locales/nl/progress.json";
+import nlSettings from "../../locales/nl/settings.json";
+import nlTracking from "../../locales/nl/tracking.json";
+
+import plAuth from "../../locales/pl/auth.json";
+import plCommon from "../../locales/pl/common.json";
+import plGoals from "../../locales/pl/goals.json";
+import plGuide from "../../locales/pl/guide.json";
+import plHome from "../../locales/pl/home.json";
+import plOnboarding from "../../locales/pl/onboarding.json";
+import plPermissions from "../../locales/pl/permissions.json";
+import plProgress from "../../locales/pl/progress.json";
+import plSettings from "../../locales/pl/settings.json";
+import plTracking from "../../locales/pl/tracking.json";
+
+import ptAuth from "../../locales/pt/auth.json";
+import ptCommon from "../../locales/pt/common.json";
+import ptGoals from "../../locales/pt/goals.json";
+import ptGuide from "../../locales/pt/guide.json";
+import ptHome from "../../locales/pt/home.json";
+import ptOnboarding from "../../locales/pt/onboarding.json";
+import ptPermissions from "../../locales/pt/permissions.json";
+import ptProgress from "../../locales/pt/progress.json";
+import ptSettings from "../../locales/pt/settings.json";
+import ptTracking from "../../locales/pt/tracking.json";
+
+import ptBRAuth from "../../locales/pt-BR/auth.json";
+import ptBRCommon from "../../locales/pt-BR/common.json";
+import ptBRGoals from "../../locales/pt-BR/goals.json";
+import ptBRGuide from "../../locales/pt-BR/guide.json";
+import ptBRHome from "../../locales/pt-BR/home.json";
+import ptBROnboarding from "../../locales/pt-BR/onboarding.json";
+import ptBRPermissions from "../../locales/pt-BR/permissions.json";
+import ptBRProgress from "../../locales/pt-BR/progress.json";
+import ptBRSettings from "../../locales/pt-BR/settings.json";
+import ptBRTracking from "../../locales/pt-BR/tracking.json";
+
+/** Shallow-merge feature namespace files into one object per language */
+function mergeNamespaces(
+  ...files: Record<string, unknown>[]
+): Record<string, unknown> {
+  const merged: Record<string, unknown> = {};
+  for (const file of files) {
+    Object.assign(merged, file);
+  }
+  return merged;
+}
 
 // ---------- Constants ----------
 
@@ -60,16 +153,120 @@ export const LANGUAGE_LABELS: Record<SupportedLanguage, string> = {
 const FALLBACK_LANGUAGE: SupportedLanguage = "en-GB";
 const STORAGE_KEY = "mobile_core_i18n_language";
 
+const en = mergeNamespaces(
+  enCommon,
+  enAuth,
+  enOnboarding,
+  enHome,
+  enSettings,
+  enTracking,
+  enProgress,
+  enPermissions,
+  enGoals,
+  enGuide
+);
+
 const resources = {
   "en-GB": { common: en },
   "en-US": { common: en },
-  de: { common: de },
-  es: { common: es },
-  fr: { common: fr },
-  nl: { common: nl },
-  pl: { common: pl },
-  pt: { common: pt },
-  "pt-BR": { common: ptBR },
+  de: {
+    common: mergeNamespaces(
+      deCommon,
+      deAuth,
+      deOnboarding,
+      deHome,
+      deSettings,
+      deTracking,
+      deProgress,
+      dePermissions,
+      deGoals,
+      deGuide
+    ),
+  },
+  es: {
+    common: mergeNamespaces(
+      esCommon,
+      esAuth,
+      esOnboarding,
+      esHome,
+      esSettings,
+      esTracking,
+      esProgress,
+      esPermissions,
+      esGoals,
+      esGuide
+    ),
+  },
+  fr: {
+    common: mergeNamespaces(
+      frCommon,
+      frAuth,
+      frOnboarding,
+      frHome,
+      frSettings,
+      frTracking,
+      frProgress,
+      frPermissions,
+      frGoals,
+      frGuide
+    ),
+  },
+  nl: {
+    common: mergeNamespaces(
+      nlCommon,
+      nlAuth,
+      nlOnboarding,
+      nlHome,
+      nlSettings,
+      nlTracking,
+      nlProgress,
+      nlPermissions,
+      nlGoals,
+      nlGuide
+    ),
+  },
+  pl: {
+    common: mergeNamespaces(
+      plCommon,
+      plAuth,
+      plOnboarding,
+      plHome,
+      plSettings,
+      plTracking,
+      plProgress,
+      plPermissions,
+      plGoals,
+      plGuide
+    ),
+  },
+  pt: {
+    common: mergeNamespaces(
+      ptCommon,
+      ptAuth,
+      ptOnboarding,
+      ptHome,
+      ptSettings,
+      ptTracking,
+      ptProgress,
+      ptPermissions,
+      ptGoals,
+      ptGuide
+    ),
+  },
+  "pt-BR": {
+    common: mergeNamespaces(
+      ptBRCommon,
+      ptBRAuth,
+      ptBROnboarding,
+      ptBRHome,
+      ptBRSettings,
+      ptBRTracking,
+      ptBRProgress,
+      ptBRPermissions,
+      ptBRGoals,
+      ptBRGuide
+    ),
+  },
 } as const;
 
 // ---------- Dynamic requires (optional deps) ----------

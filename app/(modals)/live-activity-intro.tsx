@@ -17,6 +17,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { areLiveActivitiesAvailable } from "../../src/features/live-activity";
 import { usePermissionsStore } from "../../src/features/permissions";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { ScreenContainer } from "../../src/ui/components/ScreenContainer";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
@@ -24,17 +25,16 @@ import { TText } from "../../src/ui/primitives/TText";
 
 export default function LiveActivityIntroScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
 
   const handleActivate = () => {
     // On iOS, Live Activities don't require a permission prompt — they're
     // enabled by default. We just need to verify the device supports them.
     if (Platform.OS !== "ios") {
-      Alert.alert(
-        "iOS Only",
-        "Live Activities are only available on iOS devices.",
-        [{ text: "OK" }]
-      );
+      Alert.alert(t("liveActivity.iosOnly"), t("liveActivity.iosOnlyDesc"), [
+        { text: t("common.ok") },
+      ]);
       router.replace("/(main)/home" as any);
       return;
     }
@@ -44,12 +44,11 @@ export default function LiveActivityIntroScreen() {
     if (!available) {
       // The native module isn't loaded (Expo Go) or user disabled LA in iOS Settings
       Alert.alert(
-        "Live Activities Unavailable",
-        "Please enable Live Activities in iOS Settings > Caloric > Live Activities, " +
-          "and make sure you're running iOS 16.2 or later.",
+        t("liveActivity.unavailable"),
+        t("liveActivity.unavailableDesc"),
         [
           {
-            text: "Continue Without",
+            text: t("liveActivity.continueWithout"),
             onPress: () => router.replace("/(main)/home" as any),
           },
         ]
@@ -77,14 +76,13 @@ export default function LiveActivityIntroScreen() {
             variant="heading"
             style={[styles.title, { color: theme.colors.text }]}
           >
-            Live Activities
+            {t("liveActivity.title")}
           </TText>
           <TSpacer size="sm" />
           <TText
             style={[styles.subtitle, { color: theme.colors.textSecondary }]}
           >
-            Track your calories in real-time right from your Lock Screen and
-            Dynamic Island.
+            {t("liveActivity.subtitle")}
           </TText>
         </Animated.View>
 
@@ -108,7 +106,7 @@ export default function LiveActivityIntroScreen() {
             <View style={styles.widgetHeader}>
               <Ionicons name="flame" size={20} color={theme.colors.primary} />
               <TText style={[styles.widgetTitle, { color: theme.colors.text }]}>
-                Caloric
+                {t("common.appName")}
               </TText>
             </View>
 
@@ -126,7 +124,7 @@ export default function LiveActivityIntroScreen() {
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  remaining
+                  {t("liveActivity.remaining")}
                 </TText>
               </View>
 
@@ -141,9 +139,9 @@ export default function LiveActivityIntroScreen() {
 
               <View style={styles.widgetMacros}>
                 {[
-                  { label: "Protein", val: "87g", color: "#60A5FA" },
-                  { label: "Carbs", val: "128g", color: "#FBBF24" },
-                  { label: "Fat", val: "24g", color: "#F87171" },
+                  { label: t("home.protein"), val: "87g", color: "#60A5FA" },
+                  { label: t("home.carbs"), val: "128g", color: "#FBBF24" },
+                  { label: t("home.fat"), val: "24g", color: "#F87171" },
                 ].map((m) => (
                   <View key={m.label} style={styles.macroItem}>
                     <View
@@ -190,13 +188,13 @@ export default function LiveActivityIntroScreen() {
                   { color: theme.colors.textSecondary },
                 ]}
               >
-                1,230 cal left
+                1,230 {t("tracking.cal")} {t("liveActivity.remaining")}
               </TText>
             </View>
             <TText
               style={[styles.islandLabel, { color: theme.colors.textMuted }]}
             >
-              Dynamic Island
+              {t("liveActivity.dynamicIsland")}
             </TText>
           </View>
         </Animated.View>
@@ -229,7 +227,7 @@ export default function LiveActivityIntroScreen() {
             <TText
               style={[styles.ctaText, { color: theme.colors.textInverse }]}
             >
-              Activate Live Activities
+              {t("liveActivity.activate")}
             </TText>
           </LinearGradient>
         </Pressable>
@@ -238,7 +236,7 @@ export default function LiveActivityIntroScreen() {
 
         <Pressable onPress={handleSkip} hitSlop={12}>
           <TText style={[styles.skipText, { color: theme.colors.textMuted }]}>
-            Not now
+            {t("liveActivity.notNow")}
           </TText>
         </Pressable>
       </Animated.View>

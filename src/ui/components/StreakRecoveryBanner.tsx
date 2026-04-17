@@ -11,6 +11,7 @@ import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import type { StreakRecovery } from "../../features/retention/retention.types";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -24,6 +25,7 @@ export function StreakRecoveryBanner({
   onPress,
 }: StreakRecoveryBannerProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
 
   const accentColor =
     recovery.urgency === "intense"
@@ -48,14 +50,14 @@ export function StreakRecoveryBanner({
           { backgroundColor: bgColor, borderColor: accentColor },
         ]}
         accessibilityRole="button"
-        accessibilityLabel={`Your streak reset. ${recovery.ctaText}`}
+        accessibilityLabel={`${t("streak.yourStreakReset")} ${recovery.ctaText}`}
       >
         <Ionicons name="refresh-outline" size={22} color={accentColor} />
         <View style={styles.textBlock}>
           <TText style={[styles.title, { color: accentColor }]}>
             {recovery.lostStreak > 0
-              ? `Your ${recovery.lostStreak}-day streak ended`
-              : "Streak reset"}
+              ? t("streak.streakEnded", { count: recovery.lostStreak })
+              : t("streak.streakReset")}
           </TText>
           <TText
             style={[styles.subtitle, { color: theme.colors.textSecondary }]}

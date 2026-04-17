@@ -35,6 +35,7 @@ import {
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
 import { AuthCapabilities } from "../../src/features/auth/authCapabilities";
 import { useAuth } from "../../src/features/auth/useAuth";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { CalCutLogo } from "../../src/ui/brand/CalCutLogo";
 import { TButton } from "../../src/ui/primitives/TButton";
@@ -44,6 +45,7 @@ import { TText } from "../../src/ui/primitives/TText";
 
 export default function SignInScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const { signIn, signUp, signInWithAppleNative, signInWithGoogleNative } =
     useAuth();
   const router = useRouter();
@@ -62,7 +64,7 @@ export default function SignInScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Please enter email and password");
+      Alert.alert(t("common.error"), t("auth.enterEmailPassword"));
       return;
     }
 
@@ -70,7 +72,7 @@ export default function SignInScreen() {
     try {
       const { error } = await signIn(email, password);
       if (error) {
-        Alert.alert("Sign In Failed", error.message);
+        Alert.alert(t("auth.signInFailed"), error.message);
       } else {
         // Let index.tsx evaluate auth + onboarding state so routing is
         // always correct regardless of local store hydration timing.
@@ -83,15 +85,15 @@ export default function SignInScreen() {
 
   const handleSignUpSubmit = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Please enter email and password");
+      Alert.alert(t("common.error"), t("auth.enterEmailPassword"));
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
+      Alert.alert(t("common.error"), t("auth.passwordsMismatch"));
       return;
     }
     if (password.length < 6) {
-      Alert.alert("Error", "Password must be at least 6 characters");
+      Alert.alert(t("common.error"), t("auth.passwordTooShort"));
       return;
     }
 
@@ -99,7 +101,7 @@ export default function SignInScreen() {
     try {
       const { error } = await signUp(email, password);
       if (error) {
-        Alert.alert("Sign Up Failed", error.message);
+        Alert.alert(t("auth.signUpFailed"), error.message);
       } else {
         setSignUpSuccess(true);
       }
@@ -130,7 +132,7 @@ export default function SignInScreen() {
 
   const handleGoogleSignIn = async () => {
     if (!AuthCapabilities.google) {
-      Alert.alert("Unavailable", "Google sign-in is disabled for this app.");
+      Alert.alert(t("auth.unavailable"), t("auth.googleUnavailable"));
       return;
     }
     setLoading(true);
@@ -150,7 +152,7 @@ export default function SignInScreen() {
 
   const handleAppleSignIn = async () => {
     if (!AuthCapabilities.apple) {
-      Alert.alert("Unavailable", "Apple sign-in is disabled for this app.");
+      Alert.alert(t("auth.unavailable"), t("auth.appleComingSoon"));
       return;
     }
     setLoading(true);
@@ -260,17 +262,15 @@ export default function SignInScreen() {
               </View>
               <TSpacer size="xl" />
               <TText variant="heading" style={styles.successTitle}>
-                Account Created!
+                {t("auth.accountCreated")}
               </TText>
               <TSpacer size="md" />
               <TText color="secondary" style={styles.successMessage}>
-                {"We've sent a verification link to\n"}
-                <TText style={{ fontWeight: "600" }}>{email}</TText>
-                {"\n\nCheck your inbox and verify your email, then sign in."}
+                {t("auth.verificationSent", { email })}
               </TText>
               <TSpacer size="xl" />
               <TButton testID="go-to-sign-in-button" onPress={handleGoToSignIn}>
-                Go to Sign In
+                {t("auth.goToSignIn")}
               </TButton>
             </View>
           </SafeAreaView>
@@ -328,13 +328,11 @@ export default function SignInScreen() {
             )}
             <TSpacer size="lg" />
             <TText variant="heading" style={styles.title}>
-              {isSignUp ? "Create your\naccount" : "Welcome\nback"}
+              {isSignUp ? t("auth.createYourAccount") : t("auth.welcomeBack")}
             </TText>
             <TSpacer size="xs" />
             <TText color="secondary" style={styles.subtitle}>
-              {isSignUp
-                ? "Start your 21-day journey"
-                : "Pick up where you left off"}
+              {isSignUp ? t("auth.startJourney") : t("auth.pickUpWhereLeft")}
             </TText>
           </Animated.View>
 
@@ -368,7 +366,7 @@ export default function SignInScreen() {
                       },
                     ]}
                   >
-                    Continue with Apple
+                    {t("auth.continueWithApple")}
                   </TText>
                 </Pressable>
               )}
@@ -397,7 +395,7 @@ export default function SignInScreen() {
                   <TText
                     style={[styles.socialBtnText, { color: theme.colors.text }]}
                   >
-                    Continue with Google
+                    {t("auth.continueWithGoogle")}
                   </TText>
                 </Pressable>
               )}
@@ -411,7 +409,7 @@ export default function SignInScreen() {
                   ]}
                 />
                 <TText color="secondary" style={styles.dividerText}>
-                  or
+                  {t("auth.or")}
                 </TText>
                 <View
                   style={[
@@ -430,12 +428,12 @@ export default function SignInScreen() {
           >
             <View style={styles.fieldGroup}>
               <TText color="secondary" style={styles.label}>
-                Email
+                {t("auth.email")}
               </TText>
               <View style={{ height: 6 }} />
               <TInput
                 testID="signin-email-input"
-                placeholder="you@example.com"
+                placeholder={t("auth.emailPlaceholder")}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -448,7 +446,7 @@ export default function SignInScreen() {
 
             <View style={styles.fieldGroup}>
               <TText color="secondary" style={styles.label}>
-                Password
+                {t("auth.password")}
               </TText>
               <View style={{ height: 6 }} />
               <TInput
@@ -467,7 +465,7 @@ export default function SignInScreen() {
                 <View style={{ height: 16 }} />
                 <View style={styles.fieldGroup}>
                   <TText color="secondary" style={styles.label}>
-                    Confirm Password
+                    {t("auth.confirmPassword")}
                   </TText>
                   <View style={{ height: 6 }} />
                   <TInput
@@ -494,7 +492,7 @@ export default function SignInScreen() {
                 <TText
                   style={[styles.forgotText, { color: theme.colors.primary }]}
                 >
-                  Forgot password?
+                  {t("auth.forgotPassword")}
                 </TText>
               </Pressable>
             )}
@@ -508,7 +506,7 @@ export default function SignInScreen() {
               disabled={loading}
               size="lg"
             >
-              {isSignUp ? "Create Account" : "Sign In"}
+              {isSignUp ? t("auth.createAccount") : t("auth.signIn")}
             </TButton>
           </Animated.View>
 
@@ -518,7 +516,9 @@ export default function SignInScreen() {
             style={styles.toggleRow}
           >
             <TText color="secondary" style={styles.toggleLabel}>
-              {isSignUp ? "Already have an account?" : "Don't have an account?"}
+              {isSignUp
+                ? t("auth.alreadyHaveAccountShort")
+                : t("auth.dontHaveAccount")}
             </TText>
             <Pressable
               testID="toggle-auth-mode"
@@ -528,7 +528,7 @@ export default function SignInScreen() {
               <TText
                 style={[styles.toggleLink, { color: theme.colors.primary }]}
               >
-                {isSignUp ? "Sign In" : "Sign Up"}
+                {isSignUp ? t("auth.signIn") : t("auth.signUp")}
               </TText>
             </Pressable>
           </Animated.View>

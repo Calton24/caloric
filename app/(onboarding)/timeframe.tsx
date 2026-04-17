@@ -13,6 +13,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUnits } from "../../hooks/useUnits";
 import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TButton } from "../../src/ui/primitives/TButton";
@@ -34,14 +35,14 @@ const TIMEFRAMES: TimeframeOption[] = [
     id: "relaxed",
     weeks: 35,
     rateLbsPerWeek: 0.45,
-    difficulty: "Relaxed",
+    difficulty: "onboarding.timeframe.relaxed",
     difficultyColor: "#34D399",
   },
   {
     id: "realistic",
     weeks: 17,
     rateLbsPerWeek: 0.9,
-    difficulty: "Realistic",
+    difficulty: "onboarding.timeframe.realistic",
     difficultyColor: "#60A5FA",
     recommended: true,
   },
@@ -49,20 +50,21 @@ const TIMEFRAMES: TimeframeOption[] = [
     id: "ambitious",
     weeks: 11,
     rateLbsPerWeek: 1.35,
-    difficulty: "Ambitious",
+    difficulty: "onboarding.timeframe.ambitious",
     difficultyColor: "#FBBF24",
   },
   {
     id: "challenging",
     weeks: 8,
     rateLbsPerWeek: 1.9,
-    difficulty: "Challenging",
+    difficulty: "onboarding.timeframe.challenging",
     difficultyColor: "#F87171",
   },
 ];
 
 export default function OnboardingTimeframeScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const units = useUnits();
   const router = useRouter();
   const { timeframeWeeks, saveTimeframe, profile } = useOnboarding();
@@ -88,7 +90,7 @@ export default function OnboardingTimeframeScreen() {
               variant="heading"
               style={[styles.heading, { color: theme.colors.text }]}
             >
-              Choose your{"\n"}pace
+              {t("onboarding.timeframe.heading")}
             </TText>
           </Animated.View>
 
@@ -96,7 +98,10 @@ export default function OnboardingTimeframeScreen() {
 
           <Animated.View entering={FadeInDown.duration(500).delay(200)}>
             <TText color="secondary" style={styles.description}>
-              {`How quickly do you want to reach ${units.display(profile.goalWeightLbs ?? 0)} ${units.label}?`}
+              {t("onboarding.timeframe.description", {
+                weight: units.display(profile.goalWeightLbs ?? 0),
+                unit: units.label,
+              })}
             </TText>
           </Animated.View>
 
@@ -130,7 +135,9 @@ export default function OnboardingTimeframeScreen() {
                         <TText
                           style={[styles.weeks, { color: theme.colors.text }]}
                         >
-                          {tf.weeks} Weeks
+                          {t("onboarding.timeframe.weeksCount", {
+                            count: tf.weeks,
+                          })}
                         </TText>
                         {tf.recommended && (
                           <View
@@ -147,7 +154,7 @@ export default function OnboardingTimeframeScreen() {
                                 { color: theme.colors.primary },
                               ]}
                             >
-                              Recommended
+                              {t("common.recommended")}
                             </TText>
                           </View>
                         )}
@@ -159,7 +166,10 @@ export default function OnboardingTimeframeScreen() {
                           { color: theme.colors.textSecondary },
                         ]}
                       >
-                        {`-${units.display(tf.rateLbsPerWeek, 2)} ${units.label}/week`}
+                        {t("onboarding.timeframe.perWeek", {
+                          rate: `-${units.display(tf.rateLbsPerWeek, 2)}`,
+                          unit: units.label,
+                        })}
                       </TText>
                     </View>
                     <View style={styles.cardRight}>
@@ -177,7 +187,7 @@ export default function OnboardingTimeframeScreen() {
                             { color: tf.difficultyColor },
                           ]}
                         >
-                          {tf.difficulty}
+                          {t(tf.difficulty)}
                         </TText>
                       </View>
                       {isSelected && (
@@ -208,8 +218,7 @@ export default function OnboardingTimeframeScreen() {
               <TText
                 style={[styles.infoText, { color: theme.colors.textMuted }]}
               >
-                A safe rate is 0.2–1 {units.label} per week. Faster rates may
-                not be sustainable long term.
+                {t("onboarding.timeframe.safeRateInfo", { unit: units.label })}
               </TText>
             </View>
           </Animated.View>
@@ -223,7 +232,7 @@ export default function OnboardingTimeframeScreen() {
             size="lg"
             testID="onboarding-next-timeframe"
           >
-            Build My Plan
+            {t("common.continue")}
           </TButton>
         </View>
       </SafeAreaView>

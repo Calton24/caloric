@@ -32,6 +32,7 @@ import {
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
 import { useAuth } from "../../src/features/auth/useAuth";
 import { analytics } from "../../src/infrastructure/analytics";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { TButton } from "../../src/ui/primitives/TButton";
 import { TInput } from "../../src/ui/primitives/TInput";
@@ -59,6 +60,7 @@ type ScreenState = "form" | "sent";
 
 export default function ForgotPasswordScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const { resetPassword } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -93,11 +95,11 @@ export default function ForgotPasswordScreen() {
 
     const trimmed = email.trim();
     if (!trimmed) {
-      Alert.alert("Email Required", "Please enter your email address.");
+      Alert.alert(t("auth.emailRequired"), t("auth.enterEmail"));
       return;
     }
     if (!trimmed.includes("@")) {
-      Alert.alert("Invalid Email", "Please enter a valid email address.");
+      Alert.alert(t("auth.invalidEmail"), t("auth.enterValidEmail"));
       return;
     }
 
@@ -122,7 +124,7 @@ export default function ForgotPasswordScreen() {
         setScreenState("sent");
       }
     } catch {
-      setSendError("Something went wrong. Please try again.");
+      setSendError(t("auth.somethingWentWrong"));
     } finally {
       setLoading(false);
     }
@@ -147,7 +149,7 @@ export default function ForgotPasswordScreen() {
         setCooldown(COOLDOWN_SECONDS);
       }
     } catch {
-      setSendError("Something went wrong. Please try again.");
+      setSendError(t("auth.somethingWentWrong"));
     } finally {
       setLoading(false);
     }
@@ -246,18 +248,19 @@ export default function ForgotPasswordScreen() {
 
             <Animated.View entering={FadeInDown.duration(500).delay(200)}>
               <TText variant="heading" style={styles.sentTitle}>
-                Check your email
+                {t("auth.checkYourEmail")}
               </TText>
               <TSpacer size="sm" />
               <TText color="secondary" style={styles.sentDescription}>
-                If an account exists for{" "}
-                <TText style={styles.emailHighlight}>{email.trim()}</TText>, you
-                {"'"}ll receive a reset link shortly.
+                {t("auth.resetLinkSent", { email: email.trim() })}
               </TText>
               <TSpacer size="xs" />
               <TText color="secondary" style={styles.sentHint}>
-                Check your spam folder. Resend available
-                {cooldown > 0 ? ` in ${cooldown}s` : " now"}.
+                {t("auth.checkSpam")}{" "}
+                {cooldown > 0
+                  ? t("auth.resendIn", { seconds: cooldown })
+                  : t("auth.resendNow")}
+                .
               </TText>
             </Animated.View>
 
@@ -278,7 +281,9 @@ export default function ForgotPasswordScreen() {
                 loading={loading}
                 disabled={loading || cooldown > 0}
               >
-                {cooldown > 0 ? `Resend Link (${cooldown}s)` : "Resend Link"}
+                {cooldown > 0
+                  ? t("auth.resendLinkCooldown", { seconds: cooldown })
+                  : t("auth.resendLink")}
               </TButton>
 
               <TSpacer size="md" />
@@ -293,7 +298,7 @@ export default function ForgotPasswordScreen() {
                 <TText
                   style={[styles.backLinkText, { color: theme.colors.primary }]}
                 >
-                  Back to Sign In
+                  {t("auth.backToSignIn")}
                 </TText>
               </Pressable>
             </Animated.View>
@@ -380,11 +385,11 @@ export default function ForgotPasswordScreen() {
             style={styles.header}
           >
             <TText variant="heading" style={styles.title}>
-              Forgot{"\n"}password?
+              {t("auth.forgotPasswordHeading")}
             </TText>
             <TSpacer size="xs" />
             <TText color="secondary" style={styles.subtitle}>
-              No worries, enter your email and we{"'"}ll send a reset link.
+              {t("auth.forgotPasswordSubtitle")}
             </TText>
           </Animated.View>
 
@@ -394,12 +399,12 @@ export default function ForgotPasswordScreen() {
           <Animated.View entering={FadeInDown.duration(500).delay(200)}>
             <View style={styles.fieldGroup}>
               <TText color="secondary" style={styles.label}>
-                Email
+                {t("auth.email")}
               </TText>
               <View style={{ height: 6 }} />
               <TInput
                 testID="forgot-email-input"
-                placeholder="you@example.com"
+                placeholder={t("auth.emailPlaceholder")}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -426,8 +431,8 @@ export default function ForgotPasswordScreen() {
               size="lg"
             >
               {cooldown > 0
-                ? `Send Reset Link (${cooldown}s)`
-                : "Send Reset Link"}
+                ? t("auth.sendResetLinkCooldown", { seconds: cooldown })
+                : t("auth.sendResetLink")}
             </TButton>
           </Animated.View>
 
@@ -443,7 +448,7 @@ export default function ForgotPasswordScreen() {
               <TText
                 style={[styles.backLinkText, { color: theme.colors.primary }]}
               >
-                Back to Sign In
+                {t("auth.backToSignIn")}
               </TText>
             </Pressable>
           </Animated.View>

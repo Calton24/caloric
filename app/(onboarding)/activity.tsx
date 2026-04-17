@@ -9,6 +9,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
 import type { ActivityLevel } from "../../src/features/profile/profile.types";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TButton } from "../../src/ui/primitives/TButton";
@@ -16,36 +17,37 @@ import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 import { OnboardingHeader } from "./_progress";
 
-const LEVELS = [
+const LEVEL_KEYS = [
   {
     id: "sedentary",
     emoji: "🪑",
-    title: "Sedentary",
-    subtitle: "Little or no exercise",
+    titleKey: "onboarding.activity.sedentary",
+    subtitleKey: "onboarding.activity.sedentaryDesc",
   },
   {
     id: "light",
     emoji: "🚶",
-    title: "Lightly active",
-    subtitle: "Light exercise 1–3 days/week",
+    titleKey: "onboarding.activity.light",
+    subtitleKey: "onboarding.activity.lightDesc",
   },
   {
     id: "moderate",
     emoji: "🏃",
-    title: "Moderately active",
-    subtitle: "Moderate exercise 3–5 days/week",
+    titleKey: "onboarding.activity.moderate",
+    subtitleKey: "onboarding.activity.moderateDesc",
   },
   {
     id: "very",
     emoji: "💪",
-    title: "Very active",
-    subtitle: "Hard exercise 6–7 days/week",
+    titleKey: "onboarding.activity.very",
+    subtitleKey: "onboarding.activity.veryDesc",
   },
 ] as const;
 
 export default function OnboardingActivityScreen() {
   const { theme } = useTheme();
   const router = useRouter();
+  const { t } = useAppTranslation();
   const { profile, saveActivityLevel } = useOnboarding();
   const selected = profile.activityLevel;
 
@@ -68,7 +70,7 @@ export default function OnboardingActivityScreen() {
               variant="heading"
               style={[styles.heading, { color: theme.colors.text }]}
             >
-              How active{"\n"}are you?
+              {t("onboarding.activity.heading")}
             </TText>
           </Animated.View>
 
@@ -76,13 +78,13 @@ export default function OnboardingActivityScreen() {
 
           <Animated.View entering={FadeInDown.duration(500).delay(200)}>
             <TText color="secondary" style={styles.description}>
-              This helps us estimate your daily energy needs.
+              {t("onboarding.activity.description")}
             </TText>
           </Animated.View>
 
           <TSpacer size="lg" />
 
-          {LEVELS.map((level, i) => {
+          {LEVEL_KEYS.map((level, i) => {
             const isSelected = selected === level.id;
             return (
               <Animated.View
@@ -113,10 +115,10 @@ export default function OnboardingActivityScreen() {
                           { color: theme.colors.text },
                         ]}
                       >
-                        {level.title}
+                        {t(level.titleKey)}
                       </TText>
                       <TText color="secondary" style={styles.levelSubtitle}>
-                        {level.subtitle}
+                        {t(level.subtitleKey)}
                       </TText>
                     </View>
                     {isSelected && (
@@ -142,7 +144,7 @@ export default function OnboardingActivityScreen() {
             size="lg"
             testID="onboarding-next-3"
           >
-            Continue
+            {t("common.continue")}
           </TButton>
         </View>
       </SafeAreaView>

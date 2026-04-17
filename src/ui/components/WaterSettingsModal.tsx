@@ -22,6 +22,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useProfileStore } from "../../features/profile/profile.store";
 import { pushProfile } from "../../features/sync/sync.service";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -197,6 +198,7 @@ function DrumPicker({
 // ─── Modal ────────────────────────────────────────────────────────────────────
 export function WaterSettingsModal({ visible, onClose }: Props) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const isDark = theme.mode === "dark";
   const insets = useSafeAreaInsets();
 
@@ -280,7 +282,7 @@ export function WaterSettingsModal({ visible, onClose }: Props) {
               </TText>
             </Pressable>
             <TText style={[styles.title, { color: theme.colors.text }]}>
-              Water settings
+              {t("settings.waterSettings")}
             </TText>
             <View style={styles.closeBtn} />
           </View>
@@ -294,7 +296,7 @@ export function WaterSettingsModal({ visible, onClose }: Props) {
             {/* Serving size row */}
             <View style={[styles.row, { borderBottomColor: BORDER }]}>
               <TText style={[styles.rowLabel, { color: theme.colors.text }]}>
-                Serving size
+                {t("settings.servingSize")}
               </TText>
               <TText
                 style={[styles.rowValue, { color: theme.colors.textSecondary }]}
@@ -326,7 +328,7 @@ export function WaterSettingsModal({ visible, onClose }: Props) {
               ]}
             >
               <TText style={[styles.rowLabel, { color: theme.colors.text }]}>
-                Daily goal
+                {t("settings.dailyGoalLabel")}
               </TText>
               <TText
                 style={[styles.rowValue, { color: theme.colors.textSecondary }]}
@@ -349,14 +351,12 @@ export function WaterSettingsModal({ visible, onClose }: Props) {
             {/* Info text */}
             <View style={styles.infoBox}>
               <TText style={[styles.infoTitle, { color: theme.colors.text }]}>
-                How much water do you need to stay hydrated?
+                {t("settings.hydrationTitle")}
               </TText>
               <TText
                 style={[styles.infoBody, { color: theme.colors.textSecondary }]}
               >
-                {
-                  "Everyone's needs are slightly different, but we recommend aiming for at least 2,000 ml (2 L) of water each day."
-                }
+                {t("settings.hydrationBody")}
               </TText>
             </View>
           </ScrollView>
@@ -381,7 +381,7 @@ export function WaterSettingsModal({ visible, onClose }: Props) {
               <TText
                 style={[styles.btnCancelText, { color: theme.colors.text }]}
               >
-                Cancel
+                {t("common.cancel")}
               </TText>
             </Pressable>
             <Pressable

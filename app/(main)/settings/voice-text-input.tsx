@@ -15,6 +15,7 @@ import {
     useSettingsStore,
 } from "../../../src/features/settings";
 import type { LanguageOption } from "../../../src/features/settings/settings.types";
+import { useAppTranslation } from "../../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../../src/theme/useTheme";
 import { TText } from "../../../src/ui/primitives/TText";
 
@@ -47,6 +48,7 @@ function LanguageRow({
 
 export default function VoiceTextInputScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
 
   const inputLanguage = useSettingsStore((s) => s.settings.inputLanguage);
@@ -73,7 +75,7 @@ export default function VoiceTextInputScreen() {
             variant="heading"
             style={[styles.headerTitle, { color: theme.colors.text }]}
           >
-            Voice & Text Input
+            {t("settings.voiceTextInput")}
           </TText>
           <View style={{ width: 24 }} />
         </View>
@@ -82,7 +84,7 @@ export default function VoiceTextInputScreen() {
         <TText
           style={[styles.description, { color: theme.colors.textSecondary }]}
         >
-          Select the language for voice recognition and text input parsing.
+          {t("settings.voiceTextInputDesc")}
         </TText>
 
         {/* Language list */}

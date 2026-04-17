@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "title": "Wymagane uprawnienia",
+    "description": "Caloric używa mikrofonu i rozpoznawania mowy do rejestrowania posiłków głosem.",
+    "microphone": "Mikrofon",
+    "microphoneDesc": "Słuchaj głosu, aby rejestrować posiłki",
+    "speechRecognition": "Rozpoznawanie mowy",
+    "speechRecognitionDesc": "Zamień mowę na tekst",
+    "pushNotifications": "Powiadomienia push",
+    "pushNotificationsDesc": "Przypomnienia o posiłkach i aktualizacje postępów",
+    "grantPermissions": "Przyznaj uprawnienia",
+    "skipForNow": "Pomiń na razie"
+  },
+  "permissionsSetup": {
+    "title": "Wymagane uprawnienia",
+    "subtitle": "Caloric używa mikrofonu i rozpoznawania mowy do rejestrowania posiłków głosem, a powiadomień, aby Cię motywować.",
+    "microphone": "Mikrofon",
+    "microphoneDesc": "Słuchaj głosu do rejestrowania posiłków",
+    "speechRecognition": "Rozpoznawanie mowy",
+    "speechRecognitionDesc": "Zamień mowę na wpisy żywnościowe",
+    "pushNotifications": "Powiadomienia push",
+    "pushNotificationsDesc": "Przypomnienia i dzienne postępy",
+    "continue": "Kontynuuj",
+    "grantPermissions": "Przyznaj uprawnienia",
+    "skipForNow": "Pomiń na razie"
+  }
+}

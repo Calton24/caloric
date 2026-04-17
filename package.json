@@ -30,6 +30,12 @@
     "maestro:ci:ios:full": "SKIP_BUILD=0 node scripts/maestro-ci-ios.js",
     "caloric:security": "node scripts/security-audit.js",
     "caloric:verify:security": "npm run caloric:security && npm run check && npm run lint && npm run test",
+    "i18n:validate": "node scripts/validate-locales.js",
+    "i18n:fix": "node scripts/validate-locales.js --fix",
+    "i18n:types": "node scripts/generate-i18n-types.js",
+    "i18n:check": "node scripts/validate-locales.js && node scripts/generate-i18n-types.js",
+    "i18n:ci": "bash scripts/i18n-ci.sh",
+    "i18n:audit": "node scripts/i18n-audit.js",
     "prepare": "husky",
     "postinstall": "patch-package"
   },

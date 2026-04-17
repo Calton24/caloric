@@ -39,6 +39,7 @@ import {
 import { useSubscriptionStore } from "../../../src/features/subscription";
 import { useRevenueCat } from "../../../src/features/subscription/useRevenueCat";
 
+import { useAppTranslation } from "../../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../../src/theme/useTheme";
 import { TSpacer } from "../../../src/ui/primitives/TSpacer";
 import { TText } from "../../../src/ui/primitives/TText";
@@ -156,6 +157,7 @@ function SectionHeader({ title }: { title: string }) {
 
 export default function SettingsScreen() {
   const { theme, toggleMode } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
   const { user, signOut, deleteAccount } = useAuth();
 
@@ -177,12 +179,12 @@ export default function SettingsScreen() {
   const subscription = useSubscriptionStore((s) => s.subscription);
   const subscriptionLabel =
     subscription.plan === null
-      ? "Free"
+      ? t("settings.free")
       : subscription.trialStarted
-        ? "Challenge"
+        ? t("settings.challenge")
         : subscription.plan === "monthly"
-          ? "Monthly"
-          : "Yearly";
+          ? t("settings.monthly")
+          : t("settings.yearly");
 
   // ── RevenueCat helpers ──
   const {
@@ -198,16 +200,15 @@ export default function SettingsScreen() {
     async (value: boolean) => {
       if (value) {
         if (Platform.OS !== "ios") {
-          Alert.alert("iOS Only", "Live Activities are only available on iOS.");
+          Alert.alert(t("settings.iosOnly"), t("settings.iosOnlyDesc"));
           return;
         }
         const available = areLiveActivitiesAvailable();
         console.log("[Settings] Live Activities available:", available);
         if (!available) {
           Alert.alert(
-            "Live Activities Unavailable",
-            "Make sure Live Activities are enabled in iOS Settings > Caloric > Live Activities, " +
-              "and that you're running iOS 16.2 or later."
+            t("settings.liveActivityUnavailable"),
+            t("settings.liveActivityUnavailableDesc")
           );
           return;
         }
@@ -236,13 +237,13 @@ export default function SettingsScreen() {
             variant="heading"
             style={[styles.headerTitle, { color: theme.colors.text }]}
           >
-            Settings
+            {t("settings.title")}
           </TText>
           <Pressable onPress={handleDone} hitSlop={12}>
             <TText
               style={[styles.doneButton, { color: theme.colors.textSecondary }]}
             >
-              Done
+              {t("common.done")}
             </TText>
           </Pressable>
         </View>
@@ -262,10 +263,10 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="star"
                 iconColor={theme.colors.success}
-                label={isPro ? "You are Pro" : "Upgrade to Pro"}
-                value={
-                  isPro ? "Thank you for your support!" : subscriptionLabel
+                label={
+                  isPro ? t("settings.youArePro") : t("settings.upgradeToPro")
                 }
+                value={isPro ? t("settings.thankYou") : subscriptionLabel}
                 onPress={presentPaywall}
                 showChevron
               />
@@ -276,7 +277,7 @@ export default function SettingsScreen() {
 
           {/* ── Appearance ── */}
           <Animated.View entering={FadeIn.duration(400)}>
-            <SectionHeader title="Appearance" />
+            <SectionHeader title={t("settings.appearance")} />
             <View
               style={[
                 styles.section,
@@ -286,7 +287,7 @@ export default function SettingsScreen() {
               <SettingsToggle
                 icon={theme.mode === "dark" ? "moon" : "sunny"}
                 iconColor={theme.mode === "dark" ? "#FBBF24" : "#6366F1"}
-                label="Dark Mode"
+                label={t("settings.darkMode")}
                 value={theme.mode === "dark"}
                 onToggle={() => toggleMode()}
               />
@@ -297,7 +298,7 @@ export default function SettingsScreen() {
 
           {/* ── General ── */}
           <Animated.View entering={FadeInDown.duration(400).delay(100)}>
-            <SectionHeader title="General" />
+            <SectionHeader title={t("settings.general")} />
             <View
               style={[
                 styles.section,
@@ -307,7 +308,7 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="globe-outline"
                 iconColor={theme.colors.primary}
-                label="Voice & Text Input"
+                label={t("settings.voiceTextInput")}
                 value={languageLabel}
                 onPress={() =>
                   router.push("/(main)/settings/voice-text-input" as any)
@@ -316,14 +317,14 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="text-outline"
                 iconColor={theme.colors.primary}
-                label="Units"
+                label={t("settings.units")}
                 value={unitsLabel}
                 onPress={() => router.push("/(main)/settings/units" as any)}
               />
               <SettingsRow
                 icon="accessibility-outline"
                 iconColor={theme.colors.primary}
-                label="Body Measurements"
+                label={t("settings.bodyMeasurements")}
                 onPress={() =>
                   router.push("/(main)/settings/body-measurements" as any)
                 }
@@ -331,7 +332,7 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="notifications-outline"
                 iconColor={theme.colors.primary}
-                label="Notifications"
+                label={t("settings.notifications")}
                 onPress={() =>
                   router.push("/(main)/settings/notifications" as any)
                 }
@@ -344,7 +345,7 @@ export default function SettingsScreen() {
             <>
               <TSpacer size="lg" />
               <Animated.View entering={FadeInDown.duration(400).delay(200)}>
-                <SectionHeader title="Apple Health" />
+                <SectionHeader title={t("settings.appleHealth")} />
                 <View
                   style={[
                     styles.section,
@@ -354,7 +355,7 @@ export default function SettingsScreen() {
                   <SettingsRow
                     icon="heart"
                     iconColor="#F87171"
-                    label="Apple Health"
+                    label={t("settings.appleHealth")}
                     onPress={() =>
                       router.push("/(main)/settings/apple-health" as any)
                     }
@@ -369,7 +370,7 @@ export default function SettingsScreen() {
             <>
               <TSpacer size="lg" />
               <Animated.View entering={FadeInDown.duration(400).delay(300)}>
-                <SectionHeader title="Extensions" />
+                <SectionHeader title={t("settings.extensions")} />
                 <View
                   style={[
                     styles.section,
@@ -379,8 +380,8 @@ export default function SettingsScreen() {
                   <SettingsToggle
                     icon="phone-portrait-outline"
                     iconColor={theme.colors.primary}
-                    label="Live Activities"
-                    description="Showing the current progress on your lockscreen."
+                    label={t("settings.liveActivities")}
+                    description={t("settings.liveActivityDesc")}
                     value={liveActivitiesEnabled}
                     onToggle={handleToggleLiveActivities}
                   />
@@ -391,7 +392,7 @@ export default function SettingsScreen() {
 
           {/* ── Legal ── */}
           <Animated.View entering={FadeInDown.duration(400).delay(350)}>
-            <SectionHeader title="Legal" />
+            <SectionHeader title={t("settings.legal")} />
             <View
               style={[
                 styles.section,
@@ -401,7 +402,7 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="document-text-outline"
                 iconColor={theme.colors.textSecondary}
-                label="Privacy Policy"
+                label={t("settings.privacyPolicy")}
                 onPress={() =>
                   router.push({
                     pathname: "/(modals)/web-viewer",
@@ -417,7 +418,7 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="document-outline"
                 iconColor={theme.colors.textSecondary}
-                label="Terms of Service"
+                label={t("settings.termsOfService")}
                 onPress={() =>
                   router.push({
                     pathname: "/(modals)/web-viewer",
@@ -437,7 +438,7 @@ export default function SettingsScreen() {
 
           {/* ── Subscription ── */}
           <Animated.View entering={FadeInDown.duration(400).delay(380)}>
-            <SectionHeader title="Subscription" />
+            <SectionHeader title={t("settings.subscription")} />
             <View
               style={[
                 styles.section,
@@ -447,13 +448,17 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="arrow-undo-outline"
                 iconColor={theme.colors.textSecondary}
-                label={isRestoring ? "Restoring…" : "Restore Purchases"}
+                label={
+                  isRestoring
+                    ? t("settings.restoring")
+                    : t("settings.restorePurchases")
+                }
                 onPress={isRestoring ? undefined : restorePurchases}
               />
               <SettingsRow
                 icon="settings-outline"
                 iconColor={theme.colors.textSecondary}
-                label="Manage Subscription"
+                label={t("settings.manageSubscription")}
                 onPress={presentCustomerCenter}
               />
             </View>
@@ -463,7 +468,7 @@ export default function SettingsScreen() {
 
           {/* ── Account ── */}
           <Animated.View entering={FadeInDown.duration(400).delay(400)}>
-            <SectionHeader title="Account" />
+            <SectionHeader title={t("settings.account")} />
             <View
               style={[
                 styles.section,
@@ -474,7 +479,7 @@ export default function SettingsScreen() {
                 <SettingsRow
                   icon="mail-outline"
                   iconColor={theme.colors.info}
-                  label="Email"
+                  label={t("common.email")}
                   value={user.email}
                   showChevron={false}
                 />
@@ -482,15 +487,15 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="log-out-outline"
                 iconColor={theme.colors.error}
-                label="Sign Out"
+                label={t("settings.signOut")}
                 onPress={() => {
                   Alert.alert(
-                    "Sign Out",
-                    "Are you sure you want to sign out?",
+                    t("settings.signOut"),
+                    t("settings.signOutConfirm"),
                     [
-                      { text: "Cancel", style: "cancel" },
+                      { text: t("common.cancel"), style: "cancel" },
                       {
-                        text: "Sign Out",
+                        text: t("settings.signOut"),
                         style: "destructive",
                         onPress: async () => {
                           await signOut();
@@ -504,31 +509,31 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="trash-outline"
                 iconColor={theme.colors.error}
-                label="Delete Account"
+                label={t("settings.deleteAccount")}
                 onPress={() => {
                   Alert.alert(
-                    "Delete Account",
-                    "This will permanently delete your account and all your data. This action cannot be undone.",
+                    t("settings.deleteAccount"),
+                    t("settings.deleteAccountWarning"),
                     [
-                      { text: "Cancel", style: "cancel" },
+                      { text: t("common.cancel"), style: "cancel" },
                       {
-                        text: "Delete",
+                        text: t("settings.deleteAccount"),
                         style: "destructive",
                         onPress: () => {
                           Alert.alert(
-                            "Are you absolutely sure?",
-                            "All your meals, progress, and settings will be permanently erased.",
+                            t("settings.areYouSure"),
+                            t("settings.allDataErased"),
                             [
-                              { text: "Cancel", style: "cancel" },
+                              { text: t("common.cancel"), style: "cancel" },
                               {
-                                text: "Delete Forever",
+                                text: t("settings.deleteForever"),
                                 style: "destructive",
                                 onPress: async () => {
                                   const { error } = await deleteAccount();
                                   if (error) {
                                     Alert.alert(
-                                      "Error",
-                                      "Could not delete account. Please try again."
+                                      t("common.error"),
+                                      t("settings.deleteError")
                                     );
                                   } else {
                                     router.replace("/(onboarding)/landing");

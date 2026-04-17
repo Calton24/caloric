@@ -7,8 +7,8 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import RNSlider from "@react-native-community/slider";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
+import RNSlider from "@react-native-community/slider";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useRef, useState } from "react";
@@ -16,6 +16,7 @@ import { Alert, Pressable, StyleSheet, View } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import type { SavedFoodItem } from "../../features/nutrition/estimation/estimation.types";
 import { useNutritionStore } from "../../features/nutrition/nutrition.store";
+import { formatDateHeader, useAppTranslation } from "../../infrastructure/i18n";
 import { useTheme } from "../../theme/useTheme";
 import { TSpacer } from "../primitives/TSpacer";
 import { TText } from "../primitives/TText";
@@ -27,6 +28,7 @@ interface EditMealSheetProps {
 
 export function EditMealSheet({ mealId, onClose }: EditMealSheetProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
 
   const meal = useNutritionStore((s) => s.meals.find((m) => m.id === mealId));
   const updateMeal = useNutritionStore((s) => s.updateMeal);
@@ -134,7 +136,7 @@ export function EditMealSheet({ mealId, onClose }: EditMealSheetProps) {
           variant="heading"
           style={[styles.emptyTitle, { color: theme.colors.text }]}
         >
-          Meal not found
+          {t("editMeal.mealNotFound")}
         </TText>
         <TSpacer size="md" />
         <Pressable
@@ -144,10 +146,8 @@ export function EditMealSheet({ mealId, onClose }: EditMealSheetProps) {
             { backgroundColor: theme.colors.surfaceSecondary },
           ]}
         >
-          <TText
-            style={[styles.emptyBtnText, { color: theme.colors.primary }]}
-          >
-            Go Back
+          <TText style={[styles.emptyBtnText, { color: theme.colors.primary }]}>
+            {t("mealConfirm.goBack")}
           </TText>
         </Pressable>
       </View>
@@ -182,12 +182,12 @@ export function EditMealSheet({ mealId, onClose }: EditMealSheetProps) {
 
   const handleDelete = () => {
     Alert.alert(
-      "Delete Meal",
-      `Are you sure you want to delete "${meal.title}"? This cannot be undone.`,
+      t("editMeal.deleteMeal"),
+      t("editMeal.deleteMealConfirm", { title: meal.title }),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Delete",
+          text: t("editMeal.delete"),
           style: "destructive",
           onPress: () => {
             removeMeal(meal.id);
@@ -206,14 +206,10 @@ export function EditMealSheet({ mealId, onClose }: EditMealSheetProps) {
           variant="heading"
           style={[styles.headerTitle, { color: theme.colors.text }]}
         >
-          Edit Meal
+          {t("editMeal.editMeal")}
         </TText>
         <Pressable onPress={handleDelete} hitSlop={12}>
-          <Ionicons
-            name="trash-outline"
-            size={22}
-            color={theme.colors.error}
-          />
+          <Ionicons name="trash-outline" size={22} color={theme.colors.error} />
         </Pressable>
       </View>
 
@@ -241,7 +237,7 @@ export function EditMealSheet({ mealId, onClose }: EditMealSheetProps) {
             onChangeText={setTitle}
             style={[styles.titleInput, { color: theme.colors.text }]}
             placeholderTextColor={theme.colors.textMuted}
-            placeholder="Meal name..."
+            placeholder={t("tracking.mealNamePlaceholder")}
           />
           <Ionicons
             name="pencil"
@@ -267,10 +263,10 @@ export function EditMealSheet({ mealId, onClose }: EditMealSheetProps) {
             style={[styles.sourceLabel, { color: theme.colors.textMuted }]}
           >
             {meal.source === "voice"
-              ? "Voice logged"
+              ? t("tracking.voiceLogged")
               : meal.source === "camera"
-                ? "Camera detected"
-                : "Manually entered"}
+                ? t("tracking.cameraDetected")
+                : t("tracking.manuallyEntered")}
           </TText>
         </View>
         <TSpacer size="xs" />
@@ -303,11 +299,7 @@ export function EditMealSheet({ mealId, onClose }: EditMealSheetProps) {
             <TText
               style={[styles.sourceLabel, { color: theme.colors.textMuted }]}
             >
-              {new Date(loggedAt).toLocaleDateString("en-US", {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-              })}
+              {formatDateHeader(new Date(loggedAt))}
               {" · "}
               {loggedAt.split("T")[1]?.slice(0, 5)}
             </TText>
@@ -341,12 +333,9 @@ export function EditMealSheet({ mealId, onClose }: EditMealSheetProps) {
       {hasItems && (
         <View>
           <TText
-            style={[
-              styles.sectionLabel,
-              { color: theme.colors.textSecondary },
-            ]}
+            style={[styles.sectionLabel, { color: theme.colors.textSecondary }]}
           >
-            Items ({items.length})
+            {t("editMeal.items", { count: items.length })}
           </TText>
           <TSpacer size="sm" />
 
@@ -372,16 +361,14 @@ export function EditMealSheet({ mealId, onClose }: EditMealSheetProps) {
               { backgroundColor: theme.colors.surfaceSecondary },
             ]}
           >
-            <TText
-              style={[styles.totalsLabel, { color: theme.colors.text }]}
-            >
-              Total
+            <TText style={[styles.totalsLabel, { color: theme.colors.text }]}>
+              {t("editMeal.total")}
             </TText>
             <View style={styles.totalsRow}>
               <TText
                 style={[styles.totalsCal, { color: theme.colors.primary }]}
               >
-                {Math.round(calories)} cal
+                {Math.round(calories)} {t("tracking.cal")}
               </TText>
               <TText
                 style={[
@@ -389,9 +376,12 @@ export function EditMealSheet({ mealId, onClose }: EditMealSheetProps) {
                   { color: theme.colors.textSecondary },
                 ]}
               >
-                P {Math.round(protein * 10) / 10}g · C{" "}
-                {Math.round(carbs * 10) / 10}g · F{" "}
-                {Math.round(fat * 10) / 10}g
+                {t("tracking.macroSummary", {
+                  protein: Math.round(protein * 10) / 10,
+                  carbs: Math.round(carbs * 10) / 10,
+                  fat: Math.round(fat * 10) / 10,
+                  unit: t("tracking.g"),
+                })}
               </TText>
             </View>
           </View>
@@ -402,12 +392,9 @@ export function EditMealSheet({ mealId, onClose }: EditMealSheetProps) {
       {!hasItems && (
         <View>
           <TText
-            style={[
-              styles.sectionLabel,
-              { color: theme.colors.textSecondary },
-            ]}
+            style={[styles.sectionLabel, { color: theme.colors.textSecondary }]}
           >
-            Nutrition
+            {t("editMeal.nutrition")}
           </TText>
           <TSpacer size="sm" />
 
@@ -418,48 +405,39 @@ export function EditMealSheet({ mealId, onClose }: EditMealSheetProps) {
             ]}
           >
             <NutrientRow
-              label="Calories"
+              label={t("tracking.calories")}
               value={calories}
-              unit="cal"
+              unit={t("tracking.cal")}
               color={theme.colors.primary}
               onChange={setCalories}
             />
             <View
-              style={[
-                styles.divider,
-                { backgroundColor: theme.colors.border },
-              ]}
+              style={[styles.divider, { backgroundColor: theme.colors.border }]}
             />
             <NutrientRow
-              label="Protein"
+              label={t("tracking.protein")}
               value={protein}
-              unit="g"
+              unit={t("tracking.g")}
               color="#60A5FA"
               onChange={setProtein}
             />
             <View
-              style={[
-                styles.divider,
-                { backgroundColor: theme.colors.border },
-              ]}
+              style={[styles.divider, { backgroundColor: theme.colors.border }]}
             />
             <NutrientRow
-              label="Carbs"
+              label={t("tracking.carbs")}
               value={carbs}
-              unit="g"
+              unit={t("tracking.g")}
               color="#FBBF24"
               onChange={setCarbs}
             />
             <View
-              style={[
-                styles.divider,
-                { backgroundColor: theme.colors.border },
-              ]}
+              style={[styles.divider, { backgroundColor: theme.colors.border }]}
             />
             <NutrientRow
-              label="Fat"
+              label={t("tracking.fat")}
               value={fat}
-              unit="g"
+              unit={t("tracking.g")}
               color="#F87171"
               onChange={setFat}
             />
@@ -477,15 +455,9 @@ export function EditMealSheet({ mealId, onClose }: EditMealSheetProps) {
           { backgroundColor: theme.colors.error + "15" },
         ]}
       >
-        <Ionicons
-          name="trash-outline"
-          size={18}
-          color={theme.colors.error}
-        />
-        <TText
-          style={[styles.deleteBtnText, { color: theme.colors.error }]}
-        >
-          Delete Meal
+        <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
+        <TText style={[styles.deleteBtnText, { color: theme.colors.error }]}>
+          {t("editMeal.deleteMeal")}
         </TText>
       </Pressable>
 
@@ -514,10 +486,8 @@ export function EditMealSheet({ mealId, onClose }: EditMealSheetProps) {
             size={22}
             color={theme.colors.textInverse}
           />
-          <TText
-            style={[styles.saveText, { color: theme.colors.textInverse }]}
-          >
-            Save Changes
+          <TText style={[styles.saveText, { color: theme.colors.textInverse }]}>
+            {t("editMeal.saveChanges")}
           </TText>
         </LinearGradient>
       </Pressable>
@@ -550,6 +520,7 @@ function EditableItemCard({
   onRemove: (index: number) => void;
 }) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const [expanded, setExpanded] = useState(true);
 
   const originalQty = useRef(item.quantity).current;
@@ -586,16 +557,12 @@ function EditableItemCard({
               style={[styles.itemNameInput, { color: theme.colors.text }]}
               numberOfLines={1}
             />
-            <Ionicons
-              name="pencil"
-              size={12}
-              color={theme.colors.textMuted}
-            />
+            <Ionicons name="pencil" size={12} color={theme.colors.textMuted} />
           </View>
           <TText
             style={[styles.itemCals, { color: theme.colors.textSecondary }]}
           >
-            {Math.round(item.calories)} cal
+            {Math.round(item.calories)} {t("tracking.cal")}
           </TText>
         </View>
         <View style={styles.itemActions}>
@@ -626,7 +593,7 @@ function EditableItemCard({
           <TText
             style={[styles.sliderLabel, { color: theme.colors.textSecondary }]}
           >
-            {isGrams ? "Amount" : "Servings"}
+            {isGrams ? t("editMeal.amount") : t("editMeal.servings")}
           </TText>
           <TText style={[styles.sliderValue, { color: theme.colors.primary }]}>
             {formatQty(item.quantity)}
@@ -668,30 +635,30 @@ function EditableItemCard({
             ]}
           />
           <NutrientRow
-            label="Calories"
+            label={t("tracking.calories")}
             value={item.calories}
-            unit="cal"
+            unit={t("tracking.cal")}
             color={theme.colors.primary}
             onChange={(v) => onFieldChange(index, "calories", v)}
           />
           <NutrientRow
-            label="Protein"
+            label={t("tracking.protein")}
             value={item.protein}
-            unit="g"
+            unit={t("tracking.g")}
             color="#60A5FA"
             onChange={(v) => onFieldChange(index, "protein", v)}
           />
           <NutrientRow
-            label="Carbs"
+            label={t("tracking.carbs")}
             value={item.carbs}
-            unit="g"
+            unit={t("tracking.g")}
             color="#FBBF24"
             onChange={(v) => onFieldChange(index, "carbs", v)}
           />
           <NutrientRow
-            label="Fat"
+            label={t("tracking.fat")}
             value={item.fat}
-            unit="g"
+            unit={t("tracking.g")}
             color="#F87171"
             onChange={(v) => onFieldChange(index, "fat", v)}
           />
@@ -761,9 +728,7 @@ function NutrientRow({
             />
           </>
         )}
-        <TText
-          style={[styles.nutrientUnit, { color: theme.colors.textMuted }]}
-        >
+        <TText style={[styles.nutrientUnit, { color: theme.colors.textMuted }]}>
           {unit}
         </TText>
       </Pressable>

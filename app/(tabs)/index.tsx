@@ -56,6 +56,7 @@ import { useStreakStore } from "../../src/features/streak/streak.store";
 import { useSubscriptionStore } from "../../src/features/subscription/subscription.store";
 import { useWaterStore } from "../../src/features/water/water.store";
 import { haptics } from "../../src/infrastructure/haptics";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { toISODate } from "../../src/lib/utils/date";
 import { useTheme } from "../../src/theme/useTheme";
 import { CoachInsight } from "../../src/ui/components/CoachInsight";
@@ -175,11 +176,11 @@ function memoryToDraft(entry: FoodMemoryEntry): MealDraft {
   };
 }
 
-/** D/W/M segment options */
-const VIEW_MODE_OPTIONS = [
-  { key: "D", label: "D" },
-  { key: "W", label: "W" },
-  { key: "M", label: "M" },
+/** D/W/M segment options — keys resolved at render via t() */
+const VIEW_MODE_OPTION_KEYS = [
+  { key: "D", labelKey: "home.dayShort" },
+  { key: "W", labelKey: "home.weekShort" },
+  { key: "M", labelKey: "home.monthShort" },
 ] as const;
 
 type ViewMode = "D" | "W" | "M";
@@ -195,6 +196,7 @@ function SwipeTutorialOverlay({
   onDismiss: () => void;
   theme: any;
 }) {
+  const { t } = useAppTranslation();
   const translateX = useSharedValue(0);
   const opacity = useSharedValue(0);
   const isMounted = React.useRef(true);
@@ -275,12 +277,12 @@ function SwipeTutorialOverlay({
           ]}
         >
           <TText style={[styles.tutorialTitle, { color: theme.colors.text }]}>
-            Swipe to Delete
+            {t("home.swipeToDelete")}
           </TText>
           <TText
             style={[styles.tutorialHint, { color: theme.colors.textSecondary }]}
           >
-            Swipe any meal left to remove it
+            {t("home.swipeHint")}
           </TText>
 
           <View style={styles.tutorialDemo}>
@@ -306,7 +308,7 @@ function SwipeTutorialOverlay({
                     { color: theme.colors.text },
                   ]}
                 >
-                  Sample Meal
+                  {t("home.sampleMeal")}
                 </TText>
                 <TText
                   style={[
@@ -314,7 +316,7 @@ function SwipeTutorialOverlay({
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  250 cal
+                  {t("home.sampleCal")}
                 </TText>
               </View>
               <Ionicons
@@ -342,7 +344,7 @@ function SwipeTutorialOverlay({
                 { color: theme.colors.textInverse },
               ]}
             >
-              Got it!
+              {t("home.gotIt")}
             </TText>
           </Pressable>
         </View>
@@ -353,6 +355,7 @@ function SwipeTutorialOverlay({
 
 export default function HomeScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
   const units = useUnits();
   const [viewMode, setViewMode] = useState<ViewMode>("D");
@@ -756,7 +759,7 @@ export default function HomeScreen() {
               color: theme.colors.textSecondary,
             }}
           >
-            Frequently Added
+            {t("home.frequentlyAdded")}
           </TText>
           <Pressable
             onPress={() => {
@@ -821,7 +824,7 @@ export default function HomeScreen() {
                       marginTop: 2,
                     }}
                   >
-                    {entry.lastCalories} kcal
+                    {entry.lastCalories} {t("tracking.kcal")}
                   </TText>
                 </View>
                 <View
@@ -854,7 +857,7 @@ export default function HomeScreen() {
                 textAlign: "center",
               }}
             >
-              Log your first meal to see frequently added foods here
+              {t("home.logFirstMeal")}
             </TText>
           </View>
         )}
@@ -1024,13 +1027,15 @@ export default function HomeScreen() {
               numberOfLines={1}
               style={[styles.greeting, { color: theme.colors.text }]}
             >
-              {isToday ? "Today" : dateHeader}
+              {isToday ? t("home.today") : dateHeader}
             </TText>
           </View>
           <View style={styles.headerRight}>
             <Pressable
               style={styles.streakPill}
-              accessibilityLabel={`${currentStreak} day streak`}
+              accessibilityLabel={t("streak.dayStreak_other", {
+                count: currentStreak,
+              })}
               accessibilityRole="button"
               onPress={() => {
                 haptics.impact("medium");
@@ -1060,7 +1065,9 @@ export default function HomeScreen() {
             </Pressable>
             <Pressable
               onPress={() => router.push("/progress" as any)}
-              accessibilityLabel={`Current weight ${units.format(displayWeight)}`}
+              accessibilityLabel={t("home.currentWeightA11y", {
+                weight: units.format(displayWeight),
+              })}
               accessibilityRole="button"
               style={[
                 styles.weightPill,
@@ -1105,7 +1112,10 @@ export default function HomeScreen() {
           {/* D / W / M Segmented Control */}
           <View style={styles.segmentRow}>
             <GlassSegmentedControl
-              options={VIEW_MODE_OPTIONS as any}
+              options={VIEW_MODE_OPTION_KEYS.map((o) => ({
+                key: o.key,
+                label: t(o.labelKey),
+              }))}
               value={viewMode}
               onChange={(key) => setViewMode(key as ViewMode)}
             />
@@ -1218,8 +1228,12 @@ export default function HomeScreen() {
                         size={220}
                         strokeWidth={18}
                         color={overLimit.color}
-                        dayLabel={isToday ? "Today" : dateHeader.split(",")[0]}
-                        subtitle={`of ${targetCalories.toLocaleString()} cal`}
+                        dayLabel={
+                          isToday ? t("home.today") : dateHeader.split(",")[0]
+                        }
+                        subtitle={t("home.calTarget", {
+                          target: targetCalories.toLocaleString(),
+                        })}
                       />
                     </Animated.View>
 
@@ -1257,7 +1271,7 @@ export default function HomeScreen() {
                         { color: theme.colors.textMuted },
                       ]}
                     >
-                      consumed
+                      {t("home.consumed")}
                     </TText>
                   </View>
                   <View
@@ -1281,7 +1295,7 @@ export default function HomeScreen() {
                         { color: theme.colors.textMuted },
                       ]}
                     >
-                      budget
+                      {t("home.budget")}
                     </TText>
                   </View>
                 </View>
@@ -1320,21 +1334,21 @@ export default function HomeScreen() {
                         }}
                       >
                         <MacroCard
-                          label="Protein"
+                          label={t("home.protein")}
                           consumedG={totals.protein}
                           targetG={proteinTarget}
                           color={MACRO_COLORS.protein}
                           icon="🍖"
                         />
                         <MacroCard
-                          label="Carbs"
+                          label={t("home.carbs")}
                           consumedG={totals.carbs}
                           targetG={carbsTarget}
                           color={MACRO_COLORS.carbs}
                           icon="🌾"
                         />
                         <MacroCard
-                          label="Fat"
+                          label={t("home.fat")}
                           consumedG={totals.fat}
                           targetG={fatTarget}
                           color={MACRO_COLORS.fat}
@@ -1350,7 +1364,7 @@ export default function HomeScreen() {
                         }}
                       >
                         <MacroCard
-                          label="Steps"
+                          label={t("home.steps")}
                           consumedG={0}
                           targetG={10000}
                           color="#34C759"
@@ -1359,7 +1373,7 @@ export default function HomeScreen() {
                           display="consumed"
                         />
                         <MacroCard
-                          label="Active cal"
+                          label={t("home.activeCal")}
                           consumedG={0}
                           targetG={500}
                           color="#FF9500"
@@ -1461,7 +1475,7 @@ export default function HomeScreen() {
                 variant="subheading"
                 style={[styles.sectionTitle, { color: theme.colors.text }]}
               >
-                Meals
+                {t("home.meals")}
               </TText>
               <TText
                 style={[
@@ -1469,7 +1483,7 @@ export default function HomeScreen() {
                   { color: theme.colors.textSecondary },
                 ]}
               >
-                {todayMeals.length} logged
+                {t("home.logged", { count: todayMeals.length })}
               </TText>
             </View>
             <TSpacer size="sm" />
@@ -1487,7 +1501,7 @@ export default function HomeScreen() {
                       { color: theme.colors.textMuted },
                     ]}
                   >
-                    No meals logged yet
+                    {t("home.noMealsYet")}
                   </TText>
                   <TText
                     style={[
@@ -1495,7 +1509,7 @@ export default function HomeScreen() {
                       { color: theme.colors.textMuted },
                     ]}
                   >
-                    Tap + to snap, speak, or type your first meal
+                    {t("home.tapToLog")}
                   </TText>
                 </View>
               ) : (

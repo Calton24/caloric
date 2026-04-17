@@ -14,52 +14,55 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Animated, {
-  FadeIn,
-  FadeInDown,
-  FadeInUp,
+    FadeIn,
+    FadeInDown,
+    FadeInUp,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  getLastScanEventId,
-  markScanConfirmed,
-  recordScanEvent,
-  submitScanCorrection,
-  type ScanSource,
+    getLastScanEventId,
+    markScanConfirmed,
+    recordScanEvent,
+    submitScanCorrection,
+    type ScanSource,
 } from "../../src/features/feedback/scan-feedback.service";
 
 import { useNutritionDraftStore } from "../../src/features/nutrition/nutrition.draft.store";
 
 import { useChallengeStore } from "../../src/features/challenge/challenge.store";
 import {
-  getInsightMessage,
-  isInsightMoment,
+    getInsightMessage,
+    isInsightMoment,
 } from "../../src/features/challenge/insight-trigger.service";
 import {
-  detectMealTime,
-  type MealTime,
+    detectMealTime,
+    type MealTime,
 } from "../../src/features/nutrition/mealtime";
 import {
-  captureOriginalEstimate,
-  clearOriginalEstimate,
-  trackCorrection,
+    captureOriginalEstimate,
+    clearOriginalEstimate,
+    trackCorrection,
 } from "../../src/features/nutrition/memory/correction-tracker";
 import { displayName } from "../../src/features/nutrition/nutrition-pipeline";
 import { getMealsForDate } from "../../src/features/nutrition/nutrition.selectors";
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
 import {
-  useRetentionEngine,
-  useRetentionStore,
+    useRetentionEngine,
+    useRetentionStore,
 } from "../../src/features/retention";
 import {
-  ShareMilestoneModal,
-  useShareMilestone,
+    ShareMilestoneModal,
+    useShareMilestone,
 } from "../../src/features/share";
 import { useScanCreditsStore } from "../../src/features/subscription/scanCredits.store";
 import { usePaywallTrigger } from "../../src/features/subscription/usePaywallTrigger";
+import { formatDateHeader } from "../../src/infrastructure/i18n";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useGoalsStore, useNutritionStore } from "../../src/stores";
 import { useTheme } from "../../src/theme/useTheme";
 import { JourneyPaywall } from "../../src/ui/components/JourneyPaywall";
 import { PostLogCelebration } from "../../src/ui/components/PostLogCelebration";
+import { RichText } from "../../src/ui/components/RichText";
 import { ReportFoodSheet } from "../../src/ui/feedback/ReportFoodSheet";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
@@ -67,6 +70,7 @@ import { useBottomSheet } from "../../src/ui/sheets/useBottomSheet";
 
 export default function ConfirmMealScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
   const {
     draft: hookDraft,
@@ -405,7 +409,7 @@ export default function ConfirmMealScreen() {
               variant="heading"
               style={[styles.emptyTitle, { color: theme.colors.text }]}
             >
-              Analysis incomplete
+              {t("mealConfirm.analysisIncomplete")}
             </TText>
             <TSpacer size="sm" />
             <TText
@@ -417,8 +421,7 @@ export default function ConfirmMealScreen() {
                 },
               ]}
             >
-              The image analysis didn{"'"}t produce results. Try again or log
-              manually.
+              {t("mealConfirm.analysisIncompleteDesc")}
             </TText>
             <TSpacer size="md" />
             <Pressable
@@ -434,7 +437,7 @@ export default function ConfirmMealScreen() {
               <TText
                 style={[styles.emptyBtnText, { color: theme.colors.primary }]}
               >
-                Go Back
+                {t("mealConfirm.goBack")}
               </TText>
             </Pressable>
           </View>
@@ -476,7 +479,7 @@ export default function ConfirmMealScreen() {
               variant="heading"
               style={[styles.headerTitle, { color: theme.colors.text }]}
             >
-              No Match
+              {t("mealConfirm.noMatchFound")}
             </TText>
             <View style={{ width: 24 }} />
           </View>
@@ -500,11 +503,20 @@ export default function ConfirmMealScreen() {
               variant="heading"
               style={[styles.emptyTitle, { color: theme.colors.text }]}
             >
-              No match found
+              {t("mealConfirm.noMatchFound")}
             </TText>
             <TSpacer size="sm" />
 
-            <TText
+            <RichText
+              i18nKey="mealConfirm.noMatchRich"
+              values={{ food: draft.rawInput || draft.title }}
+              components={{
+                bold: (
+                  <TText
+                    style={{ fontWeight: "600", color: theme.colors.text }}
+                  />
+                ),
+              }}
               style={{
                 fontSize: 15,
                 textAlign: "center",
@@ -512,15 +524,7 @@ export default function ConfirmMealScreen() {
                 lineHeight: 22,
                 paddingHorizontal: 16,
               }}
-            >
-              We couldn{"'"}t find{" "}
-              <TText style={{ fontWeight: "600", color: theme.colors.text }}>
-                {"\u201C"}
-                {draft.rawInput || draft.title}
-                {"\u201D"}
-              </TText>{" "}
-              in our database. Try again or type it in.
-            </TText>
+            />
 
             <TSpacer size="lg" />
 
@@ -546,7 +550,7 @@ export default function ConfirmMealScreen() {
               <TText
                 style={[styles.noMatchBtnText, { color: theme.colors.primary }]}
               >
-                Try Again with Voice
+                {t("mealConfirm.tryAgainVoice")}
               </TText>
             </Pressable>
 
@@ -570,7 +574,7 @@ export default function ConfirmMealScreen() {
             >
               <Ionicons name="create-outline" size={20} color="#FFF" />
               <TText style={[styles.noMatchBtnText, { color: "#FFF" }]}>
-                Type It In
+                {t("mealConfirm.typeItIn")}
               </TText>
             </Pressable>
           </View>
@@ -603,7 +607,7 @@ export default function ConfirmMealScreen() {
               color={theme.colors.primary}
             />
             <TText style={[styles.guideLabel, { color: theme.colors.primary }]}>
-              Guide
+              {t("tracking.guide")}
             </TText>
           </Pressable>
           <Pressable
@@ -654,11 +658,7 @@ export default function ConfirmMealScreen() {
                     color: theme.colors.primary,
                   }}
                 >
-                  {new Date(logDate + "T12:00:00").toLocaleDateString("en-US", {
-                    weekday: "short",
-                    month: "short",
-                    day: "numeric",
-                  })}
+                  {formatDateHeader(new Date(logDate + "T12:00:00"))}
                 </TText>
                 <Ionicons
                   name="close-circle"
@@ -684,7 +684,7 @@ export default function ConfirmMealScreen() {
               <TText
                 style={[styles.heroCalories, { color: theme.colors.text }]}
               >
-                {draft.calories} kcal
+                {draft.calories} {t("tracking.kcal")}
               </TText>
               <Pressable
                 onPress={() => setShowMenu(true)}
@@ -734,7 +734,7 @@ export default function ConfirmMealScreen() {
                         { color: theme.colors.text },
                       ]}
                     >
-                      Report Food
+                      {t("mealConfirm.reportFood")}
                     </TText>
                   </Pressable>
                   <View
@@ -755,7 +755,7 @@ export default function ConfirmMealScreen() {
                         { color: theme.colors.error },
                       ]}
                     >
-                      Delete Food
+                      {t("mealConfirm.deleteFood")}
                     </TText>
                   </Pressable>
                 </View>
@@ -780,7 +780,7 @@ export default function ConfirmMealScreen() {
                 />
                 <View style={styles.progressLabelContainer}>
                   <TText style={styles.progressLabel}>
-                    {projectedTotal} / {calorieBudget} kcal
+                    {projectedTotal} / {calorieBudget} {t("tracking.kcal")}
                   </TText>
                 </View>
               </View>
@@ -870,7 +870,7 @@ export default function ConfirmMealScreen() {
                           { color: theme.colors.textSecondary },
                         ]}
                       >
-                        {item.nutrients.calories} kcal
+                        {item.nutrients.calories} {t("tracking.kcal")}
                       </TText>
                       <Ionicons
                         name="pencil"
@@ -929,7 +929,7 @@ export default function ConfirmMealScreen() {
                         { color: theme.colors.textSecondary },
                       ]}
                     >
-                      {draft.calories} kcal
+                      {draft.calories} {t("tracking.kcal")}
                     </TText>
                     <Ionicons
                       name="pencil"
@@ -954,7 +954,9 @@ export default function ConfirmMealScreen() {
                 },
               ]}
             >
-              <TText style={styles.trackBtnText}>Track Calories</TText>
+              <TText style={styles.trackBtnText}>
+                {t("mealConfirm.trackCalories")}
+              </TText>
             </Pressable>
           </Animated.View>
 
@@ -963,7 +965,7 @@ export default function ConfirmMealScreen() {
           {/* Hint text */}
           <Animated.View entering={FadeIn.duration(400).delay(200)}>
             <TText style={[styles.hintText, { color: theme.colors.text }]}>
-              Need to adjust calories? Just ask!
+              {t("mealConfirm.adjustHint")}
             </TText>
           </Animated.View>
 

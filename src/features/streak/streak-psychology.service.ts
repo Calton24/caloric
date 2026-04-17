@@ -9,7 +9,8 @@
 // ── Identity Labels ──────────────────────────────────────────
 
 export interface StreakLabel {
-  label: string;
+  /** Translation key for the label (e.g., "streak.labels.unstoppable") */
+  labelKey: string;
   emoji: string;
   tier: "starter" | "building" | "strong" | "champion";
 }
@@ -17,28 +18,59 @@ export interface StreakLabel {
 const STREAK_LABELS: { minDays: number; label: StreakLabel }[] = [
   {
     minDays: 90,
-    label: { label: "Unstoppable", emoji: "👑", tier: "champion" },
+    label: {
+      labelKey: "streak.labels.unstoppable",
+      emoji: "👑",
+      tier: "champion",
+    },
   },
   {
     minDays: 60,
-    label: { label: "Elite tracker", emoji: "💫", tier: "champion" },
+    label: {
+      labelKey: "streak.labels.eliteTracker",
+      emoji: "💫",
+      tier: "champion",
+    },
   },
   {
     minDays: 30,
-    label: { label: "Habit locked in", emoji: "🔒", tier: "champion" },
+    label: {
+      labelKey: "streak.labels.habitLockedIn",
+      emoji: "🔒",
+      tier: "champion",
+    },
   },
   {
     minDays: 21,
-    label: { label: "Challenge completed", emoji: "🏆", tier: "champion" },
+    label: {
+      labelKey: "streak.labels.challengeCompleted",
+      emoji: "🏆",
+      tier: "champion",
+    },
   },
-  { minDays: 14, label: { label: "Disciplined", emoji: "💎", tier: "strong" } },
+  {
+    minDays: 14,
+    label: {
+      labelKey: "streak.labels.disciplined",
+      emoji: "💎",
+      tier: "strong",
+    },
+  },
   {
     minDays: 7,
-    label: { label: "On a streak", emoji: "🔥", tier: "building" },
+    label: {
+      labelKey: "streak.labels.onAStreak",
+      emoji: "🔥",
+      tier: "building",
+    },
   },
   {
     minDays: 3,
-    label: { label: "Getting consistent", emoji: "⚡", tier: "starter" },
+    label: {
+      labelKey: "streak.labels.gettingConsistent",
+      emoji: "⚡",
+      tier: "starter",
+    },
   },
 ];
 
@@ -52,19 +84,29 @@ export function getStreakLabel(currentStreak: number): StreakLabel | null {
 
 // ── Progression Messages ─────────────────────────────────────
 
-const PROGRESSION_MESSAGES: { minDays: number; message: string }[] = [
-  { minDays: 90, message: "90 days. You're not tracking — you're living it." },
-  { minDays: 60, message: "60 days of showing up. That's elite." },
-  { minDays: 30, message: "A full month. This is permanent now." },
-  { minDays: 21, message: "You've built a real habit. Keep it forever." },
-  { minDays: 14, message: "Two weeks strong — this is who you are now." },
-  { minDays: 7, message: "One week in. Most people quit by now. You didn't." },
-  { minDays: 3, message: "Three days in — the hardest part is over." },
-  { minDays: 1, message: "Day one done. Come back tomorrow." },
-];
+export interface ProgressionMessage {
+  /** Translation key for the message */
+  key: string;
+  /** Parameters to interpolate (e.g., { days: 90 }) */
+  params?: Record<string, string | number>;
+}
+
+const PROGRESSION_MESSAGES: { minDays: number; message: ProgressionMessage }[] =
+  [
+    { minDays: 90, message: { key: "streak.progression.day90" } },
+    { minDays: 60, message: { key: "streak.progression.day60" } },
+    { minDays: 30, message: { key: "streak.progression.day30" } },
+    { minDays: 21, message: { key: "streak.progression.day21" } },
+    { minDays: 14, message: { key: "streak.progression.day14" } },
+    { minDays: 7, message: { key: "streak.progression.day7" } },
+    { minDays: 3, message: { key: "streak.progression.day3" } },
+    { minDays: 1, message: { key: "streak.progression.day1" } },
+  ];
 
 /** Get a motivational message based on streak progression */
-export function getProgressionMessage(currentStreak: number): string | null {
+export function getProgressionMessage(
+  currentStreak: number
+): ProgressionMessage | null {
   for (const entry of PROGRESSION_MESSAGES) {
     if (currentStreak >= entry.minDays) return entry.message;
   }

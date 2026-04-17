@@ -27,6 +27,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
 import { useProfileStore } from "../../src/features/profile/profile.store";
 import { haptics } from "../../src/infrastructure/haptics";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TButton } from "../../src/ui/primitives/TButton";
@@ -36,9 +37,17 @@ import { OnboardingHeader } from "./_progress";
 
 type MeasurementSystem = "imperial" | "metric";
 
-const GENDERS = [
-  { id: "male", icon: "male-outline" as const, label: "Male" },
-  { id: "female", icon: "female-outline" as const, label: "Female" },
+const GENDER_KEYS = [
+  {
+    id: "male",
+    icon: "male-outline" as const,
+    labelKey: "onboarding.body.male",
+  },
+  {
+    id: "female",
+    icon: "female-outline" as const,
+    labelKey: "onboarding.body.female",
+  },
 ] as const;
 
 // ── Conversion helpers ──
@@ -69,6 +78,7 @@ function kgToLbs(kg: number): number {
 export default function OnboardingBodyScreen() {
   const { theme } = useTheme();
   const router = useRouter();
+  const { t } = useAppTranslation();
   const { profile, saveBodyMeasurements } = useOnboarding();
   const updateProfile = useProfileStore((s) => s.updateProfile);
   const [gender, setGender] = useState<string | null>(profile.gender);
@@ -199,7 +209,7 @@ export default function OnboardingBodyScreen() {
                 variant="heading"
                 style={[styles.heading, { color: theme.colors.text }]}
               >
-                Tell us about{"\n"}yourself
+                {t("onboarding.body.heading")}
               </TText>
             </Animated.View>
 
@@ -207,7 +217,7 @@ export default function OnboardingBodyScreen() {
 
             <Animated.View entering={FadeInDown.duration(500).delay(200)}>
               <TText color="secondary" style={styles.description}>
-                We need this to calculate your daily calorie needs.
+                {t("onboarding.body.description")}
               </TText>
             </Animated.View>
 
@@ -249,7 +259,7 @@ export default function OnboardingBodyScreen() {
                       },
                     ]}
                   >
-                    Imperial
+                    {t("onboarding.body.imperial")}
                   </TText>
                 </Pressable>
                 <Pressable
@@ -280,7 +290,7 @@ export default function OnboardingBodyScreen() {
                       },
                     ]}
                   >
-                    Metric
+                    {t("onboarding.body.metric")}
                   </TText>
                 </Pressable>
               </View>
@@ -293,11 +303,11 @@ export default function OnboardingBodyScreen() {
               <TText
                 style={[styles.label, { color: theme.colors.textSecondary }]}
               >
-                Gender
+                {t("onboarding.body.gender")}
               </TText>
               <TSpacer size="sm" />
               <View style={styles.genderRow}>
-                {GENDERS.map((g) => {
+                {GENDER_KEYS.map((g) => {
                   const isActive = gender === g.id;
                   return (
                     <Pressable
@@ -337,7 +347,7 @@ export default function OnboardingBodyScreen() {
                             },
                           ]}
                         >
-                          {g.label}
+                          {t(g.labelKey)}
                         </TText>
                       </GlassSurface>
                     </Pressable>
@@ -353,7 +363,7 @@ export default function OnboardingBodyScreen() {
               <TText
                 style={[styles.label, { color: theme.colors.textSecondary }]}
               >
-                Age
+                {t("onboarding.body.age")}
               </TText>
               <TSpacer size="sm" />
               <GlassSurface intensity="light" style={styles.stepperCard}>
@@ -378,7 +388,7 @@ export default function OnboardingBodyScreen() {
                       { color: theme.colors.textMuted },
                     ]}
                   >
-                    years
+                    {t("common.years")}
                   </TText>
                 </View>
                 <Pressable
@@ -400,7 +410,7 @@ export default function OnboardingBodyScreen() {
               <TText
                 style={[styles.label, { color: theme.colors.textSecondary }]}
               >
-                Height
+                {t("onboarding.body.height")}
               </TText>
               <TSpacer size="sm" />
 
@@ -435,7 +445,7 @@ export default function OnboardingBodyScreen() {
                           { color: theme.colors.textMuted },
                         ]}
                       >
-                        ft
+                        {t("onboarding.body.ft")}
                       </TText>
                     </View>
                     <Pressable
@@ -482,7 +492,7 @@ export default function OnboardingBodyScreen() {
                           { color: theme.colors.textMuted },
                         ]}
                       >
-                        in
+                        {t("onboarding.body.in")}
                       </TText>
                     </View>
                     <Pressable
@@ -528,7 +538,7 @@ export default function OnboardingBodyScreen() {
                         { color: theme.colors.textMuted },
                       ]}
                     >
-                      cm
+                      {t("onboarding.body.cm")}
                     </TText>
                   </View>
                   <Pressable
@@ -551,7 +561,7 @@ export default function OnboardingBodyScreen() {
               <TText
                 style={[styles.label, { color: theme.colors.textSecondary }]}
               >
-                Current weight
+                {t("onboarding.body.weight")}
               </TText>
               <TSpacer size="sm" />
               <GlassSurface intensity="light" style={styles.stepperCard}>
@@ -615,7 +625,7 @@ export default function OnboardingBodyScreen() {
               size="lg"
               testID="onboarding-next-body"
             >
-              Continue
+              {t("common.continue")}
             </TButton>
           </View>
         </KeyboardAvoidingView>

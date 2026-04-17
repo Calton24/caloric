@@ -31,12 +31,15 @@ import Animated, {
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { SavedFoodItem } from "../../src/features/nutrition/estimation/estimation.types";
 import { useNutritionStore } from "../../src/features/nutrition/nutrition.store";
+import { formatDateHeader } from "../../src/infrastructure/i18n";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 
 export default function EditMealScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
   const { mealId } = useLocalSearchParams<{ mealId: string }>();
 
@@ -134,7 +137,7 @@ export default function EditMealScreen() {
               variant="heading"
               style={[styles.emptyTitle, { color: theme.colors.text }]}
             >
-              Meal not found
+              {t("editMeal.mealNotFound")}
             </TText>
             <TSpacer size="md" />
             <Pressable
@@ -147,7 +150,7 @@ export default function EditMealScreen() {
               <TText
                 style={[styles.emptyBtnText, { color: theme.colors.primary }]}
               >
-                Go Back
+                {t("mealConfirm.goBack")}
               </TText>
             </Pressable>
           </View>
@@ -184,12 +187,12 @@ export default function EditMealScreen() {
 
   const handleDelete = () => {
     Alert.alert(
-      "Delete Meal",
-      `Are you sure you want to delete "${meal.title}"? This cannot be undone.`,
+      t("editMeal.deleteMeal"),
+      t("editMeal.deleteMealConfirm", { title: meal.title }),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Delete",
+          text: t("editMeal.delete"),
           style: "destructive",
           onPress: () => {
             removeMeal(meal.id);
@@ -214,7 +217,7 @@ export default function EditMealScreen() {
             variant="heading"
             style={[styles.headerTitle, { color: theme.colors.text }]}
           >
-            Edit Meal
+            {t("editMeal.editMeal")}
           </TText>
           <Pressable onPress={handleDelete} hitSlop={12}>
             <Ionicons
@@ -254,7 +257,7 @@ export default function EditMealScreen() {
                 onChangeText={setTitle}
                 style={[styles.titleInput, { color: theme.colors.text }]}
                 placeholderTextColor={theme.colors.textMuted}
-                placeholder="Meal name..."
+                placeholder={t("tracking.mealNamePlaceholder")}
               />
             )}
             {hasItems && (
@@ -282,10 +285,10 @@ export default function EditMealScreen() {
                 style={[styles.sourceLabel, { color: theme.colors.textMuted }]}
               >
                 {meal.source === "voice"
-                  ? "Voice logged"
+                  ? t("tracking.voiceLogged")
                   : meal.source === "camera"
-                    ? "Camera detected"
-                    : "Manually entered"}
+                    ? t("tracking.cameraDetected")
+                    : t("tracking.manuallyEntered")}
               </TText>
             </View>
             <TSpacer size="xs" />
@@ -298,18 +301,30 @@ export default function EditMealScreen() {
                   setLoggedAt(d.toISOString());
                 }}
                 hitSlop={8}
-                style={[styles.dateArrow, { backgroundColor: theme.colors.border + "60" }]}
+                style={[
+                  styles.dateArrow,
+                  { backgroundColor: theme.colors.border + "60" },
+                ]}
               >
-                <Ionicons name="chevron-back" size={14} color={theme.colors.textSecondary} />
+                <Ionicons
+                  name="chevron-back"
+                  size={14}
+                  color={theme.colors.textSecondary}
+                />
               </Pressable>
               <View style={styles.dateCenter}>
-                <Ionicons name="calendar-outline" size={14} color={theme.colors.textMuted} />
-                <TText style={[styles.sourceLabel, { color: theme.colors.textMuted }]}>
-                  {new Date(loggedAt).toLocaleDateString("en-US", {
-                    weekday: "short",
-                    month: "short",
-                    day: "numeric",
-                  })}
+                <Ionicons
+                  name="calendar-outline"
+                  size={14}
+                  color={theme.colors.textMuted}
+                />
+                <TText
+                  style={[
+                    styles.sourceLabel,
+                    { color: theme.colors.textMuted },
+                  ]}
+                >
+                  {formatDateHeader(new Date(loggedAt))}
                   {" · "}
                   {loggedAt.split("T")[1]?.slice(0, 5)}
                 </TText>
@@ -323,9 +338,16 @@ export default function EditMealScreen() {
                   }
                 }}
                 hitSlop={8}
-                style={[styles.dateArrow, { backgroundColor: theme.colors.border + "60" }]}
+                style={[
+                  styles.dateArrow,
+                  { backgroundColor: theme.colors.border + "60" },
+                ]}
               >
-                <Ionicons name="chevron-forward" size={14} color={theme.colors.textSecondary} />
+                <Ionicons
+                  name="chevron-forward"
+                  size={14}
+                  color={theme.colors.textSecondary}
+                />
               </Pressable>
             </View>
           </Animated.View>
@@ -341,7 +363,7 @@ export default function EditMealScreen() {
                   { color: theme.colors.textSecondary },
                 ]}
               >
-                Items ({items.length})
+                {t("editMeal.items", { count: items.length })}
               </TText>
               <TSpacer size="sm" />
 
@@ -369,13 +391,13 @@ export default function EditMealScreen() {
                 <TText
                   style={[styles.totalsLabel, { color: theme.colors.text }]}
                 >
-                  Total
+                  {t("editMeal.total")}
                 </TText>
                 <View style={styles.totalsRow}>
                   <TText
                     style={[styles.totalsCal, { color: theme.colors.primary }]}
                   >
-                    {Math.round(calories)} cal
+                    {Math.round(calories)} {t("tracking.cal")}
                   </TText>
                   <TText
                     style={[
@@ -383,9 +405,12 @@ export default function EditMealScreen() {
                       { color: theme.colors.textSecondary },
                     ]}
                   >
-                    P {Math.round(protein * 10) / 10}g · C{" "}
-                    {Math.round(carbs * 10) / 10}g · F{" "}
-                    {Math.round(fat * 10) / 10}g
+                    {t("tracking.macroSummary", {
+                      protein: Math.round(protein * 10) / 10,
+                      carbs: Math.round(carbs * 10) / 10,
+                      fat: Math.round(fat * 10) / 10,
+                      unit: t("tracking.g"),
+                    })}
                   </TText>
                 </View>
               </View>
@@ -401,7 +426,7 @@ export default function EditMealScreen() {
                   { color: theme.colors.textSecondary },
                 ]}
               >
-                Nutrition
+                {t("editMeal.nutrition")}
               </TText>
               <TSpacer size="sm" />
 
@@ -412,9 +437,9 @@ export default function EditMealScreen() {
                 ]}
               >
                 <NutrientRow
-                  label="Calories"
+                  label={t("tracking.calories")}
                   value={calories}
-                  unit="cal"
+                  unit={t("tracking.cal")}
                   color={theme.colors.primary}
                   onChange={setCalories}
                 />
@@ -425,9 +450,9 @@ export default function EditMealScreen() {
                   ]}
                 />
                 <NutrientRow
-                  label="Protein"
+                  label={t("home.protein")}
                   value={protein}
-                  unit="g"
+                  unit={t("tracking.g")}
                   color="#60A5FA"
                   onChange={setProtein}
                 />
@@ -438,9 +463,9 @@ export default function EditMealScreen() {
                   ]}
                 />
                 <NutrientRow
-                  label="Carbs"
+                  label={t("home.carbs")}
                   value={carbs}
-                  unit="g"
+                  unit={t("tracking.g")}
                   color="#FBBF24"
                   onChange={setCarbs}
                 />
@@ -451,9 +476,9 @@ export default function EditMealScreen() {
                   ]}
                 />
                 <NutrientRow
-                  label="Fat"
+                  label={t("home.fat")}
                   value={fat}
-                  unit="g"
+                  unit={t("tracking.g")}
                   color="#F87171"
                   onChange={setFat}
                 />
@@ -480,7 +505,7 @@ export default function EditMealScreen() {
               <TText
                 style={[styles.deleteBtnText, { color: theme.colors.error }]}
               >
-                Delete Meal
+                {t("editMeal.deleteMeal")}
               </TText>
             </Pressable>
           </Animated.View>
@@ -518,7 +543,7 @@ export default function EditMealScreen() {
               <TText
                 style={[styles.saveText, { color: theme.colors.textInverse }]}
               >
-                Save Changes
+                {t("editMeal.saveChanges")}
               </TText>
             </LinearGradient>
           </Pressable>
@@ -549,6 +574,7 @@ function EditableItemCard({
   onRemove: (index: number) => void;
 }) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const [expanded, setExpanded] = useState(false);
 
   // Slider range: 0.25 to 5× original, stepped by 0.25
@@ -588,7 +614,7 @@ function EditableItemCard({
           <TText
             style={[styles.itemCals, { color: theme.colors.textSecondary }]}
           >
-            {Math.round(item.calories)} cal
+            {Math.round(item.calories)} {t("tracking.cal")}
           </TText>
         </View>
         <View style={styles.itemActions}>
@@ -619,7 +645,7 @@ function EditableItemCard({
           <TText
             style={[styles.sliderLabel, { color: theme.colors.textSecondary }]}
           >
-            {isGrams ? "Amount" : "Servings"}
+            {isGrams ? t("editMeal.amount") : t("editMeal.servings")}
           </TText>
           <TText style={[styles.sliderValue, { color: theme.colors.primary }]}>
             {formatQty(item.quantity)}
@@ -661,30 +687,30 @@ function EditableItemCard({
             ]}
           />
           <NutrientRow
-            label="Calories"
+            label={t("tracking.calories")}
             value={item.calories}
-            unit="cal"
+            unit={t("tracking.cal")}
             color={theme.colors.primary}
             onChange={(v) => onFieldChange(index, "calories", v)}
           />
           <NutrientRow
-            label="Protein"
+            label={t("tracking.protein")}
             value={item.protein}
-            unit="g"
+            unit={t("tracking.g")}
             color="#60A5FA"
             onChange={(v) => onFieldChange(index, "protein", v)}
           />
           <NutrientRow
-            label="Carbs"
+            label={t("tracking.carbs")}
             value={item.carbs}
-            unit="g"
+            unit={t("tracking.g")}
             color="#FBBF24"
             onChange={(v) => onFieldChange(index, "carbs", v)}
           />
           <NutrientRow
-            label="Fat"
+            label={t("tracking.fat")}
             value={item.fat}
-            unit="g"
+            unit={t("tracking.g")}
             color="#F87171"
             onChange={(v) => onFieldChange(index, "fat", v)}
           />

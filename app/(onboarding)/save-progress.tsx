@@ -25,6 +25,7 @@ import Animated, {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthCapabilities } from "../../src/features/auth/authCapabilities";
 import { useAuth } from "../../src/features/auth/useAuth";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
@@ -32,6 +33,7 @@ import { OnboardingHeader } from "./_progress";
 
 export default function SaveProgressScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
   const { signIn, signUp, signInWithAppleNative, signInWithGoogleNative } =
     useAuth();
@@ -49,10 +51,7 @@ export default function SaveProgressScreen() {
 
   const handleAppleSignIn = async () => {
     if (!AuthCapabilities.apple) {
-      Alert.alert(
-        "Coming Soon",
-        "Sign in with Apple will be available in a future update."
-      );
+      Alert.alert(t("auth.comingSoon"), t("auth.appleComingSoon"));
       return;
     }
     setLoading(true);
@@ -72,7 +71,7 @@ export default function SaveProgressScreen() {
 
   const handleGoogleSignIn = async () => {
     if (!AuthCapabilities.google) {
-      Alert.alert("Unavailable", "Google sign-in is disabled for this app.");
+      Alert.alert(t("auth.unavailable"), t("auth.googleUnavailable"));
       return;
     }
     setLoading(true);
@@ -92,17 +91,17 @@ export default function SaveProgressScreen() {
 
   const handleEmailAuth = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Please enter email and password");
+      Alert.alert(t("common.error"), t("auth.enterEmailPassword"));
       return;
     }
 
     if (isSignUp) {
       if (password !== confirmPassword) {
-        Alert.alert("Error", "Passwords do not match");
+        Alert.alert(t("common.error"), t("auth.passwordsMismatch"));
         return;
       }
       if (password.length < 6) {
-        Alert.alert("Error", "Password must be at least 6 characters");
+        Alert.alert(t("common.error"), t("auth.passwordTooShort"));
         return;
       }
     }
@@ -114,7 +113,7 @@ export default function SaveProgressScreen() {
         : await signIn(email, password);
       if (error) {
         Alert.alert(
-          isSignUp ? "Sign Up Failed" : "Sign In Failed",
+          isSignUp ? t("auth.signUpFailed") : t("auth.signInFailed"),
           error.message
         );
       } else {
@@ -142,12 +141,11 @@ export default function SaveProgressScreen() {
             variant="heading"
             style={[styles.heading, { color: theme.colors.text }]}
           >
-            Don't lose your{"\n"}personalized plan
+            {t("onboarding.saveProgress.heading")}
           </TText>
           <TSpacer size="sm" />
           <TText color="secondary" style={styles.subheading}>
-            Create an account to keep your calorie targets, macros, and progress
-            synced across devices.
+            {t("onboarding.saveProgress.subtitle")}
           </TText>
         </Animated.View>
 
@@ -164,7 +162,7 @@ export default function SaveProgressScreen() {
           >
             <Ionicons name="people" size={16} color={theme.colors.primary} />
             <TText style={[styles.proofText, { color: theme.colors.primary }]}>
-              2,400+ users signed up this week
+              {t("onboarding.saveProgress.socialProof")}
             </TText>
           </View>
           <View style={styles.trustRow}>
@@ -177,7 +175,7 @@ export default function SaveProgressScreen() {
               <TText
                 style={[styles.trustText, { color: theme.colors.textMuted }]}
               >
-                Your data stays private
+                {t("onboarding.saveProgress.privacy")}
               </TText>
             </View>
             <View style={styles.trustDot} />
@@ -186,7 +184,7 @@ export default function SaveProgressScreen() {
               <TText
                 style={[styles.trustText, { color: theme.colors.textMuted }]}
               >
-                Takes 5 seconds
+                {t("onboarding.saveProgress.speed")}
               </TText>
             </View>
           </View>
@@ -226,7 +224,7 @@ export default function SaveProgressScreen() {
               <TText
                 style={[styles.oauthLabel, { color: theme.colors.background }]}
               >
-                Sign in with Apple
+                {t("auth.signInWithApple")}
               </TText>
             </View>
           </Pressable>
@@ -259,7 +257,7 @@ export default function SaveProgressScreen() {
                 color={theme.colors.text}
               />
               <TText style={[styles.oauthLabel, { color: theme.colors.text }]}>
-                Sign in with Google
+                {t("auth.signInWithGoogle")}
               </TText>
             </View>
           </Pressable>
@@ -293,7 +291,7 @@ export default function SaveProgressScreen() {
                 <TText
                   style={[styles.oauthLabel, { color: theme.colors.text }]}
                 >
-                  Continue with Email
+                  {t("auth.continueWithEmail")}
                 </TText>
               </View>
             </Pressable>
@@ -303,6 +301,7 @@ export default function SaveProgressScreen() {
           {showEmailForm && (
             <EmailForm
               theme={theme}
+              t={t}
               isSignUp={isSignUp}
               email={email}
               password={password}
@@ -332,6 +331,7 @@ export default function SaveProgressScreen() {
 
 function EmailForm({
   theme,
+  t,
   isSignUp,
   email,
   password,
@@ -344,6 +344,7 @@ function EmailForm({
   onToggleMode,
 }: {
   theme: any;
+  t: (key: string) => string;
   isSignUp: boolean;
   email: string;
   password: string;
@@ -368,7 +369,7 @@ function EmailForm({
     <Animated.View entering={FadeIn.duration(300)} style={styles.emailForm}>
       <TextInput
         testID="save-progress-email-input"
-        placeholder="Email"
+        placeholder={t("auth.email")}
         placeholderTextColor={theme.colors.textMuted}
         value={email}
         onChangeText={setEmail}
@@ -379,7 +380,7 @@ function EmailForm({
       />
       <TextInput
         testID="save-progress-password-input"
-        placeholder="Password"
+        placeholder={t("auth.password")}
         placeholderTextColor={theme.colors.textMuted}
         value={password}
         onChangeText={setPassword}
@@ -390,7 +391,7 @@ function EmailForm({
       {isSignUp && (
         <TextInput
           testID="save-progress-confirm-password-input"
-          placeholder="Confirm Password"
+          placeholder={t("auth.confirmPassword")}
           placeholderTextColor={theme.colors.textMuted}
           value={confirmPassword}
           onChangeText={setConfirmPassword}
@@ -418,16 +419,14 @@ function EmailForm({
           <TText
             style={[styles.oauthLabel, { color: theme.colors.textInverse }]}
           >
-            {isSignUp ? "Create Account" : "Sign In"}
+            {isSignUp ? t("auth.createAccount") : t("auth.signIn")}
           </TText>
         </View>
       </Pressable>
 
       <Pressable onPress={onToggleMode} style={{ marginTop: 8 }}>
         <TText color="secondary" style={styles.toggleText}>
-          {isSignUp
-            ? "Already have an account? Sign In"
-            : "Need an account? Sign Up"}
+          {isSignUp ? t("auth.alreadyHaveAccount") : t("auth.needAccount")}
         </TText>
       </Pressable>
     </Animated.View>

@@ -28,6 +28,7 @@ import Animated, {
     withSequence,
     withSpring,
 } from "react-native-reanimated";
+import { useAppTranslation } from "../../infrastructure/i18n";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 import { useBottomSheet } from "../sheets/useBottomSheet";
@@ -69,6 +70,7 @@ function Star({
   color: string;
 }) {
   const scale = useSharedValue(1);
+  const { t } = useAppTranslation();
 
   const handlePress = useCallback(() => {
     scale.value = withSequence(
@@ -85,7 +87,7 @@ function Star({
   return (
     <Pressable
       onPress={handlePress}
-      accessibilityLabel={`${index + 1} star`}
+      accessibilityLabel={t("review.starLabel", { count: index + 1 })}
       accessibilityRole="button"
       hitSlop={4}
     >
@@ -112,6 +114,7 @@ function ReviewSheetContent({
   showTitle,
 }: ReviewModalProps & { onClose: () => void }) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const [rating, setRating] = useState(0);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -148,7 +151,7 @@ function ReviewSheetContent({
             flex: 1,
           }}
         >
-          {modalTitle ?? "Write a Review"}
+          {modalTitle ?? t("review.writeReview")}
         </TText>
         <Pressable onPress={onClose} hitSlop={12}>
           <Ionicons
@@ -180,7 +183,15 @@ function ReviewSheetContent({
             marginBottom: 12,
           }}
         >
-          {["Terrible", "Bad", "Okay", "Good", "Excellent"][rating - 1]}
+          {
+            [
+              t("review.terrible"),
+              t("review.bad"),
+              t("review.okay"),
+              t("review.good"),
+              t("review.excellent"),
+            ][rating - 1]
+          }
         </TText>
       )}
 
@@ -189,7 +200,7 @@ function ReviewSheetContent({
         <TextInput
           value={title}
           onChangeText={setTitle}
-          placeholder={titlePlaceholder ?? "Title (optional)"}
+          placeholder={titlePlaceholder ?? t("review.titlePlaceholder")}
           placeholderTextColor={theme.colors.textMuted}
           style={[
             styles.input,
@@ -207,7 +218,7 @@ function ReviewSheetContent({
       <TextInput
         value={body}
         onChangeText={setBody}
-        placeholder={bodyPlaceholder ?? "Share your experience…"}
+        placeholder={bodyPlaceholder ?? t("review.bodyPlaceholder")}
         placeholderTextColor={theme.colors.textMuted}
         multiline
         numberOfLines={4}
@@ -243,7 +254,7 @@ function ReviewSheetContent({
               fontWeight: theme.typography.fontWeight.medium,
             }}
           >
-            Cancel
+            {t("common.cancel")}
           </TText>
         </Pressable>
         <Pressable
@@ -269,7 +280,7 @@ function ReviewSheetContent({
                 fontWeight: theme.typography.fontWeight.semibold,
               }}
             >
-              Submit
+              {t("review.submit")}
             </TText>
           )}
         </Pressable>

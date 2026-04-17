@@ -177,7 +177,7 @@ const LANG_FLAGS: Record<SupportedLanguage, string> = {
 // ═══════════════════════════════════════════════════════════════
 
 function LanguagePill() {
-  const { language, changeLanguage } = useAppTranslation();
+  const { t, language, changeLanguage } = useAppTranslation();
   const [open, setOpen] = useState(false);
 
   const flag = LANG_FLAGS[language] ?? "🇬🇧";
@@ -225,7 +225,7 @@ function LanguagePill() {
       >
         <Pressable style={langStyles.backdrop} onPress={() => setOpen(false)}>
           <View style={langStyles.dropdown}>
-            <Text style={langStyles.dropdownTitle}>Language</Text>
+            <Text style={langStyles.dropdownTitle}>{t("common.language")}</Text>
             {SUPPORTED_LANGUAGES.map((lang) => {
               const isActive = lang === language;
               return (

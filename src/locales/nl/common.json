@@ -2,19 +2,6 @@
   "app": {
     "title": "Caloric"
   },
-  "auth": {
-    "signIn": "Inloggen",
-    "signUp": "Registreren",
-    "signOut": "Uitloggen",
-    "email": "E-mail",
-    "password": "Wachtwoord",
-    "confirmPassword": "Wachtwoord bevestigen",
-    "forgotPassword": "Wachtwoord vergeten?",
-    "createAccount": "Account aanmaken",
-    "welcome": "Welkom",
-    "signInToContinue": "Log in om verder te gaan",
-    "signUpToGetStarted": "Registreer om te beginnen"
-  },
   "common": {
     "cancel": "Annuleren",
     "save": "Opslaan",
@@ -27,19 +14,39 @@
     "ok": "OK",
     "error": "Fout",
     "success": "Gelukt",
-    "retry": "Opnieuw"
+    "retry": "Opnieuw proberen",
+    "continue": "Doorgaan",
+    "letsGo": "Laten we gaan!",
+    "weeks": "Weken",
+    "years": "jaar",
+    "recommended": "Aanbevolen",
+    "email": "E-mail",
+    "processing": "Verwerken...",
+    "language": "Language",
+    "notNow": "Not now",
+    "search": "Search",
+    "like": "LIKE",
+    "nope": "NOPE"
   },
   "calories": {
     "label": "Calorieën",
     "value_one": "{{count}} calorie",
     "value_other": "{{count}} calorieën"
   },
-  "landing": {
-    "headline": "21 dagen naar betere\neetgewoonten",
-    "subline": "Maak een foto. AI doet de rest.\nNiet tellen. Niet gokken.",
-    "cta": "Start 21 dagen",
-    "ctaConfirm": "Dag 1 begint nu",
-    "signInPrompt": "Al een account? ",
-    "signIn": "Inloggen"
+  "tabs": {
+    "home": "Start",
+    "notes": "Notities",
+    "auth": "Account",
+    "playground": "Speeltuin",
+    "caloric": "Caloric"
+  },
+  "days": {
+    "monShort": "M",
+    "tueShort": "D",
+    "wedShort": "W",
+    "thuShort": "D",
+    "friShort": "V",
+    "satShort": "Z",
+    "sunShort": "Z"
   }
 }

@@ -10,6 +10,7 @@ import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { getAppConfig } from "./config";
+import { preloadExperimentAssignments } from "./experiments";
 import { AuthProvider } from "./features/auth/AuthProvider";
 import { useAuth } from "./features/auth/useAuth";
 import { useChallengeStore } from "./features/challenge/challenge.store";
@@ -167,6 +168,7 @@ export function CaloricProviders({ children, testID }: CaloricProvidersProps) {
     MaterialCommunityIcons.loadFont().catch(() => {});
 
     initAnalytics();
+    preloadExperimentAssignments();
     initGrowth();
     initHaptics();
     initNotifications();

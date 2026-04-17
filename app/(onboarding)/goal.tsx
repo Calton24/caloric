@@ -9,6 +9,7 @@ import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { GoalType } from "../../src/features/goals/goals.types";
 import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TButton } from "../../src/ui/primitives/TButton";
@@ -16,36 +17,37 @@ import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 import { OnboardingHeader } from "./_progress";
 
-const GOALS = [
+const GOAL_KEYS = [
   {
     id: "lose",
     icon: "trending-down-outline" as const,
-    title: "Lose weight",
-    subtitle: "Calorie deficit with guided targets",
+    titleKey: "onboarding.goal.loseWeight",
+    subtitleKey: "onboarding.goal.loseWeightDesc",
   },
   {
     id: "maintain",
     icon: "swap-horizontal-outline" as const,
-    title: "Maintain weight",
-    subtitle: "Keep your current balance",
+    titleKey: "onboarding.goal.maintainWeight",
+    subtitleKey: "onboarding.goal.maintainWeightDesc",
   },
   {
     id: "gain",
     icon: "trending-up-outline" as const,
-    title: "Gain muscle",
-    subtitle: "Calorie surplus for growth",
+    titleKey: "onboarding.goal.gainMuscle",
+    subtitleKey: "onboarding.goal.gainMuscleDesc",
   },
   {
     id: "health",
     icon: "heart-outline" as const,
-    title: "Eat healthier",
-    subtitle: "Focus on nutrition quality",
+    titleKey: "onboarding.goal.eatHealthier",
+    subtitleKey: "onboarding.goal.eatHealthierDesc",
   },
 ] as const;
 
 export default function OnboardingGoalScreen() {
   const { theme } = useTheme();
   const router = useRouter();
+  const { t } = useAppTranslation();
   const { goalType, saveGoalType } = useOnboarding();
 
   return (
@@ -72,7 +74,7 @@ export default function OnboardingGoalScreen() {
               variant="heading"
               style={[styles.heading, { color: theme.colors.text }]}
             >
-              What&apos;s your{"\n"}goal?
+              {t("onboarding.goal.heading")}
             </TText>
           </Animated.View>
 
@@ -80,13 +82,13 @@ export default function OnboardingGoalScreen() {
 
           <Animated.View entering={FadeInDown.duration(500).delay(250)}>
             <TText color="secondary" style={styles.description}>
-              We&lsquo;ll tailor your daily calorie targets.
+              {t("onboarding.goal.description")}
             </TText>
           </Animated.View>
 
           <TSpacer size="lg" />
 
-          {GOALS.map((goal, i) => {
+          {GOAL_KEYS.map((goal, i) => {
             const isSelected = goalType === goal.id;
             return (
               <Animated.View
@@ -136,10 +138,10 @@ export default function OnboardingGoalScreen() {
                       <TText
                         style={[styles.goalTitle, { color: theme.colors.text }]}
                       >
-                        {goal.title}
+                        {t(goal.titleKey)}
                       </TText>
                       <TText color="secondary" style={styles.goalSubtitle}>
-                        {goal.subtitle}
+                        {t(goal.subtitleKey)}
                       </TText>
                     </View>
                     {isSelected && (
@@ -168,7 +170,7 @@ export default function OnboardingGoalScreen() {
             size="lg"
             testID="onboarding-next-2"
           >
-            Continue
+            {t("common.continue")}
           </TButton>
         </Animated.View>
       </SafeAreaView>

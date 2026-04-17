@@ -2,19 +2,6 @@
   "app": {
     "title": "Caloric"
   },
-  "auth": {
-    "signIn": "Entrar",
-    "signUp": "Cadastrar",
-    "signOut": "Sair",
-    "email": "E-mail",
-    "password": "Senha",
-    "confirmPassword": "Confirmar senha",
-    "forgotPassword": "Esqueceu a senha?",
-    "createAccount": "Criar conta",
-    "welcome": "Bem-vindo",
-    "signInToContinue": "Faça login para continuar",
-    "signUpToGetStarted": "Cadastre-se para começar"
-  },
   "common": {
     "cancel": "Cancelar",
     "save": "Salvar",
@@ -27,19 +14,39 @@
     "ok": "OK",
     "error": "Erro",
     "success": "Sucesso",
-    "retry": "Tentar novamente"
+    "retry": "Tentar novamente",
+    "continue": "Continuar",
+    "letsGo": "Vamos lá!",
+    "weeks": "Semanas",
+    "years": "anos",
+    "recommended": "Recomendado",
+    "email": "E-mail",
+    "processing": "Processando...",
+    "language": "Language",
+    "notNow": "Not now",
+    "search": "Search",
+    "like": "LIKE",
+    "nope": "NOPE"
   },
   "calories": {
     "label": "Calorias",
     "value_one": "{{count}} caloria",
     "value_other": "{{count}} calorias"
   },
-  "landing": {
-    "headline": "21 dias para melhores\nhábitos alimentares",
-    "subline": "Tire uma foto. A IA faz o resto.\nSem contar. Sem adivinhar.",
-    "cta": "Começar 21 dias",
-    "ctaConfirm": "O dia 1 começa agora",
-    "signInPrompt": "Já tem conta? ",
-    "signIn": "Entrar"
+  "tabs": {
+    "home": "Início",
+    "notes": "Notas",
+    "auth": "Conta",
+    "playground": "Área de testes",
+    "caloric": "Caloric"
+  },
+  "days": {
+    "monShort": "S",
+    "tueShort": "T",
+    "wedShort": "Q",
+    "thuShort": "Q",
+    "friShort": "S",
+    "satShort": "S",
+    "sunShort": "D"
   }
 }

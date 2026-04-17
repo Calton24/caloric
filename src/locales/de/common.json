@@ -2,19 +2,6 @@
   "app": {
     "title": "Caloric"
   },
-  "auth": {
-    "signIn": "Anmelden",
-    "signUp": "Registrieren",
-    "signOut": "Abmelden",
-    "email": "E-Mail",
-    "password": "Passwort",
-    "confirmPassword": "Passwort bestätigen",
-    "forgotPassword": "Passwort vergessen?",
-    "createAccount": "Konto erstellen",
-    "welcome": "Willkommen",
-    "signInToContinue": "Melden Sie sich an, um fortzufahren",
-    "signUpToGetStarted": "Registrieren Sie sich, um loszulegen"
-  },
   "common": {
     "cancel": "Abbrechen",
     "save": "Speichern",
@@ -27,19 +14,39 @@
     "ok": "OK",
     "error": "Fehler",
     "success": "Erfolg",
-    "retry": "Erneut versuchen"
+    "retry": "Erneut versuchen",
+    "continue": "Weiter",
+    "letsGo": "Los geht's!",
+    "weeks": "Wochen",
+    "years": "Jahre",
+    "recommended": "Empfohlen",
+    "email": "E-Mail",
+    "processing": "Wird verarbeitet...",
+    "language": "Language",
+    "notNow": "Not now",
+    "search": "Search",
+    "like": "LIKE",
+    "nope": "NOPE"
   },
   "calories": {
     "label": "Kalorien",
     "value_one": "{{count}} Kalorie",
     "value_other": "{{count}} Kalorien"
   },
-  "landing": {
-    "headline": "21 Tage zu besseren\nEssgewohnheiten",
-    "subline": "Mach ein Foto. Die KI erledigt den Rest.\nKein Zählen. Kein Raten.",
-    "cta": "21 Tage starten",
-    "ctaConfirm": "Tag 1 beginnt jetzt",
-    "signInPrompt": "Bereits ein Konto? ",
-    "signIn": "Anmelden"
+  "tabs": {
+    "home": "Startseite",
+    "notes": "Notizen",
+    "auth": "Konto",
+    "playground": "Spielplatz",
+    "caloric": "Caloric"
+  },
+  "days": {
+    "monShort": "M",
+    "tueShort": "D",
+    "wedShort": "M",
+    "thuShort": "D",
+    "friShort": "F",
+    "satShort": "S",
+    "sunShort": "S"
   }
 }

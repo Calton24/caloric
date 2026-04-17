@@ -50,6 +50,7 @@ import {
 } from "../../src/features/camera/camera-log.helpers";
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
 import { useFeatureAccess } from "../../src/features/subscription/useFeatureAccess";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { AuthGateModal } from "../../src/ui/components/AuthGateModal";
 import { FeatureGatePaywall } from "../../src/ui/components/FeatureGatePaywall";
@@ -58,11 +59,11 @@ import { TText } from "../../src/ui/primitives/TText";
 
 type CameraState = "viewfinder" | "analyzing" | "error";
 
-const STAGE_LABELS = [
-  "Detecting food…",
-  "Reading packaging…",
-  "Matching product…",
-  "Estimating nutrition…",
+const STAGE_LABEL_KEYS = [
+  "camera.detecting",
+  "camera.readingPackaging",
+  "camera.matchingProduct",
+  "camera.estimatingNutrition",
 ];
 
 /* ── Pulsing image component for analyzing state ── */
@@ -97,6 +98,7 @@ function PulsingImage({ uri }: { uri: string }) {
 
 export default function CameraLoggingScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
   const { startFromImage, startFromInput, startFromBarcode } = useLoggingFlow();
   const { requireAccount, gateVisible, gateReason, dismissGate } =
@@ -174,7 +176,7 @@ export default function CameraLoggingScreen() {
     if (state !== "analyzing") return;
     setStageIndex(0);
     const interval = setInterval(() => {
-      setStageIndex((i) => (i + 1) % STAGE_LABELS.length);
+      setStageIndex((i) => (i + 1) % STAGE_LABEL_KEYS.length);
     }, 1800);
     return () => clearInterval(interval);
   }, [state]);
@@ -185,18 +187,18 @@ export default function CameraLoggingScreen() {
     const granted = await requestPermission();
     if (!granted) {
       Alert.alert(
-        "Camera Access Required",
-        "Please allow camera access in Settings to scan food.",
+        t("camera.cameraAccessRequired"),
+        t("camera.cameraAccessRequiredDesc"),
         [
-          { text: "Cancel", style: "cancel" },
+          { text: t("common.cancel"), style: "cancel" },
           {
-            text: "Open Settings",
+            text: t("camera.openSettings"),
             onPress: () => Linking.openSettings(),
           },
         ]
       );
     }
-  }, [requestPermission]);
+  }, [requestPermission, t]);
 
   // ── Run pipeline (called automatically after capture/pick) ───────────
 
@@ -299,9 +301,9 @@ export default function CameraLoggingScreen() {
         Platform.OS === "android" ? `file://${photo.path}` : photo.path;
       runPipeline(uri);
     } catch {
-      Alert.alert("Error", "Failed to capture photo. Please try again.");
+      Alert.alert("Error", t("camera.captureError"));
     }
-  }, [runPipeline]);
+  }, [runPipeline, t]);
 
   // ── Pick from gallery ────────────────────────────────────────────────
 
@@ -311,9 +313,9 @@ export default function CameraLoggingScreen() {
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
         Alert.alert(
-          "Photo Library Access Required",
-          "Please allow photo library access in Settings to select food photos.",
-          [{ text: "OK" }]
+          t("camera.photoLibraryRequired"),
+          t("camera.photoLibraryRequiredDesc"),
+          [{ text: t("common.ok") }]
         );
         return;
       }
@@ -329,9 +331,9 @@ export default function CameraLoggingScreen() {
 
       runPipeline(result.assets[0].uri);
     } catch {
-      Alert.alert("Error", "Failed to pick image. Please try again.");
+      Alert.alert("Error", t("camera.pickImageError"));
     }
-  }, [runPipeline]);
+  }, [runPipeline, t]);
 
   // ── No permission state ─────────────────────────────────────────────
 
@@ -349,7 +351,7 @@ export default function CameraLoggingScreen() {
               variant="heading"
               style={[styles.headerTitle, { color: theme.colors.text }]}
             >
-              Scan Food
+              {t("camera.scanFood")}
             </TText>
             <View style={{ width: 24 }} />
           </View>
@@ -371,7 +373,7 @@ export default function CameraLoggingScreen() {
               variant="heading"
               style={[styles.permTitle, { color: theme.colors.text }]}
             >
-              Camera Access Needed
+              {t("camera.cameraAccessNeeded")}
             </TText>
             <TSpacer size="sm" />
             <TText
@@ -380,8 +382,7 @@ export default function CameraLoggingScreen() {
                 { color: theme.colors.textSecondary },
               ]}
             >
-              Caloric needs camera access to scan and{"\n"}identify food for
-              calorie tracking.
+              {t("camera.cameraAccessNeededDesc")}
             </TText>
             <TSpacer size="xl" />
             <Pressable
@@ -411,7 +412,7 @@ export default function CameraLoggingScreen() {
                     { color: theme.colors.textInverse },
                   ]}
                 >
-                  Enable Camera
+                  {t("camera.enableCamera")}
                 </TText>
               </LinearGradient>
             </Pressable>
@@ -420,7 +421,7 @@ export default function CameraLoggingScreen() {
               <TText
                 style={[styles.galleryAltText, { color: theme.colors.primary }]}
               >
-                Or choose from gallery
+                {t("camera.chooseFromGallery")}
               </TText>
             </Pressable>
           </View>
@@ -445,7 +446,7 @@ export default function CameraLoggingScreen() {
               variant="heading"
               style={[styles.headerTitle, { color: theme.colors.text }]}
             >
-              Scan Food
+              {t("camera.scanFood")}
             </TText>
             <View style={{ width: 24 }} />
           </View>
@@ -456,12 +457,12 @@ export default function CameraLoggingScreen() {
                 { color: theme.colors.textMuted },
               ]}
             >
-              No camera device found.
+              {t("camera.noCameraDevice")}
             </TText>
             <TSpacer size="lg" />
             <Pressable onPress={pickFromGallery}>
               <TText style={{ color: theme.colors.primary, fontWeight: "600" }}>
-                Choose from gallery instead
+                {t("camera.chooseFromGalleryInstead")}
               </TText>
             </Pressable>
           </View>
@@ -504,7 +505,7 @@ export default function CameraLoggingScreen() {
           <SafeAreaView style={styles.viewfinderOverlay} edges={["top"]}>
             <View style={styles.vfHeader}>
               <View style={{ width: 40 }} />
-              <TText style={styles.vfTitle}>Scan Food</TText>
+              <TText style={styles.vfTitle}>{t("camera.scanFood")}</TText>
               <Pressable
                 onPress={handleClose}
                 hitSlop={12}
@@ -525,13 +526,10 @@ export default function CameraLoggingScreen() {
               <View style={[styles.corner, styles.cornerBR]} />
             </View>
             <TSpacer size="md" />
-            <TText style={styles.scanHint}>
-              Point at food or scan a barcode
-            </TText>
+            <TText style={styles.scanHint}>{t("camera.scanHint")}</TText>
             {!isPro && (
               <TText style={styles.scanCredits}>
-                {scansRemaining} free scan{scansRemaining !== 1 ? "s" : ""}{" "}
-                remaining
+                {t("camera.freeScansRemaining", { count: scansRemaining })}
               </TText>
             )}
           </View>
@@ -606,7 +604,7 @@ export default function CameraLoggingScreen() {
                 variant="heading"
                 style={[styles.headerTitle, { color: theme.colors.text }]}
               >
-                Analyzing
+                {t("camera.analyzing")}
               </TText>
               <View style={{ width: 24 }} />
             </View>
@@ -631,7 +629,7 @@ export default function CameraLoggingScreen() {
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  {STAGE_LABELS[stageIndex]}
+                  {t(STAGE_LABEL_KEYS[stageIndex])}
                 </TText>
               </Animated.View>
 
@@ -639,7 +637,7 @@ export default function CameraLoggingScreen() {
 
               {/* Progress dots */}
               <View style={styles.dotsRow}>
-                {STAGE_LABELS.map((_, i) => (
+                {STAGE_LABEL_KEYS.map((_, i) => (
                   <View
                     key={i}
                     style={[
@@ -687,7 +685,7 @@ export default function CameraLoggingScreen() {
                 variant="heading"
                 style={[styles.headerTitle, { color: theme.colors.text }]}
               >
-                Couldn&apos;t Identify
+                {t("camera.couldntIdentify")}
               </TText>
               <View style={{ width: 24 }} />
             </View>
@@ -713,7 +711,7 @@ export default function CameraLoggingScreen() {
               />
               <TSpacer size="md" />
               <TText style={[styles.errorTitle, { color: theme.colors.text }]}>
-                We couldn&apos;t identify this food
+                {t("camera.couldntIdentifyTitle")}
               </TText>
               <TSpacer size="xs" />
               <TText
@@ -722,7 +720,7 @@ export default function CameraLoggingScreen() {
                   { color: theme.colors.textMuted },
                 ]}
               >
-                Describe what you see and we&apos;ll look it up
+                {t("camera.describeHint")}
               </TText>
 
               <TSpacer size="lg" />
@@ -731,7 +729,7 @@ export default function CameraLoggingScreen() {
               <TextInput
                 value={description}
                 onChangeText={setDescription}
-                placeholder="e.g., Walkers Sensations Thai Sweet Chilli crisps"
+                placeholder={t("camera.placeholder")}
                 placeholderTextColor={theme.colors.textMuted}
                 style={[
                   styles.errorInput,
@@ -763,7 +761,9 @@ export default function CameraLoggingScreen() {
                 ]}
               >
                 <Ionicons name="search" size={18} color="#fff" />
-                <TText style={styles.errorPrimaryBtnText}>Look it up</TText>
+                <TText style={styles.errorPrimaryBtnText}>
+                  {t("camera.lookItUp")}
+                </TText>
               </Pressable>
 
               <TSpacer size="sm" />
@@ -789,7 +789,7 @@ export default function CameraLoggingScreen() {
                       { color: theme.colors.text },
                     ]}
                   >
-                    Retry
+                    {t("camera.retry")}
                   </TText>
                 </Pressable>
 
@@ -811,7 +811,7 @@ export default function CameraLoggingScreen() {
                       { color: theme.colors.text },
                     ]}
                   >
-                    Retake
+                    {t("camera.retake")}
                   </TText>
                 </Pressable>
               </View>

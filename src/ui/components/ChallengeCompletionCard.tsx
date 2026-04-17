@@ -11,6 +11,7 @@ import { useCallback, useRef } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import ViewShot from "react-native-view-shot";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { GlassSurface } from "../glass/GlassSurface";
 import { TSpacer } from "../primitives/TSpacer";
@@ -30,6 +31,7 @@ export function ChallengeCompletionCard({
   completedDays,
 }: ChallengeCompletionCardProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const viewShotRef = useRef<ViewShot>(null);
 
   const handleShare = useCallback(async () => {
@@ -69,12 +71,12 @@ export function ChallengeCompletionCard({
               variant="heading"
               style={[styles.badgeTitle, { color: theme.colors.text }]}
             >
-              Challenge Complete
+              {t("challenge.complete")}
             </TText>
             <TText
               style={[styles.badgeSub, { color: theme.colors.textSecondary }]}
             >
-              Completed Caloric 21-Day Challenge
+              {t("challenge.completedSubtitle")}
             </TText>
           </Animated.View>
 
@@ -86,7 +88,7 @@ export function ChallengeCompletionCard({
             style={styles.statsGrid}
           >
             <StatCell
-              label="Total Calories"
+              label={t("challenge.totalCalories")}
               value={totalCalories.toLocaleString()}
               icon="flame-outline"
               color={theme.colors.primary}
@@ -94,7 +96,7 @@ export function ChallengeCompletionCard({
               mutedColor={theme.colors.textSecondary}
             />
             <StatCell
-              label="Weekly Avg"
+              label={t("challenge.weeklyAvg")}
               value={weeklyAvgCalories.toLocaleString()}
               icon="bar-chart-outline"
               color={theme.colors.accent}
@@ -102,7 +104,7 @@ export function ChallengeCompletionCard({
               mutedColor={theme.colors.textSecondary}
             />
             <StatCell
-              label="Days Logged"
+              label={t("challenge.daysLogged")}
               value={`${completedDays}/21`}
               icon="calendar-outline"
               color={theme.colors.success}
@@ -110,8 +112,8 @@ export function ChallengeCompletionCard({
               mutedColor={theme.colors.textSecondary}
             />
             <StatCell
-              label="Best Streak"
-              value={`${streakDays} days`}
+              label={t("challenge.bestStreak")}
+              value={t("challenge.daysCount", { count: streakDays })}
               icon="trending-up-outline"
               color="#FBBF24"
               textColor={theme.colors.text}
@@ -127,7 +129,7 @@ export function ChallengeCompletionCard({
       <Pressable onPress={handleShare} style={styles.shareButton}>
         <Ionicons name="share-outline" size={18} color={theme.colors.primary} />
         <TText style={[styles.shareText, { color: theme.colors.primary }]}>
-          Share your results
+          {t("challenge.shareResults")}
         </TText>
       </Pressable>
     </Animated.View>

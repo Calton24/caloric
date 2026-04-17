@@ -16,6 +16,7 @@ import Animated, {
     FadeInDown,
     FadeInUp,
 } from "react-native-reanimated";
+import { useAppTranslation } from "../src/infrastructure/i18n/useAppTranslation";
 import { notifications } from "../src/infrastructure/notifications/notifications";
 import { useTheme } from "../src/theme/useTheme";
 import type { PermissionStatus } from "../src/types/nutrition";
@@ -26,6 +27,7 @@ import { TText } from "../src/ui/primitives/TText";
 
 export default function PermissionsScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
 
   // In production these would use expo-modules permission APIs
@@ -84,14 +86,13 @@ export default function PermissionsScreen() {
             variant="heading"
             style={[styles.title, { color: theme.colors.text }]}
           >
-            Permissions Required
+            {t("permissions.title")}
           </TText>
           <TSpacer size="sm" />
           <TText
             style={[styles.subtitle, { color: theme.colors.textSecondary }]}
           >
-            Caloric uses your microphone and speech recognition to log meals
-            with your voice, and notifications to keep you on track.
+            {t("permissions.description")}
           </TText>
         </Animated.View>
 
@@ -104,24 +105,24 @@ export default function PermissionsScreen() {
         >
           <PermissionRow
             icon="mic"
-            label="Microphone"
-            description="Listen to your voice for meal logging"
+            label={t("permissions.microphone")}
+            description={t("permissions.microphoneDesc")}
             status={mic}
             onPress={handleMic}
           />
           <TSpacer size="sm" />
           <PermissionRow
             icon="chatbubble-ellipses"
-            label="Speech Recognition"
-            description="Convert your speech to food entries"
+            label={t("permissions.speechRecognition")}
+            description={t("permissions.speechRecognitionDesc")}
             status={speech}
             onPress={handleSpeech}
           />
           <TSpacer size="sm" />
           <PermissionRow
             icon="notifications"
-            label="Push Notifications"
-            description="Meal reminders and daily progress updates"
+            label={t("permissions.pushNotifications")}
+            description={t("permissions.pushNotificationsDesc")}
             status={pushNotifs}
             onPress={handleNotifications}
           />
@@ -149,7 +150,9 @@ export default function PermissionsScreen() {
             <TText
               style={[styles.ctaText, { color: theme.colors.textInverse }]}
             >
-              {allGranted ? "Continue" : "Grant Permissions"}
+              {allGranted
+                ? t("common.continue")
+                : t("permissions.grantPermissions")}
             </TText>
           </LinearGradient>
         </Pressable>
@@ -159,7 +162,7 @@ export default function PermissionsScreen() {
         {!allGranted && (
           <Pressable onPress={handleSkip} hitSlop={12}>
             <TText style={[styles.skipText, { color: theme.colors.textMuted }]}>
-              Skip for now
+              {t("permissions.skipForNow")}
             </TText>
           </Pressable>
         )}

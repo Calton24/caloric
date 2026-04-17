@@ -8,6 +8,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { useEffect, useRef } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
     FadeIn,
@@ -15,6 +16,13 @@ import Animated, {
     FadeInUp,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import {
+    getWelcomeCtaCopy,
+    trackExperimentClick,
+    trackExperimentExposure,
+    useExperiment,
+} from "../../src/experiments";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
@@ -23,24 +31,64 @@ import { TText } from "../../src/ui/primitives/TText";
 const VALUE_PROPS = [
   {
     icon: "flame-outline" as const,
-    title: "Personalized calorie plan",
-    sub: "Tailored to your body & goals",
+    titleKey: "welcome.feature1Title",
+    subKey: "welcome.feature1Sub",
   },
   {
     icon: "trending-down-outline" as const,
-    title: "Science-backed weight loss",
-    sub: "Safe, sustainable rate every week",
+    titleKey: "welcome.feature2Title",
+    subKey: "welcome.feature2Sub",
   },
   {
     icon: "restaurant-outline" as const,
-    title: "Log meals in seconds",
-    sub: "Scan barcodes or search foods",
+    titleKey: "welcome.feature3Title",
+    subKey: "welcome.feature3Sub",
   },
 ];
 
 export default function OnboardingWelcomeScreen() {
   const { theme } = useTheme();
+  const { t, i18n } = useAppTranslation();
   const router = useRouter();
+
+  // A/B experiment: welcome CTA copy
+  const ctaVariant = useExperiment("welcome_cta_v1");
+  const locale = i18n.language;
+  const exposureTracked = useRef(false);
+
+  // Track exposure once per component mount (i.e., once per screen visit).
+  // useRef survives rerenders but resets on remount — this is intentional:
+  // navigating away and back counts as a new exposure (standard behavior).t (i.e., once per screen visit).
+  // useRef survives rerenders but resets on remount — this is intentional:
+  // navigating away and back counts as a new exposure (standard behavior).
+  useEffect(() => {
+    if (ctaVariant && !exposureTracked.current) {
+      exposureTracked.current = true;
+      trackExperimentExposure({
+        experiment: "welcome_cta_v1",
+        variant: ctaVariant,
+        locale,
+        screen: "welcome",
+      });
+    }
+  }, [ctaVariant, locale]);
+
+  // Get CTA copy: experiment variant or fallback to translation
+  const ctaCopy = ctaVariant
+    ? getWelcomeCtaCopy(locale, ctaVariant)
+    : t("welcome.cta");
+
+  const handleCtaPress = () => {
+    if (ctaVariant) {
+      trackExperimentClick({
+        experiment: "welcome_cta_v1",
+        variant: ctaVariant,
+        locale,
+        screen: "welcome",
+      });
+    }
+    router.push("/(onboarding)/goal" as any);
+  };
 
   return (
     <View
@@ -67,7 +115,7 @@ export default function OnboardingWelcomeScreen() {
               variant="heading"
               style={[styles.headline, { color: theme.colors.text }]}
             >
-              Lose weight{"\n"}without guessing{"\n"}calories
+              {t("welcome.heading")}
             </TText>
           </Animated.View>
 
@@ -75,7 +123,7 @@ export default function OnboardingWelcomeScreen() {
 
           <Animated.View entering={FadeIn.duration(600).delay(400)}>
             <TText color="secondary" style={styles.subheadline}>
-              Get a personalised plan in under 2 minutes
+              {t("welcome.subheading")}
             </TText>
           </Animated.View>
         </View>
@@ -103,7 +151,7 @@ export default function OnboardingWelcomeScreen() {
                 <TText
                   style={[styles.valueTitle, { color: theme.colors.text }]}
                 >
-                  {v.title}
+                  {t(v.titleKey)}
                 </TText>
                 <TText
                   style={[
@@ -111,7 +159,7 @@ export default function OnboardingWelcomeScreen() {
                     { color: theme.colors.textSecondary },
                   ]}
                 >
-                  {v.sub}
+                  {t(v.subKey)}
                 </TText>
               </View>
             </GlassSurface>
@@ -125,7 +173,7 @@ export default function OnboardingWelcomeScreen() {
         >
           <Pressable
             testID="onboarding-start"
-            onPress={() => router.push("/(onboarding)/goal" as any)}
+            onPress={handleCtaPress}
             style={({ pressed }) => ({
               opacity: pressed ? 0.9 : 1,
               transform: [{ scale: pressed ? 0.97 : 1 }],
@@ -140,7 +188,7 @@ export default function OnboardingWelcomeScreen() {
               <TText
                 style={[styles.ctaText, { color: theme.colors.textInverse }]}
               >
-                Get My Plan
+                {ctaCopy}
               </TText>
               <Ionicons
                 name="arrow-forward"
@@ -153,7 +201,7 @@ export default function OnboardingWelcomeScreen() {
           <TSpacer size="sm" />
 
           <TText color="muted" style={styles.disclaimer}>
-            Takes ~2 minutes · No credit card required
+            {t("welcome.disclaimer")}
           </TText>
         </Animated.View>
       </SafeAreaView>

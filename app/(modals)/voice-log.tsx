@@ -22,12 +22,14 @@ import Animated, {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
 import { useVoiceCapture } from "../../src/features/voice";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 
 export default function VoiceLoggingScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
   const { startFromInput } = useLoggingFlow();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -82,14 +84,12 @@ export default function VoiceLoggingScreen() {
         const foundFood = await startFromInput(transcript, "voice");
         if (!foundFood) {
           setIsProcessing(false);
-          setProcessingError(
-            'No food detected. Try saying just the food name, e.g. "chicken and rice".'
-          );
+          setProcessingError(t("voiceLog.noFoodDetected"));
           hasProcessed.current = false;
         }
       } catch {
         setIsProcessing(false);
-        setProcessingError("Couldn't look up nutrition. Tap retry.");
+        setProcessingError(t("voiceLog.lookupFailed"));
         hasProcessed.current = false;
       }
     })();
@@ -166,7 +166,9 @@ export default function VoiceLoggingScreen() {
             variant="heading"
             style={[styles.headerTitle, { color: theme.colors.text }]}
           >
-            {displayState === "processing" ? "Looking it up…" : "Listening"}
+            {displayState === "processing"
+              ? t("voiceLog.lookingItUp")
+              : t("voiceLog.listening")}
           </TText>
           <View style={{ width: 24 }} />
         </View>
@@ -217,7 +219,7 @@ export default function VoiceLoggingScreen() {
                 <TText
                   style={[styles.recordingLabel, { color: theme.colors.error }]}
                 >
-                  Listening
+                  {t("voiceLog.listening")}
                 </TText>
               </View>
 
@@ -242,7 +244,7 @@ export default function VoiceLoggingScreen() {
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  Describe what you ate…
+                  {t("voiceLog.describeFood")}
                 </TText>
               )}
 
@@ -251,7 +253,7 @@ export default function VoiceLoggingScreen() {
               <TText
                 style={[styles.micHint, { color: theme.colors.textMuted }]}
               >
-                Tap mic to finish early
+                {t("voiceLog.tapMicFinish")}
               </TText>
             </Animated.View>
           )}
@@ -285,7 +287,7 @@ export default function VoiceLoggingScreen() {
                   { color: theme.colors.textMuted },
                 ]}
               >
-                Looking up nutrition…
+                {t("voiceLog.lookingUpNutrition")}
               </TText>
             </Animated.View>
           )}
@@ -303,7 +305,7 @@ export default function VoiceLoggingScreen() {
               />
               <TSpacer size="md" />
               <TText style={[styles.errorTitle, { color: theme.colors.text }]}>
-                {error || processingError || "Something went wrong"}
+                {error || processingError || t("common.error")}
               </TText>
               <TSpacer size="lg" />
               <Pressable
@@ -315,7 +317,7 @@ export default function VoiceLoggingScreen() {
               >
                 <Ionicons name="refresh" size={20} color={theme.colors.text} />
                 <TText style={[styles.retryText, { color: theme.colors.text }]}>
-                  Try again
+                  {t("voiceLog.tryAgain")}
                 </TText>
               </Pressable>
             </Animated.View>

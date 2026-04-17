@@ -25,6 +25,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useUnits } from "../../hooks/useUnits";
 import { useGoalsStore } from "../../src/features/goals/goals.store";
 import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
@@ -88,6 +89,7 @@ function FloatingEmoji({
 
 export default function OnboardingCompleteScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const units = useUnits();
   const router = useRouter();
   const { completeOnboarding, profile } = useOnboarding();
@@ -161,7 +163,7 @@ export default function OnboardingCompleteScreen() {
               variant="heading"
               style={[styles.title, { color: theme.colors.text }]}
             >
-              You&apos;re All Set Up!
+              {t("onboarding.complete.heading")}
             </TText>
           </Animated.View>
 
@@ -169,7 +171,7 @@ export default function OnboardingCompleteScreen() {
 
           <Animated.View entering={FadeIn.duration(600).delay(1000)}>
             <TText color="secondary" style={styles.subtitle}>
-              Your personalised plan is ready.{"\n"}Time to start your journey.
+              {t("onboarding.complete.subtitle")}
             </TText>
           </Animated.View>
 
@@ -232,7 +234,7 @@ export default function OnboardingCompleteScreen() {
               <TText
                 style={[styles.ctaText, { color: theme.colors.textInverse }]}
               >
-                Let&apos;s Go!
+                {t("common.letsGo")}
               </TText>
               <Ionicons
                 name="rocket-outline"

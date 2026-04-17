@@ -1,0 +1,35 @@
+{
+  "progress": {
+    "title": "Fortschritt",
+    "week": "Woche",
+    "month": "Monat",
+    "year": "Jahr",
+    "recalculate": "Neu berechnen",
+    "addWeight": "Gewicht hinzufügen",
+    "last7Days": "Letzte 7 Tage",
+    "last30Days": "Letzte 30 Tage",
+    "lastYear": "Letztes Jahr",
+    "goalLabel": "Ziel: {{weight}} {{unit}}",
+    "current": "Aktuell ({{unit}})",
+    "lost": "Verloren ({{unit}})",
+    "toGoal": "Zum Ziel ({{unit}})",
+    "calorieTrends": "Kalorientrends",
+    "budgetLabel": "Budget: {{budget}} kcal",
+    "noMealsLogged": "Keine Mahlzeiten in diesem Zeitraum erfasst",
+    "avgKcalDay": "Ø kcal/Tag",
+    "avgProtein": "Ø Protein",
+    "onTarget": "Im Ziel",
+    "logWeight": "Gewicht erfassen",
+    "recalculatePlan": "Plan neu berechnen",
+    "cannotRecalculate": "Kann nicht neu berechnen",
+    "cannotRecalculateDesc": "Erfasse einen Gewichtseintrag und schließe das Onboarding ab.",
+    "planUpdated": "Plan aktualisiert",
+    "planUpdatedDesc": "Dein Plan wurde mit deinem aktuellen Gewicht von {{weight}} neu berechnet."
+  },
+  "logWeight": {
+    "title": "Gewicht erfassen",
+    "today": "Heute",
+    "goalLabel": "Ziel: {{weight}} {{unit}} ({{difference}} {{unit}} noch)",
+    "save": "Gewicht speichern"
+  }
+}

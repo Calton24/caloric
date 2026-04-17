@@ -29,6 +29,7 @@ import Animated, {
     withSpring,
 } from "react-native-reanimated";
 import { haptics } from "../../infrastructure/haptics";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -96,6 +97,7 @@ function StarItem({
   onChange?: (rating: number) => void;
 }) {
   const scale = useSharedValue(1);
+  const { t } = useAppTranslation();
 
   const starValue = index + 1;
   const isFull = rating >= starValue;
@@ -185,7 +187,7 @@ function StarItem({
     return (
       <Pressable
         onPress={handlePress}
-        accessibilityLabel={`${starValue} star${starValue > 1 ? "s" : ""}`}
+        accessibilityLabel={t("review.starA11y", { count: starValue })}
         accessibilityRole="button"
         hitSlop={4}
       >

@@ -11,6 +11,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import i18next from "i18next";
 import React, { useState } from "react";
 import {
     Pressable,
@@ -25,6 +26,7 @@ import Animated, {
     FadeInUp,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAppTranslation } from "../src/infrastructure/i18n/useAppTranslation";
 import { useNutritionStore } from "../src/stores";
 import { useTheme } from "../src/theme/useTheme";
 import type { MealEntry } from "../src/types/nutrition";
@@ -35,7 +37,7 @@ import { TText } from "../src/ui/primitives/TText";
 function createDefaultMeal(params: Record<string, string>): MealEntry {
   return {
     id: params.id ?? `meal_${Date.now()}`,
-    title: params.title ?? "Unnamed Meal",
+    title: params.title ?? i18next.t("tracking.unnamedMeal"),
     calories: Number(params.calories) || 0,
     protein: Number(params.protein) || 0,
     carbs: Number(params.carbs) || 0,
@@ -47,6 +49,7 @@ function createDefaultMeal(params: Record<string, string>): MealEntry {
 
 export default function ConfirmMealScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
   const params = useLocalSearchParams<Record<string, string>>();
   const addMeal = useNutritionStore((s) => s.addMeal);
@@ -82,7 +85,7 @@ export default function ConfirmMealScreen() {
             variant="heading"
             style={[styles.headerTitle, { color: theme.colors.text }]}
           >
-            Confirm Meal
+            {t("tracking.confirmMeal")}
           </TText>
           <View style={{ width: 24 }} />
         </View>
@@ -106,7 +109,7 @@ export default function ConfirmMealScreen() {
               onChangeText={(t) => updateField("title", t)}
               style={[styles.titleInput, { color: theme.colors.text }]}
               placeholderTextColor={theme.colors.textMuted}
-              placeholder="Meal name..."
+              placeholder={t("tracking.mealNamePlaceholder")}
             />
             <TSpacer size="xs" />
             <View style={styles.sourceRow}>
@@ -125,10 +128,10 @@ export default function ConfirmMealScreen() {
                 style={[styles.sourceLabel, { color: theme.colors.textMuted }]}
               >
                 {meal.source === "voice"
-                  ? "Voice logged"
+                  ? t("tracking.voiceLogged")
                   : meal.source === "camera"
-                    ? "Camera detected"
-                    : "Manually entered"}
+                    ? t("tracking.cameraDetected")
+                    : t("tracking.manuallyEntered")}
               </TText>
             </View>
           </Animated.View>
@@ -143,7 +146,7 @@ export default function ConfirmMealScreen() {
                 { color: theme.colors.textSecondary },
               ]}
             >
-              Nutrition Estimate
+              {t("tracking.nutritionEstimate")}
             </TText>
             <TSpacer size="sm" />
 
@@ -155,9 +158,9 @@ export default function ConfirmMealScreen() {
             >
               {/* Calories */}
               <NutrientRow
-                label="Calories"
+                label={t("tracking.calories")}
                 value={meal.calories}
-                unit="cal"
+                unit={t("tracking.cal")}
                 color={theme.colors.primary}
                 onChange={(v) => updateField("calories", v)}
               />
@@ -171,9 +174,9 @@ export default function ConfirmMealScreen() {
 
               {/* Protein */}
               <NutrientRow
-                label="Protein"
+                label={t("tracking.protein")}
                 value={meal.protein}
-                unit="g"
+                unit={t("tracking.g")}
                 color="#60A5FA"
                 onChange={(v) => updateField("protein", v)}
               />
@@ -187,9 +190,9 @@ export default function ConfirmMealScreen() {
 
               {/* Carbs */}
               <NutrientRow
-                label="Carbs"
+                label={t("tracking.carbs")}
                 value={meal.carbs}
-                unit="g"
+                unit={t("tracking.g")}
                 color="#FBBF24"
                 onChange={(v) => updateField("carbs", v)}
               />
@@ -203,9 +206,9 @@ export default function ConfirmMealScreen() {
 
               {/* Fat */}
               <NutrientRow
-                label="Fat"
+                label={t("tracking.fat")}
                 value={meal.fat}
-                unit="g"
+                unit={t("tracking.g")}
                 color="#F87171"
                 onChange={(v) => updateField("fat", v)}
               />
@@ -230,8 +233,7 @@ export default function ConfirmMealScreen() {
               <TText
                 style={[styles.hintText, { color: theme.colors.textSecondary }]}
               >
-                Tap any value to adjust. These are estimates—close enough is
-                good enough!
+                {t("tracking.adjustHint")}
               </TText>
             </View>
           </Animated.View>
@@ -271,7 +273,7 @@ export default function ConfirmMealScreen() {
                   { color: theme.colors.textInverse },
                 ]}
               >
-                Confirm & Log
+                {t("tracking.confirm")}
               </TText>
             </LinearGradient>
           </Pressable>

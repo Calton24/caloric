@@ -1,0 +1,35 @@
+{
+  "progress": {
+    "title": "Postęp",
+    "week": "Tydzień",
+    "month": "Miesiąc",
+    "year": "Rok",
+    "recalculate": "Przelicz",
+    "addWeight": "Dodaj wagę",
+    "last7Days": "Ostatnie 7 dni",
+    "last30Days": "Ostatnie 30 dni",
+    "lastYear": "Ostatni rok",
+    "goalLabel": "Cel: {{weight}} {{unit}}",
+    "current": "Obecna ({{unit}})",
+    "lost": "Stracono ({{unit}})",
+    "toGoal": "Do celu ({{unit}})",
+    "calorieTrends": "Trendy kaloryczne",
+    "budgetLabel": "Cel: {{budget}} kcal",
+    "noMealsLogged": "Brak zarejestrowanych posiłków w tym okresie",
+    "avgKcalDay": "Śr kcal/dzień",
+    "avgProtein": "Śr białko",
+    "onTarget": "W celu",
+    "logWeight": "Zarejestruj wagę",
+    "recalculatePlan": "Przelicz plan",
+    "cannotRecalculate": "Nie można przeliczyć",
+    "cannotRecalculateDesc": "Zarejestruj wagę i ukończ onboarding.",
+    "planUpdated": "Plan zaktualizowany",
+    "planUpdatedDesc": "Twój plan został przeliczony z aktualną wagą {{weight}}."
+  },
+  "logWeight": {
+    "title": "Zarejestruj wagę",
+    "today": "Dzisiaj",
+    "goalLabel": "Cel: {{weight}} {{unit}} ({{difference}} {{unit}} pozostało)",
+    "save": "Zapisz wagę"
+  }
+}

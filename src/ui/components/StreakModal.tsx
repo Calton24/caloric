@@ -19,7 +19,9 @@ import {
     getNextMilestone,
     getProgressionMessage,
     getStreakLabel,
+    type ProgressionMessage,
 } from "../../features/streak/streak-psychology.service";
+import { useAppTranslation } from "../../infrastructure/i18n";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -38,8 +40,16 @@ interface StreakModalProps {
   onFreezeUpsell?: () => void;
 }
 
-/** Day abbreviations starting Monday */
-const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
+/** Day abbreviation keys starting Monday */
+const DAY_LABEL_KEYS = [
+  "days.monShort",
+  "days.tueShort",
+  "days.wedShort",
+  "days.thuShort",
+  "days.friShort",
+  "days.satShort",
+  "days.sunShort",
+];
 
 /** Returns ISO date string for each day of the current week (Mon–Sun) */
 function getCurrentWeekDays(): string[] {
@@ -55,10 +65,8 @@ function getCurrentWeekDays(): string[] {
   });
 }
 
-function getStreakMotivation(streak: number): string {
-  return (
-    getProgressionMessage(streak) ?? "Log a meal today to start your streak!"
-  );
+function getStreakMotivation(streak: number): ProgressionMessage | null {
+  return getProgressionMessage(streak);
 }
 
 export function StreakModal({
@@ -73,6 +81,7 @@ export function StreakModal({
   onFreezeUpsell,
 }: StreakModalProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const isDark = theme.mode === "dark";
 
   // Animation values
@@ -199,15 +208,13 @@ export function StreakModal({
             {/* Title */}
             <Animated.View style={[styles.titleRow, titleStyle]}>
               <TText style={[styles.title, { color: FLAME_COLOR }]}>
-                {currentStreak === 1
-                  ? "1 Day streak"
-                  : `${currentStreak} Day streak`}
+                {t("streak.dayStreak", { count: currentStreak })}
               </TText>
             </Animated.View>
 
             {/* Weekly dot grid */}
             <View style={styles.weekRow}>
-              {DAY_LABELS.map((label, i) => {
+              {DAY_LABEL_KEYS.map((key, i) => {
                 const isActive = activeDays[i];
                 const isToday = i === todayIndex;
                 return (
@@ -223,7 +230,7 @@ export function StreakModal({
                         },
                       ]}
                     >
-                      {label}
+                      {t(key)}
                     </TText>
                     <View
                       style={[
@@ -250,7 +257,7 @@ export function StreakModal({
                   { color: theme.colors.textSecondary },
                 ]}
               >
-                Best: {longestStreak} day{longestStreak !== 1 ? "s" : ""}
+                {t("streak.best", { count: longestStreak })}
               </TText>
             )}
 
@@ -259,7 +266,7 @@ export function StreakModal({
               const label = getStreakLabel(currentStreak);
               return label ? (
                 <TText style={[styles.identityLabel, { color: FLAME_COLOR }]}>
-                  {label.emoji} {label.label}
+                  {label.emoji} {t(label.labelKey)}
                 </TText>
               ) : null;
             })()}
@@ -274,19 +281,29 @@ export function StreakModal({
                     { color: theme.colors.textSecondary },
                   ]}
                 >
-                  {milestone.remaining} day
-                  {milestone.remaining !== 1 ? "s" : ""} to {milestone.target}
-                  -day milestone
+                  {t("streak.milestone", {
+                    remaining: milestone.remaining,
+                    target: milestone.target,
+                    count: milestone.remaining,
+                  })}
                 </TText>
               ) : null;
             })()}
 
             {/* Motivational message */}
-            <TText
-              style={[styles.message, { color: theme.colors.textSecondary }]}
-            >
-              {getStreakMotivation(currentStreak)}
-            </TText>
+            {(() => {
+              const msg = getStreakMotivation(currentStreak);
+              return (
+                <TText
+                  style={[
+                    styles.message,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  {msg ? t(msg.key, msg.params) : t("streak.startPrompt")}
+                </TText>
+              );
+            })()}
 
             {/* Streak freeze status */}
             {freezeAvailable && (
@@ -307,8 +324,7 @@ export function StreakModal({
                     { color: theme.colors.textSecondary },
                   ]}
                 >
-                  Streak Freeze available — miss a day without losing your
-                  streak
+                  {t("streak.freezeAvailable")}
                 </TText>
               </View>
             )}
@@ -330,7 +346,7 @@ export function StreakModal({
                       { color: theme.colors.text },
                     ]}
                   >
-                    Protect your streak
+                    {t("streak.protectStreak")}
                   </TText>
                   <TText
                     style={[
@@ -338,8 +354,7 @@ export function StreakModal({
                       { color: theme.colors.textMuted },
                     ]}
                   >
-                    Upgrade to Pro for a Streak Freeze — miss a day without
-                    losing progress
+                    {t("streak.freezeUpsell")}
                   </TText>
                 </View>
               </Pressable>
@@ -360,7 +375,7 @@ export function StreakModal({
                   { color: isDark ? "#000000" : "#FFFFFF" },
                 ]}
               >
-                Continue
+                {t("common.continue")}
               </TText>
             </Pressable>
           </Pressable>

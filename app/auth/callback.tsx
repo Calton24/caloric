@@ -23,16 +23,18 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  resolveCallbackAction,
-  resolveDestination,
+    resolveCallbackAction,
+    resolveDestination,
 } from "../../src/features/auth/callback-logic";
 import { useAuth } from "../../src/features/auth/useAuth";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { TButton } from "../../src/ui/primitives/TButton";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 
 export default function AuthCallbackScreen() {
+  const { t } = useAppTranslation();
   const { theme } = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams<{
@@ -61,8 +63,9 @@ export default function AuthCallbackScreen() {
       }
 
       // Phase 1: Exchange the PKCE code
-      const { error: exchangeError, isRecovery } =
-        await exchangeCodeForSession(decision.code);
+      const { error: exchangeError, isRecovery } = await exchangeCodeForSession(
+        decision.code
+      );
 
       if (cancelled) return;
 
@@ -108,7 +111,7 @@ export default function AuthCallbackScreen() {
           </View>
           <TSpacer size="lg" />
           <TText variant="heading" style={styles.title}>
-            Link Expired
+            {t("auth.linkExpired")}
           </TText>
           <TSpacer size="sm" />
           <TText color="secondary" style={styles.description}>
@@ -116,7 +119,7 @@ export default function AuthCallbackScreen() {
           </TText>
           <TSpacer size="xl" />
           <TButton onPress={() => router.replace("/auth/sign-in")}>
-            Back to Sign In
+            {t("auth.backToSignIn")}
           </TButton>
         </View>
       </SafeAreaView>
@@ -130,7 +133,7 @@ export default function AuthCallbackScreen() {
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
         <TSpacer size="lg" />
-        <TText color="secondary">Verifying your link...</TText>
+        <TText color="secondary">{t("auth.verifyingLink")}</TText>
       </View>
     </SafeAreaView>
   );

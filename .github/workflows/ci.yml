@@ -126,6 +126,50 @@ jobs:
       - name: Validate full test suite
         run: npm run validate || echo "Validation check (non-blocking)"
 
+  i18n-gate:
+    name: i18n Locale Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Validate locale files
+        run: node scripts/validate-locales.js
+
+      - name: Check generated types are up-to-date
+        run: |
+          cp src/infrastructure/i18n/types.generated.ts src/infrastructure/i18n/types.generated.ts.bak
+          node scripts/generate-i18n-types.js
+          if ! diff -q src/infrastructure/i18n/types.generated.ts src/infrastructure/i18n/types.generated.ts.bak > /dev/null 2>&1; then
+            echo "❌ types.generated.ts is stale — run 'npm run i18n:types' and commit"
+            exit 1
+          fi
+          echo "✅ types.generated.ts is up-to-date"
+
+      - name: Run i18n tests
+        run: npx jest __tests__/i18n-switching.test.ts --no-coverage
+
+      - name: Hardcoded string ratchet
+        run: |
+          BASELINE=$(node -e "console.log(require('./scripts/i18n-baseline.json').count)")
+          CURRENT=$(npx eslint 'app/**/*.{tsx,ts}' 'src/ui/**/*.{tsx,ts}' 2>&1 | grep -c "i18n/no-hardcoded-strings" || echo "0")
+          echo "Baseline: $BASELINE | Current: $CURRENT"
+          if [ "$CURRENT" -gt "$BASELINE" ]; then
+            echo "❌ Hardcoded string count increased: $CURRENT (was $BASELINE)"
+            exit 1
+          fi
+          echo "✅ Hardcoded strings within budget ($CURRENT ≤ $BASELINE)"
+
   all-checks-passed:
     name: All Checks Passed ✅
     runs-on: ubuntu-latest
@@ -136,6 +180,7 @@ jobs:
         unit-tests,
         check-unused-exports,
         build-validation,
+        i18n-gate,
       ]
     if: always()
 
@@ -146,7 +191,8 @@ jobs:
              [ "${{ needs.lint-and-typecheck.result }}" != "success" ] || \
              [ "${{ needs.unit-tests.result }}" != "success" ] || \
              [ "${{ needs.check-unused-exports.result }}" != "success" ] || \
-             [ "${{ needs.build-validation.result }}" != "success" ]; then
+             [ "${{ needs.build-validation.result }}" != "success" ] || \
+             [ "${{ needs.i18n-gate.result }}" != "success" ]; then
             echo "❌ One or more checks failed"
             exit 1
           else

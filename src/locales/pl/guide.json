@@ -1,0 +1,34 @@
+{
+  "guide": {
+    "title": "Poradnik",
+    "takePhoto": "Zrób zdjęcie jedzenia",
+    "takePhotoDesc": "Dotknij ikony aparatu w prawym dolnym rogu i zrób zdjęcie.",
+    "scanBarcodes": "Skanowanie kodów kreskowych",
+    "scanBarcodesDesc": "Dotknij ikony aparatu i sfotografuj kod kreskowy na opakowaniu.",
+    "speechRecognition": "Rozpoznawanie mowy",
+    "speechRecognitionDesc": "Dotknij ikony mikrofonu, aby zacząć, i ponownie, gdy skończysz.",
+    "textMode": "Tryb tekstowy",
+    "textModeDesc": "Dotknij ikony klawiatury, aby dodać jedzenie tekstem.",
+    "editingDetails": "Edycja szczegółów",
+    "editingDetailsDesc": "Możesz edytować ilość, dotykając odpowiedniej opcji.",
+    "trackingCalories": "Śledzenie kalorii",
+    "trackingCaloriesDesc": "Dotknij przycisku Śledź kalorie, aby zapisać wpisy."
+  },
+  "liveActivity": {
+    "title": "Aktywności na żywo",
+    "description": "Śledź swoje kalorie w czasie rzeczywistym z ekranu blokady i Dynamic Island",
+    "remaining": "pozostało",
+    "consumed": "spożyto",
+    "goal": "cel",
+    "activate": "Aktywuj",
+    "skip": "Pomiń",
+    "iosOnly": "Tylko iOS",
+    "iosOnlyDesc": "Aktywnosci na zywo sa dostepne tylko na urzadzeniach iOS.",
+    "unavailable": "Aktywnosci na zywo niedostepne",
+    "unavailableDesc": "Wlacz aktywnosci na zywo w Ustawieniach iOS > Caloric > Aktywnosci na zywo i upewnij sie, ze masz iOS 16.2 lub nowszy.",
+    "continueWithout": "Kontynuuj bez",
+    "subtitle": "Sledz swoje kalorie w czasie rzeczywistym bezposrednio z ekranu blokady i Dynamic Island.",
+    "notNow": "Nie teraz",
+    "dynamicIsland": "Dynamic Island"
+  }
+}

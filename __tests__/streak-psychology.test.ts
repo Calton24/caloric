@@ -20,39 +20,41 @@ describe("getStreakLabel", () => {
     expect(getStreakLabel(2)).toBeNull();
   });
 
-  it("returns 'Getting consistent' at day 3", () => {
+  it("returns 'Getting consistent' key at day 3", () => {
     const label = getStreakLabel(3);
     expect(label).not.toBeNull();
-    expect(label!.label).toBe("Getting consistent");
+    expect(label!.labelKey).toBe("streak.labels.gettingConsistent");
     expect(label!.tier).toBe("starter");
   });
 
-  it("returns 'On a streak' at day 7", () => {
+  it("returns 'On a streak' key at day 7", () => {
     const label = getStreakLabel(7);
-    expect(label!.label).toBe("On a streak");
+    expect(label!.labelKey).toBe("streak.labels.onAStreak");
     expect(label!.emoji).toBe("🔥");
   });
 
-  it("returns 'Disciplined' at day 14", () => {
-    expect(getStreakLabel(14)!.label).toBe("Disciplined");
+  it("returns 'Disciplined' key at day 14", () => {
+    expect(getStreakLabel(14)!.labelKey).toBe("streak.labels.disciplined");
     expect(getStreakLabel(14)!.tier).toBe("strong");
   });
 
-  it("returns 'Challenge completed' at day 21", () => {
-    expect(getStreakLabel(21)!.label).toBe("Challenge completed");
+  it("returns 'Challenge completed' key at day 21", () => {
+    expect(getStreakLabel(21)!.labelKey).toBe(
+      "streak.labels.challengeCompleted"
+    );
   });
 
   it("returns higher identity tiers past day 21", () => {
-    expect(getStreakLabel(30)!.label).toBe("Habit locked in");
-    expect(getStreakLabel(60)!.label).toBe("Elite tracker");
-    expect(getStreakLabel(90)!.label).toBe("Unstoppable");
-    expect(getStreakLabel(100)!.label).toBe("Unstoppable");
+    expect(getStreakLabel(30)!.labelKey).toBe("streak.labels.habitLockedIn");
+    expect(getStreakLabel(60)!.labelKey).toBe("streak.labels.eliteTracker");
+    expect(getStreakLabel(90)!.labelKey).toBe("streak.labels.unstoppable");
+    expect(getStreakLabel(100)!.labelKey).toBe("streak.labels.unstoppable");
   });
 
   it("picks highest matching tier for in-between values", () => {
-    expect(getStreakLabel(5)!.label).toBe("Getting consistent");
-    expect(getStreakLabel(10)!.label).toBe("On a streak");
-    expect(getStreakLabel(18)!.label).toBe("Disciplined");
+    expect(getStreakLabel(5)!.labelKey).toBe("streak.labels.gettingConsistent");
+    expect(getStreakLabel(10)!.labelKey).toBe("streak.labels.onAStreak");
+    expect(getStreakLabel(18)!.labelKey).toBe("streak.labels.disciplined");
   });
 });
 
@@ -63,10 +65,10 @@ describe("getProgressionMessage", () => {
     expect(getProgressionMessage(0)).toBeNull();
   });
 
-  it("returns a message for streaks >= 1", () => {
+  it("returns a message key for streaks >= 1", () => {
     expect(getProgressionMessage(1)).toBeTruthy();
-    expect(getProgressionMessage(7)).toContain("week");
-    expect(getProgressionMessage(21)).toContain("habit");
+    expect(getProgressionMessage(7)!.key).toBe("streak.progression.day7");
+    expect(getProgressionMessage(21)!.key).toBe("streak.progression.day21");
   });
 });
 

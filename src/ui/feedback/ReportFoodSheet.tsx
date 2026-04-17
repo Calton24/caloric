@@ -18,6 +18,7 @@ import {
     type ReportReasonCode,
     submitScanReport,
 } from "../../features/feedback/scan-feedback.service";
+import { useAppTranslation } from "../../infrastructure/i18n";
 import { useTheme } from "../../theme/useTheme";
 import { TSpacer } from "../primitives/TSpacer";
 import { TText } from "../primitives/TText";
@@ -76,6 +77,7 @@ export function ReportFoodSheet({
   onReported,
 }: ReportFoodSheetProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const { close } = useBottomSheet();
 
   const [selectedReason, setSelectedReason] = useState<ReportReasonCode | null>(
@@ -125,12 +127,12 @@ export function ReportFoodSheet({
           <TText
             style={[sheetStyles.successText, { color: theme.colors.text }]}
           >
-            Report submitted
+            {t("report.submitted")}
           </TText>
           <TText
             style={[sheetStyles.successSub, { color: theme.colors.textMuted }]}
           >
-            Thanks for helping improve accuracy
+            {t("report.thanksAccuracy")}
           </TText>
         </View>
       </View>
@@ -144,7 +146,7 @@ export function ReportFoodSheet({
       {/* Header */}
       <View style={sheetStyles.header}>
         <TText style={[sheetStyles.title, { color: theme.colors.text }]}>
-          Report Food
+          {t("mealConfirm.reportFood")}
         </TText>
         <Pressable onPress={close} hitSlop={12}>
           <Ionicons name="close" size={22} color={theme.colors.textMuted} />
@@ -222,7 +224,7 @@ export function ReportFoodSheet({
       >
         <TextInput
           style={[sheetStyles.textInput, { color: theme.colors.text }]}
-          placeholder="What's the issue with this food log?"
+          placeholder={t("report.issueQuestion")}
           placeholderTextColor={theme.colors.textMuted}
           value={reasonText}
           onChangeText={(t) => setReasonText(t.slice(0, MAX_TEXT_LENGTH))}
@@ -252,7 +254,7 @@ export function ReportFoodSheet({
           <TText
             style={[sheetStyles.actionBtnText, { color: theme.colors.text }]}
           >
-            Cancel
+            {t("common.cancel")}
           </TText>
         </Pressable>
         <Pressable
@@ -278,7 +280,9 @@ export function ReportFoodSheet({
               },
             ]}
           >
-            {status === "submitting" ? "Reporting..." : "Report"}
+            {status === "submitting"
+              ? t("report.reporting")
+              : t("report.submit")}
           </TText>
         </Pressable>
       </View>
@@ -287,7 +291,7 @@ export function ReportFoodSheet({
         <>
           <TSpacer size="sm" />
           <TText style={[sheetStyles.errorText, { color: theme.colors.error }]}>
-            Report saved locally. Will sync when online.
+            {t("report.savedLocally")}
           </TText>
         </>
       )}

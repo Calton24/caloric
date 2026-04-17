@@ -1,6 +1,7 @@
 // https://docs.expo.dev/guides/using-eslint/
 const { defineConfig } = require('eslint/config');
 const expoConfig = require('eslint-config-expo/flat');
+const i18nPlugin = require('./scripts/eslint-plugin-i18n');
 
 module.exports = defineConfig([
   expoConfig,
@@ -94,6 +95,32 @@ module.exports = defineConfig([
           ],
         },
       ],
+    },
+  },
+
+  // =========================================================================
+  // i18n ENFORCEMENT: No hardcoded user-facing strings
+  // =========================================================================
+  // Catches raw English text in JSX. All visible strings must use t("key").
+  // Runs as warn — the ratchet in i18n-ci.sh prevents new violations.
+  // Baseline is tracked in scripts/i18n-baseline.json.
+  // =========================================================================
+  {
+    files: ['app/**/*.{tsx,ts}', 'src/ui/**/*.{tsx,ts}'],
+    plugins: { i18n: i18nPlugin },
+    rules: {
+      'i18n/no-hardcoded-strings': ['warn', {
+        minLength: 2,
+        ignorePatterns: [
+          '^\\[',          // Log prefixes like [i18n]
+          '^#',            // Color hex codes
+          '^\\./',         // Relative paths
+          '^https?://',    // URLs
+          '^\\d',          // Strings starting with numbers
+          '^[\\p{Emoji}\\s]+$', // Emoji-only strings
+          '^[•·\\-–—\\s]+$',   // Password masks, bullet separators
+        ],
+      }],
     },
   },
 

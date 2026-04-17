@@ -22,6 +22,7 @@ import Animated, {
     withTiming,
 } from "react-native-reanimated";
 import Svg, { ClipPath, Defs, Path, Rect } from "react-native-svg";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -60,6 +61,7 @@ export function WaterTracker({
   style,
 }: WaterTrackerProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const color = waterColor ?? "#5AC8FA";
   const progress = Math.min(current / goal, 1);
   const pct = Math.round(progress * 100);
@@ -203,7 +205,7 @@ export function WaterTracker({
             {current.toFixed(1)}
           </TText>
           <TText style={[styles.statUnit, { color: theme.colors.textMuted }]}>
-            {unit} consumed
+            {unit} {t("analytics.waterConsumed")}
           </TText>
         </View>
         <View
@@ -217,7 +219,7 @@ export function WaterTracker({
             {(goal - current > 0 ? goal - current : 0).toFixed(1)}
           </TText>
           <TText style={[styles.statUnit, { color: theme.colors.textMuted }]}>
-            {unit} remaining
+            {unit} {t("analytics.waterRemaining")}
           </TText>
         </View>
       </View>
@@ -245,7 +247,7 @@ export function WaterTracker({
             <TText
               style={[styles.glassCount, { color: theme.colors.textSecondary }]}
             >
-              {glasses} glasses
+              {glasses} {t("analytics.glasses")}
             </TText>
           )}
         </View>

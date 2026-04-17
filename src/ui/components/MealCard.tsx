@@ -10,10 +10,8 @@ import { Image } from "expo-image";
 import React, { useRef } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
-import Animated, {
-    SlideInRight,
-    SlideOutRight
-} from "react-native-reanimated";
+import Animated, { SlideInRight, SlideOutRight } from "react-native-reanimated";
+import { useAppTranslation } from "../../infrastructure/i18n";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -43,22 +41,27 @@ export function MealCard({
   onDelete,
 }: MealCardProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const swipeRef = useRef<Swipeable>(null);
 
   const handleDelete = () => {
     swipeRef.current?.close();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert("Delete Meal", `Delete "${title}"?`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          onDelete?.();
+    Alert.alert(
+      t("editMeal.deleteMeal"),
+      `${t("editMeal.deleteMealConfirm")} "${title}"?`,
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("editMeal.delete"),
+          style: "destructive",
+          onPress: () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            onDelete?.();
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const renderRightActions = () => {
@@ -81,7 +84,7 @@ export function MealCard({
           ]}
         >
           <Ionicons name="trash" size={20} color="#fff" />
-          <TText style={styles.deleteText}>Delete</TText>
+          <TText style={styles.deleteText}>{t("common.delete")}</TText>
         </Pressable>
       </Animated.View>
     );
@@ -148,7 +151,7 @@ export function MealCard({
           {calories}
         </TText>
         <TText style={[styles.calLabel, { color: theme.colors.textMuted }]}>
-          cal
+          {t("tracking.cal")}
         </TText>
       </View>
       {onPress && (

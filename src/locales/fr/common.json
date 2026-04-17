@@ -2,19 +2,6 @@
   "app": {
     "title": "Caloric"
   },
-  "auth": {
-    "signIn": "Se connecter",
-    "signUp": "S'inscrire",
-    "signOut": "Se déconnecter",
-    "email": "E-mail",
-    "password": "Mot de passe",
-    "confirmPassword": "Confirmer le mot de passe",
-    "forgotPassword": "Mot de passe oublié ?",
-    "createAccount": "Créer un compte",
-    "welcome": "Bienvenue",
-    "signInToContinue": "Connectez-vous pour continuer",
-    "signUpToGetStarted": "Inscrivez-vous pour commencer"
-  },
   "common": {
     "cancel": "Annuler",
     "save": "Enregistrer",
@@ -27,19 +14,39 @@
     "ok": "OK",
     "error": "Erreur",
     "success": "Succès",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "continue": "Continuer",
+    "letsGo": "C'est parti !",
+    "weeks": "Semaines",
+    "years": "ans",
+    "recommended": "Recommandé",
+    "email": "E-mail",
+    "processing": "Traitement...",
+    "language": "Language",
+    "notNow": "Not now",
+    "search": "Search",
+    "like": "LIKE",
+    "nope": "NOPE"
   },
   "calories": {
     "label": "Calories",
     "value_one": "{{count}} calorie",
     "value_other": "{{count}} calories"
   },
-  "landing": {
-    "headline": "21 jours pour de\nmeilleures habitudes",
-    "subline": "Prenez une photo. L’IA fait le reste.\nPas de comptage. Pas d’approximation.",
-    "cta": "Démarrer 21 jours",
-    "ctaConfirm": "Jour 1 commence",
-    "signInPrompt": "Déjà un compte ? ",
-    "signIn": "Se connecter"
+  "tabs": {
+    "home": "Accueil",
+    "notes": "Notes",
+    "auth": "Compte",
+    "playground": "Bac à sable",
+    "caloric": "Caloric"
+  },
+  "days": {
+    "monShort": "L",
+    "tueShort": "M",
+    "wedShort": "M",
+    "thuShort": "J",
+    "friShort": "V",
+    "satShort": "S",
+    "sunShort": "D"
   }
 }

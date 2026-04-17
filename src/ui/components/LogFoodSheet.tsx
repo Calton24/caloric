@@ -20,6 +20,7 @@ import {
     View,
 } from "react-native";
 import { useLoggingFlow } from "../../features/nutrition/use-logging-flow";
+import { useAppTranslation } from "../../infrastructure/i18n";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 import { TrackingPromptCard } from "./TrackingPromptCard";
@@ -55,6 +56,7 @@ interface LogFoodSheetProps {
 
 export function LogFoodSheet({ onClose }: LogFoodSheetProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -96,7 +98,7 @@ export function LogFoodSheet({ onClose }: LogFoodSheetProps) {
         >
           <Ionicons name="bulb-outline" size={16} color={theme.colors.text} />
           <TText style={[styles.guideLabel, { color: theme.colors.text }]}>
-            Guide
+            {t("guide.title")}
           </TText>
         </Pressable>
 
@@ -148,7 +150,7 @@ export function LogFoodSheet({ onClose }: LogFoodSheetProps) {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="What did you eat?"
+          placeholder={t("tracking.describeFood")}
           placeholderTextColor={theme.colors.textMuted}
           style={[styles.textInput, { color: theme.colors.text }]}
           multiline

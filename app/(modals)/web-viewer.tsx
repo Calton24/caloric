@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { TText } from "../../src/ui/primitives/TText";
 
@@ -24,12 +25,13 @@ export default function WebViewerModal() {
   const { url, title } = useLocalSearchParams<{ url: string; title: string }>();
   const router = useRouter();
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const webViewRef = useRef<WebView>(null);
   const [loading, setLoading] = useState(true);
   const [canGoBack, setCanGoBack] = useState(false);
 
   const decodedUrl = url ? decodeURIComponent(url) : "";
-  const decodedTitle = title ? decodeURIComponent(title) : "Loading...";
+  const decodedTitle = title ? decodeURIComponent(title) : t("common.loading");
 
   return (
     <SafeAreaView

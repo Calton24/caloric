@@ -18,6 +18,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRecalibration } from "../../src/features/goals/use-recalibration";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { RecalibrationCard } from "../../src/ui/components/RecalibrationCard";
 import { TrackingPromptCard } from "../../src/ui/components/TrackingPromptCard";
@@ -60,6 +61,7 @@ const PROMPTS = [
 
 export default function TrackingLauncherScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
   const { result, applyRecalibration } = useRecalibration();
   const [dismissed, setDismissed] = useState(false);
@@ -78,7 +80,7 @@ export default function TrackingLauncherScreen() {
             variant="heading"
             style={[styles.headerTitle, { color: theme.colors.text }]}
           >
-            Log Food
+            {t("tracking.logFood")}
           </TText>
           <View style={{ width: 24 }} />
         </View>
@@ -101,7 +103,7 @@ export default function TrackingLauncherScreen() {
                 <TText
                   style={[styles.guideLabel, { color: theme.colors.primary }]}
                 >
-                  Guide
+                  {t("tracking.guide")}
                 </TText>
               </View>
             </View>
@@ -113,8 +115,7 @@ export default function TrackingLauncherScreen() {
             <TText
               style={[styles.guideText, { color: theme.colors.textSecondary }]}
             >
-              Describe what you ate naturally. Caloric will identify the food
-              items and estimate nutrition.
+              {t("tracking.guideDesc")}
             </TText>
           </Animated.View>
 
@@ -175,7 +176,7 @@ export default function TrackingLauncherScreen() {
                   { color: theme.colors.textSecondary },
                 ]}
               >
-                Type
+                {t("tracking.type")}
               </TText>
             </Pressable>
 
@@ -223,7 +224,7 @@ export default function TrackingLauncherScreen() {
                   { color: theme.colors.textSecondary },
                 ]}
               >
-                Scan
+                {t("tracking.scan")}
               </TText>
             </Pressable>
           </View>

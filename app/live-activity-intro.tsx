@@ -15,6 +15,7 @@ import Animated, {
     FadeInDown,
     FadeInUp,
 } from "react-native-reanimated";
+import { useAppTranslation } from "../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../src/theme/useTheme";
 import { ScreenContainer } from "../src/ui/components/ScreenContainer";
 import { TSpacer } from "../src/ui/primitives/TSpacer";
@@ -22,6 +23,7 @@ import { TText } from "../src/ui/primitives/TText";
 
 export default function LiveActivityIntroScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
 
   const handleActivate = () => {
@@ -42,14 +44,13 @@ export default function LiveActivityIntroScreen() {
             variant="heading"
             style={[styles.title, { color: theme.colors.text }]}
           >
-            Live Activities
+            {t("liveActivity.title")}
           </TText>
           <TSpacer size="sm" />
           <TText
             style={[styles.subtitle, { color: theme.colors.textSecondary }]}
           >
-            Track your calories in real-time right from your Lock Screen and
-            Dynamic Island.
+            {t("liveActivity.description")}
           </TText>
         </Animated.View>
 
@@ -91,7 +92,7 @@ export default function LiveActivityIntroScreen() {
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  remaining
+                  {t("liveActivity.remaining")}
                 </TText>
               </View>
 
@@ -161,7 +162,7 @@ export default function LiveActivityIntroScreen() {
             <TText
               style={[styles.islandLabel, { color: theme.colors.textMuted }]}
             >
-              Dynamic Island
+              {t("liveActivity.dynamicIsland")}
             </TText>
           </View>
         </Animated.View>
@@ -194,7 +195,7 @@ export default function LiveActivityIntroScreen() {
             <TText
               style={[styles.ctaText, { color: theme.colors.textInverse }]}
             >
-              Activate Live Activities
+              {t("liveActivity.activate")}
             </TText>
           </LinearGradient>
         </Pressable>
@@ -203,7 +204,7 @@ export default function LiveActivityIntroScreen() {
 
         <Pressable onPress={handleSkip} hitSlop={12}>
           <TText style={[styles.skipText, { color: theme.colors.textMuted }]}>
-            Not now
+            {t("liveActivity.skip")}
           </TText>
         </Pressable>
       </Animated.View>

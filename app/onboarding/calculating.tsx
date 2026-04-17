@@ -22,22 +22,24 @@ import Animated, {
     withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme } from "../../src/theme/useTheme";
 import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
+import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 
-const STEPS = [
-  "Analyzing body composition…",
-  "Computing daily energy needs…",
-  "Building macro split…",
-  "Optimizing meal timing…",
-  "Finalizing your plan…",
+const STEP_KEYS = [
+  "onboarding.calculating.step1",
+  "onboarding.calculating.step2",
+  "onboarding.calculating.step3",
+  "onboarding.calculating.step4",
+  "onboarding.calculating.step5",
 ];
 
 export default function OnboardingCalculatingScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
   const { calculatePlan } = useOnboarding();
   const [stepIdx, setStepIdx] = useState(0);
@@ -82,8 +84,12 @@ export default function OnboardingCalculatingScreen() {
         if (next >= 100 && !navigated.current) {
           navigated.current = true;
           setTimeout(() => {
-            try { calculatePlan(); } catch (e) { console.error("Plan calculation failed:", e); }
-          router.replace("/onboarding/plan" as any);
+            try {
+              calculatePlan();
+            } catch (e) {
+              console.error("Plan calculation failed:", e);
+            }
+            router.replace("/onboarding/plan" as any);
           }, 400);
         }
         return next;
@@ -91,7 +97,7 @@ export default function OnboardingCalculatingScreen() {
     }, 60);
 
     const stepInterval = setInterval(() => {
-      setStepIdx((s) => Math.min(s + 1, STEPS.length - 1));
+      setStepIdx((s) => Math.min(s + 1, STEP_KEYS.length - 1));
     }, 600);
 
     return () => {
@@ -112,7 +118,7 @@ export default function OnboardingCalculatingScreen() {
               variant="heading"
               style={[styles.heading, { color: theme.colors.text }]}
             >
-              Creating your{"\n"}weight plan…
+              {t("onboarding.calculating.heading")}
             </TText>
           </Animated.View>
 
@@ -120,7 +126,7 @@ export default function OnboardingCalculatingScreen() {
 
           <Animated.View entering={FadeIn.duration(600).delay(300)}>
             <TText color="secondary" style={styles.subtitle}>
-              Crunching the numbers just for you
+              {t("onboarding.calculating.subtitle")}
             </TText>
           </Animated.View>
 
@@ -199,7 +205,7 @@ export default function OnboardingCalculatingScreen() {
               <TText
                 style={[styles.stepText, { color: theme.colors.textSecondary }]}
               >
-                {STEPS[stepIdx]}
+                {t(STEP_KEYS[stepIdx])}
               </TText>
             </View>
 

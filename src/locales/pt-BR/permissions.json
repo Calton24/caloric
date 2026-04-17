@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "title": "Permissões necessárias",
+    "description": "O Caloric usa seu microfone e reconhecimento de fala para registrar refeições por voz.",
+    "microphone": "Microfone",
+    "microphoneDesc": "Ouvir sua voz para registrar refeições",
+    "speechRecognition": "Reconhecimento de fala",
+    "speechRecognitionDesc": "Converter sua fala em texto",
+    "pushNotifications": "Notificações push",
+    "pushNotificationsDesc": "Lembretes de refeições e atualizações",
+    "grantPermissions": "Conceder permissões",
+    "skipForNow": "Pular por enquanto"
+  },
+  "permissionsSetup": {
+    "title": "Permissões necessárias",
+    "subtitle": "O Caloric usa seu microfone e reconhecimento de voz para registrar refeições, e notificações para manter você no caminho certo.",
+    "microphone": "Microfone",
+    "microphoneDesc": "Ouça sua voz para registrar refeições",
+    "speechRecognition": "Reconhecimento de voz",
+    "speechRecognitionDesc": "Converta sua voz em entradas alimentares",
+    "pushNotifications": "Notificações push",
+    "pushNotificationsDesc": "Lembretes e atualizações diárias",
+    "continue": "Continuar",
+    "grantPermissions": "Conceder permissões",
+    "skipForNow": "Pular por enquanto"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "progress": {
+    "title": "Progress",
+    "week": "Week",
+    "month": "Month",
+    "year": "Year",
+    "recalculate": "Recalculate",
+    "addWeight": "Add Weight",
+    "last7Days": "Last 7 Days",
+    "last30Days": "Last 30 Days",
+    "lastYear": "Last Year",
+    "goalLabel": "Goal: {{weight}} {{unit}}",
+    "current": "Current ({{unit}})",
+    "lost": "Lost ({{unit}})",
+    "toGoal": "To goal ({{unit}})",
+    "calorieTrends": "Calorie Trends",
+    "budgetLabel": "Budget: {{budget}} kcal",
+    "noMealsLogged": "No meals logged in this period",
+    "avgKcalDay": "Avg kcal/day",
+    "avgProtein": "Avg protein",
+    "onTarget": "On target",
+    "proteinShort": "P:",
+    "carbsShort": "C:",
+    "fatShort": "F:",
+    "logWeight": "Log Weight",
+    "recalculatePlan": "Recalculate Plan",
+    "cannotRecalculate": "Cannot Recalculate",
+    "cannotRecalculateDesc": "Log a weight entry and complete onboarding first.",
+    "planUpdated": "Plan Updated",
+    "planUpdatedDesc": "Your plan has been recalculated using your latest weight of {{weight}}."
+  },
+  "logWeight": {
+    "title": "Log Weight",
+    "today": "Today",
+    "goalLabel": "Goal: {{weight}} {{unit}} ({{difference}} {{unit}} to go)",
+    "save": "Save Weight"
+  }
+}

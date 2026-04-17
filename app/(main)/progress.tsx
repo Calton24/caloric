@@ -21,6 +21,7 @@ import {
     getWeightStats,
 } from "../../src/features/progress/progress-shaping.service";
 import { useRecalculatePlan } from "../../src/features/progress/use-recalculate-plan";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useProfileStore, useProgressStore } from "../../src/stores";
 import { useTheme } from "../../src/theme/useTheme";
 import { SegmentedControl } from "../../src/ui/components/SegmentedControl";
@@ -28,10 +29,11 @@ import { WeightChart } from "../../src/ui/components/WeightChart";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 
-const SEGMENTS = ["Week", "Month", "Year"];
+const SEGMENT_KEYS = ["progress.week", "progress.month", "progress.year"];
 
 export default function ProgressScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
   const units = useUnits();
   const [segmentIndex, setSegmentIndex] = useState(0);
@@ -71,7 +73,7 @@ export default function ProgressScreen() {
             variant="heading"
             style={[styles.headerTitle, { color: theme.colors.text }]}
           >
-            Progress
+            {t("progress.title")}
           </TText>
           <View style={{ width: 24 }} />
         </View>
@@ -85,7 +87,7 @@ export default function ProgressScreen() {
           {/* Segmented Control */}
           <Animated.View entering={FadeIn.duration(400)}>
             <SegmentedControl
-              segments={SEGMENTS}
+              segments={SEGMENT_KEYS.map((k) => t(k))}
               selectedIndex={segmentIndex}
               onSelect={setSegmentIndex}
             />
@@ -101,7 +103,13 @@ export default function ProgressScreen() {
                 { color: theme.colors.textSecondary },
               ]}
             >
-              {["Last 7 Days", "Last 30 Days", "Last Year"][segmentIndex]}
+              {
+                [
+                  t("progress.last7Days"),
+                  t("progress.last30Days"),
+                  t("progress.lastYear"),
+                ][segmentIndex]
+              }
             </TText>
           </Animated.View>
 
@@ -138,7 +146,10 @@ export default function ProgressScreen() {
               <TText
                 style={[styles.legendText, { color: theme.colors.textMuted }]}
               >
-                Goal: {units.display(goalWeight)} {units.label}
+                {t("progress.goalLabel", {
+                  weight: units.display(goalWeight),
+                  unit: units.label,
+                })}
               </TText>
             </View>
           </Animated.View>
@@ -166,7 +177,7 @@ export default function ProgressScreen() {
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  Current ({units.label})
+                  {t("progress.current", { unit: units.label })}
                 </TText>
               </View>
 
@@ -189,7 +200,7 @@ export default function ProgressScreen() {
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  Lost ({units.label})
+                  {t("progress.lost", { unit: units.label })}
                 </TText>
               </View>
 
@@ -212,7 +223,7 @@ export default function ProgressScreen() {
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  To goal ({units.label})
+                  {t("progress.toGoal", { unit: units.label })}
                 </TText>
               </View>
             </View>
@@ -240,7 +251,7 @@ export default function ProgressScreen() {
               <TText
                 style={[styles.actionText, { color: theme.colors.primary }]}
               >
-                Log Weight
+                {t("progress.logWeight")}
               </TText>
             </Pressable>
 
@@ -248,15 +259,17 @@ export default function ProgressScreen() {
               onPress={() => {
                 if (!canRecalculate) {
                   Alert.alert(
-                    "Cannot Recalculate",
-                    "Log a weight entry and complete onboarding first."
+                    t("progress.cannotRecalculate"),
+                    t("progress.cannotRecalculateDesc")
                   );
                   return;
                 }
                 recalculate();
                 Alert.alert(
-                  "Plan Updated",
-                  `Your plan has been recalculated using your latest weight of ${units.format(currentWeight)}.`
+                  t("progress.planUpdated"),
+                  t("progress.planUpdatedDesc", {
+                    weight: units.format(currentWeight),
+                  })
                 );
               }}
               style={[
@@ -272,7 +285,7 @@ export default function ProgressScreen() {
               <TText
                 style={[styles.actionText, { color: theme.colors.primary }]}
               >
-                Recalculate Plan
+                {t("progress.recalculatePlan")}
               </TText>
             </Pressable>
           </Animated.View>

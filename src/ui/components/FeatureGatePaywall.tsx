@@ -14,6 +14,7 @@ import Animated, {
     FadeInUp,
 } from "react-native-reanimated";
 import { useRevenueCat } from "../../features/subscription/useRevenueCat";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { TSpacer } from "../primitives/TSpacer";
 import { TText } from "../primitives/TText";
@@ -78,6 +79,7 @@ export function FeatureGatePaywall({
   feature,
 }: FeatureGatePaywallProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const { packages, isLoadingOfferings, purchasePackage, restorePurchases } =
     useRevenueCat();
 
@@ -173,7 +175,7 @@ export function FeatureGatePaywall({
                 { color: theme.colors.textSecondary },
               ]}
             >
-              Included with any plan
+              {t("paywall.includedWithPlan")}
             </TText>
           </Animated.View>
 
@@ -204,7 +206,7 @@ export function FeatureGatePaywall({
             <TText
               style={[styles.notNowText, { color: theme.colors.textMuted }]}
             >
-              Not now
+              {t("common.notNow")}
             </TText>
           </Pressable>
 
@@ -212,7 +214,7 @@ export function FeatureGatePaywall({
             <TText
               style={[styles.restoreText, { color: theme.colors.textMuted }]}
             >
-              Restore Purchases
+              {t("settings.restorePurchases")}
             </TText>
           </Pressable>
         </Animated.View>

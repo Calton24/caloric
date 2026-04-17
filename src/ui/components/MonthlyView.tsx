@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -50,6 +51,7 @@ export function MonthlyView({
   isToday,
 }: MonthlyViewProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const radius = (CELL_SIZE - STROKE_W) / 2;
   const circumference = 2 * Math.PI * radius;
 
@@ -215,7 +217,7 @@ export function MonthlyView({
             <TText
               style={[styles.summaryLabel, { color: theme.colors.textMuted }]}
             >
-              days logged
+              {t("monthly.daysLogged")}
             </TText>
           </View>
           <View
@@ -231,7 +233,7 @@ export function MonthlyView({
             <TText
               style={[styles.summaryLabel, { color: theme.colors.textMuted }]}
             >
-              days in month
+              {t("monthly.daysInMonth")}
             </TText>
           </View>
         </View>

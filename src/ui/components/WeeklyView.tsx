@@ -10,17 +10,27 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
+import { formatMonthDay } from "../../infrastructure/i18n";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
-const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
+const DAY_LABEL_KEYS = [
+  "days.monShort",
+  "days.tueShort",
+  "days.wedShort",
+  "days.thuShort",
+  "days.friShort",
+  "days.satShort",
+  "days.sunShort",
+];
 const CIRCLE_SIZE = 40;
 const STROKE_W = 3;
 
-/** Format "2025-03-15" → "Mar 15" */
+/** Format "2025-03-15" → "Mar 15" (locale-aware) */
 function formatShortDate(iso: string): string {
   const d = new Date(iso + "T12:00:00");
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return formatMonthDay(d);
 }
 
 interface WeeklyViewProps {
@@ -62,6 +72,7 @@ export function WeeklyView({
   isToday,
 }: WeeklyViewProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const radius = (CIRCLE_SIZE - STROKE_W) / 2;
   const circumference = 2 * Math.PI * radius;
 
@@ -116,7 +127,10 @@ export function WeeklyView({
               key={day.key}
               onPress={() => onSelectDay(idx)}
               style={styles.dayColumn}
-              accessibilityLabel={`${DAY_LABELS[idx]}, day ${day.dayNumber}`}
+              accessibilityLabel={t("weekly.dayA11y", {
+                label: t(DAY_LABEL_KEYS[idx]),
+                number: day.dayNumber,
+              })}
             >
               <TText
                 style={[
@@ -128,7 +142,7 @@ export function WeeklyView({
                   },
                 ]}
               >
-                {DAY_LABELS[idx]}
+                {t(DAY_LABEL_KEYS[idx])}
               </TText>
 
               <View
@@ -206,7 +220,7 @@ export function WeeklyView({
             <TText
               style={[styles.summaryLabel, { color: theme.colors.textMuted }]}
             >
-              total cal
+              {t("weekly.totalCal")}
             </TText>
           </View>
           <View
@@ -226,7 +240,7 @@ export function WeeklyView({
             <TText
               style={[styles.summaryLabel, { color: theme.colors.textMuted }]}
             >
-              avg / day
+              {t("weekly.avgPerDay")}
             </TText>
           </View>
           <View
@@ -242,7 +256,7 @@ export function WeeklyView({
             <TText
               style={[styles.summaryLabel, { color: theme.colors.textMuted }]}
             >
-              days logged
+              {t("weekly.daysLogged")}
             </TText>
           </View>
         </View>

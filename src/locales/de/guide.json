@@ -1,0 +1,34 @@
+{
+  "guide": {
+    "title": "Anleitung",
+    "takePhoto": "Fotografiere dein Essen",
+    "takePhotoDesc": "Tippe auf das Kamera-Symbol unten rechts und mache ein Foto.",
+    "scanBarcodes": "Barcodes scannen",
+    "scanBarcodesDesc": "Tippe auf das Kamera-Symbol und fotografiere den Barcode auf der Verpackung.",
+    "speechRecognition": "Spracherkennung",
+    "speechRecognitionDesc": "Tippe auf das Mikrofon-Symbol, um zu starten, und erneut, wenn du fertig bist.",
+    "textMode": "Textmodus",
+    "textModeDesc": "Tippe auf das Tastatur-Symbol, um Essen per Texteingabe hinzuzufügen.",
+    "editingDetails": "Details bearbeiten",
+    "editingDetailsDesc": "Du kannst Menge oder Maße bearbeiten, indem du auf die entsprechende Option tippst.",
+    "trackingCalories": "Kalorien tracken",
+    "trackingCaloriesDesc": "Tippe auf den Kalorien-tracken-Button, um die Einträge zu speichern."
+  },
+  "liveActivity": {
+    "title": "Live-Aktivitäten",
+    "description": "Verfolge deine Kalorien in Echtzeit direkt vom Sperrbildschirm und der Dynamic Island",
+    "remaining": "übrig",
+    "consumed": "gegessen",
+    "goal": "Ziel",
+    "activate": "Aktivieren",
+    "skip": "Überspringen",
+    "iosOnly": "Nur iOS",
+    "iosOnlyDesc": "Live-Aktivitaeten sind nur auf iOS-Geraeten verfuegbar.",
+    "unavailable": "Live-Aktivitaeten nicht verfuegbar",
+    "unavailableDesc": "Bitte aktiviere Live-Aktivitaeten in iOS Einstellungen > Caloric > Live-Aktivitaeten und stelle sicher, dass du iOS 16.2 oder neuer verwendest.",
+    "continueWithout": "Ohne fortfahren",
+    "subtitle": "Verfolge deine Kalorien in Echtzeit direkt auf deinem Sperrbildschirm und der Dynamic Island.",
+    "notNow": "Nicht jetzt",
+    "dynamicIsland": "Dynamic Island"
+  }
+}

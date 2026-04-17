@@ -9,24 +9,20 @@ import { Ionicons } from "@expo/vector-icons";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  View,
-} from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { useLoggingFlow } from "../../features/nutrition/use-logging-flow";
+import { useAppTranslation } from "../../infrastructure/i18n";
 import { useTheme } from "../../theme/useTheme";
 import { TSpacer } from "../primitives/TSpacer";
 import { TText } from "../primitives/TText";
 
 const QUICK_FOODS = [
-  { icon: "🥚", label: "Eggs", cal: 155 },
-  { icon: "🍌", label: "Banana", cal: 105 },
-  { icon: "🥗", label: "Salad", cal: 150 },
-  { icon: "🍗", label: "Chicken", cal: 335 },
-  { icon: "🍚", label: "Rice", cal: 206 },
-  { icon: "🥛", label: "Yogurt", cal: 100 },
+  { icon: "🥚", labelKey: "manualLog.eggs", cal: 155 },
+  { icon: "🍌", labelKey: "manualLog.banana", cal: 105 },
+  { icon: "🥗", labelKey: "manualLog.salad", cal: 150 },
+  { icon: "🍗", labelKey: "manualLog.chicken", cal: 335 },
+  { icon: "🍚", labelKey: "manualLog.rice", cal: 206 },
+  { icon: "🥛", labelKey: "manualLog.yogurt", cal: 100 },
 ];
 
 interface ManualLogSheetProps {
@@ -35,6 +31,7 @@ interface ManualLogSheetProps {
 
 export function ManualLogSheet({ onClose }: ManualLogSheetProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const [query, setQuery] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const { startFromInput } = useLoggingFlow();
@@ -69,7 +66,7 @@ export function ManualLogSheet({ onClose }: ManualLogSheetProps) {
         <BottomSheetTextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Describe what you ate..."
+          placeholder={t("manualLog.placeholder")}
           placeholderTextColor={theme.colors.textMuted}
           style={[styles.searchInput, { color: theme.colors.text }]}
           multiline
@@ -81,16 +78,20 @@ export function ManualLogSheet({ onClose }: ManualLogSheetProps) {
       <TSpacer size="lg" />
 
       {/* Quick add */}
-      <TText style={[styles.sectionLabel, { color: theme.colors.textSecondary }]}>
-        Quick Add
+      <TText
+        style={[styles.sectionLabel, { color: theme.colors.textSecondary }]}
+      >
+        {t("manualLog.quickAdd")}
       </TText>
       <TSpacer size="sm" />
       <View style={styles.quickGrid}>
         {QUICK_FOODS.map((food) => (
           <Pressable
-            key={food.label}
+            key={food.labelKey}
             onPress={() =>
-              setQuery((q) => (q ? `${q}, ${food.label}` : food.label))
+              setQuery((q) =>
+                q ? `${q}, ${t(food.labelKey)}` : t(food.labelKey)
+              )
             }
             style={({ pressed }) => [
               styles.quickItem,
@@ -102,10 +103,10 @@ export function ManualLogSheet({ onClose }: ManualLogSheetProps) {
           >
             <TText style={styles.quickEmoji}>{food.icon}</TText>
             <TText style={[styles.quickLabel, { color: theme.colors.text }]}>
-              {food.label}
+              {t(food.labelKey)}
             </TText>
             <TText style={[styles.quickCal, { color: theme.colors.textMuted }]}>
-              {food.cal} cal
+              {food.cal} {t("tracking.cal")}
             </TText>
           </Pressable>
         ))}
@@ -129,7 +130,10 @@ export function ManualLogSheet({ onClose }: ManualLogSheetProps) {
               style={styles.logGradient}
             >
               {isProcessing ? (
-                <ActivityIndicator size="small" color={theme.colors.textInverse} />
+                <ActivityIndicator
+                  size="small"
+                  color={theme.colors.textInverse}
+                />
               ) : (
                 <Ionicons
                   name="checkmark-circle"
@@ -137,8 +141,10 @@ export function ManualLogSheet({ onClose }: ManualLogSheetProps) {
                   color={theme.colors.textInverse}
                 />
               )}
-              <TText style={[styles.logText, { color: theme.colors.textInverse }]}>
-                {isProcessing ? "Processing..." : "Log Food"}
+              <TText
+                style={[styles.logText, { color: theme.colors.textInverse }]}
+              >
+                {isProcessing ? t("common.processing") : t("manualLog.logFood")}
               </TText>
             </LinearGradient>
           </Pressable>

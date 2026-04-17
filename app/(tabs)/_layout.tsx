@@ -2,6 +2,7 @@ import { FeatureFlags } from "@/config/features";
 import { useAuth } from "@/src/features/auth/useAuth";
 import { useLiveActivitySync } from "@/src/features/live-activity";
 import { haptics } from "@/src/infrastructure/haptics";
+import { useAppTranslation } from "@/src/infrastructure/i18n";
 import { useTheme } from "@/src/theme/useTheme";
 import { GlassTabBar } from "@/src/ui/tabs/GlassTabBar";
 import { Icon, Label, Redirect, Tabs, usePathname } from "expo-router";
@@ -22,35 +23,35 @@ const TABS = [
   {
     name: "index",
     flag: FeatureFlags.SHOW_HOME,
-    label: "Home",
+    labelKey: "tabs.home",
     sf: "house.fill",
     ionicon: "home",
   },
   {
     name: "notes",
     flag: FeatureFlags.SHOW_NOTES,
-    label: "Notes",
+    labelKey: "tabs.notes",
     sf: "note.text",
     ionicon: "document-text",
   },
   {
     name: "auth",
     flag: FeatureFlags.SHOW_AUTH,
-    label: "Auth",
+    labelKey: "tabs.auth",
     sf: "person.circle.fill",
     ionicon: "person-circle",
   },
   {
     name: "playground",
     flag: FeatureFlags.SHOW_PLAYGROUND,
-    label: "Playground",
+    labelKey: "tabs.playground",
     sf: "sparkles",
     ionicon: "sparkles",
   },
   {
     name: "caloric",
     flag: FeatureFlags.SHOW_CALORIC,
-    label: "Caloric",
+    labelKey: "tabs.caloric",
     sf: "hammer.fill",
     ionicon: "hammer",
   },
@@ -76,6 +77,7 @@ function useTabChangeHaptics() {
 // ─── Native liquid-glass tabs (iOS 26+) ───────────────────────
 function NativeTabLayout() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   useTabChangeHaptics();
 
   // Use the app's own theme mode (not the device's useColorScheme)
@@ -85,10 +87,10 @@ function NativeTabLayout() {
   return (
     <View testID="tabs-root" style={{ flex: 1, backgroundColor: screenBg }}>
       <NativeTabs>
-        {TABS.filter((t) => t.flag).map((t) => (
-          <NativeTabs.Trigger key={t.name} name={t.name}>
-            <Icon sf={t.sf} />
-            <Label>{t.label}</Label>
+        {TABS.filter((t) => t.flag).map((tab) => (
+          <NativeTabs.Trigger key={tab.name} name={tab.name}>
+            <Icon sf={tab.sf} />
+            <Label>{t(tab.labelKey)}</Label>
           </NativeTabs.Trigger>
         ))}
       </NativeTabs>
@@ -99,6 +101,7 @@ function NativeTabLayout() {
 // ─── Custom glass pill tabs (iOS < 26 & Android) ─────────────
 function GlassTabLayout() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   return (
     <View
       testID="tabs-root"
@@ -112,13 +115,13 @@ function GlassTabLayout() {
           sceneStyle: { backgroundColor: theme.colors.background },
         }}
       >
-        {TABS.map((t) => (
+        {TABS.map((tab) => (
           <Tabs.Screen
-            key={t.name}
-            name={t.name}
+            key={tab.name}
+            name={tab.name}
             options={{
-              title: t.label,
-              href: t.flag ? undefined : null, // null hides the tab
+              title: t(tab.labelKey),
+              href: tab.flag ? undefined : null, // null hides the tab
             }}
           />
         ))}
