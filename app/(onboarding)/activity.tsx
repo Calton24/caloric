@@ -2,18 +2,18 @@
  * Onboarding Step 3 — Activity level
  */
 
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { Pressable, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
 import type { ActivityLevel } from "../../src/features/profile/profile.types";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
-import { GlassSurface } from "../../src/ui/glass/GlassSurface";
+import { AnimatedCheck } from "../../src/ui/components/AnimatedCheck";
+import { SelectCard } from "../../src/ui/components/SelectCard";
 import { TText } from "../../src/ui/primitives/TText";
+import { OnboardingBackground } from "./_background";
 import { OnboardingCTA } from "./_cta";
 import { OnboardingHeader } from "./_progress";
 
@@ -52,9 +52,7 @@ export default function OnboardingActivityScreen() {
   const selected = profile.activityLevel;
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <OnboardingBackground>
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <OnboardingHeader step={3} total={7} theme={theme} />
 
@@ -94,85 +92,48 @@ export default function OnboardingActivityScreen() {
                   .damping(20)
                   .delay(300 + i * 80)}
               >
-                <Pressable
+                <SelectCard
+                  selected={isSelected}
                   onPress={() => saveActivityLevel(level.id as ActivityLevel)}
+                  style={styles.levelCard}
                   testID={`activity-${level.id}`}
                 >
-                  <GlassSurface
-                    intensity={isSelected ? "medium" : "light"}
+                  <View
                     style={[
-                      styles.levelCard,
+                      styles.emojiBox,
                       {
-                        borderColor: isSelected
-                          ? theme.colors.accent
-                          : "transparent",
-                        borderWidth: 2,
+                        backgroundColor: isSelected
+                          ? theme.colors.primary + "15"
+                          : theme.colors.surface,
                       },
                     ]}
                   >
-                    <View
+                    <TText style={styles.emoji}>{level.emoji}</TText>
+                  </View>
+                  <View style={styles.levelText}>
+                    <TText
                       style={[
-                        styles.emojiBox,
+                        styles.levelTitle,
                         {
-                          backgroundColor: isSelected
-                            ? theme.colors.primary + "15"
-                            : theme.colors.surface,
+                          color: isSelected
+                            ? theme.colors.primary
+                            : theme.colors.text,
                         },
                       ]}
                     >
-                      <TText style={styles.emoji}>{level.emoji}</TText>
-                    </View>
-                    <View style={styles.levelText}>
-                      <TText
-                        style={[
-                          styles.levelTitle,
-                          {
-                            color: isSelected
-                              ? theme.colors.primary
-                              : theme.colors.text,
-                          },
-                        ]}
-                      >
-                        {t(level.titleKey)}
-                      </TText>
-                      <TText
-                        style={[
-                          styles.levelSubtitle,
-                          { color: theme.colors.textSecondary },
-                        ]}
-                      >
-                        {t(level.subtitleKey)}
-                      </TText>
-                    </View>
-                    {isSelected ? (
-                      <LinearGradient
-                        colors={[theme.colors.primary, theme.colors.accent]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={[
-                          styles.checkCircle,
-                          { borderColor: "transparent" },
-                        ]}
-                      >
-                        <Ionicons
-                          name="checkmark"
-                          size={14}
-                          color={theme.colors.textInverse}
-                        />
-                      </LinearGradient>
-                    ) : (
-                      <View
-                        style={[
-                          styles.checkCircle,
-                          {
-                            borderColor: theme.colors.border,
-                            backgroundColor: "transparent",
-                          },
-                        ]}
-                      />
-                    )}
-                  </GlassSurface>
-                </Pressable>
+                      {t(level.titleKey)}
+                    </TText>
+                    <TText
+                      style={[
+                        styles.levelSubtitle,
+                        { color: theme.colors.textSecondary },
+                      ]}
+                    >
+                      {t(level.subtitleKey)}
+                    </TText>
+                  </View>
+                  <AnimatedCheck selected={isSelected} />
+                </SelectCard>
                 <View style={{ height: 10 }} />
               </Animated.View>
             );
@@ -188,7 +149,7 @@ export default function OnboardingActivityScreen() {
           delay={600}
         />
       </SafeAreaView>
-    </View>
+    </OnboardingBackground>
   );
 }
 

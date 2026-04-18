@@ -7,18 +7,19 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUnits } from "../../hooks/useUnits";
 import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
-import { GlassSurface } from "../../src/ui/glass/GlassSurface";
+import { AnimatedCheck } from "../../src/ui/components/AnimatedCheck";
+import { SelectCard } from "../../src/ui/components/SelectCard";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+import { OnboardingBackground } from "./_background";
 import { OnboardingCTA } from "./_cta";
 import { OnboardingHeader } from "./_progress";
 
@@ -74,9 +75,7 @@ export default function OnboardingTimeframeScreen() {
     TIMEFRAMES.find((tf) => tf.weeks === timeframeWeeks)?.id ?? null;
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <OnboardingBackground>
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <OnboardingHeader step={5} total={7} theme={theme} />
 
@@ -113,99 +112,75 @@ export default function OnboardingTimeframeScreen() {
                 key={tf.id}
                 entering={FadeInDown.duration(400).delay(300 + i * 80)}
               >
-                <Pressable
+                <SelectCard
+                  selected={isSelected}
                   onPress={() => saveTimeframe(tf.weeks)}
+                  style={styles.card}
                   testID={`timeframe-${tf.id}`}
                 >
-                  <GlassSurface
-                    intensity={isSelected ? "medium" : "light"}
-                    style={[
-                      styles.card,
-                      {
-                        borderColor: isSelected
-                          ? theme.colors.accent
-                          : "transparent",
-                        borderWidth: 2,
-                      },
-                    ]}
-                  >
-                    <View style={styles.cardLeft}>
-                      <View style={styles.cardTopRow}>
-                        <TText
-                          style={[styles.weeks, { color: theme.colors.text }]}
-                        >
-                          {t("onboarding.timeframe.weeksCount", {
-                            count: tf.weeks,
-                          })}
-                        </TText>
-                        {tf.recommended && (
-                          <View
-                            style={[
-                              styles.recBadge,
-                              {
-                                backgroundColor: theme.colors.primary + "22",
-                              },
-                            ]}
-                          >
-                            <TText
-                              style={[
-                                styles.recText,
-                                { color: theme.colors.primary },
-                              ]}
-                            >
-                              {t("common.recommended")}
-                            </TText>
-                          </View>
-                        )}
-                      </View>
-                      <TSpacer size="xs" />
+                  <View style={styles.cardLeft}>
+                    <View style={styles.cardTopRow}>
                       <TText
-                        style={[
-                          styles.rate,
-                          { color: theme.colors.textSecondary },
-                        ]}
+                        style={[styles.weeks, { color: theme.colors.text }]}
                       >
-                        {t("onboarding.timeframe.perWeek", {
-                          rate: `-${units.display(tf.rateLbsPerWeek, 1)}`,
-                          unit: units.label,
+                        {t("onboarding.timeframe.weeksCount", {
+                          count: tf.weeks,
                         })}
                       </TText>
-                    </View>
-                    <View style={styles.cardRight}>
-                      <View
-                        style={[
-                          styles.diffPill,
-                          {
-                            backgroundColor: tf.difficultyColor + "22",
-                          },
-                        ]}
-                      >
-                        <TText
+                      {tf.recommended && (
+                        <View
                           style={[
-                            styles.diffLabel,
-                            { color: tf.difficultyColor },
+                            styles.recBadge,
+                            {
+                              backgroundColor: theme.colors.primary + "22",
+                            },
                           ]}
                         >
-                          {t(tf.difficulty)}
-                        </TText>
-                      </View>
-                      {isSelected && (
-                        <LinearGradient
-                          colors={[theme.colors.primary, theme.colors.accent]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 1 }}
-                          style={styles.checkCircle}
-                        >
-                          <Ionicons
-                            name="checkmark"
-                            size={14}
-                            color={theme.colors.textInverse}
-                          />
-                        </LinearGradient>
+                          <TText
+                            style={[
+                              styles.recText,
+                              { color: theme.colors.primary },
+                            ]}
+                          >
+                            {t("common.recommended")}
+                          </TText>
+                        </View>
                       )}
                     </View>
-                  </GlassSurface>
-                </Pressable>
+                    <TSpacer size="xs" />
+                    <TText
+                      style={[
+                        styles.rate,
+                        { color: theme.colors.textSecondary },
+                      ]}
+                    >
+                      {t("onboarding.timeframe.perWeek", {
+                        rate: `-${units.display(tf.rateLbsPerWeek, 1)}`,
+                        unit: units.label,
+                      })}
+                    </TText>
+                  </View>
+                  <View style={styles.cardRight}>
+                    <View
+                      style={[
+                        styles.diffPill,
+                        {
+                          backgroundColor: tf.difficultyColor + "22",
+                        },
+                      ]}
+                    >
+                      <TText
+                        style={[
+                          styles.diffLabel,
+                          { color: tf.difficultyColor },
+                        ]}
+                      >
+                        {t(tf.difficulty)}
+                      </TText>
+                    </View>
+                    <AnimatedCheck selected={isSelected} />
+                  </View>
+                </SelectCard>
                 <TSpacer size="sm" />
               </Animated.View>
             );
@@ -237,7 +212,7 @@ export default function OnboardingTimeframeScreen() {
           testID="onboarding-next-timeframe"
         />
       </SafeAreaView>
-    </View>
+    </OnboardingBackground>
   );
 }
 

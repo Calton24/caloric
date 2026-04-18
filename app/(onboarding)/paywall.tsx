@@ -52,6 +52,7 @@ import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+import { OnboardingBackground } from "./_background";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -804,9 +805,7 @@ export default function OnboardingChallengeScreen() {
   };
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <OnboardingBackground>
       {/* ══ HERO IMAGE ══ */}
       <View style={styles.heroContainer}>
         <Image
@@ -1088,7 +1087,7 @@ export default function OnboardingChallengeScreen() {
           </Pressable>
         </View>
       </Animated.View>
-    </View>
+    </OnboardingBackground>
   );
 }
 

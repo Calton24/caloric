@@ -23,8 +23,10 @@ import { useProfileStore } from "../../src/features/profile/profile.store";
 import { haptics } from "../../src/infrastructure/haptics";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
+import { SelectCard } from "../../src/ui/components/SelectCard";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TText } from "../../src/ui/primitives/TText";
+import { OnboardingBackground } from "./_background";
 import { OnboardingCTA } from "./_cta";
 import { OnboardingHeader } from "./_progress";
 
@@ -67,50 +69,50 @@ function UnitToggle({
   };
 
   return (
-    <View
-      onLayout={handleLayout}
-      style={[
-        styles.toggleRow,
-        { backgroundColor: theme.colors.surface, borderRadius: 12 },
-      ]}
-    >
-      <Animated.View style={[styles.toggleIndicator, indicatorStyle]}>
-        <LinearGradient
-          colors={[theme.colors.primary, theme.colors.accent]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.toggleGradient}
-        />
-      </Animated.View>
-      <Pressable
-        onPress={() => handlePress("imperial")}
-        style={styles.toggleBtn}
-      >
-        <TText
-          style={[
-            styles.toggleText,
-            {
-              color:
-                system === "imperial" ? "#fff" : theme.colors.textSecondary,
-            },
-          ]}
+    <GlassSurface intensity="light" style={styles.toggleRow}>
+      <View onLayout={handleLayout} style={styles.toggleInner}>
+        <Animated.View style={[styles.toggleIndicator, indicatorStyle]}>
+          <LinearGradient
+            colors={[theme.colors.primary, theme.colors.accent]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.toggleGradient}
+          />
+        </Animated.View>
+        <Pressable
+          onPress={() => handlePress("imperial")}
+          style={styles.toggleBtn}
         >
-          {labels.imperial}
-        </TText>
-      </Pressable>
-      <Pressable onPress={() => handlePress("metric")} style={styles.toggleBtn}>
-        <TText
-          style={[
-            styles.toggleText,
-            {
-              color: system === "metric" ? "#fff" : theme.colors.textSecondary,
-            },
-          ]}
+          <TText
+            style={[
+              styles.toggleText,
+              {
+                color:
+                  system === "imperial" ? "#fff" : theme.colors.textSecondary,
+              },
+            ]}
+          >
+            {labels.imperial}
+          </TText>
+        </Pressable>
+        <Pressable
+          onPress={() => handlePress("metric")}
+          style={styles.toggleBtn}
         >
-          {labels.metric}
-        </TText>
-      </Pressable>
-    </View>
+          <TText
+            style={[
+              styles.toggleText,
+              {
+                color:
+                  system === "metric" ? "#fff" : theme.colors.textSecondary,
+              },
+            ]}
+          >
+            {labels.metric}
+          </TText>
+        </Pressable>
+      </View>
+    </GlassSurface>
   );
 }
 
@@ -235,9 +237,7 @@ export default function OnboardingBodyScreen() {
   };
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <OnboardingBackground>
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <OnboardingHeader step={2} total={7} theme={theme} />
 
@@ -288,23 +288,12 @@ export default function OnboardingBodyScreen() {
               {GENDER_KEYS.map((g) => {
                 const isActive = gender === g.id;
                 return (
-                  <Pressable
-                    key={g.id}
-                    onPress={() => step(() => setGender(g.id))}
-                    style={styles.genderPressable}
-                    testID={`gender-${g.id}`}
-                  >
-                    <GlassSurface
-                      intensity={isActive ? "medium" : "light"}
-                      style={[
-                        styles.genderCard,
-                        {
-                          borderColor: isActive
-                            ? theme.colors.accent
-                            : "transparent",
-                          borderWidth: 2,
-                        },
-                      ]}
+                  <View key={g.id} style={styles.genderPressable}>
+                    <SelectCard
+                      selected={isActive}
+                      onPress={() => step(() => setGender(g.id))}
+                      style={styles.genderCard}
+                      testID={`gender-${g.id}`}
                     >
                       <Ionicons
                         name={g.icon}
@@ -327,8 +316,8 @@ export default function OnboardingBodyScreen() {
                       >
                         {t(g.labelKey)}
                       </TText>
-                    </GlassSurface>
-                  </Pressable>
+                    </SelectCard>
+                  </View>
                 );
               })}
             </View>
@@ -584,7 +573,7 @@ export default function OnboardingBodyScreen() {
           testID="onboarding-next-body"
         />
       </SafeAreaView>
-    </View>
+    </OnboardingBackground>
   );
 }
 
@@ -606,8 +595,11 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   toggleRow: {
-    flexDirection: "row",
+    borderRadius: 14,
     padding: 4,
+  },
+  toggleInner: {
+    flexDirection: "row",
     position: "relative",
   },
   toggleIndicator: {

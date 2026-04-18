@@ -27,8 +27,10 @@ import { AuthCapabilities } from "../../src/features/auth/authCapabilities";
 import { useAuth } from "../../src/features/auth/useAuth";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
+import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+import { OnboardingBackground } from "./_background";
 import { OnboardingHeader } from "./_progress";
 
 export default function SaveProgressScreen() {
@@ -125,9 +127,7 @@ export default function SaveProgressScreen() {
   };
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <OnboardingBackground>
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         {/* ── Header: Back + Progress ── */}
         <OnboardingHeader step={7} total={7} theme={theme} />
@@ -154,40 +154,49 @@ export default function SaveProgressScreen() {
           entering={FadeInDown.duration(500).delay(250)}
           style={styles.proofArea}
         >
-          <View
-            style={[
-              styles.proofPill,
-              { backgroundColor: theme.colors.primary + "12" },
-            ]}
+          <GlassSurface
+            intensity="light"
+            variant="pill"
+            style={[styles.proofPill]}
           >
             <Ionicons name="people" size={16} color={theme.colors.primary} />
             <TText style={[styles.proofText, { color: theme.colors.primary }]}>
               {t("onboarding.saveProgress.socialProof")}
             </TText>
-          </View>
-          <View style={styles.trustRow}>
-            <View style={styles.trustItem}>
-              <Ionicons
-                name="lock-closed"
-                size={14}
-                color={theme.colors.textMuted}
-              />
-              <TText
-                style={[styles.trustText, { color: theme.colors.textMuted }]}
-              >
-                {t("onboarding.saveProgress.privacy")}
-              </TText>
+          </GlassSurface>
+          <GlassSurface
+            intensity="light"
+            variant="pill"
+            style={styles.trustBadge}
+          >
+            <View style={styles.trustRow}>
+              <View style={styles.trustItem}>
+                <Ionicons
+                  name="lock-closed"
+                  size={14}
+                  color={theme.colors.textMuted}
+                />
+                <TText
+                  style={[styles.trustText, { color: theme.colors.textMuted }]}
+                >
+                  {t("onboarding.saveProgress.privacy")}
+                </TText>
+              </View>
+              <View style={styles.trustDot} />
+              <View style={styles.trustItem}>
+                <Ionicons
+                  name="flash"
+                  size={14}
+                  color={theme.colors.textMuted}
+                />
+                <TText
+                  style={[styles.trustText, { color: theme.colors.textMuted }]}
+                >
+                  {t("onboarding.saveProgress.speed")}
+                </TText>
+              </View>
             </View>
-            <View style={styles.trustDot} />
-            <View style={styles.trustItem}>
-              <Ionicons name="flash" size={14} color={theme.colors.textMuted} />
-              <TText
-                style={[styles.trustText, { color: theme.colors.textMuted }]}
-              >
-                {t("onboarding.saveProgress.speed")}
-              </TText>
-            </View>
-          </View>
+          </GlassSurface>
         </Animated.View>
 
         {/* ── Spacer pushes buttons to center-ish ── */}
@@ -323,7 +332,7 @@ export default function SaveProgressScreen() {
         {/* ── Bottom spacer ── */}
         <View style={styles.bottomSpacer} />
       </SafeAreaView>
-    </View>
+    </OnboardingBackground>
   );
 }
 
@@ -464,11 +473,14 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 100,
   },
   proofText: {
     fontSize: 14,
     fontWeight: "600",
+  },
+  trustBadge: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
   },
   trustRow: {
     flexDirection: "row",

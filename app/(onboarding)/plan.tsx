@@ -23,6 +23,7 @@ import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslati
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TText } from "../../src/ui/primitives/TText";
+import { OnboardingBackground } from "./_background";
 import { OnboardingCTA } from "./_cta";
 import { OnboardingHeader } from "./_progress";
 
@@ -80,9 +81,7 @@ export default function OnboardingPlanScreen() {
   ];
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <OnboardingBackground>
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <OnboardingHeader step={6} total={7} theme={theme} />
 
@@ -115,14 +114,18 @@ export default function OnboardingPlanScreen() {
             <View style={styles.calorieOuter}>
               <LinearGradient
                 colors={[
-                  theme.colors.primary + "08",
-                  theme.colors.accent + "05",
+                  theme.colors.primary + "12",
+                  theme.colors.accent + "08",
                 ]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.calorieGradientBg}
               />
-              <GlassSurface intensity="medium" style={styles.calorieCard}>
+              <GlassSurface
+                intensity="medium"
+                border
+                style={styles.calorieCard}
+              >
                 <TText
                   style={[
                     styles.calorieLabel,
@@ -345,20 +348,27 @@ export default function OnboardingPlanScreen() {
 
           <View style={{ height: 10 }} />
 
-          {/* ── Social proof ── */}
+          {/* ── Social proof glass chip ── */}
           <Animated.View entering={FadeInUp.duration(500).delay(800)}>
-            <View style={styles.socialRow}>
+            <GlassSurface
+              intensity="light"
+              variant="pill"
+              style={styles.socialChip}
+            >
               <Ionicons
                 name="people-outline"
                 size={16}
-                color={theme.colors.textMuted}
+                color={theme.colors.primary}
               />
               <TText
-                style={[styles.socialText, { color: theme.colors.textMuted }]}
+                style={[
+                  styles.socialText,
+                  { color: theme.colors.textSecondary },
+                ]}
               >
                 {t("onboarding.plan.socialProof")}
               </TText>
-            </View>
+            </GlassSurface>
           </Animated.View>
         </View>
 
@@ -377,7 +387,7 @@ export default function OnboardingPlanScreen() {
           delay={950}
         />
       </SafeAreaView>
-    </View>
+    </OnboardingBackground>
   );
 }
 
@@ -555,14 +565,17 @@ const styles = StyleSheet.create({
     width: StyleSheet.hairlineWidth,
     alignSelf: "stretch",
   },
-  // Social
-  socialRow: {
+  // Social glass chip
+  socialChip: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
+    alignSelf: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   socialText: {
     fontSize: 13,
+    fontWeight: "500",
   },
 });

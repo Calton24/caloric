@@ -2,6 +2,7 @@
  * Shared onboarding progress — segmented step indicators.
  * Each step is a rounded capsule that fills with the primary color
  * as the user progresses through the onboarding flow.
+ * Wrapped in a frosted rail for premium depth.
  */
 
 import { Ionicons } from "@expo/vector-icons";
@@ -10,11 +11,12 @@ import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
 } from "react-native-reanimated";
 import type { Theme } from "../../src/theme/ThemeProvider";
+import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 
 function StepSegment({
   index,
@@ -66,11 +68,13 @@ export function OnboardingProgress({
   theme: Theme;
 }) {
   return (
-    <View style={styles.segmentRow}>
-      {Array.from({ length: total }).map((_, i) => (
-        <StepSegment key={i} index={i} step={step} theme={theme} />
-      ))}
-    </View>
+    <GlassSurface intensity="light" variant="pill" style={styles.progressRail}>
+      <View style={styles.segmentRow}>
+        {Array.from({ length: total }).map((_, i) => (
+          <StepSegment key={i} index={i} step={step} theme={theme} />
+        ))}
+      </View>
+    </GlassSurface>
   );
 }
 
@@ -94,9 +98,11 @@ export function OnboardingHeader({
         <Pressable
           onPress={() => router.back()}
           hitSlop={12}
-          style={[styles.backButton, { backgroundColor: theme.colors.surface }]}
+          style={styles.backButton}
         >
-          <Ionicons name="chevron-back" size={20} color={theme.colors.text} />
+          <GlassSurface intensity="light" style={styles.backGlass}>
+            <Ionicons name="chevron-back" size={20} color={theme.colors.text} />
+          </GlassSurface>
         </Pressable>
       ) : (
         <View style={styles.backPlaceholder} />
@@ -110,6 +116,11 @@ export function OnboardingHeader({
 }
 
 const styles = StyleSheet.create({
+  progressRail: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
   segmentRow: {
     flexDirection: "row",
     gap: 6,
@@ -133,6 +144,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   backButton: {
+    width: 40,
+    height: 40,
+  },
+  backGlass: {
     width: 40,
     height: 40,
     borderRadius: 12,

@@ -30,7 +30,7 @@ import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslati
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TText } from "../../src/ui/primitives/TText";
-
+import { OnboardingBackground } from "./_background";
 const STEP_KEYS = [
   "onboarding.calculating.step1",
   "onboarding.calculating.step2",
@@ -133,9 +133,7 @@ export default function OnboardingCalculatingScreen() {
   }, [stepIdx]);
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <OnboardingBackground>
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <View style={styles.content}>
           {/* ── Heading ── */}
@@ -160,59 +158,63 @@ export default function OnboardingCalculatingScreen() {
 
           <View style={{ height: 40 }} />
 
-          {/* ── Circular ring + weight journey ── */}
+          {/* ── Circular ring on frosted panel ── */}
           <Animated.View
             entering={FadeIn.duration(800).delay(350)}
-            style={styles.ringContainer}
+            style={styles.ringOuter}
           >
-            {/* Glow behind ring */}
-            <Animated.View
-              style={[
-                styles.ringGlow,
-                { backgroundColor: theme.colors.primary },
-                glowStyle,
-              ]}
-            />
+            <GlassSurface intensity="medium" border style={styles.ringPanel}>
+              <View style={styles.ringContainer}>
+                {/* Glow behind ring */}
+                <Animated.View
+                  style={[
+                    styles.ringGlow,
+                    { backgroundColor: theme.colors.primary },
+                    glowStyle,
+                  ]}
+                />
 
-            <Svg width={RING_SIZE} height={RING_SIZE}>
-              {/* Track */}
-              <Circle
-                cx={RING_SIZE / 2}
-                cy={RING_SIZE / 2}
-                r={RING_RADIUS}
-                stroke={theme.colors.border + "30"}
-                strokeWidth={RING_STROKE}
-                fill="none"
-              />
-              {/* Fill */}
-              <AnimatedCircle
-                cx={RING_SIZE / 2}
-                cy={RING_SIZE / 2}
-                r={RING_RADIUS}
-                stroke={theme.colors.primary}
-                strokeWidth={RING_STROKE}
-                fill="none"
-                strokeLinecap="round"
-                strokeDasharray={RING_CIRCUMFERENCE}
-                animatedProps={ringAnimatedProps}
-                rotation="-90"
-                origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
-              />
-            </Svg>
+                <Svg width={RING_SIZE} height={RING_SIZE}>
+                  {/* Track */}
+                  <Circle
+                    cx={RING_SIZE / 2}
+                    cy={RING_SIZE / 2}
+                    r={RING_RADIUS}
+                    stroke={theme.colors.border + "30"}
+                    strokeWidth={RING_STROKE}
+                    fill="none"
+                  />
+                  {/* Fill */}
+                  <AnimatedCircle
+                    cx={RING_SIZE / 2}
+                    cy={RING_SIZE / 2}
+                    r={RING_RADIUS}
+                    stroke={theme.colors.primary}
+                    strokeWidth={RING_STROKE}
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeDasharray={RING_CIRCUMFERENCE}
+                    animatedProps={ringAnimatedProps}
+                    rotation="-90"
+                    origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
+                  />
+                </Svg>
 
-            {/* Center text */}
-            <View style={styles.ringCenter}>
-              <TText style={[styles.ringPct, { color: theme.colors.text }]}>
-                {progress}%
-              </TText>
-            </View>
+                {/* Center text */}
+                <View style={styles.ringCenter}>
+                  <TText style={[styles.ringPct, { color: theme.colors.text }]}>
+                    {progress}%
+                  </TText>
+                </View>
+              </View>
+            </GlassSurface>
           </Animated.View>
 
           <View style={{ height: 32 }} />
 
           {/* ── Weight journey pill ── */}
           <Animated.View entering={FadeInUp.duration(500).delay(500)}>
-            <GlassSurface intensity="light" style={styles.journeyCard}>
+            <GlassSurface intensity="medium" border style={styles.journeyCard}>
               <View style={styles.journeyCol}>
                 <TText
                   style={[
@@ -281,62 +283,61 @@ export default function OnboardingCalculatingScreen() {
 
           <View style={{ height: 32 }} />
 
-          {/* ── Step checklist ── */}
-          <Animated.View
-            entering={FadeInUp.duration(500).delay(600)}
-            style={styles.stepList}
-          >
-            {STEP_KEYS.map((key, i) => {
-              const isDone = i <= stepIdx;
-              const isActive = i === stepIdx;
-              const animStyle = useAnimatedStyle(() => ({
-                transform: [{ scale: stepScales[i].value }],
-              }));
-              return (
-                <View key={i} style={styles.stepRow}>
-                  {isDone ? (
-                    <Animated.View style={animStyle}>
+          {/* ── Step checklist on translucent card ── */}
+          <Animated.View entering={FadeInUp.duration(500).delay(600)}>
+            <GlassSurface intensity="light" style={styles.stepListCard}>
+              {STEP_KEYS.map((key, i) => {
+                const isDone = i <= stepIdx;
+                const isActive = i === stepIdx;
+                const animStyle = useAnimatedStyle(() => ({
+                  transform: [{ scale: stepScales[i].value }],
+                }));
+                return (
+                  <View key={i} style={styles.stepRow}>
+                    {isDone ? (
+                      <Animated.View style={animStyle}>
+                        <View
+                          style={[
+                            styles.stepCheck,
+                            { backgroundColor: theme.colors.primary },
+                          ]}
+                        >
+                          <Ionicons name="checkmark" size={12} color="#fff" />
+                        </View>
+                      </Animated.View>
+                    ) : (
                       <View
                         style={[
                           styles.stepCheck,
-                          { backgroundColor: theme.colors.primary },
+                          {
+                            backgroundColor: "transparent",
+                            borderWidth: 2,
+                            borderColor: theme.colors.border,
+                          },
                         ]}
-                      >
-                        <Ionicons name="checkmark" size={12} color="#fff" />
-                      </View>
-                    </Animated.View>
-                  ) : (
-                    <View
+                      />
+                    )}
+                    <TText
                       style={[
-                        styles.stepCheck,
+                        styles.stepText,
                         {
-                          backgroundColor: "transparent",
-                          borderWidth: 2,
-                          borderColor: theme.colors.border,
+                          color: isDone
+                            ? theme.colors.text
+                            : theme.colors.textMuted,
+                          fontWeight: isActive ? "700" : "400",
                         },
                       ]}
-                    />
-                  )}
-                  <TText
-                    style={[
-                      styles.stepText,
-                      {
-                        color: isDone
-                          ? theme.colors.text
-                          : theme.colors.textMuted,
-                        fontWeight: isActive ? "700" : "400",
-                      },
-                    ]}
-                  >
-                    {t(key)}
-                  </TText>
-                </View>
-              );
-            })}
+                    >
+                      {t(key)}
+                    </TText>
+                  </View>
+                );
+              })}
+            </GlassSurface>
           </Animated.View>
         </View>
       </SafeAreaView>
-    </View>
+    </OnboardingBackground>
   );
 }
 
@@ -360,6 +361,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
     lineHeight: 22,
+  },
+  ringOuter: {
+    alignItems: "center",
+  },
+  ringPanel: {
+    padding: 28,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
   },
   ringContainer: {
     width: RING_SIZE,
@@ -418,10 +428,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginHorizontal: 12,
   },
-  stepList: {
+  stepListCard: {
     width: "100%",
     gap: 14,
-    paddingHorizontal: 8,
+    padding: 16,
+    borderRadius: 16,
   },
   stepRow: {
     flexDirection: "row",

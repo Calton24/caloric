@@ -36,30 +36,34 @@ function generateColorScale(hue: number, saturation: number): string[] {
  */
 function generateNeutrals(mode: ColorMode): string[] {
   if (mode === "light") {
+    // Warm off-white base — never pure #FFF.
+    // Gives card separation without borders.
     return [
-      "#FFFFFF", // 0
-      "#F8F9FA", // 1
-      "#F1F3F5", // 2
-      "#E9ECEF", // 3
-      "#DEE2E6", // 4
-      "#CED4DA", // 5
-      "#ADB5BD", // 6
-      "#868E96", // 7
-      "#495057", // 8
-      "#212529", // 9
+      "#F4F5F7", // 0 - background (soft warm grey)
+      "#ECEDEF", // 1 - primary surface
+      "#E4E5E9", // 2 - secondary surface
+      "#D8DAE0", // 3 - borders
+      "#CDD0D8", // 4 - heavier borders
+      "#B0B5BF", // 5 - muted elements
+      "#8A909C", // 6 - secondary text
+      "#667085", // 7 - body text
+      "#3D4350", // 8 - strong text
+      "#1B1F27", // 9 - heading text
     ];
   } else {
+    // Premium charcoal — never pure #000.
+    // Lets glass surfaces read and keeps green accent refined.
     return [
-      "#000000", // 0 - pure black background
-      "#1C1C1E", // 1 - dark gray surfaces
-      "#2C2C2E", // 2 - medium gray elevated surfaces
-      "#3A3A3C", // 3 - lighter gray for higher elevation
-      "#48484A", // 4 - mid-tone gray
-      "#636366", // 5 - accent gray
-      "#8E8E93", // 6 - light gray
-      "#AEAEB2", // 7 - lighter gray text
-      "#C7C7CC", // 8 - very light gray
-      "#F2F2F7", // 9 - near white
+      "#0F1318", // 0 - background (charcoal)
+      "#171C22", // 1 - primary surface
+      "#1E2430", // 2 - elevated surface
+      "#283040", // 3 - lighter elevation
+      "#364050", // 4 - mid-tone
+      "#4D5768", // 5 - accent gray
+      "#6B7589", // 6 - muted text
+      "#AAB3C2", // 7 - secondary text
+      "#D0D5DE", // 8 - light text
+      "#F3F5F7", // 9 - heading text
     ];
   }
 }
@@ -113,9 +117,9 @@ export function generatePalette(
       text: neutrals[9], // #212529, ~15.4:1 ✓
       textSecondary: "#4B5563", // ~7.6:1 ✓ (was #868E96 at 3.5:1)
       textMuted: "#6B7280", // ~4.9:1 ✓ (was #ADB5BD at 2.1:1)
-      textInverse: neutrals[0],
+      textInverse: "#FFFFFF",
 
-      // Interactive — darkened for AA contrast on white
+      // Interactive — darkened for AA contrast on background
       primary: brandScale[7], // L=30, ~5:1 ✓ (was [5] L=50 at 1.9:1)
       primaryPressed: brandScale[8], // L=20
       secondary: brandScale[3], // L=70, decorative fills
@@ -136,17 +140,22 @@ export function generatePalette(
       overlay: "rgba(0, 0, 0, 0.3)",
       overlayHeavy: "rgba(0, 0, 0, 0.6)",
 
-      // Glass Effects — opaque enough for readable content
-      glassBackground: "rgba(255, 255, 255, 0.78)",
-      glassBorder: "rgba(0, 0, 0, 0.12)",
+      // Glass Effects — elevated surfaces with rich translucency
+      glassBackground: "rgba(255, 255, 255, 0.65)",
+      glassBorder: "rgba(255, 255, 255, 0.25)",
       glassTint: neutrals[2],
 
       // Glass Widget Kit
-      glassTintLight: "rgba(120, 120, 128, 0.16)",
-      glassTintDark: "rgba(0, 0, 0, 0.10)",
+      glassTintLight: "rgba(255, 255, 255, 0.15)",
+      glassTintDark: "rgba(0, 0, 0, 0.04)",
       glassBorderHighlight: "rgba(255, 255, 255, 0.80)",
-      glassShadow: "rgba(0, 0, 0, 0.10)",
+      glassShadow: "rgba(0, 0, 0, 0.06)",
       glassActiveRing: brandScale[7],
+
+      // Premium Surfaces
+      surfaceMatte: "#ECEDEF",
+      glassSelected: brandScale[1] + "55", // tinted green glass
+      glassSelectedBorder: brandScale[5] + "40",
     };
   } else {
     return {
@@ -187,17 +196,22 @@ export function generatePalette(
       overlay: "rgba(0, 0, 0, 0.5)",
       overlayHeavy: "rgba(0, 0, 0, 0.8)",
 
-      // Glass Effects
-      glassBackground: "rgba(30, 30, 30, 0.7)",
-      glassBorder: "rgba(255, 255, 255, 0.1)",
+      // Glass Effects — subtle translucency on charcoal
+      glassBackground: "rgba(20, 25, 30, 0.60)",
+      glassBorder: "rgba(255, 255, 255, 0.12)",
       glassTint: neutrals[1],
 
       // Glass Widget Kit
-      glassTintLight: "rgba(255, 255, 255, 0.12)",
+      glassTintLight: "rgba(255, 255, 255, 0.06)",
       glassTintDark: "rgba(0, 0, 0, 0.25)",
       glassBorderHighlight: "rgba(255, 255, 255, 0.18)",
-      glassShadow: "rgba(0, 0, 0, 0.35)",
+      glassShadow: "rgba(0, 0, 0, 0.50)",
       glassActiveRing: brandScale[4],
+
+      // Premium Surfaces
+      surfaceMatte: "#171C22",
+      glassSelected: brandScale[6] + "30", // tinted green glass
+      glassSelectedBorder: brandScale[4] + "50",
     };
   }
 }

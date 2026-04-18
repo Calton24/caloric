@@ -19,6 +19,7 @@ import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+import { OnboardingBackground } from "./_background";
 import { OnboardingCTA } from "./_cta";
 import { OnboardingHeader } from "./_progress";
 
@@ -67,9 +68,7 @@ export default function OnboardingWeightGoalScreen() {
   const goalPct = (goalWeight / maxBar) * 100;
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <OnboardingBackground>
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <OnboardingHeader step={4} total={7} theme={theme} />
 
@@ -273,7 +272,7 @@ export default function OnboardingWeightGoalScreen() {
           testID="onboarding-next-weight"
         />
       </SafeAreaView>
-    </View>
+    </OnboardingBackground>
   );
 }
 

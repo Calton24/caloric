@@ -11,24 +11,25 @@ import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
-  FadeIn,
-  FadeInDown,
-  FadeInUp,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
+    FadeIn,
+    FadeInDown,
+    FadeInUp,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  getWelcomeCtaCopy,
-  trackExperimentClick,
-  trackExperimentExposure,
-  useExperiment,
+    getWelcomeCtaCopy,
+    trackExperimentClick,
+    trackExperimentExposure,
+    useExperiment,
 } from "../../src/experiments";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TText } from "../../src/ui/primitives/TText";
+import { OnboardingBackground } from "./_background";
 
 const VALUE_PROPS = [
   {
@@ -93,9 +94,7 @@ export default function OnboardingWelcomeScreen() {
   }));
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <OnboardingBackground>
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         {/* ── Hero ── */}
         <View style={styles.hero}>
@@ -234,7 +233,7 @@ export default function OnboardingWelcomeScreen() {
           </TText>
         </Animated.View>
       </SafeAreaView>
-    </View>
+    </OnboardingBackground>
   );
 }
 

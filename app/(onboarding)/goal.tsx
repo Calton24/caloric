@@ -3,17 +3,18 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { Pressable, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { GoalType } from "../../src/features/goals/goals.types";
 import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
-import { GlassSurface } from "../../src/ui/glass/GlassSurface";
+import { AnimatedCheck } from "../../src/ui/components/AnimatedCheck";
+import { SelectCard } from "../../src/ui/components/SelectCard";
 import { TText } from "../../src/ui/primitives/TText";
+import { OnboardingBackground } from "./_background";
 import { OnboardingCTA } from "./_cta";
 import { OnboardingHeader } from "./_progress";
 
@@ -51,9 +52,7 @@ export default function OnboardingGoalScreen() {
   const { goalType, saveGoalType } = useOnboarding();
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <OnboardingBackground>
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <OnboardingHeader step={1} total={7} theme={theme} />
 
@@ -93,93 +92,56 @@ export default function OnboardingGoalScreen() {
                   .damping(20)
                   .delay(300 + i * 80)}
               >
-                <Pressable
+                <SelectCard
+                  selected={isSelected}
                   onPress={() => saveGoalType(goal.id as GoalType)}
+                  style={styles.goalCard}
                   testID={`goal-${goal.id}`}
                 >
-                  <GlassSurface
-                    intensity={isSelected ? "medium" : "light"}
+                  <View
                     style={[
-                      styles.goalCard,
+                      styles.goalIcon,
                       {
-                        borderColor: isSelected
-                          ? theme.colors.accent
-                          : "transparent",
-                        borderWidth: 2,
+                        backgroundColor: isSelected
+                          ? theme.colors.primary + "20"
+                          : theme.colors.surface,
                       },
                     ]}
                   >
-                    <View
+                    <Ionicons
+                      name={goal.icon}
+                      size={24}
+                      color={
+                        isSelected
+                          ? theme.colors.primary
+                          : theme.colors.textSecondary
+                      }
+                    />
+                  </View>
+                  <View style={styles.goalText}>
+                    <TText
                       style={[
-                        styles.goalIcon,
+                        styles.goalTitle,
                         {
-                          backgroundColor: isSelected
-                            ? theme.colors.primary + "20"
-                            : theme.colors.surface,
+                          color: isSelected
+                            ? theme.colors.primary
+                            : theme.colors.text,
                         },
                       ]}
                     >
-                      <Ionicons
-                        name={goal.icon}
-                        size={24}
-                        color={
-                          isSelected
-                            ? theme.colors.primary
-                            : theme.colors.textSecondary
-                        }
-                      />
-                    </View>
-                    <View style={styles.goalText}>
-                      <TText
-                        style={[
-                          styles.goalTitle,
-                          {
-                            color: isSelected
-                              ? theme.colors.primary
-                              : theme.colors.text,
-                          },
-                        ]}
-                      >
-                        {t(goal.titleKey)}
-                      </TText>
-                      <TText
-                        style={[
-                          styles.goalSubtitle,
-                          { color: theme.colors.textSecondary },
-                        ]}
-                      >
-                        {t(goal.subtitleKey)}
-                      </TText>
-                    </View>
-                    {isSelected ? (
-                      <LinearGradient
-                        colors={[theme.colors.primary, theme.colors.accent]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={[
-                          styles.checkCircle,
-                          { borderColor: "transparent" },
-                        ]}
-                      >
-                        <Ionicons
-                          name="checkmark"
-                          size={14}
-                          color={theme.colors.textInverse}
-                        />
-                      </LinearGradient>
-                    ) : (
-                      <View
-                        style={[
-                          styles.checkCircle,
-                          {
-                            borderColor: theme.colors.border,
-                            backgroundColor: "transparent",
-                          },
-                        ]}
-                      />
-                    )}
-                  </GlassSurface>
-                </Pressable>
+                      {t(goal.titleKey)}
+                    </TText>
+                    <TText
+                      style={[
+                        styles.goalSubtitle,
+                        { color: theme.colors.textSecondary },
+                      ]}
+                    >
+                      {t(goal.subtitleKey)}
+                    </TText>
+                  </View>
+                  <AnimatedCheck selected={isSelected} />
+                </SelectCard>
 
                 <View style={{ height: 10 }} />
               </Animated.View>
@@ -196,7 +158,7 @@ export default function OnboardingGoalScreen() {
           delay={650}
         />
       </SafeAreaView>
-    </View>
+    </OnboardingBackground>
   );
 }
 
