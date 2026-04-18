@@ -3,18 +3,18 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+import { Pressable, StyleSheet, View } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { GoalType } from "../../src/features/goals/goals.types";
 import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
-import { TButton } from "../../src/ui/primitives/TButton";
-import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+import { OnboardingCTA } from "./_cta";
 import { OnboardingHeader } from "./_progress";
 
 const GOAL_KEYS = [
@@ -55,20 +55,11 @@ export default function OnboardingGoalScreen() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Progress + Back */}
-          <OnboardingHeader step={1} total={6} theme={theme} />
+        <OnboardingHeader step={1} total={7} theme={theme} />
 
-          <TSpacer size="lg" />
-
+        <View style={styles.content}>
           <Animated.View
-            entering={FadeInDown.duration(550)
-              .delay(150)
-              .springify()
-              .damping(18)}
+            entering={FadeInDown.springify().damping(18).delay(100)}
           >
             <TText
               variant="heading"
@@ -78,25 +69,29 @@ export default function OnboardingGoalScreen() {
             </TText>
           </Animated.View>
 
-          <TSpacer size="sm" />
+          <View style={{ height: 8 }} />
 
-          <Animated.View entering={FadeInDown.duration(500).delay(250)}>
-            <TText color="secondary" style={styles.description}>
+          <Animated.View entering={FadeInDown.duration(500).delay(200)}>
+            <TText
+              style={[
+                styles.description,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
               {t("onboarding.goal.description")}
             </TText>
           </Animated.View>
 
-          <TSpacer size="lg" />
+          <View style={{ height: 24 }} />
 
           {GOAL_KEYS.map((goal, i) => {
             const isSelected = goalType === goal.id;
             return (
               <Animated.View
                 key={goal.id}
-                entering={FadeInDown.duration(450)
-                  .delay(350 + i * 90)
-                  .springify()
-                  .damping(20)}
+                entering={FadeInDown.springify()
+                  .damping(20)
+                  .delay(300 + i * 80)}
               >
                 <Pressable
                   onPress={() => saveGoalType(goal.id as GoalType)}
@@ -108,7 +103,7 @@ export default function OnboardingGoalScreen() {
                       styles.goalCard,
                       {
                         borderColor: isSelected
-                          ? theme.colors.primary
+                          ? theme.colors.accent
                           : "transparent",
                         borderWidth: 2,
                       },
@@ -119,14 +114,14 @@ export default function OnboardingGoalScreen() {
                         styles.goalIcon,
                         {
                           backgroundColor: isSelected
-                            ? theme.colors.primary + "22"
+                            ? theme.colors.primary + "20"
                             : theme.colors.surface,
                         },
                       ]}
                     >
                       <Ionicons
                         name={goal.icon}
-                        size={22}
+                        size={24}
                         color={
                           isSelected
                             ? theme.colors.primary
@@ -136,43 +131,70 @@ export default function OnboardingGoalScreen() {
                     </View>
                     <View style={styles.goalText}>
                       <TText
-                        style={[styles.goalTitle, { color: theme.colors.text }]}
+                        style={[
+                          styles.goalTitle,
+                          {
+                            color: isSelected
+                              ? theme.colors.primary
+                              : theme.colors.text,
+                          },
+                        ]}
                       >
                         {t(goal.titleKey)}
                       </TText>
-                      <TText color="secondary" style={styles.goalSubtitle}>
+                      <TText
+                        style={[
+                          styles.goalSubtitle,
+                          { color: theme.colors.textSecondary },
+                        ]}
+                      >
                         {t(goal.subtitleKey)}
                       </TText>
                     </View>
-                    {isSelected && (
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={24}
-                        color={theme.colors.primary}
+                    {isSelected ? (
+                      <LinearGradient
+                        colors={[theme.colors.primary, theme.colors.accent]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={[
+                          styles.checkCircle,
+                          { borderColor: "transparent" },
+                        ]}
+                      >
+                        <Ionicons
+                          name="checkmark"
+                          size={14}
+                          color={theme.colors.textInverse}
+                        />
+                      </LinearGradient>
+                    ) : (
+                      <View
+                        style={[
+                          styles.checkCircle,
+                          {
+                            borderColor: theme.colors.border,
+                            backgroundColor: "transparent",
+                          },
+                        ]}
                       />
                     )}
                   </GlassSurface>
                 </Pressable>
-                <TSpacer size="sm" />
+
+                <View style={{ height: 10 }} />
               </Animated.View>
             );
           })}
-        </ScrollView>
+        </View>
 
-        {/* Bottom CTA */}
-        <Animated.View
-          entering={FadeInUp.duration(500).delay(650).springify().damping(18)}
-          style={styles.footer}
-        >
-          <TButton
-            onPress={() => router.push("/(onboarding)/body" as any)}
-            disabled={!goalType}
-            size="lg"
-            testID="onboarding-next-2"
-          >
-            {t("common.continue")}
-          </TButton>
-        </Animated.View>
+        <OnboardingCTA
+          label={t("common.continue")}
+          onPress={() => router.push("/(onboarding)/body" as any)}
+          disabled={!goalType}
+          theme={theme}
+          testID="onboarding-next-2"
+          delay={650}
+        />
       </SafeAreaView>
     </View>
   );
@@ -181,30 +203,30 @@ export default function OnboardingGoalScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   safe: { flex: 1 },
-  scroll: {
-    flexGrow: 1,
+  content: {
+    flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 16,
   },
   heading: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "800",
-    lineHeight: 40,
+    lineHeight: 34,
+    letterSpacing: -0.3,
   },
   description: {
-    fontSize: 17,
-    lineHeight: 24,
+    fontSize: 16,
+    lineHeight: 22,
   },
   goalCard: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
+    padding: 18,
     borderRadius: 16,
   },
   goalIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 14,
@@ -214,14 +236,18 @@ const styles = StyleSheet.create({
   },
   goalTitle: {
     fontSize: 17,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   goalSubtitle: {
     fontSize: 14,
     marginTop: 2,
   },
-  footer: {
-    paddingHorizontal: 24,
-    paddingBottom: 8,
+  checkCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

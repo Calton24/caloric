@@ -3,8 +3,9 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
@@ -12,9 +13,8 @@ import type { ActivityLevel } from "../../src/features/profile/profile.types";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
-import { TButton } from "../../src/ui/primitives/TButton";
-import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+import { OnboardingCTA } from "./_cta";
 import { OnboardingHeader } from "./_progress";
 
 const LEVEL_KEYS = [
@@ -56,16 +56,12 @@ export default function OnboardingActivityScreen() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Progress */}
-          <OnboardingHeader step={3} total={6} theme={theme} />
+        <OnboardingHeader step={3} total={7} theme={theme} />
 
-          <TSpacer size="lg" />
-
-          <Animated.View entering={FadeInDown.duration(500).delay(100)}>
+        <View style={styles.content}>
+          <Animated.View
+            entering={FadeInDown.springify().damping(18).delay(100)}
+          >
             <TText
               variant="heading"
               style={[styles.heading, { color: theme.colors.text }]}
@@ -74,22 +70,29 @@ export default function OnboardingActivityScreen() {
             </TText>
           </Animated.View>
 
-          <TSpacer size="sm" />
+          <View style={{ height: 8 }} />
 
           <Animated.View entering={FadeInDown.duration(500).delay(200)}>
-            <TText color="secondary" style={styles.description}>
+            <TText
+              style={[
+                styles.description,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
               {t("onboarding.activity.description")}
             </TText>
           </Animated.View>
 
-          <TSpacer size="lg" />
+          <View style={{ height: 24 }} />
 
           {LEVEL_KEYS.map((level, i) => {
             const isSelected = selected === level.id;
             return (
               <Animated.View
                 key={level.id}
-                entering={FadeInDown.duration(400).delay(300 + i * 80)}
+                entering={FadeInDown.springify()
+                  .damping(20)
+                  .delay(300 + i * 80)}
               >
                 <Pressable
                   onPress={() => saveActivityLevel(level.id as ActivityLevel)}
@@ -101,52 +104,89 @@ export default function OnboardingActivityScreen() {
                       styles.levelCard,
                       {
                         borderColor: isSelected
-                          ? theme.colors.primary
+                          ? theme.colors.accent
                           : "transparent",
                         borderWidth: 2,
                       },
                     ]}
                   >
-                    <TText style={styles.emoji}>{level.emoji}</TText>
+                    <View
+                      style={[
+                        styles.emojiBox,
+                        {
+                          backgroundColor: isSelected
+                            ? theme.colors.primary + "15"
+                            : theme.colors.surface,
+                        },
+                      ]}
+                    >
+                      <TText style={styles.emoji}>{level.emoji}</TText>
+                    </View>
                     <View style={styles.levelText}>
                       <TText
                         style={[
                           styles.levelTitle,
-                          { color: theme.colors.text },
+                          {
+                            color: isSelected
+                              ? theme.colors.primary
+                              : theme.colors.text,
+                          },
                         ]}
                       >
                         {t(level.titleKey)}
                       </TText>
-                      <TText color="secondary" style={styles.levelSubtitle}>
+                      <TText
+                        style={[
+                          styles.levelSubtitle,
+                          { color: theme.colors.textSecondary },
+                        ]}
+                      >
                         {t(level.subtitleKey)}
                       </TText>
                     </View>
-                    {isSelected && (
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={24}
-                        color={theme.colors.primary}
+                    {isSelected ? (
+                      <LinearGradient
+                        colors={[theme.colors.primary, theme.colors.accent]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={[
+                          styles.checkCircle,
+                          { borderColor: "transparent" },
+                        ]}
+                      >
+                        <Ionicons
+                          name="checkmark"
+                          size={14}
+                          color={theme.colors.textInverse}
+                        />
+                      </LinearGradient>
+                    ) : (
+                      <View
+                        style={[
+                          styles.checkCircle,
+                          {
+                            borderColor: theme.colors.border,
+                            backgroundColor: "transparent",
+                          },
+                        ]}
                       />
                     )}
                   </GlassSurface>
                 </Pressable>
-                <TSpacer size="sm" />
+                <View style={{ height: 10 }} />
               </Animated.View>
             );
           })}
-        </ScrollView>
-
-        {/* Bottom CTA */}
-        <View style={styles.footer}>
-          <TButton
-            onPress={() => router.push("/(onboarding)/weight-goal" as any)}
-            disabled={!selected}
-            size="lg"
-            testID="onboarding-next-3"
-          >
-            {t("common.continue")}
-          </TButton>
         </View>
+
+        <OnboardingCTA
+          label={t("common.continue")}
+          onPress={() => router.push("/(onboarding)/weight-goal" as any)}
+          disabled={!selected}
+          theme={theme}
+          testID="onboarding-next-3"
+          delay={600}
+        />
       </SafeAreaView>
     </View>
   );
@@ -155,43 +195,54 @@ export default function OnboardingActivityScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   safe: { flex: 1 },
-  scroll: {
-    flexGrow: 1,
+  content: {
+    flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 16,
   },
   heading: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "800",
-    lineHeight: 40,
+    lineHeight: 34,
+    letterSpacing: -0.3,
   },
   description: {
-    fontSize: 17,
-    lineHeight: 24,
+    fontSize: 16,
+    lineHeight: 22,
   },
   levelCard: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
+    padding: 18,
     borderRadius: 16,
   },
-  emoji: {
-    fontSize: 28,
+  emojiBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 14,
+  },
+  emoji: {
+    fontSize: 24,
   },
   levelText: {
     flex: 1,
   },
   levelTitle: {
     fontSize: 17,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   levelSubtitle: {
     fontSize: 14,
     marginTop: 2,
   },
-  footer: {
-    paddingHorizontal: 24,
-    paddingBottom: 8,
+  checkCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

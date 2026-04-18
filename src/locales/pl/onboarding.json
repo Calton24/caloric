@@ -89,6 +89,11 @@
       "fat": "Tłuszcz",
       "reachGoal": "Osiągnij {{weight}} {{unit}} do {{date}}",
       "weeksToLose": "{{weeks}} tygodni · {{amount}} {{unit}} do schudnięcia",
+      "projectedGoal": "TWÓJ CEL",
+      "byDate": "do {{date}}",
+      "weeks": "tygodni",
+      "days": "dni",
+      "toLose": "do stracenia",
       "socialProof": "12 847 osób rozpoczęło podobny plan w tym tygodniu"
     },
     "saveProgress": {

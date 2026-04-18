@@ -89,6 +89,11 @@
       "fat": "Vet",
       "reachGoal": "{{weight}} {{unit}} bereiken voor {{date}}",
       "weeksToLose": "{{weeks}} weken · {{amount}} {{unit}} af te vallen",
+      "projectedGoal": "JOUW DOEL",
+      "byDate": "voor {{date}}",
+      "weeks": "weken",
+      "days": "dagen",
+      "toLose": "af te vallen",
       "socialProof": "12.847 mensen zijn deze week met een vergelijkbaar plan begonnen"
     },
     "saveProgress": {

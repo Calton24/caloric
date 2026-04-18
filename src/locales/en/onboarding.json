@@ -89,6 +89,11 @@
       "fat": "Fat",
       "reachGoal": "Reach {{weight}} {{unit}} by {{date}}",
       "weeksToLose": "{{weeks}} weeks · {{amount}} {{unit}} to lose",
+      "projectedGoal": "YOUR GOAL",
+      "byDate": "by {{date}}",
+      "weeks": "weeks",
+      "days": "days",
+      "toLose": "to lose",
       "socialProof": "12,847 people started a similar plan this week"
     },
     "saveProgress": {

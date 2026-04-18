@@ -1,32 +1,34 @@
 /**
  * Onboarding Step 7 — Plan Calculation
  *
- * Anticipation / loading screen. Shows an animated "weight loss curve"
- * descending from current weight to goal weight, with a pulsing progress
- * label. Auto-advances after ~3 seconds.
+ * Premium anticipation screen. Shows an animated circular progress ring,
+ * sequential step checkmarks, and a bold weight journey summary.
+ * Auto-advances after ~3 seconds.
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
-    Easing,
     FadeIn,
     FadeInDown,
+    FadeInUp,
+    useAnimatedProps,
     useAnimatedStyle,
     useSharedValue,
     withRepeat,
     withSequence,
+    withSpring,
     withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Circle } from "react-native-svg";
+import { useUnits } from "../../hooks/useUnits";
 import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
-import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 
 const STEP_KEYS = [
@@ -37,43 +39,56 @@ const STEP_KEYS = [
   "onboarding.calculating.step5",
 ];
 
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+const RING_SIZE = 160;
+const RING_STROKE = 8;
+const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+
 export default function OnboardingCalculatingScreen() {
   const { theme } = useTheme();
   const router = useRouter();
   const { t } = useAppTranslation();
-  const { calculatePlan } = useOnboarding();
+  const units = useUnits();
+  const { calculatePlan, profile } = useOnboarding();
   const [stepIdx, setStepIdx] = useState(0);
   const [progress, setProgress] = useState(0);
   const navigated = useRef(false);
 
-  // Pulsing dot opacity
-  const pulseOpacity = useSharedValue(1);
+  const currentDisplay = Number(units.display(profile.currentWeightLbs ?? 160));
+  const goalDisplay = Number(
+    units.display(
+      profile.goalWeightLbs ??
+        Math.round((profile.currentWeightLbs ?? 160) * 0.9)
+    )
+  );
+
+  // Pulsing glow
+  const glowOpacity = useSharedValue(0.4);
   useEffect(() => {
-    pulseOpacity.value = withRepeat(
+    glowOpacity.value = withRepeat(
       withSequence(
-        withTiming(0.3, { duration: 600 }),
-        withTiming(1, { duration: 600 })
+        withTiming(0.8, { duration: 800 }),
+        withTiming(0.4, { duration: 800 })
       ),
       -1,
       true
     );
-  }, [pulseOpacity]);
+  }, [glowOpacity]);
 
-  const pulseStyle = useAnimatedStyle(() => ({
-    opacity: pulseOpacity.value,
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: glowOpacity.value,
   }));
 
-  // Curve reveal animation
-  const curveWidth = useSharedValue(0);
+  // Ring progress value
+  const ringProgress = useSharedValue(RING_CIRCUMFERENCE);
   useEffect(() => {
-    curveWidth.value = withTiming(100, {
-      duration: 3000,
-      easing: Easing.out(Easing.cubic),
-    });
-  }, [curveWidth]);
+    ringProgress.value = withTiming(0, { duration: 3200 });
+  }, [ringProgress]);
 
-  const curveStyle = useAnimatedStyle(() => ({
-    width: `${curveWidth.value}%`,
+  const ringAnimatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: ringProgress.value,
   }));
 
   // Progress + step cycling
@@ -106,6 +121,17 @@ export default function OnboardingCalculatingScreen() {
     };
   }, [router]);
 
+  // Step check scale
+  const stepScales = STEP_KEYS.map(() => useSharedValue(0));
+  useEffect(() => {
+    if (stepIdx < stepScales.length) {
+      stepScales[stepIdx].value = withSpring(1, {
+        damping: 12,
+        stiffness: 200,
+      });
+    }
+  }, [stepIdx]);
+
   return (
     <View
       style={[styles.container, { backgroundColor: theme.colors.background }]}
@@ -122,115 +148,191 @@ export default function OnboardingCalculatingScreen() {
             </TText>
           </Animated.View>
 
-          <TSpacer size="sm" />
+          <View style={{ height: 8 }} />
 
           <Animated.View entering={FadeIn.duration(600).delay(300)}>
-            <TText color="secondary" style={styles.subtitle}>
+            <TText
+              style={[styles.subtitle, { color: theme.colors.textSecondary }]}
+            >
               {t("onboarding.calculating.subtitle")}
             </TText>
           </Animated.View>
 
-          <TSpacer size="xxl" />
+          <View style={{ height: 40 }} />
 
-          {/* ── Weight curve visualization ── */}
-          <Animated.View entering={FadeIn.duration(800).delay(400)}>
-            <GlassSurface intensity="light" style={styles.curveCard}>
-              {/* Y-axis labels */}
-              <View style={styles.yAxis}>
-                <TText style={[styles.yLabel, { color: theme.colors.primary }]}>
-                  160
+          {/* ── Circular ring + weight journey ── */}
+          <Animated.View
+            entering={FadeIn.duration(800).delay(350)}
+            style={styles.ringContainer}
+          >
+            {/* Glow behind ring */}
+            <Animated.View
+              style={[
+                styles.ringGlow,
+                { backgroundColor: theme.colors.primary },
+                glowStyle,
+              ]}
+            />
+
+            <Svg width={RING_SIZE} height={RING_SIZE}>
+              {/* Track */}
+              <Circle
+                cx={RING_SIZE / 2}
+                cy={RING_SIZE / 2}
+                r={RING_RADIUS}
+                stroke={theme.colors.border + "30"}
+                strokeWidth={RING_STROKE}
+                fill="none"
+              />
+              {/* Fill */}
+              <AnimatedCircle
+                cx={RING_SIZE / 2}
+                cy={RING_SIZE / 2}
+                r={RING_RADIUS}
+                stroke={theme.colors.primary}
+                strokeWidth={RING_STROKE}
+                fill="none"
+                strokeLinecap="round"
+                strokeDasharray={RING_CIRCUMFERENCE}
+                animatedProps={ringAnimatedProps}
+                rotation="-90"
+                origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
+              />
+            </Svg>
+
+            {/* Center text */}
+            <View style={styles.ringCenter}>
+              <TText style={[styles.ringPct, { color: theme.colors.text }]}>
+                {progress}%
+              </TText>
+            </View>
+          </Animated.View>
+
+          <View style={{ height: 32 }} />
+
+          {/* ── Weight journey pill ── */}
+          <Animated.View entering={FadeInUp.duration(500).delay(500)}>
+            <GlassSurface intensity="light" style={styles.journeyCard}>
+              <View style={styles.journeyCol}>
+                <TText
+                  style={[
+                    styles.journeyLabel,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  {t("onboarding.weightGoal.current")}
                 </TText>
-                <TText style={[styles.yLabel, { color: theme.colors.success }]}>
-                  145
+                <TText
+                  style={[styles.journeyWeight, { color: theme.colors.text }]}
+                >
+                  {currentDisplay}
+                  <TText
+                    style={[
+                      styles.journeyUnit,
+                      { color: theme.colors.textMuted },
+                    ]}
+                  >
+                    {" "}
+                    {units.label}
+                  </TText>
                 </TText>
               </View>
-
-              {/* Curve area */}
-              <View style={styles.curveArea}>
-                {/* Start dot */}
-                <View style={[styles.startDot, { top: 0 }]}>
-                  <View
-                    style={[
-                      styles.dot,
-                      { backgroundColor: theme.colors.primary },
-                    ]}
-                  />
-                </View>
-
-                {/* Animated curve line (simplified as a diagonal gradient) */}
-                <Animated.View style={[styles.curveLine, curveStyle]}>
-                  <LinearGradient
-                    colors={[theme.colors.primary, theme.colors.success]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.curveGradient}
-                  />
-                </Animated.View>
-
-                {/* Goal line (dashed) */}
-                <View
-                  style={[
-                    styles.goalLine,
-                    {
-                      borderColor: theme.colors.success + "44",
-                    },
-                  ]}
+              <View
+                style={[
+                  styles.journeyArrow,
+                  { backgroundColor: theme.colors.primary + "15" },
+                ]}
+              >
+                <Ionicons
+                  name="arrow-forward"
+                  size={18}
+                  color={theme.colors.primary}
                 />
-
-                {/* End dot with pulse */}
-                <Animated.View style={[styles.endDot, pulseStyle]}>
-                  <View
+              </View>
+              <View style={[styles.journeyCol, { alignItems: "flex-end" }]}>
+                <TText
+                  style={[
+                    styles.journeyLabel,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  {t("onboarding.weightGoal.goal")}
+                </TText>
+                <TText
+                  style={[
+                    styles.journeyWeight,
+                    { color: theme.colors.success },
+                  ]}
+                >
+                  {goalDisplay}
+                  <TText
                     style={[
-                      styles.dot,
-                      { backgroundColor: theme.colors.success },
+                      styles.journeyUnit,
+                      { color: theme.colors.textMuted },
                     ]}
-                  />
-                </Animated.View>
+                  >
+                    {" "}
+                    {units.label}
+                  </TText>
+                </TText>
               </View>
             </GlassSurface>
           </Animated.View>
 
-          <TSpacer size="xl" />
+          <View style={{ height: 32 }} />
 
-          {/* ── Step label & progress ── */}
-          <Animated.View entering={FadeIn.duration(600).delay(600)}>
-            <View style={styles.stepRow}>
-              <Animated.View style={pulseStyle}>
-                <Ionicons
-                  name="ellipse"
-                  size={10}
-                  color={theme.colors.primary}
-                />
-              </Animated.View>
-              <TText
-                style={[styles.stepText, { color: theme.colors.textSecondary }]}
-              >
-                {t(STEP_KEYS[stepIdx])}
-              </TText>
-            </View>
-
-            <TSpacer size="md" />
-
-            {/* Progress bar */}
-            <View
-              style={[
-                styles.progressTrack,
-                { backgroundColor: theme.colors.border },
-              ]}
-            >
-              <LinearGradient
-                colors={[theme.colors.primary, theme.colors.accent]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={[styles.progressFill, { width: `${progress}%` }]}
-              />
-            </View>
-
-            <TSpacer size="sm" />
-
-            <TText style={[styles.pctText, { color: theme.colors.textMuted }]}>
-              {progress}%
-            </TText>
+          {/* ── Step checklist ── */}
+          <Animated.View
+            entering={FadeInUp.duration(500).delay(600)}
+            style={styles.stepList}
+          >
+            {STEP_KEYS.map((key, i) => {
+              const isDone = i <= stepIdx;
+              const isActive = i === stepIdx;
+              const animStyle = useAnimatedStyle(() => ({
+                transform: [{ scale: stepScales[i].value }],
+              }));
+              return (
+                <View key={i} style={styles.stepRow}>
+                  {isDone ? (
+                    <Animated.View style={animStyle}>
+                      <View
+                        style={[
+                          styles.stepCheck,
+                          { backgroundColor: theme.colors.primary },
+                        ]}
+                      >
+                        <Ionicons name="checkmark" size={12} color="#fff" />
+                      </View>
+                    </Animated.View>
+                  ) : (
+                    <View
+                      style={[
+                        styles.stepCheck,
+                        {
+                          backgroundColor: "transparent",
+                          borderWidth: 2,
+                          borderColor: theme.colors.border,
+                        },
+                      ]}
+                    />
+                  )}
+                  <TText
+                    style={[
+                      styles.stepText,
+                      {
+                        color: isDone
+                          ? theme.colors.text
+                          : theme.colors.textMuted,
+                        fontWeight: isActive ? "700" : "400",
+                      },
+                    ]}
+                  >
+                    {t(key)}
+                  </TText>
+                </View>
+              );
+            })}
           </Animated.View>
         </View>
       </SafeAreaView>
@@ -245,95 +347,95 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     paddingHorizontal: 24,
+    alignItems: "center",
   },
   heading: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "800",
-    lineHeight: 40,
+    lineHeight: 34,
     textAlign: "center",
+    letterSpacing: -0.3,
   },
   subtitle: {
-    fontSize: 17,
+    fontSize: 16,
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: 22,
   },
-  curveCard: {
+  ringContainer: {
+    width: RING_SIZE,
+    height: RING_SIZE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ringGlow: {
+    position: "absolute",
+    width: RING_SIZE + 40,
+    height: RING_SIZE + 40,
+    borderRadius: (RING_SIZE + 40) / 2,
+  },
+  ringCenter: {
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ringPct: {
+    fontSize: 36,
+    fontWeight: "800",
+    letterSpacing: -1,
+  },
+  journeyCard: {
     flexDirection: "row",
-    padding: 20,
-    borderRadius: 20,
-    height: 160,
-  },
-  yAxis: {
+    alignItems: "center",
     justifyContent: "space-between",
-    marginRight: 12,
-    paddingVertical: 4,
+    padding: 20,
+    borderRadius: 16,
+    width: "100%",
   },
-  yLabel: {
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  curveArea: {
+  journeyCol: {
     flex: 1,
-    position: "relative",
   },
-  startDot: {
-    position: "absolute",
-    left: 0,
-    top: 4,
-    zIndex: 2,
+  journeyLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 4,
   },
-  endDot: {
-    position: "absolute",
-    right: 0,
-    bottom: 4,
-    zIndex: 2,
+  journeyWeight: {
+    fontSize: 28,
+    fontWeight: "800",
+    letterSpacing: -0.5,
   },
-  dot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+  journeyUnit: {
+    fontSize: 14,
+    fontWeight: "500",
   },
-  curveLine: {
-    position: "absolute",
-    top: 8,
-    left: 4,
-    height: "85%",
-    overflow: "hidden",
-    borderRadius: 4,
+  journeyArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: 12,
   },
-  curveGradient: {
-    flex: 1,
-    width: 4,
-  },
-  goalLine: {
-    position: "absolute",
-    bottom: 10,
-    left: 0,
-    right: 0,
-    height: 0,
-    borderTopWidth: 1,
-    borderStyle: "dashed",
+  stepList: {
+    width: "100%",
+    gap: 14,
+    paddingHorizontal: 8,
   },
   stepRow: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 12,
+  },
+  stepCheck: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
     justifyContent: "center",
-    gap: 8,
   },
   stepText: {
     fontSize: 15,
-  },
-  progressTrack: {
-    height: 6,
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: 3,
-  },
-  pctText: {
-    fontSize: 13,
-    textAlign: "center",
   },
 });

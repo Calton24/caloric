@@ -130,7 +130,7 @@ export default function SaveProgressScreen() {
     >
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         {/* ── Header: Back + Progress ── */}
-        <OnboardingHeader step={6} total={6} theme={theme} />
+        <OnboardingHeader step={7} total={7} theme={theme} />
 
         {/* ── Heading ── */}
         <Animated.View

@@ -7,6 +7,7 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
@@ -16,9 +17,9 @@ import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
-import { TButton } from "../../src/ui/primitives/TButton";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+import { OnboardingCTA } from "./_cta";
 import { OnboardingHeader } from "./_progress";
 
 interface TimeframeOption {
@@ -70,21 +71,19 @@ export default function OnboardingTimeframeScreen() {
   const { timeframeWeeks, saveTimeframe, profile } = useOnboarding();
   // Map weeks back to id for selection highlighting
   const selectedId =
-    TIMEFRAMES.find((t) => t.weeks === timeframeWeeks)?.id ?? null;
+    TIMEFRAMES.find((tf) => tf.weeks === timeframeWeeks)?.id ?? null;
 
   return (
     <View
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <OnboardingHeader step={5} total={7} theme={theme} />
+
         <ScrollView
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
         >
-          <OnboardingHeader step={5} total={6} theme={theme} />
-
-          <TSpacer size="lg" />
-
           <Animated.View entering={FadeInDown.duration(500).delay(100)}>
             <TText
               variant="heading"
@@ -124,7 +123,7 @@ export default function OnboardingTimeframeScreen() {
                       styles.card,
                       {
                         borderColor: isSelected
-                          ? theme.colors.primary
+                          ? theme.colors.accent
                           : "transparent",
                         borderWidth: 2,
                       },
@@ -167,7 +166,7 @@ export default function OnboardingTimeframeScreen() {
                         ]}
                       >
                         {t("onboarding.timeframe.perWeek", {
-                          rate: `-${units.display(tf.rateLbsPerWeek, 2)}`,
+                          rate: `-${units.display(tf.rateLbsPerWeek, 1)}`,
                           unit: units.label,
                         })}
                       </TText>
@@ -191,12 +190,18 @@ export default function OnboardingTimeframeScreen() {
                         </TText>
                       </View>
                       {isSelected && (
-                        <Ionicons
-                          name="checkmark-circle"
-                          size={22}
-                          color={theme.colors.primary}
-                          style={styles.check}
-                        />
+                        <LinearGradient
+                          colors={[theme.colors.primary, theme.colors.accent]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.checkCircle}
+                        >
+                          <Ionicons
+                            name="checkmark"
+                            size={14}
+                            color={theme.colors.textInverse}
+                          />
+                        </LinearGradient>
                       )}
                     </View>
                   </GlassSurface>
@@ -224,17 +229,13 @@ export default function OnboardingTimeframeScreen() {
           </Animated.View>
         </ScrollView>
 
-        {/* Bottom CTA */}
-        <View style={styles.footer}>
-          <TButton
-            disabled={!timeframeWeeks}
-            onPress={() => router.push("/(onboarding)/calculating" as any)}
-            size="lg"
-            testID="onboarding-next-timeframe"
-          >
-            {t("common.continue")}
-          </TButton>
-        </View>
+        <OnboardingCTA
+          label={t("common.continue")}
+          onPress={() => router.push("/(onboarding)/calculating" as any)}
+          disabled={!timeframeWeeks}
+          theme={theme}
+          testID="onboarding-next-timeframe"
+        />
       </SafeAreaView>
     </View>
   );
@@ -246,16 +247,16 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 16,
   },
   heading: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "800",
-    lineHeight: 40,
+    lineHeight: 34,
+    letterSpacing: -0.3,
   },
   description: {
-    fontSize: 17,
-    lineHeight: 24,
+    fontSize: 16,
+    lineHeight: 22,
   },
   card: {
     flexDirection: "row",
@@ -303,7 +304,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
   },
-  check: {
+  checkCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
     marginLeft: 2,
   },
   infoRow: {
@@ -316,9 +322,5 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     lineHeight: 18,
-  },
-  footer: {
-    paddingHorizontal: 24,
-    paddingBottom: 8,
   },
 });

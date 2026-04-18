@@ -89,6 +89,11 @@
       "fat": "Lipides",
       "reachGoal": "Atteindre {{weight}} {{unit}} d'ici le {{date}}",
       "weeksToLose": "{{weeks}} semaines · {{amount}} {{unit}} à perdre",
+      "projectedGoal": "VOTRE OBJECTIF",
+      "byDate": "d'ici le {{date}}",
+      "weeks": "semaines",
+      "days": "jours",
+      "toLose": "à perdre",
       "socialProof": "12 847 personnes ont commencé un plan similaire cette semaine"
     },
     "saveProgress": {

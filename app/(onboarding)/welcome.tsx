@@ -11,21 +11,23 @@ import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
-    FadeIn,
-    FadeInDown,
-    FadeInUp,
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-    getWelcomeCtaCopy,
-    trackExperimentClick,
-    trackExperimentExposure,
-    useExperiment,
+  getWelcomeCtaCopy,
+  trackExperimentClick,
+  trackExperimentExposure,
+  useExperiment,
 } from "../../src/experiments";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
-import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 
 const VALUE_PROPS = [
@@ -56,11 +58,6 @@ export default function OnboardingWelcomeScreen() {
   const locale = language;
   const exposureTracked = useRef(false);
 
-  // Track exposure once per component mount (i.e., once per screen visit).
-  // useRef survives rerenders but resets on remount — this is intentional:
-  // navigating away and back counts as a new exposure (standard behavior).t (i.e., once per screen visit).
-  // useRef survives rerenders but resets on remount — this is intentional:
-  // navigating away and back counts as a new exposure (standard behavior).
   useEffect(() => {
     if (ctaVariant && !exposureTracked.current) {
       exposureTracked.current = true;
@@ -73,7 +70,6 @@ export default function OnboardingWelcomeScreen() {
     }
   }, [ctaVariant, locale]);
 
-  // Get CTA copy: experiment variant or fallback to translation
   const ctaCopy = ctaVariant
     ? getWelcomeCtaCopy(locale, ctaVariant)
     : t("welcome.cta");
@@ -90,6 +86,12 @@ export default function OnboardingWelcomeScreen() {
     router.push("/(onboarding)/goal" as any);
   };
 
+  // CTA press animation
+  const ctaScale = useSharedValue(1);
+  const ctaAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: ctaScale.value }],
+  }));
+
   return (
     <View
       style={[styles.container, { backgroundColor: theme.colors.background }]}
@@ -97,20 +99,22 @@ export default function OnboardingWelcomeScreen() {
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         {/* ── Hero ── */}
         <View style={styles.hero}>
-          <Animated.View entering={FadeInDown.duration(600).delay(100)}>
-            <View
-              style={[
-                styles.iconBubble,
-                { backgroundColor: theme.colors.primary + "22" },
-              ]}
+          <Animated.View
+            entering={FadeInDown.springify().damping(14).delay(100)}
+          >
+            <LinearGradient
+              colors={[theme.colors.primary + "20", theme.colors.accent + "10"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.iconBubble}
             >
-              <Ionicons name="flame" size={56} color={theme.colors.primary} />
-            </View>
+              <Ionicons name="flame" size={52} color={theme.colors.primary} />
+            </LinearGradient>
           </Animated.View>
 
-          <TSpacer size="lg" />
+          <View style={{ height: 28 }} />
 
-          <Animated.View entering={FadeInDown.duration(600).delay(250)}>
+          <Animated.View entering={FadeInDown.duration(600).delay(200)}>
             <TText
               variant="heading"
               style={[styles.headline, { color: theme.colors.text }]}
@@ -119,88 +123,113 @@ export default function OnboardingWelcomeScreen() {
             </TText>
           </Animated.View>
 
-          <TSpacer size="sm" />
+          <View style={{ height: 12 }} />
 
-          <Animated.View entering={FadeIn.duration(600).delay(400)}>
-            <TText color="secondary" style={styles.subheadline}>
+          <Animated.View entering={FadeIn.duration(600).delay(350)}>
+            <TText
+              style={[
+                styles.subheadline,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
               {t("welcome.subheading")}
             </TText>
           </Animated.View>
         </View>
 
         {/* ── Value Props ── */}
-        <Animated.View
-          entering={FadeInUp.duration(500).delay(550)}
-          style={styles.valueList}
-        >
+        <View style={styles.valueList}>
           {VALUE_PROPS.map((v, i) => (
-            <GlassSurface key={i} intensity="light" style={styles.valueRow}>
-              <View
-                style={[
-                  styles.valueIcon,
-                  { backgroundColor: theme.colors.primary + "1A" },
-                ]}
-              >
-                <Ionicons
-                  name={v.icon}
-                  size={22}
-                  color={theme.colors.primary}
-                />
-              </View>
-              <View style={styles.valueText}>
-                <TText
-                  style={[styles.valueTitle, { color: theme.colors.text }]}
-                >
-                  {t(v.titleKey)}
-                </TText>
-                <TText
+            <Animated.View
+              key={i}
+              entering={FadeInUp.springify()
+                .damping(18)
+                .delay(500 + i * 100)}
+            >
+              <GlassSurface intensity="light" style={styles.valueRow}>
+                <View
                   style={[
-                    styles.valueSub,
-                    { color: theme.colors.textSecondary },
+                    styles.valueIcon,
+                    { backgroundColor: theme.colors.primary + "15" },
                   ]}
                 >
-                  {t(v.subKey)}
-                </TText>
-              </View>
-            </GlassSurface>
+                  <Ionicons
+                    name={v.icon}
+                    size={24}
+                    color={theme.colors.primary}
+                  />
+                </View>
+                <View style={styles.valueText}>
+                  <TText
+                    style={[styles.valueTitle, { color: theme.colors.text }]}
+                  >
+                    {t(v.titleKey)}
+                  </TText>
+                  <TText
+                    style={[
+                      styles.valueSub,
+                      { color: theme.colors.textSecondary },
+                    ]}
+                  >
+                    {t(v.subKey)}
+                  </TText>
+                </View>
+              </GlassSurface>
+            </Animated.View>
           ))}
-        </Animated.View>
+        </View>
 
         {/* ── CTA ── */}
         <Animated.View
-          entering={FadeInUp.duration(500).delay(700)}
+          entering={FadeInUp.duration(500).delay(850)}
           style={styles.ctaArea}
         >
-          <Pressable
-            testID="onboarding-start"
-            onPress={handleCtaPress}
-            style={({ pressed }) => ({
-              opacity: pressed ? 0.9 : 1,
-              transform: [{ scale: pressed ? 0.97 : 1 }],
-            })}
-          >
-            <LinearGradient
-              colors={[theme.colors.primary, theme.colors.accent]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.ctaGradient}
+          <Animated.View style={ctaAnimStyle}>
+            <Pressable
+              testID="onboarding-start"
+              onPress={handleCtaPress}
+              onPressIn={() => {
+                ctaScale.value = withSpring(0.96, {
+                  damping: 15,
+                  stiffness: 300,
+                });
+              }}
+              onPressOut={() => {
+                ctaScale.value = withSpring(1, {
+                  damping: 15,
+                  stiffness: 300,
+                });
+              }}
             >
-              <TText
-                style={[styles.ctaText, { color: theme.colors.textInverse }]}
-              >
-                {ctaCopy}
-              </TText>
-              <Ionicons
-                name="arrow-forward"
-                size={20}
-                color={theme.colors.textInverse}
+              <View
+                style={[
+                  styles.ctaShadow,
+                  { backgroundColor: theme.colors.primary + "30" },
+                ]}
               />
-            </LinearGradient>
-          </Pressable>
+              <LinearGradient
+                colors={[theme.colors.primary, theme.colors.accent]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.ctaGradient}
+              >
+                <TText
+                  style={[styles.ctaText, { color: theme.colors.textInverse }]}
+                >
+                  {ctaCopy}
+                </TText>
+                <Ionicons
+                  name="arrow-forward"
+                  size={20}
+                  color={theme.colors.textInverse}
+                />
+              </LinearGradient>
+            </Pressable>
+          </Animated.View>
 
-          <TSpacer size="sm" />
+          <View style={{ height: 12 }} />
 
-          <TText color="muted" style={styles.disclaimer}>
+          <TText style={[styles.disclaimer, { color: theme.colors.textMuted }]}>
             {t("welcome.disclaimer")}
           </TText>
         </Animated.View>
@@ -214,71 +243,82 @@ const styles = StyleSheet.create({
   safe: { flex: 1, justifyContent: "space-between" },
   hero: {
     alignItems: "center",
-    paddingTop: 48,
+    paddingTop: 56,
+    paddingHorizontal: 32,
   },
   iconBubble: {
-    width: 96,
-    height: 96,
-    borderRadius: 28,
+    width: 104,
+    height: 104,
+    borderRadius: 32,
     alignItems: "center",
     justifyContent: "center",
   },
   headline: {
-    fontSize: 34,
+    fontSize: 30,
     fontWeight: "800",
     textAlign: "center",
-    lineHeight: 42,
-    letterSpacing: -0.3,
+    lineHeight: 38,
+    letterSpacing: -0.5,
   },
   subheadline: {
-    fontSize: 17,
+    fontSize: 16,
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: 23,
   },
   valueList: {
     paddingHorizontal: 24,
-    gap: 12,
+    gap: 10,
   },
   valueRow: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 14,
+    padding: 16,
     borderRadius: 16,
     gap: 14,
   },
   valueIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
   valueText: { flex: 1 },
   valueTitle: {
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: 16,
+    fontWeight: "700",
   },
   valueSub: {
     fontSize: 13,
-    marginTop: 2,
+    marginTop: 3,
+    lineHeight: 18,
   },
   ctaArea: {
     alignItems: "center",
     paddingHorizontal: 24,
     paddingBottom: 16,
   },
+  ctaShadow: {
+    position: "absolute",
+    bottom: -4,
+    left: 16,
+    right: 16,
+    height: 48,
+    borderRadius: 20,
+  },
   ctaGradient: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 18,
+    height: 56,
     borderRadius: 16,
     gap: 8,
     width: "100%",
   },
   ctaText: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "700",
+    letterSpacing: 0.2,
   },
   disclaimer: {
     fontSize: 13,

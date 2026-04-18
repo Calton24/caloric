@@ -17,17 +17,20 @@ import { haptics } from "../../src/infrastructure/haptics";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
-import { TButton } from "../../src/ui/primitives/TButton";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+import { OnboardingCTA } from "./_cta";
 import { OnboardingHeader } from "./_progress";
 
-// Simple BMI helper (for demo — uses hardcoded 5'8" height)
-function getBmiCategory(weightLbs: number): {
+// BMI helper using actual user height
+function getBmiCategory(
+  weightLbs: number,
+  heightCm: number | null
+): {
   label: string;
   color: string;
 } {
-  const heightM = 1.73; // ~5'8"
+  const heightM = heightCm ? heightCm / 100 : 1.73; // fallback ~5'8"
   const weightKg = weightLbs * 0.4536;
   const bmi = weightKg / (heightM * heightM);
   if (bmi < 18.5)
@@ -55,8 +58,8 @@ export default function OnboardingWeightGoalScreen() {
     )
   );
 
-  const diff = currentWeight - goalWeight;
-  const bmi = getBmiCategory(units.toLbs(goalWeight));
+  const diff = Math.round((currentWeight - goalWeight) * 10) / 10;
+  const bmi = getBmiCategory(units.toLbs(goalWeight), profile.heightCm);
 
   // Bar heights (relative to max)
   const maxBar = Math.max(currentWeight, goalWeight);
@@ -68,14 +71,12 @@ export default function OnboardingWeightGoalScreen() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <OnboardingHeader step={4} total={7} theme={theme} />
+
         <ScrollView
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
         >
-          <OnboardingHeader step={4} total={6} theme={theme} />
-
-          <TSpacer size="xl" />
-
           <Animated.View entering={FadeInDown.duration(500).delay(100)}>
             <TText
               variant="heading"
@@ -174,7 +175,10 @@ export default function OnboardingWeightGoalScreen() {
                 {/* Current */}
                 <View style={styles.barCol}>
                   <TText
-                    style={[styles.barValue, { color: theme.colors.primary }]}
+                    style={[
+                      styles.barValue,
+                      { color: theme.colors.textSecondary },
+                    ]}
                   >
                     {currentWeight}
                   </TText>
@@ -184,7 +188,7 @@ export default function OnboardingWeightGoalScreen() {
                         styles.bar,
                         {
                           height: `${currentPct}%`,
-                          backgroundColor: theme.colors.primary,
+                          backgroundColor: theme.colors.textMuted + "44",
                           borderRadius: 8,
                         },
                       ]}
@@ -200,7 +204,7 @@ export default function OnboardingWeightGoalScreen() {
                 {/* Goal */}
                 <View style={styles.barCol}>
                   <TText
-                    style={[styles.barValue, { color: theme.colors.success }]}
+                    style={[styles.barValue, { color: theme.colors.accent }]}
                   >
                     {goalWeight}
                   </TText>
@@ -210,14 +214,17 @@ export default function OnboardingWeightGoalScreen() {
                         styles.bar,
                         {
                           height: `${goalPct}%`,
-                          backgroundColor: theme.colors.success,
+                          backgroundColor: theme.colors.accent,
                           borderRadius: 8,
                         },
                       ]}
                     />
                   </View>
                   <TText
-                    style={[styles.barLabel, { color: theme.colors.textMuted }]}
+                    style={[
+                      styles.barLabel,
+                      { color: theme.colors.textMuted, fontWeight: "700" },
+                    ]}
                   >
                     {t("onboarding.weightGoal.goal")}
                   </TText>
@@ -230,16 +237,16 @@ export default function OnboardingWeightGoalScreen() {
                   <View
                     style={[
                       styles.diffPill,
-                      { backgroundColor: theme.colors.success + "1A" },
+                      { backgroundColor: theme.colors.accent + "1A" },
                     ]}
                   >
                     <Ionicons
                       name="arrow-down"
                       size={16}
-                      color={theme.colors.success}
+                      color={theme.colors.accent}
                     />
                     <TText
-                      style={[styles.diffText, { color: theme.colors.success }]}
+                      style={[styles.diffText, { color: theme.colors.accent }]}
                     >
                       {t("onboarding.weightGoal.toLose", {
                         count: diff,
@@ -256,18 +263,15 @@ export default function OnboardingWeightGoalScreen() {
         </ScrollView>
 
         {/* Bottom CTA */}
-        <View style={styles.footer}>
-          <TButton
-            onPress={() => {
-              saveGoalWeight(units.toLbs(goalWeight));
-              router.push("/(onboarding)/timeframe" as any);
-            }}
-            size="lg"
-            testID="onboarding-next-weight"
-          >
-            {t("common.continue")}
-          </TButton>
-        </View>
+        <OnboardingCTA
+          label={t("common.continue")}
+          onPress={() => {
+            saveGoalWeight(units.toLbs(goalWeight));
+            router.push("/(onboarding)/timeframe" as any);
+          }}
+          theme={theme}
+          testID="onboarding-next-weight"
+        />
       </SafeAreaView>
     </View>
   );
@@ -279,16 +283,16 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 16,
   },
   heading: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "800",
-    lineHeight: 40,
+    lineHeight: 34,
+    letterSpacing: -0.3,
   },
   description: {
-    fontSize: 17,
-    lineHeight: 24,
+    fontSize: 16,
+    lineHeight: 22,
   },
   stepperCard: {
     flexDirection: "row",
@@ -384,9 +388,5 @@ const styles = StyleSheet.create({
   diffText: {
     fontSize: 14,
     fontWeight: "600",
-  },
-  footer: {
-    paddingHorizontal: 24,
-    paddingBottom: 8,
   },
 });

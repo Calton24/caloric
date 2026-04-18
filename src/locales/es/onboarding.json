@@ -89,6 +89,11 @@
       "fat": "Grasa",
       "reachGoal": "Alcanzar {{weight}} {{unit}} para el {{date}}",
       "weeksToLose": "{{weeks}} semanas · {{amount}} {{unit}} por perder",
+      "projectedGoal": "TU OBJETIVO",
+      "byDate": "para el {{date}}",
+      "weeks": "semanas",
+      "days": "días",
+      "toLose": "por perder",
       "socialProof": "12.847 personas empezaron un plan similar esta semana"
     },
     "saveProgress": {
