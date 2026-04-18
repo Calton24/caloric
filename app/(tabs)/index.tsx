@@ -36,6 +36,7 @@ import {
 } from "../../hooks/useOverLimitColor";
 import { useUnits } from "../../hooks/useUnits";
 import { useHomeData } from "../../src/features/home/use-home-data";
+import { getMilestoneInsight } from "../../src/features/milestone/milestone-insight.service";
 import type { MealTime } from "../../src/features/nutrition/mealtime";
 import {
     MEALTIME_ICONS,
@@ -59,19 +60,15 @@ import { haptics } from "../../src/infrastructure/haptics";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { toISODate } from "../../src/lib/utils/date";
 import { useTheme } from "../../src/theme/useTheme";
-import { CoachInsight } from "../../src/ui/components/CoachInsight";
-import { DayJourneyBanner } from "../../src/ui/components/DailyMotivationBanner";
 import { DaySelector } from "../../src/ui/components/DaySelector";
 import { EditMealSheet } from "../../src/ui/components/EditMealSheet";
 import { MacroCard } from "../../src/ui/components/MacroCard";
 import { ManualLogSheet } from "../../src/ui/components/ManualLogSheet";
 import { MealCard } from "../../src/ui/components/MealCard";
+import { MilestoneInsightCard } from "../../src/ui/components/MilestoneInsightCard";
 import { MonthlyView } from "../../src/ui/components/MonthlyView";
 import { ProgressRing } from "../../src/ui/components/ProgressRing";
-import { StreakAtRiskBanner } from "../../src/ui/components/StreakAtRiskBanner";
-import { StreakHero } from "../../src/ui/components/StreakHero";
 import { StreakModal } from "../../src/ui/components/StreakModal";
-import { StreakRecoveryBanner } from "../../src/ui/components/StreakRecoveryBanner";
 import { VoiceLogSheet } from "../../src/ui/components/VoiceLogSheet";
 import { WaterCard } from "../../src/ui/components/WaterCard";
 import { WaterSettingsModal } from "../../src/ui/components/WaterSettingsModal";
@@ -441,6 +438,40 @@ export default function HomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [retention.shouldShowCamera]);
 
+  const totals = {
+    calories: dailySummary.totalCalories,
+    protein: dailySummary.totalProtein,
+    carbs: dailySummary.totalCarbs,
+    fat: dailySummary.totalFat,
+  };
+  const targetCalories = calorieBudget;
+
+  // ── Milestone insight (unified coaching card) ──
+  const today = toISODate(new Date());
+  const hasLoggedToday = lastLogDate === today;
+  const milestoneInsight = useMemo(
+    () =>
+      getMilestoneInsight({
+        currentStreak,
+        lastLogDate: lastLogDate ?? null,
+        hasLoggedToday,
+        streakRecoveryActive: !!retention.streakRecovery,
+        lostStreak: retention.streakRecovery?.lostStreak,
+        dailySummary: {
+          targetCalories,
+          consumedCalories: totals.calories,
+        },
+      }),
+    [
+      currentStreak,
+      lastLogDate,
+      hasLoggedToday,
+      retention.streakRecovery,
+      targetCalories,
+      totals.calories,
+    ]
+  );
+
   // Group meals by category in display order
   const MEAL_ORDER: MealTime[] = ["breakfast", "lunch", "dinner", "snack"];
   const groupedMeals = useMemo(() => {
@@ -457,13 +488,6 @@ export default function HomeScreen() {
     return groups;
   }, [todayMeals]);
 
-  const totals = {
-    calories: dailySummary.totalCalories,
-    protein: dailySummary.totalProtein,
-    carbs: dailySummary.totalCarbs,
-    fat: dailySummary.totalFat,
-  };
-  const targetCalories = calorieBudget;
   const displayWeight = latestWeight ?? 0;
   const weightTrending = (latestWeight ?? 0) <= (goalWeightLbs ?? Infinity);
 
@@ -1138,63 +1162,25 @@ export default function HomeScreen() {
 
           {viewMode === "D" && <TSpacer size="md" />}
 
-          {/* Streak hero card — visible identity + milestone progress */}
-          {viewMode === "D" && currentStreak > 0 && (
+          {/* Milestone insight — unified coaching card */}
+          {viewMode === "D" && milestoneInsight && (
             <>
-              <StreakHero
-                currentStreak={currentStreak}
-                onPress={() => {
-                  haptics.impact("medium");
-                  setShowStreakModal(true);
-                }}
-              />
-              <TSpacer size="sm" />
-            </>
-          )}
-
-          {/* Streak at risk banner — loss aversion nudge */}
-          {viewMode === "D" && (
-            <StreakAtRiskBanner
-              lastLogDate={lastLogDate ?? null}
-              currentStreak={currentStreak}
-              onPress={() => router.push("/tracking/text" as any)}
-            />
-          )}
-
-          {/* Streak recovery banner — shown when streak broke */}
-          {viewMode === "D" && retention.streakRecovery && (
-            <>
-              <StreakRecoveryBanner
-                recovery={retention.streakRecovery}
-                onPress={() => router.push("/tracking/text" as any)}
-              />
-              <TSpacer size="sm" />
-            </>
-          )}
-
-          {/* Day journey banner — exact day-by-day header + sub */}
-          {viewMode === "D" && retention.dayBanner && (
-            <>
-              <DayJourneyBanner
-                header={retention.dayBanner.header}
-                sub={retention.dayBanner.sub}
-                phase={retention.dayBanner.phase}
-                day={retention.dayBanner.day}
-              />
-              <TSpacer size="sm" />
-            </>
-          )}
-
-          {/* AI Coach nudge — passive, context-aware insight */}
-          {viewMode === "D" && (
-            <>
-              <CoachInsight
-                caloriesConsumed={totals.calories}
-                calorieGoal={targetCalories}
-                proteinLeft={Math.max(0, proteinTarget - totals.protein)}
-                carbsLeft={Math.max(0, carbsTarget - totals.carbs)}
-                fatLeft={Math.max(0, fatTarget - totals.fat)}
-                streakDays={currentStreak}
+              <MilestoneInsightCard
+                model={milestoneInsight}
+                onPress={
+                  milestoneInsight.state === "risk" ||
+                  milestoneInsight.state === "recovery"
+                    ? () => router.push("/tracking/text" as any)
+                    : () => {
+                        haptics.impact("medium");
+                        setShowStreakModal(true);
+                      }
+                }
+                onCTA={
+                  milestoneInsight.action === "track_meal"
+                    ? () => router.push("/tracking/text" as any)
+                    : undefined
+                }
               />
               <TSpacer size="sm" />
             </>

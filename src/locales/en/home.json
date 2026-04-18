@@ -147,5 +147,22 @@
   },
   "dayJourney": {
     "dayBadge": "Day {{day}}"
+  },
+  "streakInsight": {
+    "days_one": "day",
+    "days_other": "days",
+    "atRisk": "Your {{count}}-day streak is at risk",
+    "lastChance": "Last chance — your streak ends tonight",
+    "logToKeep": "Log a meal now to keep it alive",
+    "logMeal": "Log meal",
+    "streakEnded": "Your {{count}}-day streak ended",
+    "startFresh": "Log a meal to start a new streak",
+    "milestoneHit": "{{count}}-day streak achieved!",
+    "milestoneBody": "You've built {{count}} days of consistency",
+    "milestoneClose": "{{target}}-day milestone is close",
+    "keepLogging": "{{remaining}} more days — keep logging",
+    "daysToMilestone": "{{remaining}} days to {{target}}-day milestone",
+    "keepGoing": "Keep the momentum going",
+    "buildingHabit": "Building a habit"
   }
 }

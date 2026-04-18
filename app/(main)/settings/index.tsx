@@ -391,6 +391,7 @@ export default function SettingsScreen() {
           )}
 
           {/* ── Legal ── */}
+          <TSpacer size="lg" />
           <Animated.View entering={FadeInDown.duration(400).delay(350)}>
             <SectionHeader title={t("settings.legal")} />
             <View

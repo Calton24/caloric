@@ -54,6 +54,8 @@
       "overweight": "Übergewicht",
       "obese": "Adipös",
       "toLose": "{{count}} {{unit}} abzunehmen",
+      "toGain": "{{count}} {{unit}} zuzunehmen",
+      "atTarget": "Bei Ihrem Zielgewicht",
       "bmiDisplay": "BMI: {{label}}"
     },
     "timeframe": {

@@ -147,5 +147,22 @@
   },
   "dayJourney": {
     "dayBadge": "Día {{day}}"
+  },
+  "streakInsight": {
+    "days_one": "día",
+    "days_other": "días",
+    "atRisk": "Tu racha de {{count}} días está en riesgo",
+    "lastChance": "Última oportunidad — tu racha termina esta noche",
+    "logToKeep": "Registra una comida para mantenerla",
+    "logMeal": "Registrar",
+    "streakEnded": "Tu racha de {{count}} días terminó",
+    "startFresh": "Registra una comida para empezar de nuevo",
+    "milestoneHit": "¡Racha de {{count}} días lograda!",
+    "milestoneBody": "Has construido {{count}} días de constancia",
+    "milestoneClose": "La meta de {{target}} días está cerca",
+    "keepLogging": "{{remaining}} días más — sigue registrando",
+    "daysToMilestone": "{{remaining}} días para la meta de {{target}} días",
+    "keepGoing": "Mantén el impulso",
+    "buildingHabit": "Construyendo un hábito"
   }
 }

@@ -134,12 +134,12 @@ export function useLoggingFlow() {
 
   /** Navigate back to home after a save (or deferred milestone modal). */
   function navigateAfterSave() {
-    // Dismiss all modals and navigate to home
-    while (router.canDismiss()) {
-      router.dismiss();
+    // Dismiss all modals at once (safer than while-loop dismissal)
+    if (router.canDismiss()) {
+      router.dismissAll();
     }
     // Navigate to home tab to show the logged food
-    router.push("/(tabs)" as never);
+    router.replace("/(tabs)" as never);
     // Clear draft after navigation settles
     setTimeout(() => {
       clearDraft();

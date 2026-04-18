@@ -54,6 +54,8 @@
       "overweight": "Surpoids",
       "obese": "Obésité",
       "toLose": "{{count}} {{unit}} à perdre",
+      "toGain": "{{count}} {{unit}} à prendre",
+      "atTarget": "À votre poids cible",
       "bmiDisplay": "IMC : {{label}}"
     },
     "timeframe": {

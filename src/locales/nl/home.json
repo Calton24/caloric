@@ -147,5 +147,22 @@
   },
   "dayJourney": {
     "dayBadge": "Dag {{day}}"
+  },
+  "streakInsight": {
+    "days_one": "dag",
+    "days_other": "dagen",
+    "atRisk": "Je {{count}}-daagse reeks staat op het spel",
+    "lastChance": "Laatste kans — je reeks eindigt vanavond",
+    "logToKeep": "Log een maaltijd om hem te behouden",
+    "logMeal": "Loggen",
+    "streakEnded": "Je {{count}}-daagse reeks is beëindigd",
+    "startFresh": "Log een maaltijd om opnieuw te beginnen",
+    "milestoneHit": "{{count}}-daagse reeks behaald!",
+    "milestoneBody": "Je hebt {{count}} dagen consistentie opgebouwd",
+    "milestoneClose": "De {{target}}-dagen mijlpaal is dichtbij",
+    "keepLogging": "Nog {{remaining}} dagen — blijf loggen",
+    "daysToMilestone": "{{remaining}} dagen tot de {{target}}-dagen mijlpaal",
+    "keepGoing": "Houd het momentum vast",
+    "buildingHabit": "Een gewoonte opbouwen"
   }
 }

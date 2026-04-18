@@ -147,5 +147,22 @@
   },
   "dayJourney": {
     "dayBadge": "Tag {{day}}"
+  },
+  "streakInsight": {
+    "days_one": "Tag",
+    "days_other": "Tage",
+    "atRisk": "Deine {{count}}-Tage-Serie ist gefährdet",
+    "lastChance": "Letzte Chance — deine Serie endet heute Nacht",
+    "logToKeep": "Erfasse eine Mahlzeit, um sie zu behalten",
+    "logMeal": "Erfassen",
+    "streakEnded": "Deine {{count}}-Tage-Serie ist beendet",
+    "startFresh": "Erfasse eine Mahlzeit, um neu zu starten",
+    "milestoneHit": "{{count}}-Tage-Serie erreicht!",
+    "milestoneBody": "Du hast {{count}} Tage Konstanz aufgebaut",
+    "milestoneClose": "Das {{target}}-Tage-Ziel ist nah",
+    "keepLogging": "Noch {{remaining}} Tage — weiter erfassen",
+    "daysToMilestone": "{{remaining}} Tage bis zum {{target}}-Tage-Ziel",
+    "keepGoing": "Halte den Schwung",
+    "buildingHabit": "Gewohnheit aufbauen"
   }
 }

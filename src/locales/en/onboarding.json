@@ -54,6 +54,8 @@
       "overweight": "Overweight",
       "obese": "Obese",
       "toLose": "{{count}} {{unit}} to lose",
+      "toGain": "{{count}} {{unit}} to gain",
+      "atTarget": "At your target weight",
       "bmiDisplay": "BMI: {{label}}"
     },
     "timeframe": {

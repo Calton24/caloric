@@ -110,17 +110,41 @@ export default function SaveProgressScreen() {
 
     setLoading(true);
     try {
-      const { error } = isSignUp
+      // Try the user's chosen mode first
+      const primary = isSignUp
         ? await signUp(email, password)
         : await signIn(email, password);
-      if (error) {
-        Alert.alert(
-          isSignUp ? t("auth.signUpFailed") : t("auth.signInFailed"),
-          error.message
-        );
-      } else {
+
+      if (!primary.error) {
         navigateNext();
+        return;
       }
+
+      // If credentials failed, auto-retry with the opposite method.
+      // Supabase returns "Invalid login credentials" both when signUp
+      // hits an existing email and when signIn hits a wrong password,
+      // so only fall back on that specific message.
+      const isCredentialError = primary.error.message
+        ?.toLowerCase()
+        .includes("invalid login credentials");
+
+      if (isCredentialError) {
+        const fallback = isSignUp
+          ? await signIn(email, password)
+          : await signUp(email, password);
+
+        if (!fallback.error) {
+          setIsSignUp(!isSignUp); // sync UI state
+          navigateNext();
+          return;
+        }
+      }
+
+      // Both failed — show the original error
+      Alert.alert(
+        isSignUp ? t("auth.signUpFailed") : t("auth.signInFailed"),
+        primary.error.message
+      );
     } finally {
       setLoading(false);
     }
@@ -322,7 +346,6 @@ export default function SaveProgressScreen() {
               onSubmit={handleEmailAuth}
               onToggleMode={() => {
                 setIsSignUp(!isSignUp);
-                setPassword("");
                 setConfirmPassword("");
               }}
             />

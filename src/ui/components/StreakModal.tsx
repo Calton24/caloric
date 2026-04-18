@@ -290,76 +290,6 @@ export function StreakModal({
               ) : null;
             })()}
 
-            {/* Motivational message */}
-            {(() => {
-              const msg = getStreakMotivation(currentStreak);
-              return (
-                <TText
-                  style={[
-                    styles.message,
-                    { color: theme.colors.textSecondary },
-                  ]}
-                >
-                  {msg ? t(msg.key, msg.params) : t("streak.startPrompt")}
-                </TText>
-              );
-            })()}
-
-            {/* Streak freeze status */}
-            {freezeAvailable && (
-              <View
-                style={[
-                  styles.freezeRow,
-                  {
-                    backgroundColor: isDark
-                      ? "rgba(34,197,94,0.1)"
-                      : "rgba(34,197,94,0.08)",
-                  },
-                ]}
-              >
-                <TText style={styles.freezeIcon}>🧊</TText>
-                <TText
-                  style={[
-                    styles.freezeText,
-                    { color: theme.colors.textSecondary },
-                  ]}
-                >
-                  {t("streak.freezeAvailable")}
-                </TText>
-              </View>
-            )}
-
-            {/* Streak freeze upsell for free users */}
-            {showFreezeUpsell && !freezeAvailable && currentStreak >= 3 && (
-              <Pressable
-                onPress={onFreezeUpsell}
-                style={[
-                  styles.freezeUpsell,
-                  { borderColor: theme.colors.primary },
-                ]}
-              >
-                <TText style={styles.freezeIcon}>🧊</TText>
-                <View style={{ flex: 1 }}>
-                  <TText
-                    style={[
-                      styles.freezeUpsellTitle,
-                      { color: theme.colors.text },
-                    ]}
-                  >
-                    {t("streak.protectStreak")}
-                  </TText>
-                  <TText
-                    style={[
-                      styles.freezeUpsellBody,
-                      { color: theme.colors.textMuted },
-                    ]}
-                  >
-                    {t("streak.freezeUpsell")}
-                  </TText>
-                </View>
-              </Pressable>
-            )}
-
             {/* Continue button */}
             <Pressable
               onPress={onClose}
@@ -501,6 +431,7 @@ const styles = StyleSheet.create({
   },
   button: {
     width: "100%",
+    marginTop: 16,
     paddingVertical: 16,
     borderRadius: 14,
     alignItems: "center",

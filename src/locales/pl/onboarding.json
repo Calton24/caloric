@@ -54,6 +54,8 @@
       "overweight": "Nadwaga",
       "obese": "Otyłość",
       "toLose": "{{count}} {{unit}} do schudnięcia",
+      "toGain": "{{count}} {{unit}} do przybrania",
+      "atTarget": "Na wadze docelowej",
       "bmiDisplay": "BMI: {{label}}"
     },
     "timeframe": {

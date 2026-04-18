@@ -9,11 +9,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Platform,
-    Pressable,
-    StyleSheet,
-    View,
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
@@ -83,7 +83,7 @@ export default function WebViewerModal() {
         <WebView
           ref={webViewRef}
           source={{ uri: decodedUrl }}
-          style={[styles.webView, { backgroundColor: theme.colors.background }]}
+          style={[styles.webView, { backgroundColor: "#FFFFFF" }]}
           onLoadStart={() => setLoading(true)}
           onLoadEnd={() => setLoading(false)}
           onNavigationStateChange={(state) => setCanGoBack(state.canGoBack)}
@@ -94,12 +94,7 @@ export default function WebViewerModal() {
         />
 
         {loading && (
-          <View
-            style={[
-              styles.loadingOverlay,
-              { backgroundColor: theme.colors.background },
-            ]}
-          >
+          <View style={[styles.loadingOverlay, { backgroundColor: "#FFFFFF" }]}>
             <ActivityIndicator
               size="large"
               color={theme.colors.primary ?? "#22c55e"}

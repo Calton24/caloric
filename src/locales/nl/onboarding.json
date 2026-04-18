@@ -54,6 +54,8 @@
       "overweight": "Overgewicht",
       "obese": "Obesitas",
       "toLose": "{{count}} {{unit}} af te vallen",
+      "toGain": "{{count}} {{unit}} aan te komen",
+      "atTarget": "Op je streefgewicht",
       "bmiDisplay": "BMI: {{label}}"
     },
     "timeframe": {
