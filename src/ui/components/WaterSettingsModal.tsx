@@ -12,7 +12,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
     Dimensions,
-    FlatList,
     Modal,
     Pressable,
     ScrollView,
@@ -22,6 +21,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useProfileStore } from "../../features/profile/profile.store";
 import { pushProfile } from "../../features/sync/sync.service";
+import { haptics } from "../../infrastructure/haptics/haptics";
 import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
@@ -55,10 +55,10 @@ function DrumPicker({
 }: DrumPickerProps) {
   const { theme } = useTheme();
   const isDark = theme.mode === "dark";
-  const listRef = useRef<FlatList>(null);
-  // Track what the user is looking at (for visual highlight during scroll)
+  const scrollRef = useRef<ScrollView>(null);
   const [centeredValue, setCenteredValue] = useState(selected);
   const userScrolling = useRef(false);
+  const lastHapticIdx = useRef(-1);
 
   const formatVal = formatOption ?? ((v: number) => `${v}`);
   const PADDING = ITEM_HEIGHT * Math.floor(VISIBLE_ITEMS / 2);
@@ -70,26 +70,46 @@ function DrumPicker({
     const idx = options.indexOf(selected);
     if (idx < 0) return;
     setCenteredValue(selected);
+    lastHapticIdx.current = idx;
     setTimeout(() => {
-      listRef.current?.scrollToOffset({
-        offset: idx * ITEM_HEIGHT,
+      scrollRef.current?.scrollTo({
+        y: idx * ITEM_HEIGHT,
         animated: false,
       });
     }, 120);
   }, [selected, options]);
 
-  /** Derive selected value from scroll offset — reliable, no viewability guessing */
+  /** Fire haptic tick during live scroll when crossing item boundaries */
+  const handleScroll = useCallback(
+    (e: any) => {
+      const y = e.nativeEvent.contentOffset.y;
+      const idx = Math.max(
+        0,
+        Math.min(Math.round(y / ITEM_HEIGHT), options.length - 1)
+      );
+      if (idx !== lastHapticIdx.current) {
+        lastHapticIdx.current = idx;
+        haptics.selection();
+      }
+    },
+    [options.length]
+  );
+
+  /** Derive selected value from scroll offset */
   const commitFromOffset = (y: number) => {
     const idx = Math.max(
       0,
       Math.min(Math.round(y / ITEM_HEIGHT), options.length - 1)
     );
     const val = options[idx];
+    if (val !== centeredValue) {
+      haptics.selection();
+    }
     setCenteredValue(val);
     onSelect(val);
   };
 
-  const SEL_BG = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
+  const SEL_BG = isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.10)";
 
   return (
     <View style={[styles.pickerContainer, { height: CONTAINER_H }]}>
@@ -113,8 +133,8 @@ function DrumPicker({
           styles.fadeTop,
           {
             backgroundColor: isDark
-              ? "rgba(28,28,30,0.85)"
-              : "rgba(255,255,255,0.85)",
+              ? theme.colors.surface + "D9"
+              : theme.colors.surface + "D9",
           },
         ]}
       />
@@ -126,27 +146,20 @@ function DrumPicker({
           styles.fadeBottom,
           {
             backgroundColor: isDark
-              ? "rgba(28,28,30,0.85)"
-              : "rgba(255,255,255,0.85)",
+              ? theme.colors.surface + "D9"
+              : theme.colors.surface + "D9",
           },
         ]}
       />
 
-      <FlatList
-        ref={listRef}
-        data={options}
-        keyExtractor={(item) => String(item)}
+      <ScrollView
+        ref={scrollRef}
         snapToInterval={ITEM_HEIGHT}
         decelerationRate="fast"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingVertical: PADDING,
-        }}
-        getItemLayout={(_, index) => ({
-          length: ITEM_HEIGHT,
-          offset: ITEM_HEIGHT * index,
-          index,
-        })}
+        contentContainerStyle={{ paddingVertical: PADDING }}
+        scrollEventThrottle={16}
+        onScroll={handleScroll}
         onScrollBeginDrag={() => {
           userScrolling.current = true;
         }}
@@ -155,20 +168,22 @@ function DrumPicker({
           commitFromOffset(e.nativeEvent.contentOffset.y);
         }}
         onScrollEndDrag={(e) => {
-          // Handles fling-less drag releases
           commitFromOffset(e.nativeEvent.contentOffset.y);
         }}
-        renderItem={({ item }) => {
+      >
+        {options.map((item) => {
           const isSelected = item === centeredValue;
           return (
             <Pressable
+              key={item}
               style={styles.pickerItem}
               onPress={() => {
                 const idx = options.indexOf(item);
-                listRef.current?.scrollToOffset({
-                  offset: idx * ITEM_HEIGHT,
+                scrollRef.current?.scrollTo({
+                  y: idx * ITEM_HEIGHT,
                   animated: true,
                 });
+                haptics.selection();
                 setCenteredValue(item);
                 onSelect(item);
               }}
@@ -178,9 +193,11 @@ function DrumPicker({
                   styles.pickerItemText,
                   {
                     color: isSelected
-                      ? theme.colors.text
-                      : theme.colors.textMuted,
-                    fontWeight: isSelected ? "600" : "400",
+                      ? isDark
+                        ? "#FFFFFF"
+                        : theme.colors.text
+                      : theme.colors.textSecondary,
+                    fontWeight: isSelected ? "700" : "400",
                     fontSize: isSelected ? 22 : 18,
                   },
                 ]}
@@ -189,8 +206,8 @@ function DrumPicker({
               </TText>
             </Pressable>
           );
-        }}
-      />
+        })}
+      </ScrollView>
     </View>
   );
 }
@@ -234,8 +251,8 @@ export function WaterSettingsModal({ visible, onClose }: Props) {
     onClose();
   }, [goalMl, servingMl, profile, setWaterSettings, onClose]);
 
-  const BG = isDark ? "#1C1C1E" : "#FFFFFF";
-  const BORDER = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
+  const BG = theme.colors.surface;
+  const BORDER = theme.colors.border;
 
   return (
     <Modal
@@ -263,8 +280,8 @@ export function WaterSettingsModal({ visible, onClose }: Props) {
               styles.handle,
               {
                 backgroundColor: isDark
-                  ? "rgba(255,255,255,0.2)"
-                  : "rgba(0,0,0,0.15)",
+                  ? "rgba(255,255,255,0.25)"
+                  : "rgba(0,0,0,0.18)",
               },
             ]}
           />
@@ -375,7 +392,13 @@ export function WaterSettingsModal({ visible, onClose }: Props) {
               onPress={onClose}
               style={({ pressed }) => [
                 styles.btnCancel,
-                { borderColor: BORDER, opacity: pressed ? 0.7 : 1 },
+                {
+                  borderColor: theme.colors.border,
+                  backgroundColor: isDark
+                    ? theme.colors.surfaceSecondary
+                    : theme.colors.backgroundSecondary,
+                  opacity: pressed ? 0.7 : 1,
+                },
               ]}
             >
               <TText
@@ -390,17 +413,12 @@ export function WaterSettingsModal({ visible, onClose }: Props) {
               style={({ pressed }) => [
                 styles.btnSave,
                 {
-                  backgroundColor: isDark ? "#FFFFFF" : "#000000",
+                  backgroundColor: theme.colors.primary,
                   opacity: pressed || saving ? 0.8 : 1,
                 },
               ]}
             >
-              <TText
-                style={[
-                  styles.btnSaveText,
-                  { color: isDark ? "#000000" : "#FFFFFF" },
-                ]}
-              >
+              <TText style={[styles.btnSaveText, { color: "#FFFFFF" }]}>
                 {saving ? "Saving…" : "Save"}
               </TText>
             </Pressable>
@@ -483,7 +501,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    height: ITEM_HEIGHT * 2,
+    height: ITEM_HEIGHT,
     zIndex: 1,
     pointerEvents: "none",
   } as any,

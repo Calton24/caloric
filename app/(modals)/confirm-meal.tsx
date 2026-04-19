@@ -9,10 +9,18 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
+import RNSlider from "@react-native-community/slider";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+    Modal,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    View,
+} from "react-native";
 import Animated, {
     FadeIn,
     FadeInDown,
@@ -128,6 +136,187 @@ export default function ConfirmMealScreen() {
 
   // More menu visibility
   const [showMenu, setShowMenu] = useState(false);
+
+  // Inline editing state: { itemIndex, field } → null when not editing
+  // itemIndex = -1 for single-item (no estimatedItems), otherwise 0..n
+  const [editing, setEditing] = useState<{
+    itemIndex: number;
+    field: "serving" | "calories";
+  } | null>(null);
+  const [editValue, setEditValue] = useState("");
+
+  // Serving slider state: tracks which item is being slider-adjusted
+  // baseNutrients stores the per-1-serving nutrients for ratio scaling
+  const [sliderItemIndex, setSliderItemIndex] = useState<number | null>(null);
+  const baseNutrientsRef = useRef<{
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    quantity: number;
+    servings: number;
+  } | null>(null);
+
+  const openSlider = useCallback(
+    (index: number) => {
+      const item = draft?.estimatedItems?.[index];
+      if (!item) return;
+      const qty = item.parsed?.quantity ?? 1;
+      baseNutrientsRef.current = {
+        calories:
+          qty > 0 ? item.nutrients.calories / qty : item.nutrients.calories,
+        protein:
+          qty > 0 ? item.nutrients.protein / qty : item.nutrients.protein,
+        carbs: qty > 0 ? item.nutrients.carbs / qty : item.nutrients.carbs,
+        fat: qty > 0 ? item.nutrients.fat / qty : item.nutrients.fat,
+        quantity: qty,
+        servings: item.estimatedServings,
+      };
+      setSliderItemIndex(index);
+    },
+    [draft]
+  );
+
+  const closeSlider = useCallback(() => {
+    setSliderItemIndex(null);
+    baseNutrientsRef.current = null;
+  }, []);
+
+  const handleSliderChange = useCallback(
+    (newQty: number) => {
+      if (
+        sliderItemIndex === null ||
+        !draft?.estimatedItems ||
+        !baseNutrientsRef.current
+      )
+        return;
+
+      const base = baseNutrientsRef.current;
+      const items = [...draft.estimatedItems];
+      const item = { ...items[sliderItemIndex] };
+
+      item.parsed = { ...item.parsed, quantity: newQty };
+      item.nutrients = {
+        calories: Math.round(base.calories * newQty),
+        protein: Math.round(base.protein * newQty * 10) / 10,
+        carbs: Math.round(base.carbs * newQty * 10) / 10,
+        fat: Math.round(base.fat * newQty * 10) / 10,
+      };
+      item.estimatedServings =
+        base.quantity > 0 ? (base.servings / base.quantity) * newQty : newQty;
+
+      items[sliderItemIndex] = item;
+
+      const totals = items.reduce(
+        (acc, i) => ({
+          calories: acc.calories + i.nutrients.calories,
+          protein: Math.round((acc.protein + i.nutrients.protein) * 10) / 10,
+          carbs: Math.round((acc.carbs + i.nutrients.carbs) * 10) / 10,
+          fat: Math.round((acc.fat + i.nutrients.fat) * 10) / 10,
+        }),
+        { calories: 0, protein: 0, carbs: 0, fat: 0 }
+      );
+
+      const title = items
+        .map((i) => {
+          const qty =
+            (i.parsed?.quantity ?? 1) !== 1 ? `${i.parsed?.quantity} ` : "";
+          return `${qty}${displayName(i)}`;
+        })
+        .join(", ");
+
+      updateDraft({
+        estimatedItems: items,
+        calories: totals.calories,
+        protein: totals.protein,
+        carbs: totals.carbs,
+        fat: totals.fat,
+        title,
+      });
+    },
+    [sliderItemIndex, draft, updateDraft]
+  );
+
+  const startEdit = useCallback(
+    (itemIndex: number, field: "serving" | "calories") => {
+      if (field === "serving") {
+        openSlider(itemIndex);
+        return;
+      }
+      let initial = "";
+      if (itemIndex === -1) {
+        initial = String(draft?.calories ?? 0);
+      } else {
+        const item = draft?.estimatedItems?.[itemIndex];
+        initial = String(item?.nutrients.calories ?? 0);
+      }
+      setEditValue(initial);
+      setEditing({ itemIndex, field });
+    },
+    [draft, openSlider]
+  );
+
+  const commitEdit = useCallback(() => {
+    if (!editing || !draft) {
+      setEditing(null);
+      return;
+    }
+    const numValue = parseFloat(editValue);
+    if (isNaN(numValue) || numValue < 0) {
+      setEditing(null);
+      return;
+    }
+
+    if (editing.itemIndex === -1) {
+      // Single-item mode — edit top-level calories
+      updateDraft({ calories: Math.round(numValue) });
+      setEditing(null);
+      return;
+    }
+
+    // Multi-item mode — calorie edit only (serving uses slider)
+    const items = [...(draft.estimatedItems ?? [])];
+    const item = { ...items[editing.itemIndex] };
+
+    const oldCal = item.nutrients.calories || 1;
+    const ratio = Math.round(numValue) / oldCal;
+    item.nutrients = {
+      calories: Math.round(numValue),
+      protein: Math.round(item.nutrients.protein * ratio * 10) / 10,
+      carbs: Math.round(item.nutrients.carbs * ratio * 10) / 10,
+      fat: Math.round(item.nutrients.fat * ratio * 10) / 10,
+    };
+
+    items[editing.itemIndex] = item;
+
+    const totals = items.reduce(
+      (acc, i) => ({
+        calories: acc.calories + i.nutrients.calories,
+        protein: Math.round((acc.protein + i.nutrients.protein) * 10) / 10,
+        carbs: Math.round((acc.carbs + i.nutrients.carbs) * 10) / 10,
+        fat: Math.round((acc.fat + i.nutrients.fat) * 10) / 10,
+      }),
+      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    );
+
+    const title = items
+      .map((i) => {
+        const qty =
+          (i.parsed?.quantity ?? 1) !== 1 ? `${i.parsed?.quantity} ` : "";
+        return `${qty}${displayName(i)}`;
+      })
+      .join(", ");
+
+    updateDraft({
+      estimatedItems: items,
+      calories: totals.calories,
+      protein: totals.protein,
+      carbs: totals.carbs,
+      fat: totals.fat,
+      title,
+    });
+    setEditing(null);
+  }, [editing, editValue, draft, updateDraft]);
 
   // Track scan event ID for linking reports/corrections
   const scanEventIdRef = useRef<string | null>(null);
@@ -835,16 +1024,33 @@ export default function ConfirmMealScreen() {
 
                   {/* Editable pills */}
                   <View style={styles.pillRow}>
-                    <View
+                    <Pressable
+                      onPress={() =>
+                        sliderItemIndex === index
+                          ? closeSlider()
+                          : startEdit(index, "serving")
+                      }
                       style={[
                         styles.pill,
-                        { backgroundColor: theme.colors.background },
+                        {
+                          backgroundColor: theme.colors.background,
+                          borderWidth: sliderItemIndex === index ? 1.5 : 0,
+                          borderColor:
+                            sliderItemIndex === index
+                              ? theme.colors.primary
+                              : "transparent",
+                        },
                       ]}
                     >
                       <TText
                         style={[
                           styles.pillText,
-                          { color: theme.colors.textSecondary },
+                          {
+                            color:
+                              sliderItemIndex === index
+                                ? theme.colors.primary
+                                : theme.colors.textSecondary,
+                          },
                         ]}
                       >
                         {(item.parsed?.quantity ?? 1) !== 1
@@ -853,32 +1059,161 @@ export default function ConfirmMealScreen() {
                         {item.parsed?.unit ?? "serving"}
                       </TText>
                       <Ionicons
-                        name="pencil"
+                        name={
+                          sliderItemIndex === index ? "chevron-up" : "pencil"
+                        }
                         size={12}
-                        color={theme.colors.textMuted}
+                        color={
+                          sliderItemIndex === index
+                            ? theme.colors.primary
+                            : theme.colors.textMuted
+                        }
                       />
-                    </View>
-                    <View
-                      style={[
-                        styles.pill,
-                        { backgroundColor: theme.colors.background },
-                      ]}
-                    >
-                      <TText
+                    </Pressable>
+                    {editing?.itemIndex === index &&
+                    editing.field === "calories" ? (
+                      <View
                         style={[
-                          styles.pillText,
-                          { color: theme.colors.textSecondary },
+                          styles.pill,
+                          styles.pillEditing,
+                          {
+                            backgroundColor: theme.colors.background,
+                            borderColor: theme.colors.primary,
+                          },
                         ]}
                       >
-                        {item.nutrients.calories} {t("tracking.kcal")}
-                      </TText>
-                      <Ionicons
-                        name="pencil"
-                        size={12}
-                        color={theme.colors.textMuted}
-                      />
-                    </View>
+                        <TextInput
+                          value={editValue}
+                          onChangeText={setEditValue}
+                          keyboardType="number-pad"
+                          autoFocus
+                          selectTextOnFocus
+                          onBlur={commitEdit}
+                          onSubmitEditing={commitEdit}
+                          style={[
+                            styles.pillInput,
+                            { color: theme.colors.text },
+                          ]}
+                        />
+                        <TText
+                          style={[
+                            styles.pillText,
+                            { color: theme.colors.textMuted },
+                          ]}
+                        >
+                          {t("tracking.kcal")}
+                        </TText>
+                      </View>
+                    ) : (
+                      <Pressable
+                        onPress={() => startEdit(index, "calories")}
+                        style={[
+                          styles.pill,
+                          { backgroundColor: theme.colors.background },
+                        ]}
+                      >
+                        <TText
+                          style={[
+                            styles.pillText,
+                            { color: theme.colors.textSecondary },
+                          ]}
+                        >
+                          {item.nutrients.calories} {t("tracking.kcal")}
+                        </TText>
+                        <Ionicons
+                          name="pencil"
+                          size={12}
+                          color={theme.colors.textMuted}
+                        />
+                      </Pressable>
+                    )}
                   </View>
+
+                  {/* Serving slider */}
+                  {sliderItemIndex === index &&
+                    baseNutrientsRef.current &&
+                    (() => {
+                      const qty = item.parsed?.quantity ?? 1;
+                      const originalQty = baseNutrientsRef.current!.quantity;
+                      const isGrams =
+                        item.parsed?.unit === "g" ||
+                        item.parsed?.unit === "grams";
+                      const step = isGrams ? 10 : 0.25;
+                      const sliderMin = isGrams ? step : 0.25;
+                      const sliderMax = isGrams
+                        ? Math.max(originalQty * 3, 500)
+                        : Math.max(originalQty * 5, 5);
+
+                      const formatQty = (q: number) => {
+                        if (isGrams) return `${Math.round(q)}g`;
+                        if (q === Math.floor(q)) return String(q);
+                        return q.toFixed(2).replace(/0$/, "");
+                      };
+
+                      return (
+                        <Animated.View
+                          entering={FadeIn.duration(200)}
+                          style={styles.sliderContainer}
+                        >
+                          <View style={styles.sliderLabelRow}>
+                            <TText
+                              style={[
+                                styles.sliderLabel,
+                                { color: theme.colors.textSecondary },
+                              ]}
+                            >
+                              {isGrams
+                                ? t("editMeal.amount", {
+                                    defaultValue: "Amount",
+                                  })
+                                : t("editMeal.servings", {
+                                    defaultValue: "Servings",
+                                  })}
+                            </TText>
+                            <TText
+                              style={[
+                                styles.sliderValue,
+                                { color: theme.colors.primary },
+                              ]}
+                            >
+                              {formatQty(qty)}
+                              {!isGrams
+                                ? ` ${item.parsed?.unit ?? "serving"}`
+                                : ""}
+                            </TText>
+                          </View>
+                          <RNSlider
+                            value={qty}
+                            minimumValue={sliderMin}
+                            maximumValue={sliderMax}
+                            step={step}
+                            minimumTrackTintColor={theme.colors.primary}
+                            maximumTrackTintColor={theme.colors.border}
+                            thumbTintColor={theme.colors.primary}
+                            onValueChange={handleSliderChange}
+                            style={styles.slider}
+                          />
+                          <View style={styles.sliderEndLabels}>
+                            <TText
+                              style={[
+                                styles.sliderEndLabel,
+                                { color: theme.colors.textMuted },
+                              ]}
+                            >
+                              {isGrams ? `${sliderMin}g` : sliderMin}
+                            </TText>
+                            <TText
+                              style={[
+                                styles.sliderEndLabel,
+                                { color: theme.colors.textMuted },
+                              ]}
+                            >
+                              {isGrams ? `${sliderMax}g` : sliderMax}
+                            </TText>
+                          </View>
+                        </Animated.View>
+                      );
+                    })()}
 
                   {index < draft.estimatedItems!.length - 1 && (
                     <View
@@ -917,26 +1252,59 @@ export default function ConfirmMealScreen() {
                   </Pressable>
                 </View>
                 <View style={styles.pillRow}>
-                  <View
-                    style={[
-                      styles.pill,
-                      { backgroundColor: theme.colors.background },
-                    ]}
-                  >
-                    <TText
+                  {editing?.itemIndex === -1 && editing.field === "calories" ? (
+                    <View
                       style={[
-                        styles.pillText,
-                        { color: theme.colors.textSecondary },
+                        styles.pill,
+                        styles.pillEditing,
+                        {
+                          backgroundColor: theme.colors.background,
+                          borderColor: theme.colors.primary,
+                        },
                       ]}
                     >
-                      {draft.calories} {t("tracking.kcal")}
-                    </TText>
-                    <Ionicons
-                      name="pencil"
-                      size={12}
-                      color={theme.colors.textMuted}
-                    />
-                  </View>
+                      <TextInput
+                        value={editValue}
+                        onChangeText={setEditValue}
+                        keyboardType="number-pad"
+                        autoFocus
+                        selectTextOnFocus
+                        onBlur={commitEdit}
+                        onSubmitEditing={commitEdit}
+                        style={[styles.pillInput, { color: theme.colors.text }]}
+                      />
+                      <TText
+                        style={[
+                          styles.pillText,
+                          { color: theme.colors.textMuted },
+                        ]}
+                      >
+                        {t("tracking.kcal")}
+                      </TText>
+                    </View>
+                  ) : (
+                    <Pressable
+                      onPress={() => startEdit(-1, "calories")}
+                      style={[
+                        styles.pill,
+                        { backgroundColor: theme.colors.background },
+                      ]}
+                    >
+                      <TText
+                        style={[
+                          styles.pillText,
+                          { color: theme.colors.textSecondary },
+                        ]}
+                      >
+                        {draft.calories} {t("tracking.kcal")}
+                      </TText>
+                      <Ionicons
+                        name="pencil"
+                        size={12}
+                        color={theme.colors.textMuted}
+                      />
+                    </Pressable>
+                  )}
                 </View>
               </View>
             )}
@@ -1210,6 +1578,50 @@ const styles = StyleSheet.create({
   pillText: {
     fontSize: 13,
     fontWeight: "500",
+  },
+  pillEditing: {
+    borderWidth: 1.5,
+  },
+  pillInput: {
+    fontSize: 13,
+    fontWeight: "600",
+    minWidth: 36,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    textAlign: "center",
+  },
+  // ── Slider styles ──
+  sliderContainer: {
+    paddingHorizontal: 4,
+    paddingBottom: 4,
+    marginTop: 4,
+  },
+  sliderLabelRow: {
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    alignItems: "center" as const,
+    marginBottom: 4,
+  },
+  sliderLabel: {
+    fontSize: 13,
+    fontWeight: "500" as const,
+  },
+  sliderValue: {
+    fontSize: 15,
+    fontWeight: "700" as const,
+  },
+  slider: {
+    width: "100%" as const,
+    height: 36,
+  },
+  sliderEndLabels: {
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    marginTop: -4,
+  },
+  sliderEndLabel: {
+    fontSize: 11,
+    fontWeight: "400" as const,
   },
   itemDivider: {
     height: StyleSheet.hairlineWidth,

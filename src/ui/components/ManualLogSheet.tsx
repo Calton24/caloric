@@ -69,8 +69,8 @@ export function ManualLogSheet({ onClose }: ManualLogSheetProps) {
           placeholder={t("manualLog.placeholder")}
           placeholderTextColor={theme.colors.textMuted}
           style={[styles.searchInput, { color: theme.colors.text }]}
-          multiline
           autoFocus
+          returnKeyType="go"
           onSubmitEditing={handleLog}
         />
       </View>
@@ -162,12 +162,12 @@ const styles = StyleSheet.create({
   },
   searchBox: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     gap: 10,
     borderRadius: 14,
-    padding: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderWidth: 1,
-    minHeight: 90,
   },
   searchInput: {
     flex: 1,

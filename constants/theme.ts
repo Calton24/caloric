@@ -11,7 +11,7 @@ const tintColorDark = "#fff";
 export const Colors = {
   light: {
     text: "#1B1F27",
-    background: "#F4F5F7",
+    background: "#E8EFEB",
     tint: tintColorLight,
     icon: "#667085",
     tabIconDefault: "#667085",
@@ -19,7 +19,7 @@ export const Colors = {
   },
   dark: {
     text: "#F3F5F7",
-    background: "#0F1318", // Premium charcoal — not pure black
+    background: "#0B0F14", // Deep charcoal — not pure black
     tint: tintColorDark,
     icon: "#AAB3C2",
     tabIconDefault: "#AAB3C2",

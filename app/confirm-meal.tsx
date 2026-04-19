@@ -27,6 +27,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppTranslation } from "../src/infrastructure/i18n/useAppTranslation";
+import { toLocalDateTime } from "../src/lib/utils/date";
 import { useNutritionStore } from "../src/stores";
 import { useTheme } from "../src/theme/useTheme";
 import type { MealEntry } from "../src/types/nutrition";
@@ -43,7 +44,7 @@ function createDefaultMeal(params: Record<string, string>): MealEntry {
     carbs: Number(params.carbs) || 0,
     fat: Number(params.fat) || 0,
     source: (params.source as MealEntry["source"]) ?? "manual",
-    loggedAt: params.loggedAt ?? new Date().toISOString(),
+    loggedAt: params.loggedAt ?? toLocalDateTime(),
   };
 }
 

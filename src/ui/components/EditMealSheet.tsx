@@ -17,6 +17,7 @@ import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import type { SavedFoodItem } from "../../features/nutrition/estimation/estimation.types";
 import { useNutritionStore } from "../../features/nutrition/nutrition.store";
 import { formatDateHeader, useAppTranslation } from "../../infrastructure/i18n";
+import { toLocalDateTime } from "../../lib/utils/date";
 import { useTheme } from "../../theme/useTheme";
 import { TSpacer } from "../primitives/TSpacer";
 import { TText } from "../primitives/TText";
@@ -276,7 +277,7 @@ export function EditMealSheet({ mealId, onClose }: EditMealSheetProps) {
             onPress={() => {
               const d = new Date(loggedAt);
               d.setDate(d.getDate() - 1);
-              setLoggedAt(d.toISOString());
+              setLoggedAt(toLocalDateTime(d));
             }}
             hitSlop={8}
             style={[
@@ -309,7 +310,7 @@ export function EditMealSheet({ mealId, onClose }: EditMealSheetProps) {
               const d = new Date(loggedAt);
               d.setDate(d.getDate() + 1);
               if (d <= new Date()) {
-                setLoggedAt(d.toISOString());
+                setLoggedAt(toLocalDateTime(d));
               }
             }}
             hitSlop={8}

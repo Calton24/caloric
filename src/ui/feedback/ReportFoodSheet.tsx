@@ -12,8 +12,17 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import {
+    ActivityIndicator,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    View,
+} from "react-native";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import {
     type ReportReasonCode,
     submitScanReport,
@@ -111,86 +120,126 @@ export function ReportFoodSheet({
 
   if (status === "success") {
     return (
-      <View
-        style={[
-          sheetStyles.container,
-          { backgroundColor: theme.colors.surface },
-        ]}
-      >
-        <View style={sheetStyles.successContainer}>
-          <Ionicons
-            name="checkmark-circle"
-            size={48}
-            color={theme.colors.success}
-          />
-          <TSpacer size="sm" />
+      <View style={sheetStyles.container}>
+        <Animated.View
+          entering={FadeIn.duration(300)}
+          style={sheetStyles.successContainer}
+        >
+          <View
+            style={[
+              sheetStyles.successBadge,
+              { backgroundColor: theme.colors.primary + "18" },
+            ]}
+          >
+            <Ionicons
+              name="checkmark-circle"
+              size={48}
+              color={theme.colors.primary}
+            />
+          </View>
+          <TSpacer size="md" />
           <TText
             style={[sheetStyles.successText, { color: theme.colors.text }]}
           >
             {t("report.submitted")}
           </TText>
+          <TSpacer size="xs" />
           <TText
             style={[sheetStyles.successSub, { color: theme.colors.textMuted }]}
           >
             {t("report.thanksAccuracy")}
           </TText>
-        </View>
+        </Animated.View>
       </View>
     );
   }
 
   return (
-    <View
-      style={[sheetStyles.container, { backgroundColor: theme.colors.surface }]}
+    <ScrollView
+      style={sheetStyles.container}
+      contentContainerStyle={sheetStyles.contentContainer}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
     >
       {/* Header */}
       <View style={sheetStyles.header}>
-        <TText style={[sheetStyles.title, { color: theme.colors.text }]}>
-          {t("mealConfirm.reportFood")}
-        </TText>
-        <Pressable onPress={close} hitSlop={12}>
-          <Ionicons name="close" size={22} color={theme.colors.textMuted} />
+        <View style={{ flex: 1 }}>
+          <TText style={[sheetStyles.title, { color: theme.colors.text }]}>
+            {t("mealConfirm.reportFood")}
+          </TText>
+          {foodName ? (
+            <TText
+              style={[sheetStyles.subtitle, { color: theme.colors.textMuted }]}
+              numberOfLines={1}
+            >
+              {foodName}
+            </TText>
+          ) : null}
+        </View>
+        <Pressable
+          onPress={close}
+          hitSlop={12}
+          style={[
+            sheetStyles.closeBtn,
+            { backgroundColor: theme.colors.surfaceSecondary },
+          ]}
+        >
+          <Ionicons name="close" size={18} color={theme.colors.textMuted} />
         </Pressable>
       </View>
 
-      {foodName ? (
-        <TText
-          style={[sheetStyles.subtitle, { color: theme.colors.textMuted }]}
-          numberOfLines={1}
-        >
-          {foodName}
-        </TText>
-      ) : null}
+      <TSpacer size="lg" />
 
-      <TSpacer size="md" />
+      {/* Section label */}
+      <TText
+        style={[sheetStyles.sectionLabel, { color: theme.colors.textMuted }]}
+      >
+        What went wrong?
+      </TText>
+      <TSpacer size="sm" />
 
       {/* Reason picker */}
-      <View style={sheetStyles.reasonGrid}>
+      <Animated.View
+        entering={FadeInDown.delay(50).duration(250)}
+        style={sheetStyles.reasonGrid}
+      >
         {REASON_OPTIONS.map((option) => {
           const isSelected = selectedReason === option.code;
           return (
             <Pressable
               key={option.code}
               onPress={() => setSelectedReason(option.code)}
-              style={[
+              style={({ pressed }) => [
                 sheetStyles.reasonChip,
                 {
                   backgroundColor: isSelected
-                    ? theme.colors.primary + "18"
+                    ? theme.colors.primary + "15"
                     : theme.colors.surfaceSecondary,
                   borderColor: isSelected
                     ? theme.colors.primary
-                    : theme.colors.border,
+                    : theme.colors.borderSecondary,
+                  transform: [{ scale: pressed ? 0.97 : 1 }],
                 },
               ]}
             >
-              <Ionicons
-                name={option.icon as any}
-                size={16}
-                color={
-                  isSelected ? theme.colors.primary : theme.colors.textMuted
-                }
-              />
+              <View
+                style={[
+                  sheetStyles.reasonIconCircle,
+                  {
+                    backgroundColor: isSelected
+                      ? theme.colors.primary + "20"
+                      : theme.colors.backgroundTertiary,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name={option.icon as any}
+                  size={15}
+                  color={
+                    isSelected ? theme.colors.primary : theme.colors.textMuted
+                  }
+                />
+              </View>
               <TText
                 style={[
                   sheetStyles.reasonLabel,
@@ -208,17 +257,23 @@ export function ReportFoodSheet({
             </Pressable>
           );
         })}
-      </View>
+      </Animated.View>
 
-      <TSpacer size="md" />
+      <TSpacer size="lg" />
 
       {/* Optional detail */}
+      <TText
+        style={[sheetStyles.sectionLabel, { color: theme.colors.textMuted }]}
+      >
+        Additional details (optional)
+      </TText>
+      <TSpacer size="xs" />
       <View
         style={[
           sheetStyles.textInputContainer,
           {
             backgroundColor: theme.colors.surfaceSecondary,
-            borderColor: theme.colors.border,
+            borderColor: theme.colors.borderSecondary,
           },
         ]}
       >
@@ -239,16 +294,19 @@ export function ReportFoodSheet({
         </TText>
       </View>
 
-      <TSpacer size="md" />
+      <TSpacer size="lg" />
 
       {/* Actions */}
       <View style={sheetStyles.actions}>
         <Pressable
           onPress={close}
-          style={[
+          style={({ pressed }) => [
             sheetStyles.actionBtn,
             sheetStyles.cancelBtn,
-            { backgroundColor: theme.colors.surfaceSecondary },
+            {
+              backgroundColor: theme.colors.surfaceSecondary,
+              opacity: pressed ? 0.8 : 1,
+            },
           ]}
         >
           <TText
@@ -260,30 +318,49 @@ export function ReportFoodSheet({
         <Pressable
           onPress={handleSubmit}
           disabled={!selectedReason || status === "submitting"}
-          style={[
+          style={({ pressed }) => [
             sheetStyles.actionBtn,
             sheetStyles.submitBtn,
             {
-              backgroundColor: selectedReason
-                ? theme.colors.primary
-                : theme.colors.surfaceSecondary,
-              opacity: status === "submitting" ? 0.7 : 1,
+              opacity: !selectedReason
+                ? 0.45
+                : status === "submitting"
+                  ? 0.7
+                  : pressed
+                    ? 0.9
+                    : 1,
             },
           ]}
         >
-          <TText
-            style={[
-              sheetStyles.actionBtnText,
-              {
-                color: selectedReason ? "#fff" : theme.colors.textMuted,
-                fontWeight: "600",
-              },
-            ]}
+          <LinearGradient
+            colors={[theme.colors.primary, theme.colors.accent]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={sheetStyles.submitGradient}
           >
-            {status === "submitting"
-              ? t("report.reporting")
-              : t("report.submit")}
-          </TText>
+            {status === "submitting" ? (
+              <ActivityIndicator
+                size="small"
+                color={theme.colors.textInverse}
+              />
+            ) : (
+              <Ionicons
+                name="send"
+                size={16}
+                color={theme.colors.textInverse}
+              />
+            )}
+            <TText
+              style={[
+                sheetStyles.actionBtnText,
+                { color: theme.colors.textInverse, fontWeight: "600" },
+              ]}
+            >
+              {status === "submitting"
+                ? t("report.reporting")
+                : t("report.submit")}
+            </TText>
+          </LinearGradient>
         </Pressable>
       </View>
 
@@ -295,7 +372,7 @@ export function ReportFoodSheet({
           </TText>
         </>
       )}
-    </View>
+    </ScrollView>
   );
 }
 
@@ -305,18 +382,36 @@ const sheetStyles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 24,
   },
+  contentContainer: {
+    paddingBottom: 12,
+  },
   header: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
+    gap: 12,
+  },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
   },
   title: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "700",
+    letterSpacing: -0.3,
   },
   subtitle: {
     fontSize: 14,
     marginTop: 4,
+  },
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   reasonGrid: {
     flexDirection: "row",
@@ -326,30 +421,38 @@ const sheetStyles = StyleSheet.create({
   reasonChip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
+  },
+  reasonIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
   },
   reasonLabel: {
     fontSize: 13,
   },
   textInputContainer: {
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    padding: 12,
-    minHeight: 100,
+    padding: 14,
+    minHeight: 88,
   },
   textInput: {
     fontSize: 15,
-    minHeight: 72,
+    lineHeight: 20,
+    minHeight: 56,
     textAlignVertical: "top",
   },
   charCount: {
     fontSize: 11,
     textAlign: "right",
-    marginTop: 4,
+    marginTop: 6,
   },
   actions: {
     flexDirection: "row",
@@ -357,28 +460,45 @@ const sheetStyles = StyleSheet.create({
   },
   actionBtn: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+  cancelBtn: {
+    paddingVertical: 15,
     alignItems: "center",
     justifyContent: "center",
   },
-  cancelBtn: {},
   submitBtn: {},
+  submitGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 15,
+    borderRadius: 14,
+  },
   actionBtnText: {
     fontSize: 15,
+    textAlign: "center",
   },
   successContainer: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 40,
+    paddingVertical: 48,
+  },
+  successBadge: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: "center",
+    justifyContent: "center",
   },
   successText: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 20,
+    fontWeight: "700",
   },
   successSub: {
     fontSize: 14,
-    marginTop: 4,
   },
   errorText: {
     fontSize: 12,

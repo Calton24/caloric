@@ -20,6 +20,18 @@ export function toLocalDate(date: Date = new Date()): string {
   return `${y}-${m}-${d}`;
 }
 
+/**
+ * Returns YYYY-MM-DDTHH:mm:ss in the device's local timezone.
+ * Use for loggedAt timestamps so startsWith(localDate) matching works.
+ */
+export function toLocalDateTime(date: Date = new Date()): string {
+  const datePart = toLocalDate(date);
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  const ss = String(date.getSeconds()).padStart(2, "0");
+  return `${datePart}T${hh}:${mm}:${ss}`;
+}
+
 /** @deprecated Use toLocalDate instead */
 export function toISODate(date: Date): string {
   return toLocalDate(date);

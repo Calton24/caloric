@@ -44,9 +44,9 @@ function useAccentColors(accent: MilestoneInsightAccent) {
       };
     case "success":
       return {
-        primary: theme.colors.success,
-        tint: theme.colors.success + "14",
-        chipBg: theme.colors.success + "1A",
+        primary: theme.colors.primary,
+        tint: theme.colors.primary + "14",
+        chipBg: theme.colors.primary + "1A",
       };
     case "highlight":
       return {
@@ -83,7 +83,7 @@ function progressTone(
     case "warning":
       return "warning";
     case "success":
-      return "success";
+      return "primary";
     case "highlight":
       return "primary";
     case "neutral":

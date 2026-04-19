@@ -1,3 +1,4 @@
+import { toLocalDateTime } from "../../lib/utils/date";
 import { MealDraft } from "./nutrition.draft.types";
 import { MealEntry } from "./nutrition.types";
 
@@ -18,7 +19,7 @@ export function buildMealEntryFromDraft(params: {
       timestamp = `${timestamp}T${hh}:${mm}:${ss}`;
     }
   } else {
-    timestamp = new Date().toISOString();
+    timestamp = toLocalDateTime();
   }
 
   const entry: MealEntry = {

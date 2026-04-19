@@ -62,10 +62,12 @@ import { toISODate } from "../../src/lib/utils/date";
 import { useTheme } from "../../src/theme/useTheme";
 import { DaySelector } from "../../src/ui/components/DaySelector";
 import { EditMealSheet } from "../../src/ui/components/EditMealSheet";
+import { InsightSheet } from "../../src/ui/components/InsightSheet";
 import { MacroCard } from "../../src/ui/components/MacroCard";
 import { ManualLogSheet } from "../../src/ui/components/ManualLogSheet";
 import { MealCard } from "../../src/ui/components/MealCard";
 import { MilestoneInsightCard } from "../../src/ui/components/MilestoneInsightCard";
+import { MilestoneSheet } from "../../src/ui/components/MilestoneSheet";
 import { MonthlyView } from "../../src/ui/components/MonthlyView";
 import { ProgressRing } from "../../src/ui/components/ProgressRing";
 import { StreakModal } from "../../src/ui/components/StreakModal";
@@ -965,14 +967,16 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Background with depth */}
+      {/* Glassy hue background */}
       <LinearGradient
         colors={
           theme.mode === "light"
             ? [
-                "#FAFAFA", // Very light gray
-                "#FFFFFF", // Pure white
-                "#F8F8F8", // Subtle gray at bottom
+                "#EDF4EF", // top: soft frosted mint
+                "#E8F0EB", // upper-mid
+                "#E2ECE6", // mid: gentle green tint
+                "#DDE8E1", // lower-mid: slightly deeper
+                "#D8E4DC", // bottom: subtle sage wash
               ]
             : [
                 theme.colors.background,
@@ -980,7 +984,11 @@ export default function HomeScreen() {
                 theme.colors.surfaceSecondary,
               ]
         }
-        locations={[0, 0.4, 1]}
+        locations={
+          theme.mode === "light" ? [0, 0.25, 0.5, 0.75, 1] : [0, 0.45, 1]
+        }
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0.3, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
 
@@ -988,21 +996,96 @@ export default function HomeScreen() {
       <View style={styles.bgShapes}>
         {theme.mode === "light" ? (
           <>
-            {/* Ultra-subtle radial gradient for soft depth */}
+            {/* Full-width top edge fade — frosted glass band */}
             <LinearGradient
               colors={[
-                "rgba(0, 0, 0, 0.008)",
-                "rgba(0, 0, 0, 0.002)",
-                "rgba(0, 0, 0, 0)",
+                "rgba(34, 197, 94, 0.06)",
+                "rgba(34, 197, 94, 0.025)",
+                "rgba(34, 197, 94, 0)",
+              ]}
+              locations={[0, 0.4, 1]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 320,
+              }}
+            />
+            {/* Left edge linear fade — soft emerald bleed */}
+            <LinearGradient
+              colors={[
+                "rgba(16, 185, 129, 0.06)",
+                "rgba(16, 185, 129, 0.02)",
+                "rgba(16, 185, 129, 0)",
               ]}
               locations={[0, 0.5, 1]}
+              start={{ x: 0, y: 0.3 }}
+              end={{ x: 1, y: 0.5 }}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                bottom: 0,
+                width: "60%",
+              }}
+            />
+            {/* Center horizontal glassy band behind ring */}
+            <LinearGradient
+              colors={[
+                "rgba(255, 255, 255, 0)",
+                "rgba(255, 255, 255, 0.35)",
+                "rgba(255, 255, 255, 0.45)",
+                "rgba(255, 255, 255, 0.35)",
+                "rgba(255, 255, 255, 0)",
+              ]}
+              locations={[0, 0.2, 0.5, 0.8, 1]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
               style={{
                 position: "absolute",
                 top: "15%",
-                left: "10%",
-                right: "10%",
-                height: 450,
-                borderRadius: 225,
+                left: 0,
+                right: 0,
+                height: 380,
+              }}
+            />
+            {/* Bottom edge fade — teal wash */}
+            <LinearGradient
+              colors={[
+                "rgba(16, 185, 129, 0)",
+                "rgba(16, 185, 129, 0.02)",
+                "rgba(16, 185, 129, 0.05)",
+              ]}
+              locations={[0, 0.5, 1]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={{
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 280,
+              }}
+            />
+            {/* Right edge subtle accent bleed */}
+            <LinearGradient
+              colors={[
+                "rgba(52, 211, 153, 0)",
+                "rgba(52, 211, 153, 0.025)",
+                "rgba(52, 211, 153, 0.04)",
+              ]}
+              locations={[0, 0.5, 1]}
+              start={{ x: 0, y: 0.4 }}
+              end={{ x: 1, y: 0.6 }}
+              style={{
+                position: "absolute",
+                top: 0,
+                right: 0,
+                bottom: 0,
+                width: "50%",
               }}
             />
           </>
@@ -1162,30 +1245,6 @@ export default function HomeScreen() {
 
           {viewMode === "D" && <TSpacer size="md" />}
 
-          {/* Milestone insight — unified coaching card */}
-          {viewMode === "D" && milestoneInsight && (
-            <>
-              <MilestoneInsightCard
-                model={milestoneInsight}
-                onPress={
-                  milestoneInsight.state === "risk" ||
-                  milestoneInsight.state === "recovery"
-                    ? () => router.push("/tracking/text" as any)
-                    : () => {
-                        haptics.impact("medium");
-                        setShowStreakModal(true);
-                      }
-                }
-                onCTA={
-                  milestoneInsight.action === "track_meal"
-                    ? () => router.push("/tracking/text" as any)
-                    : undefined
-                }
-              />
-              <TSpacer size="sm" />
-            </>
-          )}
-
           {/* ── Daily view ── */}
           {viewMode === "D" && (
             <>
@@ -1290,6 +1349,54 @@ export default function HomeScreen() {
 
               <TSpacer size="md" />
 
+              {/* Milestone insight — unified coaching card */}
+              {milestoneInsight && (
+                <>
+                  <MilestoneInsightCard
+                    model={milestoneInsight}
+                    onPress={() => {
+                      haptics.impact("medium");
+                      switch (milestoneInsight.state) {
+                        case "risk":
+                        case "recovery":
+                          router.push("/tracking/manual" as any);
+                          break;
+                        case "milestone_achieved":
+                          openSheet(
+                            <MilestoneSheet
+                              model={milestoneInsight}
+                              longestStreak={longestStreak ?? 0}
+                              onClose={closeSheet}
+                            />,
+                            { snapPoints: ["55%"] }
+                          );
+                          break;
+                        case "momentum":
+                        case "milestone_preview":
+                        default:
+                          openSheet(
+                            <InsightSheet
+                              model={milestoneInsight}
+                              onClose={closeSheet}
+                              onTrack={() =>
+                                router.push("/tracking/manual" as any)
+                              }
+                            />,
+                            { snapPoints: ["55%"] }
+                          );
+                          break;
+                      }
+                    }}
+                    onCTA={
+                      milestoneInsight.action === "track_meal"
+                        ? () => router.push("/tracking/manual" as any)
+                        : undefined
+                    }
+                  />
+                  <TSpacer size="sm" />
+                </>
+              )}
+
               {/* Macro + Activity pager */}
               <Animated.View testID="macro-cards" style={contentAnimStyle}>
                 <View
@@ -1338,7 +1445,7 @@ export default function HomeScreen() {
                           consumedG={totals.fat}
                           targetG={fatTarget}
                           color={MACRO_COLORS.fat}
-                          icon="💧"
+                          icon="🥑"
                         />
                       </View>
                       {/* Page 1 — Activity (placeholder — no step integration yet) */}
@@ -1353,7 +1460,7 @@ export default function HomeScreen() {
                           label={t("home.steps")}
                           consumedG={0}
                           targetG={10000}
-                          color="#34C759"
+                          color={theme.colors.primary}
                           icon="👟"
                           unit=""
                           display="consumed"

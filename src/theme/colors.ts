@@ -36,29 +36,32 @@ function generateColorScale(hue: number, saturation: number): string[] {
  */
 function generateNeutrals(mode: ColorMode): string[] {
   if (mode === "light") {
-    // Warm off-white base — never pure #FFF.
-    // Gives card separation without borders.
+    // 3-tier green-tinted surface system:
+    //   Level 0: background (warm green-grey substrate)
+    //   Level 1: section surface (cards, grouped areas)
+    //   Level 2: elevated surface (active cards, overlays)
+    // Each level separated by ~4-5 L* steps for clear hierarchy.
     return [
-      "#F4F5F7", // 0 - background (soft warm grey)
-      "#ECEDEF", // 1 - primary surface
-      "#E4E5E9", // 2 - secondary surface
-      "#D8DAE0", // 3 - borders
-      "#CDD0D8", // 4 - heavier borders
-      "#B0B5BF", // 5 - muted elements
+      "#E8EFEB", // 0 - background substrate (green-frosted glass)
+      "#F0F5F2", // 1 - section/card surface
+      "#F7FAF8", // 2 - elevated card surface
+      "#D2DBD6", // 3 - borders
+      "#C4CEC8", // 4 - heavier borders
+      "#AEB5B0", // 5 - muted elements
       "#8A909C", // 6 - secondary text
       "#667085", // 7 - body text
       "#3D4350", // 8 - strong text
       "#1B1F27", // 9 - heading text
     ];
   } else {
-    // Premium charcoal — never pure #000.
-    // Lets glass surfaces read and keeps green accent refined.
+    // Deep charcoal with subtle depth — never pure #000.
+    // Slightly deeper base lets green accent glow refined.
     return [
-      "#0F1318", // 0 - background (charcoal)
-      "#171C22", // 1 - primary surface
-      "#1E2430", // 2 - elevated surface
-      "#283040", // 3 - lighter elevation
-      "#364050", // 4 - mid-tone
+      "#0B0F14", // 0 - background (deep charcoal)
+      "#131A1F", // 1 - primary surface
+      "#1A222C", // 2 - elevated surface
+      "#232D3A", // 3 - lighter elevation
+      "#314050", // 4 - mid-tone
       "#4D5768", // 5 - accent gray
       "#6B7589", // 6 - muted text
       "#AAB3C2", // 7 - secondary text
@@ -108,10 +111,10 @@ export function generatePalette(
       backgroundSecondary: neutrals[1],
       backgroundTertiary: neutrals[2],
 
-      // Surfaces
-      surface: neutrals[0],
-      surfaceSecondary: neutrals[1],
-      surfaceElevated: neutrals[0],
+      // Surfaces — lighter than background for elevation
+      surface: neutrals[1],
+      surfaceSecondary: neutrals[0],
+      surfaceElevated: neutrals[2],
 
       // Text — WCAG AA compliant on white
       text: neutrals[9], // #212529, ~15.4:1 ✓
@@ -140,20 +143,20 @@ export function generatePalette(
       overlay: "rgba(0, 0, 0, 0.3)",
       overlayHeavy: "rgba(0, 0, 0, 0.6)",
 
-      // Glass Effects — elevated surfaces with rich translucency
+      // Glass Effects — frosted glass on green-tinted substrate
       glassBackground: "rgba(255, 255, 255, 0.65)",
-      glassBorder: "rgba(255, 255, 255, 0.25)",
+      glassBorder: "rgba(255, 255, 255, 0.45)",
       glassTint: neutrals[2],
 
       // Glass Widget Kit
-      glassTintLight: "rgba(255, 255, 255, 0.15)",
-      glassTintDark: "rgba(0, 0, 0, 0.04)",
-      glassBorderHighlight: "rgba(255, 255, 255, 0.80)",
+      glassTintLight: "rgba(255, 255, 255, 0.35)",
+      glassTintDark: "rgba(0, 0, 0, 0.02)",
+      glassBorderHighlight: "rgba(255, 255, 255, 0.90)",
       glassShadow: "rgba(0, 0, 0, 0.06)",
       glassActiveRing: brandScale[7],
 
       // Premium Surfaces
-      surfaceMatte: "#ECEDEF",
+      surfaceMatte: "#ECF2EE",
       glassSelected: brandScale[1] + "55", // tinted green glass
       glassSelectedBorder: brandScale[5] + "40",
     };
@@ -196,8 +199,8 @@ export function generatePalette(
       overlay: "rgba(0, 0, 0, 0.5)",
       overlayHeavy: "rgba(0, 0, 0, 0.8)",
 
-      // Glass Effects — subtle translucency on charcoal
-      glassBackground: "rgba(20, 25, 30, 0.60)",
+      // Glass Effects — subtle translucency on deep charcoal
+      glassBackground: "rgba(11, 15, 20, 0.60)",
       glassBorder: "rgba(255, 255, 255, 0.12)",
       glassTint: neutrals[1],
 
@@ -209,7 +212,7 @@ export function generatePalette(
       glassActiveRing: brandScale[4],
 
       // Premium Surfaces
-      surfaceMatte: "#171C22",
+      surfaceMatte: "#131A1F",
       glassSelected: brandScale[6] + "30", // tinted green glass
       glassSelectedBorder: brandScale[4] + "50",
     };

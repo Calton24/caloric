@@ -33,6 +33,7 @@ import type { SavedFoodItem } from "../../src/features/nutrition/estimation/esti
 import { useNutritionStore } from "../../src/features/nutrition/nutrition.store";
 import { formatDateHeader } from "../../src/infrastructure/i18n";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
+import { toLocalDateTime } from "../../src/lib/utils/date";
 import { useTheme } from "../../src/theme/useTheme";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
@@ -298,7 +299,7 @@ export default function EditMealScreen() {
                 onPress={() => {
                   const d = new Date(loggedAt);
                   d.setDate(d.getDate() - 1);
-                  setLoggedAt(d.toISOString());
+                  setLoggedAt(toLocalDateTime(d));
                 }}
                 hitSlop={8}
                 style={[
@@ -334,7 +335,7 @@ export default function EditMealScreen() {
                   const d = new Date(loggedAt);
                   d.setDate(d.getDate() + 1);
                   if (d <= new Date()) {
-                    setLoggedAt(d.toISOString());
+                    setLoggedAt(toLocalDateTime(d));
                   }
                 }}
                 hitSlop={8}

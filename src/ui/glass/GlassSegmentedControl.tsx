@@ -170,7 +170,7 @@ function SegmentTab({
 
   // Animate text/icon opacity on active change
   useEffect(() => {
-    labelOpacity.value = withTiming(active ? 1 : 0.6, { duration: 200 });
+    labelOpacity.value = withTiming(active ? 1 : 0.7, { duration: 200 });
   }, [active, labelOpacity]);
 
   const handlePressIn = useCallback(() => {
@@ -212,7 +212,7 @@ function SegmentTab({
             />
           )}
           <TText
-            color={active ? "primary" : "muted"}
+            color={active ? "primary" : "secondary"}
             style={styles.segmentLabel}
           >
             {option.label}
