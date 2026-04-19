@@ -1135,9 +1135,7 @@ export default function ConfirmMealScreen() {
                     (() => {
                       const qty = item.parsed?.quantity ?? 1;
                       const originalQty = baseNutrientsRef.current!.quantity;
-                      const isGrams =
-                        item.parsed?.unit === "g" ||
-                        item.parsed?.unit === "grams";
+                      const isGrams = item.parsed?.unit === "g";
                       const step = isGrams ? 10 : 0.25;
                       const sliderMin = isGrams ? step : 0.25;
                       const sliderMax = isGrams
