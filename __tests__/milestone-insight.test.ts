@@ -9,18 +9,16 @@
  */
 
 import {
-    getMilestoneInsightCopySync,
-    validateAICopy,
+  getMilestoneInsightCopySync,
+  validateAICopy,
 } from "../src/features/milestone/milestone-insight-ai";
 import { getMilestoneInsightContext } from "../src/features/milestone/milestone-insight-context";
 import { getFallbackCopy } from "../src/features/milestone/milestone-insight-fallback";
 import {
-    buildMilestoneInsightModel,
-    getMilestoneInsight,
+  buildMilestoneInsightModel,
+  getMilestoneInsight,
 } from "../src/features/milestone/milestone-insight.service";
-import type {
-    MilestoneInsightContext
-} from "../src/features/milestone/milestone-insight.types";
+import type { MilestoneInsightContext } from "../src/features/milestone/milestone-insight.types";
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -300,7 +298,7 @@ describe("getFallbackCopy", () => {
   it("returns risk copy with streak count", () => {
     const copy = getFallbackCopy({ ...baseCtx, state: "risk", streakCount: 5 });
     expect(copy.title).toContain("5");
-    expect(copy.ctaLabel).toBe("Log meal");
+    expect(copy.ctaLabel).toBe("Stay on track");
     expect(copy.chip).toBe("At risk");
   });
 
@@ -401,19 +399,19 @@ describe("getFallbackCopy", () => {
     });
     expect(copy.title).toContain("2 days");
     expect(copy.title).toContain("7");
-    expect(copy.chip).toBe("Next up");
+    expect(copy.chip).toBe("Building momentum");
   });
 
-  it("returns momentum copy with day count in chip", () => {
+  it("returns momentum copy with tier label in chip", () => {
     const copy = getFallbackCopy({
       ...baseCtx,
       state: "momentum",
       streakCount: 10,
     });
-    expect(copy.chip).toContain("Day 10");
+    expect(copy.chip).toBe("Building momentum");
   });
 
-  it("returns momentum copy for day >= 21 (habit territory)", () => {
+  it("returns momentum copy for day >= 21 (locked in tier)", () => {
     const copy = getFallbackCopy({
       ...baseCtx,
       state: "momentum",
@@ -421,12 +419,13 @@ describe("getFallbackCopy", () => {
       nextMilestone: 30,
       daysToNextMilestone: 5,
     });
-    expect(copy.title).toContain("habit");
+    expect(copy.title).toContain("Locked in");
+    expect(copy.title).toContain("25");
     expect(copy.subtitle).toContain("30");
-    expect(copy.chip).toBe("Day 25");
+    expect(copy.chip).toBe("Locked in");
   });
 
-  it("returns momentum copy for day >= 7 (consistency)", () => {
+  it("returns momentum copy for day >= 7 (building momentum tier)", () => {
     const copy = getFallbackCopy({
       ...baseCtx,
       state: "momentum",
@@ -434,7 +433,8 @@ describe("getFallbackCopy", () => {
       nextMilestone: 14,
       daysToNextMilestone: 4,
     });
-    expect(copy.title).toContain("consistency");
+    expect(copy.title).toContain("Building momentum");
+    expect(copy.title).toContain("10");
     expect(copy.subtitle).toContain("14");
   });
 
@@ -450,7 +450,7 @@ describe("getFallbackCopy", () => {
     expect(copy.subtitle).toContain("7");
   });
 
-  it("returns momentum copy for streak < 3", () => {
+  it("returns momentum copy for streak < 3 (starting out tier)", () => {
     const copy = getFallbackCopy({
       ...baseCtx,
       state: "momentum",
@@ -458,8 +458,8 @@ describe("getFallbackCopy", () => {
       nextMilestone: 3,
       daysToNextMilestone: 2,
     });
-    expect(copy.title).toContain("streak");
-    expect(copy.chip).toBe("Day 1");
+    expect(copy.title).toContain("starting out");
+    expect(copy.chip).toBe("Starting out");
   });
 
   it("all copies have title and subtitle", () => {
@@ -717,9 +717,7 @@ describe("buildMilestoneInsightModel", () => {
   });
 
   it("maps all states to correct accents", () => {
-    const expectations: Array<
-      [MilestoneInsightContext["state"], string, string]
-    > = [
+    const expectations: [MilestoneInsightContext["state"], string, string][] = [
       ["risk", "warning", "shield"],
       ["recovery", "warning", "refresh"],
       ["milestone_achieved", "success", "trophy"],

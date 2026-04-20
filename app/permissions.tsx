@@ -16,6 +16,8 @@ import Animated, {
     FadeInDown,
     FadeInUp,
 } from "react-native-reanimated";
+import { scheduleMealReminders } from "../src/features/reminders/meal-reminders.service";
+import { useSettingsStore } from "../src/features/settings/settings.store";
 import { useAppTranslation } from "../src/infrastructure/i18n/useAppTranslation";
 import { notifications } from "../src/infrastructure/notifications/notifications";
 import { useTheme } from "../src/theme/useTheme";
@@ -51,6 +53,10 @@ export default function PermissionsScreen() {
   const handleNotifications = async () => {
     const status = await notifications.requestPermissions();
     setPushNotifs(status === "granted" ? "granted" : "denied");
+    if (status === "granted") {
+      useSettingsStore.getState().setLogReminderEnabled(true);
+      scheduleMealReminders().catch(() => {});
+    }
   };
 
   const handleContinue = () => {

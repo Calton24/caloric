@@ -14,7 +14,7 @@
     "lost": "Verloren ({{unit}})",
     "toGoal": "Zum Ziel ({{unit}})",
     "calorieTrends": "Kalorientrends",
-    "budgetLabel": "Budget: {{budget}} kcal",
+    "budgetLabel": "Tagesbudget: {{budget}} kcal",
     "noMealsLogged": "Keine Mahlzeiten in diesem Zeitraum erfasst",
     "avgKcalDay": "Ø kcal/Tag",
     "avgProtein": "Ø Protein",

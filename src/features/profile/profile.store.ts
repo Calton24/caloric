@@ -93,6 +93,13 @@ export const useProfileStore = create<ProfileStore>()(
           getStorage().setItem(key, value),
         removeItem: (key: string) => getStorage().removeItem(key),
       })),
+      merge: (persisted, current) => ({
+        ...current,
+        profile: {
+          ...(current as ProfileStore).profile,
+          ...((persisted as Partial<ProfileStore>)?.profile ?? {}),
+        },
+      }),
     }
   )
 );

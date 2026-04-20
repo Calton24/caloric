@@ -60,15 +60,15 @@ import { haptics } from "../../src/infrastructure/haptics";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { toISODate } from "../../src/lib/utils/date";
 import { useTheme } from "../../src/theme/useTheme";
+import { CalCutLogo } from "../../src/ui/brand/CalCutLogo";
 import { DaySelector } from "../../src/ui/components/DaySelector";
 import { EditMealSheet } from "../../src/ui/components/EditMealSheet";
-import { InsightSheet } from "../../src/ui/components/InsightSheet";
 import { MacroCard } from "../../src/ui/components/MacroCard";
 import { ManualLogSheet } from "../../src/ui/components/ManualLogSheet";
 import { MealCard } from "../../src/ui/components/MealCard";
 import { MilestoneInsightCard } from "../../src/ui/components/MilestoneInsightCard";
-import { MilestoneSheet } from "../../src/ui/components/MilestoneSheet";
 import { MonthlyView } from "../../src/ui/components/MonthlyView";
+import { PerformanceSheet } from "../../src/ui/components/PerformanceSheet";
 import { ProgressRing } from "../../src/ui/components/ProgressRing";
 import { StreakModal } from "../../src/ui/components/StreakModal";
 import { VoiceLogSheet } from "../../src/ui/components/VoiceLogSheet";
@@ -462,6 +462,9 @@ export default function HomeScreen() {
         dailySummary: {
           targetCalories,
           consumedCalories: totals.calories,
+          consumedProtein: totals.protein,
+          targetProtein: proteinTarget,
+          loggedMeals: todayMeals.length,
         },
       }),
     [
@@ -471,6 +474,9 @@ export default function HomeScreen() {
       retention.streakRecovery,
       targetCalories,
       totals.calories,
+      totals.protein,
+      proteinTarget,
+      todayMeals.length,
     ]
   );
 
@@ -1128,84 +1134,83 @@ export default function HomeScreen() {
       <SafeAreaView style={styles.safe} edges={["top"]}>
         {/* Header */}
         <View testID="home-header" style={styles.header}>
-          <View style={styles.headerLeft}>
-            <TText
-              variant="heading"
-              numberOfLines={1}
-              style={[styles.greeting, { color: theme.colors.text }]}
-            >
-              {isToday ? t("home.today") : dateHeader}
-            </TText>
-          </View>
-          <View style={styles.headerRight}>
-            <Pressable
-              style={styles.streakPill}
-              accessibilityLabel={t("streak.dayStreak_other", {
-                count: currentStreak,
-              })}
-              accessibilityRole="button"
-              onPress={() => {
-                haptics.impact("medium");
-                setShowStreakModal(true);
-              }}
-            >
-              <TText
+          <View style={styles.headerTopRow}>
+            <View style={styles.brandPill}>
+              <CalCutLogo size={18} color={theme.colors.text} />
+              <TText style={[styles.brandText, { color: theme.colors.text }]}>
+                CalCut
+              </TText>
+            </View>
+            <View style={styles.headerRight}>
+              <Pressable
+                style={styles.streakPill}
+                accessibilityLabel={t("streak.dayStreak_other", {
+                  count: currentStreak,
+                })}
+                accessibilityRole="button"
+                onPress={() => {
+                  haptics.impact("medium");
+                  setShowStreakModal(true);
+                }}
+              >
+                <TText
+                  style={[
+                    styles.streakFlame,
+                    currentStreak === 0 && { opacity: 0.4 },
+                  ]}
+                >
+                  🔥
+                </TText>
+                <AnimatedNumber
+                  value={currentStreak}
+                  style={[
+                    styles.streakText,
+                    {
+                      color:
+                        currentStreak > 0
+                          ? theme.colors.text
+                          : theme.colors.textMuted,
+                    },
+                  ]}
+                />
+              </Pressable>
+              <Pressable
+                onPress={() => router.push("/progress" as any)}
+                accessibilityLabel={t("home.currentWeightA11y", {
+                  weight: units.format(displayWeight),
+                })}
+                accessibilityRole="button"
                 style={[
-                  styles.streakFlame,
-                  currentStreak === 0 && { opacity: 0.4 },
+                  styles.weightPill,
+                  { backgroundColor: theme.colors.surfaceSecondary },
                 ]}
               >
-                🔥
-              </TText>
-              <AnimatedNumber
-                value={currentStreak}
-                style={[
-                  styles.streakText,
-                  {
-                    color:
-                      currentStreak > 0
-                        ? theme.colors.text
-                        : theme.colors.textMuted,
-                  },
-                ]}
-              />
-            </Pressable>
-            <Pressable
-              onPress={() => router.push("/progress" as any)}
-              accessibilityLabel={t("home.currentWeightA11y", {
-                weight: units.format(displayWeight),
-              })}
-              accessibilityRole="button"
-              style={[
-                styles.weightPill,
-                { backgroundColor: theme.colors.surfaceSecondary },
-              ]}
-            >
-              <Ionicons
-                name={weightTrending ? "trending-down" : "trending-up"}
-                size={14}
-                color={
-                  weightTrending ? theme.colors.success : theme.colors.warning
-                }
-              />
-              <AnimatedWeight
-                currentValue={displayWeight}
-                units={units}
-                style={[styles.weightText, { color: theme.colors.text }]}
-              />
-            </Pressable>
-            <Pressable
-              onPress={() => router.push("/settings" as any)}
-              hitSlop={12}
-              accessibilityLabel="Settings"
-              accessibilityRole="button"
-            >
-              <Ionicons
-                name="settings-outline"
-                size={22}
-                color={theme.colors.textMuted}
-              />
-            </Pressable>
+                <Ionicons
+                  name={weightTrending ? "trending-down" : "trending-up"}
+                  size={14}
+                  color={
+                    weightTrending ? theme.colors.success : theme.colors.warning
+                  }
+                />
+                <AnimatedWeight
+                  currentValue={displayWeight}
+                  units={units}
+                  style={[styles.weightText, { color: theme.colors.text }]}
+                />
+              </Pressable>
+              <Pressable
+                onPress={() => router.push("/settings" as any)}
+                hitSlop={12}
+                accessibilityLabel="Settings"
+                accessibilityRole="button"
+              >
+                <Ionicons
+                  name="settings-outline"
+                  size={22}
+                  color={theme.colors.textMuted}
+                />
+              </Pressable>
+            </View>
           </View>
         </View>
 
@@ -1216,16 +1221,29 @@ export default function HomeScreen() {
         >
           <TSpacer size="sm" />
 
-          {/* D / W / M Segmented Control */}
-          <View style={styles.segmentRow}>
-            <GlassSegmentedControl
-              options={VIEW_MODE_OPTION_KEYS.map((o) => ({
-                key: o.key,
-                label: t(o.labelKey),
-              }))}
-              value={viewMode}
-              onChange={(key) => setViewMode(key as ViewMode)}
-            />
+          {/* Day label + D / W / M Segmented Control */}
+          <View style={styles.dayToggleRow}>
+            <TText
+              variant="heading"
+              numberOfLines={1}
+              style={[styles.dayLabel, { color: theme.colors.text }]}
+            >
+              {isToday
+                ? t("home.today")
+                : dateHeader.replace(/[\s,]*\d+.*$/, "")}
+            </TText>
+            <View style={styles.segmentToggle}>
+              <View style={styles.segmentToggleInner}>
+                <GlassSegmentedControl
+                  options={VIEW_MODE_OPTION_KEYS.map((o) => ({
+                    key: o.key,
+                    label: t(o.labelKey),
+                  }))}
+                  value={viewMode}
+                  onChange={(key) => setViewMode(key as ViewMode)}
+                />
+              </View>
+            </View>
           </View>
 
           <TSpacer size="sm" />
@@ -1362,27 +1380,23 @@ export default function HomeScreen() {
                           router.push("/tracking/manual" as any);
                           break;
                         case "milestone_achieved":
-                          openSheet(
-                            <MilestoneSheet
-                              model={milestoneInsight}
-                              longestStreak={longestStreak ?? 0}
-                              onClose={closeSheet}
-                            />,
-                            { snapPoints: ["55%"] }
-                          );
-                          break;
                         case "momentum":
                         case "milestone_preview":
                         default:
                           openSheet(
-                            <InsightSheet
+                            <PerformanceSheet
                               model={milestoneInsight}
+                              longestStreak={longestStreak ?? 0}
+                              caloriesRemaining={
+                                targetCalories - totals.calories
+                              }
+                              proteinRemaining={proteinTarget - totals.protein}
                               onClose={closeSheet}
                               onTrack={() =>
                                 router.push("/tracking/manual" as any)
                               }
                             />,
-                            { snapPoints: ["55%"] }
+                            { snapPoints: ["70%"] }
                           );
                           break;
                       }
@@ -1757,18 +1771,34 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+  },
+  headerTopRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    height: 64,
   },
   headerLeft: {
-    flex: 1,
-    height: 48,
-    justifyContent: "center",
+    flexShrink: 1,
     marginRight: 8,
+  },
+  brandPillRow: {
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  brandPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  brandText: {
+    fontSize: 14,
+    fontFamily: "PlusJakartaSans_800ExtraBold",
+    letterSpacing: 0.15,
   },
   headerRight: {
     flexDirection: "row",
@@ -1780,6 +1810,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700",
     letterSpacing: -0.3,
+  },
+  dayLabel: {
+    fontSize: 24,
+    fontWeight: "700",
+    letterSpacing: -0.3,
+    zIndex: 1,
   },
   date: {
     fontSize: 14,
@@ -1797,6 +1833,14 @@ const styles = StyleSheet.create({
   weightText: {
     fontSize: 14,
     fontWeight: "600",
+  },
+  streakRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    marginTop: -4,
+    marginBottom: 4,
   },
   streakPill: {
     flexDirection: "row",
@@ -1820,6 +1864,19 @@ const styles = StyleSheet.create({
   segmentRow: {
     alignSelf: "center",
     width: 160,
+  },
+  dayToggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 36,
+  },
+  segmentToggle: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  segmentToggleInner: {
+    width: 140,
   },
   calorieCard: {
     borderRadius: 20,

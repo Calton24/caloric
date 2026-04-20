@@ -22,6 +22,8 @@ import {
     requestVoicePermissions,
     usePermissionsStore,
 } from "../../src/features/permissions";
+import { scheduleMealReminders } from "../../src/features/reminders/meal-reminders.service";
+import { useSettingsStore } from "../../src/features/settings/settings.store";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { notifications } from "../../src/infrastructure/notifications/notifications";
 import { useTheme } from "../../src/theme/useTheme";
@@ -73,6 +75,10 @@ export default function PermissionsScreen() {
         "notifications",
         status === "granted" ? "granted" : "denied"
       );
+    if (status === "granted") {
+      useSettingsStore.getState().setLogReminderEnabled(true);
+      scheduleMealReminders().catch(() => {});
+    }
   };
 
   const handleContinue = async () => {
@@ -84,6 +90,8 @@ export default function PermissionsScreen() {
         return;
       }
     }
+    // Mark permissions as seen so we don't redirect here again
+    useSettingsStore.getState().setHasSeenPermissions(true);
     // All granted now — navigate
     if (isFromVoiceLog) {
       router.back();
@@ -95,6 +103,8 @@ export default function PermissionsScreen() {
   };
 
   const handleSkip = () => {
+    // Mark permissions as seen so we don't redirect here again
+    useSettingsStore.getState().setHasSeenPermissions(true);
     if (isFromVoiceLog) {
       router.back();
     } else if (Platform.OS === "ios") {

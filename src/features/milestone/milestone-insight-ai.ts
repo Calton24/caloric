@@ -52,7 +52,8 @@ const BANNED_PHRASES = [
 
 function buildCacheKey(ctx: MilestoneInsightContext): string {
   // Key on the dimensions that change the message
-  return `${ctx.state}:${ctx.streakCount}:${ctx.hasLoggedToday}:${ctx.nextMilestone ?? ""}:${ctx.timeOfDay}`;
+  const coaching = ctx.coachingStates?.join(",") ?? "";
+  return `${ctx.state}:${ctx.streakCount}:${ctx.hasLoggedToday}:${ctx.nextMilestone ?? ""}:${ctx.timeOfDay}:${coaching}`;
 }
 
 function storageKey(cacheKey: string): string {
@@ -170,6 +171,11 @@ async function callAI(
           timeOfDay: ctx.timeOfDay,
           goalType: ctx.goalType,
           lastLogHoursAgo: ctx.lastLogHoursAgo,
+          // Coaching states for AI context
+          coachingStates: ctx.coachingStates,
+          caloriesRemaining: ctx.caloriesRemaining,
+          proteinRemaining: ctx.proteinRemaining,
+          tier: ctx.tier,
         },
       }
     );

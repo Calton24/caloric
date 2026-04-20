@@ -28,13 +28,23 @@ function RootStack() {
       }}
     >
       {/* ── Entry point ── */}
-      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="index"
+        options={{ headerShown: false, animation: "fade" }}
+      />
 
       {/* ── Route Groups ── */}
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="(tabs)"
+        options={{ headerShown: false, animation: "fade" }}
+      />
       <Stack.Screen
         name="(onboarding)"
-        options={{ headerShown: false, gestureEnabled: false }}
+        options={{
+          headerShown: false,
+          gestureEnabled: false,
+          animation: "fade",
+        }}
       />
       <Stack.Screen name="(main)" options={{ headerShown: false }} />
       <Stack.Screen
@@ -47,7 +57,7 @@ function RootStack() {
         name="auth/sign-in"
         options={{
           headerShown: false,
-          animation: "slide_from_right",
+          animation: "fade",
         }}
       />
       <Stack.Screen

@@ -67,7 +67,13 @@
       "day7": "Jeden tydzień. Większość rezygnuje teraz. Ty nie.",
       "day3": "Trzy dni — najtrudniejsza część za tobą.",
       "day1": "Dzień pierwszy zrobiony. Wróć jutro."
-    }
+    },
+    "dayStreak_few": "Seria {{count}} dni",
+    "dayStreak_many": "Seria {{count}} dni",
+    "best_few": "Najlepsza: {{count}} dni",
+    "best_many": "Najlepsza: {{count}} dni",
+    "milestone_few": "{{remaining}} dni do kamienia milowego {{target}} dni",
+    "milestone_many": "{{remaining}} dni do kamienia milowego {{target}} dni"
   },
   "review": {
     "writeReview": "Napisz recenzję",
@@ -167,6 +173,8 @@
     "keepLogging": "Jeszcze {{remaining}} dni — kontynuuj logowanie",
     "daysToMilestone": "{{remaining}} dni do celu {{target}} dni",
     "keepGoing": "Utrzymaj tempo",
-    "buildingHabit": "Budowanie nawyku"
+    "buildingHabit": "Budowanie nawyku",
+    "days_few": "dni",
+    "days_many": "dni"
   }
 }

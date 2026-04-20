@@ -29,8 +29,8 @@
     "scan": "Scanner",
     "kcal": "kcal",
     "unnamedMeal": "Unnamed Meal",
-    "adjustHint": "Tap any value to adjust. These are estimates—close enough is good enough!",
-    "macroSummary": "P {{protein}}{{unit}} · C {{carbs}}{{unit}} · F {{fat}}{{unit}}"
+    "adjustHint": "Touchez une valeur pour l'ajuster. Ce sont des estimations – une approximation suffit !",
+    "macroSummary": "P {{protein}}{{unit}} · G {{carbs}}{{unit}} · L {{fat}}{{unit}}"
   },
   "camera": {
     "scanFood": "Scanner la nourriture",
@@ -127,7 +127,7 @@
     "tryAgain": "Réessayer",
     "speakNow": "Speak now...",
     "foodDetected": "Food detected",
-    "errorHint": "Try speaking more clearly or use simpler descriptions"
+    "errorHint": "Essayez de parler plus clairement ou utilisez des descriptions plus simples"
   },
   "manualLog": {
     "title": "Saisie manuelle",
@@ -143,9 +143,9 @@
   },
   "report": {
     "submitted": "Report submitted",
-    "thanksAccuracy": "Thanks for helping improve accuracy",
-    "issueQuestion": "What's the issue with this food log?",
-    "savedLocally": "Report saved locally. Will sync when online.",
+    "thanksAccuracy": "Merci de contribuer à améliorer la précision",
+    "issueQuestion": "Quel est le problème avec ce journal alimentaire ?",
+    "savedLocally": "Rapport enregistré localement. Synchronisation une fois en ligne.",
     "reporting": "Reporting...",
     "submit": "Report"
   },

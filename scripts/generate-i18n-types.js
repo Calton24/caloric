@@ -29,6 +29,7 @@ const NAMESPACE_FILES = [
   "permissions.json",
   "goals.json",
   "guide.json",
+  "coaching.json",
 ];
 
 /** Recursively collect all dot-separated key paths */

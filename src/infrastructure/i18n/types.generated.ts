@@ -2,8 +2,8 @@
  * AUTO-GENERATED — do not edit manually.
  * Run: node scripts/generate-i18n-types.js
  *
- * Generated from 10 English locale files.
- * Total keys: 792 (716 simple, 76 with interpolation)
+ * Generated from 11 English locale files.
+ * Total keys: 923 (798 simple, 125 with interpolation)
  */
 
 /** All valid translation keys (no interpolation params) */
@@ -162,6 +162,7 @@ export type SimpleTranslationKey =
   | "onboarding.weightGoal.normal"
   | "onboarding.weightGoal.overweight"
   | "onboarding.weightGoal.obese"
+  | "onboarding.weightGoal.atTarget"
   | "onboarding.timeframe.heading"
   | "onboarding.timeframe.relaxed"
   | "onboarding.timeframe.realistic"
@@ -184,6 +185,10 @@ export type SimpleTranslationKey =
   | "onboarding.plan.protein"
   | "onboarding.plan.carbs"
   | "onboarding.plan.fat"
+  | "onboarding.plan.projectedGoal"
+  | "onboarding.plan.weeks"
+  | "onboarding.plan.days"
+  | "onboarding.plan.toLose"
   | "onboarding.plan.socialProof"
   | "onboarding.saveProgress.heading"
   | "onboarding.saveProgress.subtitle"
@@ -339,6 +344,14 @@ export type SimpleTranslationKey =
   | "insights.header"
   | "insights.pacingDetail"
   | "insights.keepItGoing"
+  | "streakInsight.days_one"
+  | "streakInsight.days_other"
+  | "streakInsight.lastChance"
+  | "streakInsight.logToKeep"
+  | "streakInsight.logMeal"
+  | "streakInsight.startFresh"
+  | "streakInsight.keepGoing"
+  | "streakInsight.buildingHabit"
   | "settings.title"
   | "settings.appearance"
   | "settings.profile"
@@ -724,6 +737,75 @@ export type SimpleTranslationKey =
   | "liveActivity.subtitle"
   | "liveActivity.dynamicIsland"
   | "liveActivity.notNow"
+  | "coaching.todaysFocus"
+  | "coaching.thisWeek"
+  | "coaching.now"
+  | "coaching.personalBest"
+  | "coaching.dayQuality.perfect"
+  | "coaching.dayQuality.optimized"
+  | "coaching.dayQuality.secured"
+  | "coaching.tier.startingOut"
+  | "coaching.tier.gettingConsistent"
+  | "coaching.tier.buildingMomentum"
+  | "coaching.tier.lockedIn"
+  | "coaching.tier.disciplined"
+  | "coaching.tier.relentless"
+  | "coaching.tier.elite"
+  | "coaching.metric.calOver"
+  | "coaching.metric.calLeft"
+  | "coaching.metric.remaining"
+  | "coaching.metric.overBudget"
+  | "coaching.metric.proteinOver"
+  | "coaching.metric.proteinToGo"
+  | "coaching.metric.proteinLeft"
+  | "coaching.metric.status"
+  | "coaching.cta.logNow"
+  | "coaching.cta.secureToday"
+  | "coaching.cta.startFresh"
+  | "coaching.cta.completeToday"
+  | "coaching.cta.logProtein"
+  | "coaching.cta.finishStrong"
+  | "coaching.cta.improveToday"
+  | "coaching.cta.keepGoing"
+  | "coaching.cta.staySharp"
+  | "coaching.cta.keepItGoing"
+  | "coaching.cta.startYourDay"
+  | "coaching.cta.continue"
+  | "coaching.daysRemaining_one"
+  | "coaching.daysCount_one"
+  | "coachingText.lateCritical_v1"
+  | "coachingText.lateCritical_v2"
+  | "coachingText.lateCritical_v3"
+  | "coachingText.lateCritical_v4"
+  | "coachingText.eveningDriftProtein_v1"
+  | "coachingText.eveningDriftProtein_v2"
+  | "coachingText.eveningDriftProtein_v3"
+  | "coachingText.eveningDrift_v1"
+  | "coachingText.eveningDrift_v2"
+  | "coachingText.eveningDrift_v3"
+  | "coachingText.recoveryStart_v1"
+  | "coachingText.recoveryStart_v2"
+  | "coachingText.recoveryStart_v3"
+  | "coachingText.recoveryStart_v4"
+  | "coachingText.tightBudgetProtein_v2"
+  | "coachingText.strongProtein_v3"
+  | "coachingText.highQualityMilestone_v3"
+  | "coachingText.highQualityDay_v1"
+  | "coachingText.highQualityDay_v2"
+  | "coachingText.highQualityDay_v3"
+  | "coachingText.daySecured_v1"
+  | "coachingText.daySecured_v2"
+  | "coachingText.daySecured_v3"
+  | "coachingText.milestoneMomentum_v1"
+  | "coachingText.milestoneMomentum_v2"
+  | "coachingText.milestoneMomentum_v3"
+  | "coachingText.milestonePressure_v3"
+  | "coachingText.onTrackMorning_v1"
+  | "coachingText.onTrackMorning_v2"
+  | "coachingText.onTrackMorning_v3"
+  | "coachingText.onTrack_v1"
+  | "coachingText.onTrack_v2"
+  | "coachingText.onTrack_v3"
   ;
 
 /** Translation keys that require interpolation params */
@@ -737,6 +819,7 @@ export type ParamTranslationKey =
   | "auth.resendLinkCooldown"
   | "auth.sendResetLinkCooldown"
   | "onboarding.weightGoal.toLose"
+  | "onboarding.weightGoal.toGain"
   | "onboarding.weightGoal.bmiDisplay"
   | "onboarding.timeframe.description"
   | "onboarding.timeframe.weeksCount"
@@ -744,6 +827,7 @@ export type ParamTranslationKey =
   | "onboarding.timeframe.safeRateInfo"
   | "onboarding.plan.reachGoal"
   | "onboarding.plan.weeksToLose"
+  | "onboarding.plan.byDate"
   | "onboarding.complete.kcalDay"
   | "onboarding.complete.goalWeight"
   | "onboarding.complete.weeksLeft"
@@ -778,6 +862,13 @@ export type ParamTranslationKey =
   | "insights.similarLessCal"
   | "insights.streakMessage"
   | "dayJourney.dayBadge"
+  | "streakInsight.atRisk"
+  | "streakInsight.streakEnded"
+  | "streakInsight.milestoneHit"
+  | "streakInsight.milestoneBody"
+  | "streakInsight.milestoneClose"
+  | "streakInsight.keepLogging"
+  | "streakInsight.daysToMilestone"
   | "settings.lastSynced"
   | "settings.syncCompleteDesc"
   | "settings.planSummary"
@@ -804,6 +895,46 @@ export type ParamTranslationKey =
   | "progress.budgetLabel"
   | "progress.planUpdatedDesc"
   | "logWeight.goalLabel"
+  | "coaching.dayCount"
+  | "coaching.dayIdentity"
+  | "coaching.milestoneContext"
+  | "coaching.milestoneContext_one"
+  | "coaching.progressTarget"
+  | "coaching.daysRemaining_other"
+  | "coaching.daysCount_other"
+  | "coachingText.tightBudgetProtein_v1"
+  | "coachingText.tightBudgetProtein_v3"
+  | "coachingText.tightBudget_v1"
+  | "coachingText.tightBudget_v2"
+  | "coachingText.tightBudget_v3"
+  | "coachingText.proteinMilestone_v1"
+  | "coachingText.proteinMilestone_v2"
+  | "coachingText.proteinMilestone_v3"
+  | "coachingText.proteinMomentum_v1"
+  | "coachingText.proteinMomentum_v2"
+  | "coachingText.proteinMomentum_v3"
+  | "coachingText.proteinPriority_v1"
+  | "coachingText.proteinPriority_v2"
+  | "coachingText.proteinPriority_v3"
+  | "coachingText.strongProtein_v1"
+  | "coachingText.strongProtein_v2"
+  | "coachingText.strongMomentum_v1"
+  | "coachingText.strongMomentum_v2"
+  | "coachingText.strongMomentum_v3"
+  | "coachingText.strongPosition_v1"
+  | "coachingText.strongPosition_v2"
+  | "coachingText.strongPosition_v3"
+  | "coachingText.highQualityMilestone_v1"
+  | "coachingText.highQualityMilestone_v2"
+  | "coachingText.daySecuredProtein_v1"
+  | "coachingText.daySecuredProtein_v2"
+  | "coachingText.daySecuredProtein_v3"
+  | "coachingText.milestonePressure_v1"
+  | "coachingText.milestonePressure_v2"
+  | "coachingText.momentumBuilding_v1"
+  | "coachingText.momentumBuilding_v2"
+  | "coachingText.momentumBuilding_v3"
+  | "coachingText.momentumBuilding_v4"
   ;
 
 /** All valid translation keys */
@@ -820,6 +951,7 @@ export interface TranslationParams {
   "auth.resendLinkCooldown": { seconds: string | number };
   "auth.sendResetLinkCooldown": { seconds: string | number };
   "onboarding.weightGoal.toLose": { count: string | number; unit: string | number };
+  "onboarding.weightGoal.toGain": { count: string | number; unit: string | number };
   "onboarding.weightGoal.bmiDisplay": { label: string | number };
   "onboarding.timeframe.description": { weight: string | number; unit: string | number };
   "onboarding.timeframe.weeksCount": { count: string | number };
@@ -827,6 +959,7 @@ export interface TranslationParams {
   "onboarding.timeframe.safeRateInfo": { unit: string | number };
   "onboarding.plan.reachGoal": { weight: string | number; unit: string | number; date: string | number };
   "onboarding.plan.weeksToLose": { weeks: string | number; amount: string | number; unit: string | number };
+  "onboarding.plan.byDate": { date: string | number };
   "onboarding.complete.kcalDay": { count: string | number };
   "onboarding.complete.goalWeight": { weight: string | number };
   "onboarding.complete.weeksLeft": { count: string | number };
@@ -861,6 +994,13 @@ export interface TranslationParams {
   "insights.similarLessCal": { pastCalories: string | number; diff: string | number };
   "insights.streakMessage": { count: string | number };
   "dayJourney.dayBadge": { day: string | number };
+  "streakInsight.atRisk": { count: string | number };
+  "streakInsight.streakEnded": { count: string | number };
+  "streakInsight.milestoneHit": { count: string | number };
+  "streakInsight.milestoneBody": { count: string | number };
+  "streakInsight.milestoneClose": { target: string | number };
+  "streakInsight.keepLogging": { remaining: string | number };
+  "streakInsight.daysToMilestone": { remaining: string | number; target: string | number };
   "settings.lastSynced": { date: string | number };
   "settings.syncCompleteDesc": { weightImported: string | number; mealsExported: string | number };
   "settings.planSummary": { calories: string | number; weeks: string | number };
@@ -887,5 +1027,45 @@ export interface TranslationParams {
   "progress.budgetLabel": { budget: string | number };
   "progress.planUpdatedDesc": { weight: string | number };
   "logWeight.goalLabel": { weight: string | number; unit: string | number; difference: string | number };
+  "coaching.dayCount": { count: string | number };
+  "coaching.dayIdentity": { count: string | number; tier: string | number };
+  "coaching.milestoneContext": { count: string | number; target: string | number };
+  "coaching.milestoneContext_one": { target: string | number };
+  "coaching.progressTarget": { target: string | number };
+  "coaching.daysRemaining_other": { count: string | number };
+  "coaching.daysCount_other": { count: string | number };
+  "coachingText.tightBudgetProtein_v1": { cal: string | number; pro: string | number };
+  "coachingText.tightBudgetProtein_v3": { pro: string | number };
+  "coachingText.tightBudget_v1": { cal: string | number };
+  "coachingText.tightBudget_v2": { cal: string | number };
+  "coachingText.tightBudget_v3": { cal: string | number };
+  "coachingText.proteinMilestone_v1": { pro: string | number };
+  "coachingText.proteinMilestone_v2": { pro: string | number };
+  "coachingText.proteinMilestone_v3": { pro: string | number };
+  "coachingText.proteinMomentum_v1": { streak: string | number; pro: string | number };
+  "coachingText.proteinMomentum_v2": { streak: string | number; pro: string | number };
+  "coachingText.proteinMomentum_v3": { streak: string | number; pro: string | number };
+  "coachingText.proteinPriority_v1": { pro: string | number };
+  "coachingText.proteinPriority_v2": { pro: string | number };
+  "coachingText.proteinPriority_v3": { pro: string | number };
+  "coachingText.strongProtein_v1": { cal: string | number };
+  "coachingText.strongProtein_v2": { cal: string | number };
+  "coachingText.strongMomentum_v1": { cal: string | number; streak: string | number };
+  "coachingText.strongMomentum_v2": { streak: string | number };
+  "coachingText.strongMomentum_v3": { cal: string | number };
+  "coachingText.strongPosition_v1": { cal: string | number };
+  "coachingText.strongPosition_v2": { cal: string | number };
+  "coachingText.strongPosition_v3": { cal: string | number };
+  "coachingText.highQualityMilestone_v1": { daysText: string | number };
+  "coachingText.highQualityMilestone_v2": { daysText: string | number };
+  "coachingText.daySecuredProtein_v1": { pro: string | number };
+  "coachingText.daySecuredProtein_v2": { pro: string | number };
+  "coachingText.daySecuredProtein_v3": { pro: string | number };
+  "coachingText.milestonePressure_v1": { daysText: string | number };
+  "coachingText.milestonePressure_v2": { daysText: string | number };
+  "coachingText.momentumBuilding_v1": { streak: string | number };
+  "coachingText.momentumBuilding_v2": { streak: string | number };
+  "coachingText.momentumBuilding_v3": { streak: string | number };
+  "coachingText.momentumBuilding_v4": { streak: string | number };
 }
 

@@ -41,6 +41,7 @@ const NAMESPACE_FILES = [
   "permissions.json",
   "goals.json",
   "guide.json",
+  "coaching.json",
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -143,6 +144,14 @@ class LocaleValidator {
         // 2. Extra keys (not in English)
         for (const key of targetKeys) {
           if (!enKeySet.has(key)) {
+            // Allow plural form keys when the base plural exists in en
+            const pluralMatch = key.match(/^(.+)_(one|few|many|other)$/);
+            if (pluralMatch) {
+              const base = pluralMatch[1];
+              if (enKeySet.has(`${base}_other`) || enKeySet.has(`${base}_one`) || enKeySet.has(`${base}_plural`)) {
+                continue; // Valid plural form
+              }
+            }
             this.warn(lang, nsFile, `Extra key (not in en): "${key}"`);
           }
         }

@@ -10,6 +10,7 @@
  * No business logic in the component.
  */
 
+import { getDailyCoachingInsight } from "./daily-coaching";
 import { getMilestoneInsightCopySync } from "./milestone-insight-ai";
 import { getMilestoneInsightContext } from "./milestone-insight-context";
 import type {
@@ -19,8 +20,9 @@ import type {
     MilestoneInsightModel,
     MilestoneInsightState,
     MilestoneInsightTone,
-    MilestoneStyleConfig
+    MilestoneStyleConfig,
 } from "./milestone-insight.types";
+import { getDayScore, getIdentityTier } from "./milestone-insight.types";
 
 // ── Style map ────────────────────────────────────────────────
 
@@ -73,7 +75,8 @@ const TONE_MAP: Record<MilestoneInsightState, MilestoneInsightTone> = {
 
 export function buildMilestoneInsightModel(
   ctx: MilestoneInsightContext,
-  copy: MilestoneInsightCopy
+  copy: MilestoneInsightCopy,
+  input?: MilestoneInsightInput
 ): MilestoneInsightModel {
   const style = STYLE_MAP[ctx.state];
 
@@ -81,6 +84,41 @@ export function buildMilestoneInsightModel(
     style.showProgress && ctx.nextMilestone
       ? { current: ctx.streakCount, target: ctx.nextMilestone }
       : undefined;
+
+  const tier = getIdentityTier(ctx.streakCount);
+
+  const dayScore = input?.dailySummary
+    ? getDayScore({
+        loggedMeals: input.dailySummary.loggedMeals ?? 0,
+        consumedCalories: input.dailySummary.consumedCalories ?? 0,
+        targetCalories: input.dailySummary.targetCalories ?? 0,
+        consumedProtein: input.dailySummary.consumedProtein ?? 0,
+        targetProtein: input.dailySummary.targetProtein ?? 0,
+      })
+    : undefined;
+
+  // ── Daily coaching insight ──
+  const coachingInsight = input?.dailySummary
+    ? (() => {
+        const targetCal = input.dailySummary?.targetCalories ?? 0;
+        const targetPro = input.dailySummary?.targetProtein ?? 0;
+        const consumedCal = input.dailySummary?.consumedCalories ?? 0;
+        const consumedPro = input.dailySummary?.consumedProtein ?? 0;
+        const { states, copy } = getDailyCoachingInsight({
+          caloriesRemaining: targetCal - consumedCal,
+          proteinRemaining: targetPro - consumedPro,
+          targetCalories: targetCal,
+          targetProtein: targetPro,
+          loggedMeals: input.dailySummary?.loggedMeals ?? 0,
+          streak: ctx.streakCount,
+          daysToMilestone: ctx.daysToNextMilestone,
+          timeOfDay: ctx.timeOfDay,
+          secured: ctx.hasLoggedToday,
+          missedYesterday: ctx.state === "recovery",
+        });
+        return { states, label: copy.label, text: copy.text };
+      })()
+    : undefined;
 
   return {
     state: ctx.state,
@@ -94,6 +132,9 @@ export function buildMilestoneInsightModel(
     ctaLabel: copy.ctaLabel,
     progress,
     streakCount: ctx.streakCount,
+    tier,
+    dayScore,
+    coachingInsight,
   };
 }
 
@@ -110,7 +151,7 @@ export function getMilestoneInsight(
   if (!ctx) return null;
 
   const copy = getMilestoneInsightCopySync(ctx);
-  return buildMilestoneInsightModel(ctx, copy);
+  return buildMilestoneInsightModel(ctx, copy, input);
 }
 
 // Re-export for convenience

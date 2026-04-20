@@ -14,7 +14,7 @@
     "lost": "Verloren ({{unit}})",
     "toGoal": "Naar doel ({{unit}})",
     "calorieTrends": "Calorietrends",
-    "budgetLabel": "Budget: {{budget}} kcal",
+    "budgetLabel": "Dagbudget: {{budget}} kcal",
     "noMealsLogged": "Geen maaltijden geregistreerd in deze periode",
     "avgKcalDay": "Gem kcal/dag",
     "avgProtein": "Gem eiwit",

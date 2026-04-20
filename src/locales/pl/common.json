@@ -33,7 +33,9 @@
   "calories": {
     "label": "Kalorie",
     "value_one": "{{count}} kaloria",
-    "value_other": "{{count}} kalorii"
+    "value_other": "{{count}} kalorii",
+    "value_few": "{{count}} kalorie",
+    "value_many": "{{count}} kalorii"
   },
   "tabs": {
     "home": "Strona główna",

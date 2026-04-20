@@ -29,8 +29,8 @@
     "scan": "Skanuj",
     "kcal": "kcal",
     "unnamedMeal": "Unnamed Meal",
-    "adjustHint": "Tap any value to adjust. These are estimates—close enough is good enough!",
-    "macroSummary": "P {{protein}}{{unit}} · C {{carbs}}{{unit}} · F {{fat}}{{unit}}"
+    "adjustHint": "Stuknij dowolną wartość, aby ją dostosować. To szacunki — przybliżone wartości wystarczą!",
+    "macroSummary": "B {{protein}}{{unit}} · W {{carbs}}{{unit}} · T {{fat}}{{unit}}"
   },
   "camera": {
     "scanFood": "Skanuj jedzenie",
@@ -61,7 +61,11 @@
     "retake": "Zrob ponownie zdjecie",
     "scanHint": "Skieruj na jedzenie lub zeskanuj kod kreskowy",
     "freeScansRemaining": "{{count}} darmowy skan pozostaly",
-    "freeScansRemaining_plural": "{{count}} darmowych skanow pozostalych"
+    "freeScansRemaining_plural": "{{count}} darmowych skanow pozostalych",
+    "freeScansRemaining_one": "Pozostał {{count}} darmowy skan",
+    "freeScansRemaining_few": "Pozostały {{count}} darmowe skany",
+    "freeScansRemaining_many": "Pozostało {{count}} darmowych skanów",
+    "freeScansRemaining_other": "Pozostało {{count}} darmowych skanów"
   },
   "mealConfirm": {
     "analysisIncomplete": "Analiza niekompletna",
@@ -127,7 +131,7 @@
     "tryAgain": "Spróbuj ponownie",
     "speakNow": "Speak now...",
     "foodDetected": "Food detected",
-    "errorHint": "Try speaking more clearly or use simpler descriptions"
+    "errorHint": "Spróbuj mówić wyraźniej lub użyj prostszych opisów"
   },
   "manualLog": {
     "title": "Reczne dodawanie",
@@ -143,9 +147,9 @@
   },
   "report": {
     "submitted": "Report submitted",
-    "thanksAccuracy": "Thanks for helping improve accuracy",
-    "issueQuestion": "What's the issue with this food log?",
-    "savedLocally": "Report saved locally. Will sync when online.",
+    "thanksAccuracy": "Dziękujemy za pomoc w poprawie dokładności",
+    "issueQuestion": "Jaki jest problem z tym wpisem żywieniowym?",
+    "savedLocally": "Raport zapisany lokalnie. Zsynchronizuje się po połączeniu z internetem.",
     "reporting": "Reporting...",
     "submit": "Report"
   },

@@ -12,6 +12,7 @@ import type {
     MilestoneInsightContext,
     MilestoneInsightCopy,
 } from "./milestone-insight.types";
+import { getIdentityTier } from "./milestone-insight.types";
 
 export function getFallbackCopy(
   ctx: MilestoneInsightContext
@@ -31,6 +32,21 @@ export function getFallbackCopy(
   }
 }
 
+// ── Contextual CTA ───────────────────────────────────────────
+
+function getContextualCTA(
+  timeOfDay: "morning" | "afternoon" | "evening"
+): string {
+  switch (timeOfDay) {
+    case "morning":
+      return "Start your day";
+    case "afternoon":
+      return "Stay on track";
+    case "evening":
+      return "Secure today";
+  }
+}
+
 // ── Risk ─────────────────────────────────────────────────────
 
 function riskCopy(ctx: MilestoneInsightContext): MilestoneInsightCopy {
@@ -41,15 +57,17 @@ function riskCopy(ctx: MilestoneInsightContext): MilestoneInsightCopy {
       title: `Your ${ctx.streakCount}-day streak ends tonight`,
       subtitle: "Log one meal before midnight to save it.",
       chip: "At risk",
-      ctaLabel: "Log meal",
+      ctaLabel: "Last chance to lock today",
     };
   }
 
   return {
     title: `Your ${ctx.streakCount}-day streak is at risk`,
-    subtitle: "Log a meal today to keep it alive.",
+    subtitle: isEvening
+      ? "Still time to secure your streak."
+      : "Log a meal today to keep it alive.",
     chip: "At risk",
-    ctaLabel: "Log meal",
+    ctaLabel: getContextualCTA(ctx.timeOfDay),
   };
 }
 
@@ -106,19 +124,21 @@ function achievedCopy(ctx: MilestoneInsightContext): MilestoneInsightCopy {
 function previewCopy(ctx: MilestoneInsightContext): MilestoneInsightCopy {
   const remaining = ctx.daysToNextMilestone ?? 1;
   const target = ctx.nextMilestone ?? ctx.streakCount + remaining;
+  const tier = getIdentityTier(ctx.streakCount);
 
   if (remaining === 1) {
     return {
       title: `1 day from ${target}-day milestone`,
       subtitle: "Log today and you've got it.",
       chip: "Almost there",
+      ctaLabel: getContextualCTA(ctx.timeOfDay),
     };
   }
 
   return {
     title: `${remaining} days to ${target}-day milestone`,
     subtitle: `Stay on track and you'll hit day ${target}.`,
-    chip: "Next up",
+    chip: tier.label,
   };
 }
 
@@ -128,43 +148,49 @@ function momentumCopy(ctx: MilestoneInsightContext): MilestoneInsightCopy {
   const days = ctx.streakCount;
   const milestone = ctx.nextMilestone;
   const remaining = ctx.daysToNextMilestone;
+  const tier = getIdentityTier(days);
 
-  // Grounded in where they actually are
-  if (days >= 21) {
+  const progressSuffix = remaining
+    ? `${remaining} days to day ${milestone}.`
+    : "Every logged day reinforces it.";
+
+  if (days >= 30) {
     return {
-      title: "This is a real habit now",
-      subtitle: remaining
-        ? `${remaining} days to your ${milestone}-day milestone.`
-        : "Every logged day reinforces it.",
-      chip: `Day ${days}`,
+      title: `${tier.label} — day ${days}`,
+      subtitle: progressSuffix,
+      chip: tier.label,
+    };
+  }
+
+  if (days >= 14) {
+    return {
+      title: `${tier.label} — day ${days}`,
+      subtitle: `This is becoming permanent. ${progressSuffix}`,
+      chip: tier.label,
     };
   }
 
   if (days >= 7) {
     return {
-      title: "Building real consistency",
-      subtitle: remaining
-        ? `${remaining} days until day ${milestone}.`
-        : "Each day logged makes the next one easier.",
-      chip: `Day ${days}`,
+      title: `${tier.label} — day ${days}`,
+      subtitle: `Each day logged makes the next one easier. ${progressSuffix}`,
+      chip: tier.label,
     };
   }
 
-  if (days >= 3) {
+  if (days >= 4) {
     return {
-      title: "Getting consistent",
-      subtitle: remaining
-        ? `${remaining} more days to ${milestone}-day milestone.`
-        : "The first few days are the hardest. You're past them.",
-      chip: `Day ${days}`,
+      title: `${tier.label} — day ${days}`,
+      subtitle: `The first few days are the hardest. You're past them. ${progressSuffix}`,
+      chip: tier.label,
     };
   }
 
   return {
-    title: "Building a streak",
+    title: `Day ${days} — ${tier.label.toLowerCase()}`,
     subtitle: remaining
       ? `${remaining} days to your first milestone.`
       : "Log each day to build the habit.",
-    chip: `Day ${days}`,
+    chip: tier.label,
   };
 }

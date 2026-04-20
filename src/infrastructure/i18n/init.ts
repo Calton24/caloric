@@ -25,6 +25,7 @@ import { logger } from "../../logging/logger";
 // They are deep-merged into a single "common" namespace for i18next.
 
 import enAuth from "../../locales/en/auth.json";
+import enCoaching from "../../locales/en/coaching.json";
 import enCommon from "../../locales/en/common.json";
 import enGoals from "../../locales/en/goals.json";
 import enGuide from "../../locales/en/guide.json";
@@ -36,6 +37,7 @@ import enSettings from "../../locales/en/settings.json";
 import enTracking from "../../locales/en/tracking.json";
 
 import deAuth from "../../locales/de/auth.json";
+import deCoaching from "../../locales/de/coaching.json";
 import deCommon from "../../locales/de/common.json";
 import deGoals from "../../locales/de/goals.json";
 import deGuide from "../../locales/de/guide.json";
@@ -47,6 +49,7 @@ import deSettings from "../../locales/de/settings.json";
 import deTracking from "../../locales/de/tracking.json";
 
 import esAuth from "../../locales/es/auth.json";
+import esCoaching from "../../locales/es/coaching.json";
 import esCommon from "../../locales/es/common.json";
 import esGoals from "../../locales/es/goals.json";
 import esGuide from "../../locales/es/guide.json";
@@ -58,6 +61,7 @@ import esSettings from "../../locales/es/settings.json";
 import esTracking from "../../locales/es/tracking.json";
 
 import frAuth from "../../locales/fr/auth.json";
+import frCoaching from "../../locales/fr/coaching.json";
 import frCommon from "../../locales/fr/common.json";
 import frGoals from "../../locales/fr/goals.json";
 import frGuide from "../../locales/fr/guide.json";
@@ -69,6 +73,7 @@ import frSettings from "../../locales/fr/settings.json";
 import frTracking from "../../locales/fr/tracking.json";
 
 import nlAuth from "../../locales/nl/auth.json";
+import nlCoaching from "../../locales/nl/coaching.json";
 import nlCommon from "../../locales/nl/common.json";
 import nlGoals from "../../locales/nl/goals.json";
 import nlGuide from "../../locales/nl/guide.json";
@@ -80,6 +85,7 @@ import nlSettings from "../../locales/nl/settings.json";
 import nlTracking from "../../locales/nl/tracking.json";
 
 import plAuth from "../../locales/pl/auth.json";
+import plCoaching from "../../locales/pl/coaching.json";
 import plCommon from "../../locales/pl/common.json";
 import plGoals from "../../locales/pl/goals.json";
 import plGuide from "../../locales/pl/guide.json";
@@ -91,6 +97,7 @@ import plSettings from "../../locales/pl/settings.json";
 import plTracking from "../../locales/pl/tracking.json";
 
 import ptAuth from "../../locales/pt/auth.json";
+import ptCoaching from "../../locales/pt/coaching.json";
 import ptCommon from "../../locales/pt/common.json";
 import ptGoals from "../../locales/pt/goals.json";
 import ptGuide from "../../locales/pt/guide.json";
@@ -102,6 +109,7 @@ import ptSettings from "../../locales/pt/settings.json";
 import ptTracking from "../../locales/pt/tracking.json";
 
 import ptBRAuth from "../../locales/pt-BR/auth.json";
+import ptBRCoaching from "../../locales/pt-BR/coaching.json";
 import ptBRCommon from "../../locales/pt-BR/common.json";
 import ptBRGoals from "../../locales/pt-BR/goals.json";
 import ptBRGuide from "../../locales/pt-BR/guide.json";
@@ -163,7 +171,8 @@ const en = mergeNamespaces(
   enProgress,
   enPermissions,
   enGoals,
-  enGuide
+  enGuide,
+  enCoaching
 );
 
 const resources = {
@@ -180,7 +189,8 @@ const resources = {
       deProgress,
       dePermissions,
       deGoals,
-      deGuide
+      deGuide,
+      deCoaching
     ),
   },
   es: {
@@ -194,7 +204,8 @@ const resources = {
       esProgress,
       esPermissions,
       esGoals,
-      esGuide
+      esGuide,
+      esCoaching
     ),
   },
   fr: {
@@ -208,7 +219,8 @@ const resources = {
       frProgress,
       frPermissions,
       frGoals,
-      frGuide
+      frGuide,
+      frCoaching
     ),
   },
   nl: {
@@ -222,7 +234,8 @@ const resources = {
       nlProgress,
       nlPermissions,
       nlGoals,
-      nlGuide
+      nlGuide,
+      nlCoaching
     ),
   },
   pl: {
@@ -236,7 +249,8 @@ const resources = {
       plProgress,
       plPermissions,
       plGoals,
-      plGuide
+      plGuide,
+      plCoaching
     ),
   },
   pt: {
@@ -250,7 +264,8 @@ const resources = {
       ptProgress,
       ptPermissions,
       ptGoals,
-      ptGuide
+      ptGuide,
+      ptCoaching
     ),
   },
   "pt-BR": {
@@ -264,7 +279,8 @@ const resources = {
       ptBRProgress,
       ptBRPermissions,
       ptBRGoals,
-      ptBRGuide
+      ptBRGuide,
+      ptBRCoaching
     ),
   },
 } as const;
