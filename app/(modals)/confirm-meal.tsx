@@ -465,9 +465,15 @@ export default function ConfirmMealScreen() {
       } catch {
         /* already saved or draft missing */
       }
-      navigateAfterSave();
+      try {
+        navigateAfterSave();
+      } catch (navErr) {
+        console.error("[ConfirmMeal] navigation fallback error:", navErr);
+        // Last resort: just dismiss the modal
+        if (router.canDismiss()) router.dismiss();
+      }
     }
-  }, [saveDraftWithoutNav, navigateAfterSave, draft, retention]);
+  }, [saveDraftWithoutNav, navigateAfterSave, draft, retention, router]);
 
   /** Called when the celebration overlay dismisses (auto or tap) */
   const handleCelebrationDismiss = useCallback(() => {
@@ -1349,7 +1355,7 @@ export default function ConfirmMealScreen() {
                 clearDraft();
                 router.dismiss();
                 setTimeout(() => {
-                  router.push("/tracking/manual" as any);
+                  router.push("/(modals)/manual-log" as any);
                 }, 100);
               }}
               style={[

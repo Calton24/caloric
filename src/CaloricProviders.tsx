@@ -41,6 +41,7 @@ import { initMaintenance, MaintenanceGate } from "./infrastructure/maintenance";
 import { initNotifications } from "./infrastructure/notifications";
 import { initPresence } from "./infrastructure/presence";
 import { getBillingProvider, initializeBilling } from "./lib/billing";
+import { getSupabaseClient } from "./lib/supabase/client";
 import { logger } from "./logging/logger";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { NotificationToastProvider } from "./ui/components/NotificationToast";
@@ -108,6 +109,7 @@ function BillingGate({ children }: { children: React.ReactNode }) {
   const syncFromEntitlement = useSubscriptionStore(
     (s) => s.syncFromEntitlement
   );
+  const syncFromServer = useSubscriptionStore((s) => s.syncFromServer);
   const hydrateScanCredits = useScanCreditsStore((s) => s.hydrate);
   const hydrateSubscription = useSubscriptionStore((s) => s.hydrate);
 
@@ -134,15 +136,63 @@ function BillingGate({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Identify / de-identify the user with RevenueCat on auth state changes
+  // Identify / de-identify the user with RevenueCat on auth state changes.
+  // After logIn, call sync-entitlement to close the anonymous-purchase gap:
+  //   user buys while RC is anonymous → webhook fires under $RCAnonymousID
+  //   → webhook drops it (UUID check) → subscription_state never written.
+  //   This pull-sync ensures the DB reflects reality on every login.
   useEffect(() => {
     const provider = getBillingProvider();
     if (user?.id) {
-      provider.logIn?.(user.id);
+      // Keep a ref to syncFromServer that's stable inside this closure
+      const applyServerData = (data: {
+        isPro: boolean;
+        status: string;
+        expiresAt: string | null;
+        lastServerVerifiedAt: string;
+      }) =>
+        syncFromServer({
+          isPro: data.isPro,
+          status: data.status,
+          expiresAt: data.expiresAt,
+          lastServerVerifiedAt: data.lastServerVerifiedAt,
+        });
+
+      // One retry after 5 s if the first call fails.
+      // Failure bias: preserve last known state (don't pessimistically free).
+      // The RC SDK listener acts as the final safety net if both fail.
+      const invokeSync = (attempt = 1) => {
+        getSupabaseClient()
+          .functions.invoke("sync-entitlement")
+          .then(({ data, error }) => {
+            if (!error && data?.ok) {
+              applyServerData({
+                isPro: data.isPro as boolean,
+                status: data.status as string,
+                expiresAt: (data.expiresAt as string | null) ?? null,
+                lastServerVerifiedAt: data.lastServerVerifiedAt as string,
+              });
+            } else if (attempt === 1) {
+              // Non-authoritative response — retry once; keep current store state
+              setTimeout(() => invokeSync(2), 5_000);
+            }
+            // attempt === 2 failure: silent. RC SDK listener still live.
+          })
+          .catch(() => {
+            if (attempt === 1) {
+              setTimeout(() => invokeSync(2), 5_000);
+            }
+          });
+      };
+
+      provider
+        .logIn?.(user.id)
+        ?.catch(() => {})
+        .finally(invokeSync);
     } else {
       provider.logOut?.();
     }
-  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.id, syncFromServer]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <>{children}</>;
 }

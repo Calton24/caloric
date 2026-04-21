@@ -109,9 +109,19 @@ export class RevenueCatProvider implements BillingProvider {
     try {
       const RC = getPurchases();
 
-      // Enable verbose logging in dev for easier debugging
+      // Enable verbose logging in dev for easier debugging.
+      // IMPORTANT: setLogHandler MUST be called before setLogLevel.
+      // We route all SDK logs through console.warn (never console.error) to
+      // prevent Expo Metro's HMR client from calling Reflect.construct on a
+      // NamelessError subclass — which crashes under Hermes when the native
+      // RevenueCat SDK emits config/offerings errors via RCTDeviceEventEmitter.
       if (__DEV__) {
-        RC.setLogLevel(RC.LOG_LEVEL?.VERBOSE ?? 4);
+        if (RC.setLogHandler) {
+          RC.setLogHandler((_logLevel: any, message: string) => {
+            console.warn("[RevenueCat-SDK]", message);
+          });
+        }
+        RC.setLogLevel(RC.LOG_LEVEL?.WARN ?? 2);
       }
 
       // Always call configure() — the SDK handles duplicate calls gracefully.
@@ -243,8 +253,15 @@ export class RevenueCatProvider implements BillingProvider {
       const offerings = await RC.getOfferings();
       return offerings;
     } catch (error) {
-      logger.error("[RevenueCat] Failed to get offerings:", error);
-      throw error;
+      // Use warn (not error) to avoid crashing Expo Metro's HMR client under
+      // Hermes — its NamelessError stack-capture uses Reflect.construct which
+      // throws when console.error is called with a native error object.
+      // Pass only the string message to avoid redactSensitive crashing on
+      // Proxy-based native NSError objects.
+      const msg =
+        error instanceof Error ? error.message : String(error ?? "unknown");
+      logger.warn(`[RevenueCat] Failed to get offerings (non-fatal): ${msg}`);
+      return null;
     }
   }
 

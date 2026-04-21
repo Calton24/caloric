@@ -279,7 +279,7 @@ serve(async (req: Request) => {
         .maybeSingle(),
       admin
         .from("subscription_state")
-        .select("status, entitlement_id, expires_at")
+        .select("status, is_active, entitlement_id, expires_at")
         .eq("user_id", user.id)
         .maybeSingle(),
       admin
@@ -339,11 +339,11 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── Determine premium status from subscription_state (webhook source of truth) ──
-    const isPro =
-      subscription?.status === "active" ||
-      subscription?.status === "trialing" ||
-      subscription?.status === "grace_period";
+    // ── Determine premium status from subscription_state (webhook/sync source of truth) ──
+    // is_active is maintained by both the revenuecat-webhook (push) and
+    // sync-entitlement (pull) functions using shared normalizer rules.
+    // Grace period users are is_active=true — don't punish them.
+    const isPro = subscription?.is_active === true;
 
     // ── 4. Reset daily counter if date changed ──
     const today = new Date().toISOString().slice(0, 10);
@@ -365,19 +365,11 @@ serve(async (req: Request) => {
     }
 
     // ── 5. Check if scan is allowed ──
-    if (!isPro && usage.ai_scan_credits_remaining <= 0) {
-      await logUsage(admin, user.id, "scan_denied_limit", 0, 0, {
-        reason: "free_credits_exhausted",
-      });
-      return json(
-        {
-          ok: false,
-          code: "LIMIT_REACHED",
-          message: "Free AI scan limit reached. Upgrade for unlimited scans.",
-        },
-        402
-      );
-    }
+    // TEMP: free scan limit disabled — remove this comment and restore the check below to re-enable
+    // if (!isPro && usage.ai_scan_credits_remaining <= 0) {
+    //   await logUsage(admin, user.id, "scan_denied_limit", 0, 0, { reason: "free_credits_exhausted" });
+    //   return json({ ok: false, code: "LIMIT_REACHED", message: "Free AI scan limit reached. Upgrade for unlimited scans." }, 402);
+    // }
 
     // ── Parse request body ──
     const body = await req.json();

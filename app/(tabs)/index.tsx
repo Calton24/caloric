@@ -19,6 +19,7 @@ import {
     Pressable,
     ScrollView,
     StyleSheet,
+    Text,
     View,
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -35,6 +36,7 @@ import {
     useOverLimitColor,
 } from "../../hooks/useOverLimitColor";
 import { useUnits } from "../../hooks/useUnits";
+import { useHealthAutoSync } from "../../src/features/health";
 import { useHomeData } from "../../src/features/home/use-home-data";
 import { getMilestoneInsight } from "../../src/features/milestone/milestone-insight.service";
 import type { MealTime } from "../../src/features/nutrition/mealtime";
@@ -61,6 +63,7 @@ import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslati
 import { toISODate } from "../../src/lib/utils/date";
 import { useTheme } from "../../src/theme/useTheme";
 import { CalCutLogo } from "../../src/ui/brand/CalCutLogo";
+import { AnalyzingCard } from "../../src/ui/components/AnalyzingCard";
 import { DaySelector } from "../../src/ui/components/DaySelector";
 import { EditMealSheet } from "../../src/ui/components/EditMealSheet";
 import { MacroCard } from "../../src/ui/components/MacroCard";
@@ -75,7 +78,6 @@ import { VoiceLogSheet } from "../../src/ui/components/VoiceLogSheet";
 import { WaterCard } from "../../src/ui/components/WaterCard";
 import { WaterSettingsModal } from "../../src/ui/components/WaterSettingsModal";
 import { WeeklyView } from "../../src/ui/components/WeeklyView";
-import { GlassSegmentedControl } from "../../src/ui/glass/GlassSegmentedControl";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 import { useBottomSheet } from "../../src/ui/sheets/useBottomSheet";
@@ -183,6 +185,104 @@ const VIEW_MODE_OPTION_KEYS = [
 ] as const;
 
 type ViewMode = "D" | "W" | "M";
+
+const VIEW_MODES: ViewMode[] = ["D", "W", "M"];
+const SEGMENT_W = 40;
+const SEGMENT_H = 30;
+const TOGGLE_PAD = 2;
+const SLIDE_TIMING = {
+  duration: 250,
+  easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+};
+
+function ViewModeToggle({
+  value,
+  onChange,
+}: {
+  value: ViewMode;
+  onChange: (v: ViewMode) => void;
+}) {
+  const { theme } = useTheme();
+  const isDark = theme.mode === "dark";
+  const idx = VIEW_MODES.indexOf(value);
+  const translateX = useSharedValue(idx * SEGMENT_W);
+
+  useEffect(() => {
+    const newIdx = VIEW_MODES.indexOf(value);
+    translateX.value = withTiming(newIdx * SEGMENT_W, SLIDE_TIMING);
+  }, [value, translateX]);
+
+  const indicatorStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
+  // Theme-aware colors
+  const trackBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)";
+  const trackBorder = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.10)";
+  const indicatorBg = isDark
+    ? "rgba(255,255,255,0.22)"
+    : "rgba(255,255,255,0.95)";
+  const activeText = isDark ? "#FFFFFF" : theme.colors.text;
+  const inactiveText = isDark
+    ? "rgba(255,255,255,0.45)"
+    : theme.colors.textSecondary;
+
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        backgroundColor: trackBg,
+        borderRadius: 16,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: trackBorder,
+        padding: TOGGLE_PAD,
+      }}
+    >
+      {/* Sliding indicator */}
+      <Animated.View
+        style={[
+          {
+            position: "absolute",
+            top: TOGGLE_PAD,
+            left: TOGGLE_PAD,
+            width: SEGMENT_W,
+            height: SEGMENT_H,
+            borderRadius: 14,
+            backgroundColor: indicatorBg,
+          },
+          indicatorStyle,
+        ]}
+        pointerEvents="none"
+      />
+      {VIEW_MODES.map((mode) => (
+        <Pressable
+          key={mode}
+          onPress={() => {
+            haptics.selection();
+            onChange(mode);
+          }}
+          style={{
+            width: SEGMENT_W,
+            height: SEGMENT_H,
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: 14,
+          }}
+        >
+          <Text
+            style={{
+              color: value === mode ? activeText : inactiveText,
+              fontSize: 13,
+              fontWeight: "700",
+            }}
+          >
+            {mode}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
 
 /**
  * SwipeTutorialOverlay
@@ -420,6 +520,9 @@ export default function HomeScreen() {
 
   // ── Retention engine ──
   const retention = useRetentionEngine();
+
+  // ── Apple Health auto-sync on foreground ──
+  useHealthAutoSync();
 
   // Record app open once per session
   useEffect(() => {
@@ -1221,7 +1324,7 @@ export default function HomeScreen() {
         >
           <TSpacer size="sm" />
 
-          {/* Day label + D / W / M Segmented Control */}
+          {/* Day label + D / W / M Segmented Control (centered) */}
           <View style={styles.dayToggleRow}>
             <TText
               variant="heading"
@@ -1233,16 +1336,7 @@ export default function HomeScreen() {
                 : dateHeader.replace(/[\s,]*\d+.*$/, "")}
             </TText>
             <View style={styles.segmentToggle}>
-              <View style={styles.segmentToggleInner}>
-                <GlassSegmentedControl
-                  options={VIEW_MODE_OPTION_KEYS.map((o) => ({
-                    key: o.key,
-                    label: t(o.labelKey),
-                  }))}
-                  value={viewMode}
-                  onChange={(key) => setViewMode(key as ViewMode)}
-                />
-              </View>
+              <ViewModeToggle value={viewMode} onChange={setViewMode} />
             </View>
           </View>
 
@@ -1377,7 +1471,7 @@ export default function HomeScreen() {
                       switch (milestoneInsight.state) {
                         case "risk":
                         case "recovery":
-                          router.push("/tracking/manual" as any);
+                          openLogSheet();
                           break;
                         case "milestone_achieved":
                         case "momentum":
@@ -1392,9 +1486,10 @@ export default function HomeScreen() {
                               }
                               proteinRemaining={proteinTarget - totals.protein}
                               onClose={closeSheet}
-                              onTrack={() =>
-                                router.push("/tracking/manual" as any)
-                              }
+                              onTrack={() => {
+                                closeSheet();
+                                setTimeout(() => openLogSheet(), 300);
+                              }}
                             />,
                             { snapPoints: ["70%"] }
                           );
@@ -1403,7 +1498,7 @@ export default function HomeScreen() {
                     }}
                     onCTA={
                       milestoneInsight.action === "track_meal"
-                        ? () => router.push("/tracking/manual" as any)
+                        ? () => openLogSheet()
                         : undefined
                     }
                   />
@@ -1574,6 +1669,9 @@ export default function HomeScreen() {
           )}
 
           <TSpacer size="lg" />
+
+          {/* Scan in progress / complete card */}
+          <AnalyzingCard />
 
           {/* Meals section */}
           <View testID="meals-section">
@@ -1868,12 +1966,14 @@ const styles = StyleSheet.create({
   dayToggleRow: {
     flexDirection: "row",
     alignItems: "center",
-    height: 36,
+    height: 40,
+    paddingHorizontal: 4,
   },
   segmentToggle: {
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 2,
   },
   segmentToggleInner: {
     width: 140,

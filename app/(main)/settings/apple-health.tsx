@@ -67,38 +67,55 @@ export default function AppleHealthScreen() {
   const handleToggleMaster = useCallback(
     async (value: boolean) => {
       if (value) {
-        // Request HealthKit permissions when enabling
+        // Request HealthKit permissions when enabling.
+        // We skip isAvailable() and go straight to requestPermissions() because
+        // initHealthKit internally checks availability and handles both cases.
         const service = getHealthService();
-        const available = await service.isAvailable();
-        if (!available) {
-          Alert.alert(
-            t("settings.notAvailable"),
-            t("settings.notAvailableDesc")
-          );
-          return;
-        }
         const granted = await service.requestPermissions({
           read: true,
           write: true,
         });
         if (!granted) {
           Alert.alert(
-            t("settings.permissionRequired"),
-            t("settings.permissionRequiredDesc")
+            t("settings.notAvailable"),
+            t("settings.notAvailableDesc")
           );
           return;
         }
-      }
-      setAppleHealthSyncEnabled(value);
-      if (!value) {
+        // Auto-enable both read and write when master is turned on
+        setAppleHealthReadEnabled(true);
+        setAppleHealthWriteEnabled(true);
+      } else {
         setAppleHealthReadEnabled(false);
         setAppleHealthWriteEnabled(false);
+      }
+      setAppleHealthSyncEnabled(value);
+
+      // Auto-sync immediately after enabling
+      if (value) {
+        setSyncing(true);
+        try {
+          const result = await syncWithHealthKit({ read: true, write: true });
+          setLastAppleHealthSyncAt(new Date().toISOString());
+          Alert.alert(
+            t("settings.syncComplete"),
+            t("settings.syncCompleteDesc", {
+              weightImported: result.weightImported,
+              mealsExported: result.mealsExported,
+            })
+          );
+        } catch {
+          // Silently fail initial sync — user can retry with Sync Now
+        } finally {
+          setSyncing(false);
+        }
       }
     },
     [
       setAppleHealthSyncEnabled,
       setAppleHealthReadEnabled,
       setAppleHealthWriteEnabled,
+      setLastAppleHealthSyncAt,
     ]
   );
 

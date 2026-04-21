@@ -43,6 +43,10 @@ export default function ModalsLayout() {
             <Stack.Screen name="live-activity-intro" />
             <Stack.Screen name="guide" />
             <Stack.Screen
+              name="scan-result"
+              options={{ headerShown: false, presentation: "modal" }}
+            />
+            <Stack.Screen
               name="web-viewer"
               options={{ presentation: "modal" }}
             />

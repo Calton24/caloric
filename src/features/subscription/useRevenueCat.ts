@@ -17,6 +17,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Platform } from "react-native";
 import { useAppTranslation } from "../../infrastructure/i18n";
 import { getBillingProvider } from "../../lib/billing";
+import { getSupabaseClient } from "../../lib/supabase/client";
 import { logger } from "../../logging/logger";
 import { useChallengeStore } from "../challenge/challenge.store";
 import { useSubscriptionStore } from "./subscription.store";
@@ -230,6 +231,22 @@ export function useRevenueCat() {
     setIsRestoring(true);
     try {
       await getBillingProvider().restorePurchases();
+      // Pull server truth after restore — the RC SDK may have attributed the
+      // purchase to an anonymous ID that the webhook never wrote. This closes
+      // the same anonymous-purchase gap as the login path.
+      getSupabaseClient()
+        .functions.invoke("sync-entitlement")
+        .then(({ data, error }) => {
+          if (!error && data?.ok) {
+            useSubscriptionStore.getState().syncFromServer({
+              isPro: data.isPro as boolean,
+              status: data.status as string,
+              expiresAt: (data.expiresAt as string | null) ?? null,
+              lastServerVerifiedAt: data.lastServerVerifiedAt as string,
+            });
+          }
+        })
+        .catch(() => {});
       Alert.alert(t("settings.restored"), t("settings.restoredDesc"));
     } catch {
       Alert.alert(t("common.error"), t("settings.restoreFailed"));

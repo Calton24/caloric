@@ -156,7 +156,7 @@ export default function TrackingLauncherScreen() {
           <View style={styles.methodRow}>
             {/* Keyboard */}
             <Pressable
-              onPress={() => router.push("/tracking/manual" as any)}
+              onPress={() => router.push("/(modals)/manual-log" as any)}
               style={({ pressed }) => [
                 styles.methodBtn,
                 {

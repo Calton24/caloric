@@ -49,7 +49,7 @@ export function MealCard({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
       t("editMeal.deleteMeal"),
-      `${t("editMeal.deleteMealConfirm")} "${title}"?`,
+      t("editMeal.deleteMealConfirm", { title }),
       [
         { text: t("common.cancel"), style: "cancel" },
         {
