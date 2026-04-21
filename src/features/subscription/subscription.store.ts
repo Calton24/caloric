@@ -92,6 +92,7 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => {
           trialEndsAt,
           plan,
           paywallSeen: true,
+          lastServerVerifiedAt: null,
         },
       });
       persist();

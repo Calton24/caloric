@@ -146,6 +146,7 @@ export const MOCK_SUBSCRIPTION: SubscriptionState = {
   trialEndsAt: null,
   plan: null,
   paywallSeen: false,
+  lastServerVerifiedAt: null,
 };
 
 // ─── Weekday helpers ───────────────────────────────────────────
