@@ -91,8 +91,11 @@ function AnimatedNumber({ value, style }: { value: number; style?: any }) {
     const endValue = value;
     const duration = 400; // ms
     const startTime = Date.now();
+    let rafId: number;
+    let cancelled = false;
 
     const animate = () => {
+      if (cancelled) return;
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
 
@@ -103,11 +106,15 @@ function AnimatedNumber({ value, style }: { value: number; style?: any }) {
       setDisplayValue(Math.round(current));
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        rafId = requestAnimationFrame(animate);
       }
     };
 
-    requestAnimationFrame(animate);
+    rafId = requestAnimationFrame(animate);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(rafId);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]); // Only depend on the target value
 
@@ -131,8 +138,11 @@ function AnimatedWeight({
     const endValue = currentValue;
     const duration = 400; // ms
     const startTime = Date.now();
+    let rafId: number;
+    let cancelled = false;
 
     const animate = () => {
+      if (cancelled) return;
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
 
@@ -143,11 +153,15 @@ function AnimatedWeight({
       setDisplayValue(current);
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        rafId = requestAnimationFrame(animate);
       }
     };
 
-    requestAnimationFrame(animate);
+    rafId = requestAnimationFrame(animate);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(rafId);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentValue]);
 

@@ -80,6 +80,16 @@ export default function ScanResultScreen() {
   // Confirm button feedback
   const [confirming, setConfirming] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const isMounted = useRef(true);
+
+  // Stop animations and mark unmounted to prevent state updates on dead component
+  React.useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      scaleAnim.stopAnimation();
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Data sources
   const draft = useNutritionDraftStore((s) => s.draft);
@@ -158,10 +168,10 @@ export default function ScanResultScreen() {
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
   function handleConfirm() {
-    if (confirming) return;
+    if (confirming || !isMounted.current) return;
     setConfirming(true);
 
-    // Button micro-bounce
+    // Button micro-bounce — fire-and-forget, safe with useNativeDriver
     Animated.sequence([
       Animated.timing(scaleAnim, {
         toValue: 0.96,
@@ -173,14 +183,15 @@ export default function ScanResultScreen() {
         duration: 120,
         useNativeDriver: true,
       }),
-    ]).start();
-
-    // Store cleared before navigation so AnalyzingCard disappears cleanly.
-    saveDraftWithoutNav();
-    recordFirstMeal();
-    resetScan();
-    toast.show(`${mealCalories} kcal logged`, "success");
-    navigateAfterSave();
+    ]).start(() => {
+      // Callback fires after animation; guard against unmount during bounce
+      if (!isMounted.current) return;
+      saveDraftWithoutNav();
+      recordFirstMeal();
+      resetScan();
+      toast.show(`${mealCalories} kcal logged`, "success");
+      navigateAfterSave();
+    });
   }
 
   const isLowConfidence = confidence < 0.65;
@@ -206,7 +217,7 @@ export default function ScanResultScreen() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        {/* ── Header: minimal — just a back button ──────────────── */}
+        {/* ── Header ───────────────────────────────────────────────── */}
         <View style={styles.header}>
           <Pressable
             onPress={() => {
@@ -231,15 +242,17 @@ export default function ScanResultScreen() {
           </Pressable>
         </View>
 
-        {/* ── Image (dominant) ─────────────────────────────────── */}
-        <View style={styles.imageWrapper}>
-          {imageUri ? (
+        {/* ── Image ────────────────────────────────────────────────── */}
+        {imageUri ? (
+          <View style={styles.imageWrapper}>
             <Image
               source={{ uri: imageUri }}
               style={styles.foodImage}
               contentFit="cover"
             />
-          ) : (
+          </View>
+        ) : (
+          <View style={styles.imageWrapper}>
             <View
               style={[
                 styles.foodImage,
@@ -253,11 +266,11 @@ export default function ScanResultScreen() {
                 color={theme.colors.textMuted}
               />
             </View>
-          )}
-        </View>
+          </View>
+        )}
 
-        {/* ── Meal name + confidence label ─────────────────────── */}
-        <View style={styles.nameRow}>
+        {/* ── Title + confidence ────────────────────────────────────── */}
+        <View style={styles.titleRow}>
           <TText
             style={[styles.mealTitle, { color: theme.colors.text }]}
             numberOfLines={2}
@@ -267,29 +280,25 @@ export default function ScanResultScreen() {
           <ConfidenceLabel confidence={confidence} />
         </View>
 
-        {/* ── Macro strip (calories prominent, macros secondary) ── */}
-        <View style={styles.macroStrip}>
-          <View style={styles.calBlock}>
-            <TText style={[styles.calValue, { color: theme.colors.text }]}>
+        {/* ── Main card (matches confirm-meal design) ───────────────── */}
+        <View
+          style={[
+            styles.mainCard,
+            { backgroundColor: theme.colors.surfaceSecondary },
+          ]}
+        >
+          {/* Calories row */}
+          <View style={styles.heroRow}>
+            <TText style={[styles.heroCalories, { color: theme.colors.text }]}>
               {Math.round(mealCalories)}
             </TText>
-            <TText style={[styles.calUnit, { color: theme.colors.textMuted }]}>
+            <TText style={[styles.heroUnit, { color: theme.colors.textMuted }]}>
               kcal
             </TText>
+            <View style={{ flex: 1 }} />
           </View>
-          <View
-            style={[
-              styles.macroDivider,
-              { backgroundColor: theme.colors.border },
-            ]}
-          />
-          <MacroStat label="P" value={draft.protein} color="#60A5FA" />
-          <MacroStat label="C" value={draft.carbs} color="#FBBF24" />
-          <MacroStat label="F" value={draft.fat} color="#F87171" />
-        </View>
 
-        {/* ── Progress bar: today + this meal ─────────────────── */}
-        <View style={styles.progressRow}>
+          {/* Progress pill */}
           <View
             style={[
               styles.progressTrack,
@@ -307,18 +316,80 @@ export default function ScanResultScreen() {
                 },
               ]}
             />
+            <View style={styles.progressLabelContainer}>
+              <TText style={styles.progressLabel}>
+                {Math.round(todayTotals.calories + mealCalories)} /{" "}
+                {calorieBudget} kcal today
+              </TText>
+            </View>
           </View>
-          <TText
-            style={[styles.progressLabel, { color: theme.colors.textMuted }]}
-          >
-            {Math.round(todayTotals.calories + mealCalories)} / {calorieBudget}{" "}
-            kcal today
-          </TText>
+
+          {/* Food item row */}
+          <View style={styles.foodRow}>
+            <TText style={styles.foodEmoji}>{draft.emoji ?? "🍽️"}</TText>
+            <TText
+              style={[styles.foodName, { color: theme.colors.text }]}
+              numberOfLines={2}
+            >
+              {draft.title}
+            </TText>
+          </View>
+
+          {/* Macro pills */}
+          <View style={styles.macroPills}>
+            <MacroPill
+              label="P"
+              value={draft.protein}
+              color="#60A5FA"
+              bg={theme.colors.border}
+            />
+            <MacroPill
+              label="C"
+              value={draft.carbs}
+              color="#FBBF24"
+              bg={theme.colors.border}
+            />
+            <MacroPill
+              label="F"
+              value={draft.fat}
+              color="#F87171"
+              bg={theme.colors.border}
+            />
+          </View>
+
+          {/* Primary CTA */}
+          <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+            <Pressable
+              onPress={handlePrimary}
+              disabled={confirming}
+              style={[
+                styles.trackBtn,
+                { backgroundColor: isLowConfidence ? primaryColor : "#FFFFFF" },
+              ]}
+            >
+              {confirming ? (
+                <Ionicons
+                  name="checkmark"
+                  size={22}
+                  color={isLowConfidence ? "#fff" : "#1C1C1E"}
+                />
+              ) : (
+                <TText
+                  style={[
+                    styles.trackBtnText,
+                    { color: isLowConfidence ? "#fff" : "#1C1C1E" },
+                  ]}
+                >
+                  {primaryLabel}
+                </TText>
+              )}
+            </Pressable>
+          </Animated.View>
         </View>
 
         <View style={{ flex: 1 }} />
 
-        {/* ── Framing context line (subtle, above CTA) ─────────── */}
+        {/* Framing hint */}
         <TText
           style={[
             styles.framingSubtitle,
@@ -329,49 +400,31 @@ export default function ScanResultScreen() {
           {framing.subtitle}
         </TText>
 
-        {/* ── Primary CTA ──────────────────────────────────────── */}
-        <Animated.View
-          style={[styles.confirmWrapper, { transform: [{ scale: scaleAnim }] }]}
-        >
-          <Pressable
-            onPress={handlePrimary}
-            disabled={confirming}
-            style={[styles.confirmBtn, { backgroundColor: primaryColor }]}
-          >
-            {confirming ? (
-              <Ionicons name="checkmark" size={22} color="#fff" />
-            ) : (
-              <TText style={styles.confirmBtnText}>{primaryLabel}</TText>
-            )}
-          </Pressable>
-        </Animated.View>
-
         <View style={styles.bottomSpacer} />
       </SafeAreaView>
     </View>
   );
 }
 
-// ─── Macro stat (compact inline) ─────────────────────────────────────────────
+// ─── Macro pill (compact chip) ───────────────────────────────────────────────
 
-function MacroStat({
+function MacroPill({
   label,
   value,
   color,
+  bg,
 }: {
   label: string;
   value: number;
   color: string;
+  bg: string;
 }) {
-  const { theme } = useTheme();
   return (
-    <View style={styles.macroStat}>
-      <TText style={[styles.macroStatValue, { color }]}>
+    <View style={[styles.macroPill, { backgroundColor: bg }]}>
+      <TText style={[styles.macroPillValue, { color }]}>
         {Math.round(value)}g
       </TText>
-      <TText style={[styles.macroStatLabel, { color: theme.colors.textMuted }]}>
-        {label}
-      </TText>
+      <TText style={styles.macroPillLabel}>{label}</TText>
     </View>
   );
 }
@@ -398,7 +451,7 @@ const styles = StyleSheet.create({
   },
   foodImage: {
     width: "100%",
-    height: 180,
+    height: 200,
     borderRadius: 16,
     overflow: "hidden",
   },
@@ -406,100 +459,119 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  // Name
-  nameRow: {
+  // Title
+  titleRow: {
     paddingHorizontal: 20,
-    marginBottom: 4,
-    gap: 2,
+    marginBottom: 12,
+    gap: 3,
   },
   mealTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "700",
-    lineHeight: 28,
+    lineHeight: 30,
   },
   confidenceLabel: {
     fontSize: 12,
     fontWeight: "500",
-    marginTop: 2,
   },
-  // Macro strip
-  macroStrip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    marginTop: 10,
+  // Main card (matches confirm-meal mainCard)
+  mainCard: {
+    borderRadius: 20,
+    padding: 20,
+    marginHorizontal: 20,
     gap: 12,
   },
-  calBlock: {
+  heroRow: {
     flexDirection: "row",
     alignItems: "baseline",
-    gap: 3,
+    gap: 6,
   },
-  calValue: {
-    fontSize: 28,
+  heroCalories: {
+    fontSize: 36,
     fontWeight: "800",
     letterSpacing: -0.5,
   },
-  calUnit: {
-    fontSize: 13,
+  heroUnit: {
+    fontSize: 15,
     fontWeight: "500",
   },
-  macroDivider: {
-    width: 1,
-    height: 24,
-    marginHorizontal: 2,
-  },
-  macroStat: {
-    alignItems: "center",
-    flex: 1,
-  },
-  macroStatValue: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  macroStatLabel: {
-    fontSize: 11,
-  },
-  // Progress
-  progressRow: {
-    paddingHorizontal: 20,
-    marginTop: 14,
-    gap: 5,
-  },
+  // Progress pill (matches confirm-meal progressTrack)
   progressTrack: {
-    height: 5,
-    borderRadius: 3,
+    height: 40,
+    borderRadius: 12,
     overflow: "hidden",
+    justifyContent: "center",
   },
   progressFill: {
-    height: 5,
-    borderRadius: 3,
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    borderRadius: 12,
+  },
+  progressLabelContainer: {
+    paddingHorizontal: 14,
   },
   progressLabel: {
-    fontSize: 11,
-    textAlign: "right",
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
-  // Framing
+  // Food item row
+  foodRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  foodEmoji: {
+    fontSize: 28,
+  },
+  foodName: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "600",
+    lineHeight: 20,
+  },
+  // Macro pills
+  macroPills: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  macroPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+  },
+  macroPillValue: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  macroPillLabel: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#888",
+  },
+  // Track button (matches confirm-meal trackBtn)
+  trackBtn: {
+    borderRadius: 20,
+    paddingVertical: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 4,
+  },
+  trackBtnText: {
+    fontSize: 17,
+    fontWeight: "700",
+  },
+  // Framing hint
   framingSubtitle: {
     fontSize: 13,
     textAlign: "center",
     paddingHorizontal: 24,
     marginBottom: 10,
-  },
-  // CTA
-  confirmWrapper: {
-    paddingHorizontal: 20,
-  },
-  confirmBtn: {
-    height: 56,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  confirmBtnText: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#fff",
   },
   bottomSpacer: { height: 8 },
 });

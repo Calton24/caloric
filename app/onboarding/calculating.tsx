@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
+    cancelAnimation,
     Easing,
     FadeIn,
     FadeInDown,
@@ -57,7 +58,10 @@ export default function OnboardingCalculatingScreen() {
       -1,
       true
     );
-  }, [pulseOpacity]);
+    return () => {
+      cancelAnimation(pulseOpacity);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pulseStyle = useAnimatedStyle(() => ({
     opacity: pulseOpacity.value,

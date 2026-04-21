@@ -11,6 +11,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
+    cancelAnimation,
     FadeIn,
     FadeInDown,
     FadeInUp,
@@ -75,7 +76,10 @@ export default function OnboardingCalculatingScreen() {
       -1,
       true
     );
-  }, [glowOpacity]);
+    return () => {
+      cancelAnimation(glowOpacity);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const glowStyle = useAnimatedStyle(() => ({
     opacity: glowOpacity.value,

@@ -15,6 +15,7 @@
 import React, { useEffect } from "react";
 import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import Animated, {
+    cancelAnimation,
     Easing,
     useAnimatedProps,
     useSharedValue,
@@ -85,6 +86,9 @@ export function WaterTracker({
       -1,
       false
     );
+    return () => {
+      cancelAnimation(wave);
+    };
     // wave is a stable useSharedValue ref; one-time mount animation
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

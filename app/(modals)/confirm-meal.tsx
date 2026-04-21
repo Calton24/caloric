@@ -8,7 +8,7 @@
  * Reads meal data from the draft store (set by logging flow hook).
  */
 
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import RNSlider from "@react-native-community/slider";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -110,6 +110,15 @@ export default function ConfirmMealScreen() {
   const recordFirstMeal = useRetentionStore((s) => s.recordFirstMeal);
   const retention = useRetentionEngine();
   const paywallTrigger = usePaywallTrigger();
+
+  // Guard against state updates / navigation after unmount
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   // Post-log celebration state
   const [celebration, setCelebration] = useState<{
@@ -492,6 +501,7 @@ export default function ConfirmMealScreen() {
 
     // Check for share milestone then navigate
     setTimeout(() => {
+      if (!isMounted.current) return;
       const triggered = shareMilestone.check();
       if (!triggered) {
         navigateAfterSave();
@@ -503,6 +513,7 @@ export default function ConfirmMealScreen() {
   const handleJourneyPaywallDismiss = useCallback(() => {
     setJourneyPaywall(null);
     setTimeout(() => {
+      if (!isMounted.current) return;
       const triggered = shareMilestone.check();
       if (!triggered) {
         navigateAfterSave();
@@ -1363,8 +1374,8 @@ export default function ConfirmMealScreen() {
                 { backgroundColor: theme.colors.surfaceSecondary },
               ]}
             >
-              <Ionicons
-                name="keypad-outline"
+              <MaterialCommunityIcons
+                name="keyboard-outline"
                 size={24}
                 color={theme.colors.text}
               />

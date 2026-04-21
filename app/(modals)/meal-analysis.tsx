@@ -29,6 +29,7 @@ import {
     View,
 } from "react-native";
 import Animated, {
+    cancelAnimation,
     FadeIn,
     FadeInDown,
     FadeInUp,
@@ -75,7 +76,10 @@ function PulsingImage({ uri }: { uri: string }) {
       -1,
       true
     );
-  }, [scale]);
+    return () => {
+      cancelAnimation(scale);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],

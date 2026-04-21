@@ -4,6 +4,7 @@
  */
 
 import { Component, ErrorInfo, ReactNode } from "react";
+import { Pressable, Text, View } from "react-native";
 import { logger } from "./logger";
 
 interface ErrorBoundaryProps {
@@ -55,8 +56,50 @@ export class ErrorBoundary extends Component<
         return this.props.fallback;
       }
 
-      // Default fallback
-      return null;
+      // Default recovery fallback — tap to reset
+      return (
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "#fff",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 32,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 18,
+              fontWeight: "600",
+              color: "#111",
+              marginBottom: 8,
+            }}
+          >
+            Something went wrong
+          </Text>
+          <Text
+            style={{
+              fontSize: 14,
+              color: "#666",
+              textAlign: "center",
+              marginBottom: 24,
+            }}
+          >
+            {this.state.error?.message ?? "An unexpected error occurred."}
+          </Text>
+          <Pressable
+            onPress={() => this.setState({ hasError: false, error: null })}
+            style={{
+              backgroundColor: "#111",
+              paddingHorizontal: 24,
+              paddingVertical: 12,
+              borderRadius: 10,
+            }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "600" }}>Try again</Text>
+          </Pressable>
+        </View>
+      );
     }
 
     return this.props.children;

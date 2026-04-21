@@ -95,7 +95,10 @@ export function useLoggingFlow() {
    */
   function saveDraftWithoutNav() {
     if (!draft) {
-      throw new Error("No meal draft available");
+      console.warn(
+        "[LoggingFlow] saveDraftWithoutNav called with no draft — skipping"
+      );
+      return;
     }
 
     const logDate = useNutritionDraftStore.getState().logDate;

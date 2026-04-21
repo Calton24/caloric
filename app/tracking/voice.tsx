@@ -11,6 +11,7 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
+    cancelAnimation,
     FadeIn,
     FadeInUp,
     useAnimatedStyle,
@@ -36,6 +37,14 @@ export default function VoiceLoggingScreen() {
   // Pulse animation for recording indicator
   const pulseScale = useSharedValue(1);
   const pulseOpacity = useSharedValue(0.4);
+
+  // Cancel any running repeats on unmount
+  React.useEffect(() => {
+    return () => {
+      cancelAnimation(pulseScale);
+      cancelAnimation(pulseOpacity);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pulseStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pulseScale.value }],

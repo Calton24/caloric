@@ -17,6 +17,7 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
+    cancelAnimation,
     FadeIn,
     FadeOut,
     useAnimatedStyle,
@@ -52,7 +53,11 @@ function PulsingThumbnail({ uri }: { uri: string }) {
       -1,
       true
     );
-  }, [opacity]);
+    return () => {
+      // Cancel animation on unmount to prevent setting value on dead worklet
+      cancelAnimation(opacity);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const animStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
@@ -69,7 +74,7 @@ export function AnalyzingCard() {
   const { theme } = useTheme();
   const router = useRouter();
   const job = useBackgroundScanStore((s) => s.job);
-  const { resetScan, markAutoOpened } = useBackgroundScanStore.getState();
+  const { resetScan } = useBackgroundScanStore.getState();
 
   const [stageIndex, setStageIndex] = useState(0);
   const cycleRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -90,31 +95,14 @@ export function AnalyzingCard() {
     };
   }, [job?.status]);
 
-  // Auto-open scan-result once when complete.
-  // Deferred to next event-loop tick so the push doesn't fire
-  // synchronously inside a Zustand-triggered re-render (invariant crash).
-  useEffect(() => {
-    if (job?.status === "complete" && !job.hasAutoOpened && job.id) {
-      const capturedId = job.id;
-      markAutoOpened(capturedId);
-      setTimeout(() => {
-        try {
-          router.push("/(modals)/scan-result" as never);
-        } catch {
-          // Navigation failed — card stays visible, user can tap manually
-        }
-      }, 0);
-    }
-  }, [job?.status, job?.hasAutoOpened, job?.id, markAutoOpened, router]);
-
-  // Auto-dismiss the "complete" card after 8 s if the user ignores it.
-  // This prevents it from sitting on home indefinitely after a confirm or swipe-away.
+  // Auto-dismiss the "complete" card after 30 s if the user ignores it.
+  // No auto-navigation — user must tap the "Review" CTA manually.
   useEffect(() => {
     if (job?.status === "complete") {
       if (autoDismissRef.current) clearTimeout(autoDismissRef.current);
       autoDismissRef.current = setTimeout(() => {
         resetScan();
-      }, 8000);
+      }, 30000);
     } else {
       if (autoDismissRef.current) {
         clearTimeout(autoDismissRef.current);
@@ -185,41 +173,40 @@ export function AnalyzingCard() {
         exiting={FadeOut.duration(200)}
         style={[
           styles.card,
-          { backgroundColor: cardBg, borderColor: theme.colors.primary + "44" },
+          styles.completeCard,
+          { backgroundColor: cardBg, borderColor: theme.colors.primary + "55" },
         ]}
       >
-        <Pressable
-          style={styles.innerRow}
-          onPress={() => router.push("/(modals)/scan-result" as never)}
-        >
-          <View style={styles.thumbnail}>
-            <Image
-              source={{ uri: job.imageUri }}
-              style={styles.thumbnailImg}
-              contentFit="cover"
-            />
-          </View>
-
-          <View style={styles.body}>
-            <TText
-              style={[styles.title, { color: theme.colors.text }]}
-              numberOfLines={1}
-            >
-              {job.draft.title}
-            </TText>
-            <TText
-              style={[styles.subtitle, { color: theme.colors.textSecondary }]}
-              numberOfLines={1}
-            >
-              {job.draft.calories} kcal · Tap to review
-            </TText>
-          </View>
-
-          <Ionicons
-            name="chevron-forward"
-            size={16}
-            color={theme.colors.textMuted}
+        <View style={styles.thumbnail}>
+          <Image
+            source={{ uri: job.imageUri }}
+            style={styles.thumbnailImg}
+            contentFit="cover"
           />
+        </View>
+
+        <View style={styles.completeBody}>
+          <TText
+            style={[styles.title, { color: theme.colors.text }]}
+            numberOfLines={1}
+          >
+            {job.draft.title}
+          </TText>
+          <TText
+            style={[styles.subtitle, { color: theme.colors.textSecondary }]}
+            numberOfLines={1}
+          >
+            {job.draft.calories} kcal detected
+          </TText>
+        </View>
+
+        {/* Manual Review CTA */}
+        <Pressable
+          onPress={() => router.push("/(modals)/scan-result" as never)}
+          style={[styles.reviewBtn, { backgroundColor: theme.colors.primary }]}
+          hitSlop={6}
+        >
+          <TText style={styles.reviewBtnText}>Review</TText>
         </Pressable>
 
         {/* Dismiss */}
@@ -246,17 +233,13 @@ export function AnalyzingCard() {
       <PulsingThumbnail uri={job.imageUri} />
 
       <View style={styles.body}>
-        <Animated.Text
-          key={stageIndex}
-          entering={FadeIn.duration(300)}
-          style={[
-            styles.title,
-            { color: theme.colors.text, fontFamily: undefined },
-          ]}
+        {/* Plain TText — no Reanimated `entering` on keyed element (crashes mid-animation) */}
+        <TText
+          style={[styles.title, { color: theme.colors.text }]}
           numberOfLines={1}
         >
           {STAGE_LABELS[stageIndex]}
-        </Animated.Text>
+        </TText>
 
         {/* Progress dots */}
         <View style={styles.dotsRow}>
@@ -343,5 +326,24 @@ const styles = StyleSheet.create({
   dismissBtn: {
     padding: 4,
     flexShrink: 0,
+  },
+  completeCard: {
+    maxHeight: 120,
+  },
+  completeBody: {
+    flex: 1,
+    justifyContent: "center",
+    gap: 2,
+  },
+  reviewBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    flexShrink: 0,
+  },
+  reviewBtnText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
   },
 });

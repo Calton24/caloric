@@ -78,29 +78,33 @@ export function useHomeData() {
 
   const handleDaySelect = (index: number) => {
     const day = weekDays[index];
-    if (day) {
+    if (day && day.key <= today) {
       setSelectedDate(day.key);
     }
   };
 
-  /** Navigate to next week */
+  /** Navigate to next week (capped at today) */
   const goToNextWeek = useCallback(() => {
-    setSelectedDate((prev) => shiftDate(prev, 7));
-  }, []);
+    setSelectedDate((prev) => {
+      const next = shiftDate(prev, 7);
+      return next > today ? today : next;
+    });
+  }, [today]);
 
   /** Navigate to previous week */
   const goToPrevWeek = useCallback(() => {
     setSelectedDate((prev) => shiftDate(prev, -7));
   }, []);
 
-  /** Navigate to next month */
+  /** Navigate to next month (capped at today) */
   const goToNextMonth = useCallback(() => {
     setSelectedDate((prev) => {
       const d = new Date(prev + "T12:00:00");
       d.setMonth(d.getMonth() + 1);
-      return toISODate(d);
+      const next = toISODate(d);
+      return next > today ? today : next;
     });
-  }, []);
+  }, [today]);
 
   /** Navigate to previous month */
   const goToPrevMonth = useCallback(() => {

@@ -13,6 +13,7 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
+    cancelAnimation,
     FadeIn,
     useAnimatedStyle,
     useSharedValue,
@@ -128,9 +129,15 @@ export default function VoiceLoggingScreen() {
         true
       );
     } else {
+      cancelAnimation(pulseScale);
+      cancelAnimation(pulseOpacity);
       pulseScale.value = withTiming(1, { duration: 300 });
       pulseOpacity.value = withTiming(0, { duration: 300 });
     }
+    return () => {
+      cancelAnimation(pulseScale);
+      cancelAnimation(pulseOpacity);
+    };
   }, [isListening, pulseScale, pulseOpacity]);
 
   // ── Actions ───────────────────────────────────────────────────────────

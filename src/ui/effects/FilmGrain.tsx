@@ -16,6 +16,7 @@
 import React, { memo, useEffect } from "react";
 import { Image, StyleSheet } from "react-native";
 import Animated, {
+    cancelAnimation,
     Easing,
     useAnimatedStyle,
     useSharedValue,
@@ -57,6 +58,11 @@ export const FilmGrain = memo(function FilmGrain({
       -1,
       true
     );
+    return () => {
+      cancelAnimation(pulse);
+      cancelAnimation(driftX);
+      cancelAnimation(driftY);
+    };
   }, [animated, pulse, driftX, driftY]);
 
   const animStyle = useAnimatedStyle(() => ({

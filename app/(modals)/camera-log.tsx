@@ -17,30 +17,30 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  type GestureResponderEvent,
-  type LayoutChangeEvent,
-  Linking,
-  Platform,
-  Pressable,
-  StyleSheet,
-  TextInput,
-  View,
+    ActivityIndicator,
+    Alert,
+    type GestureResponderEvent,
+    type LayoutChangeEvent,
+    Linking,
+    Platform,
+    Pressable,
+    StyleSheet,
+    TextInput,
+    View,
 } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  Camera,
-  useCameraDevice,
-  useCameraPermission,
-  useCodeScanner,
+    Camera,
+    useCameraDevice,
+    useCameraPermission,
+    useCodeScanner,
 } from "react-native-vision-camera";
 import { useAccountGate } from "../../src/features/auth/useAccountGate";
 import { useBackgroundScanStore } from "../../src/features/camera/background-scan.store";
 import {
-  computeFocusPoint,
-  deactivateCameraBeforeDismiss,
+    computeFocusPoint,
+    deactivateCameraBeforeDismiss,
 } from "../../src/features/camera/camera-log.helpers";
 import { runImagePipeline } from "../../src/features/camera/image-pipeline.service";
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
@@ -52,7 +52,7 @@ import { FeatureGatePaywall } from "../../src/ui/components/FeatureGatePaywall";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 
-type CameraState = "viewfinder" | "error";
+type CameraState = "viewfinder" | "error" | "dismissing";
 
 export default function CameraLoggingScreen() {
   const { theme } = useTheme();
@@ -98,17 +98,20 @@ export default function CameraLoggingScreen() {
       try {
         const success = await startFromBarcode(barcode);
         if (success) {
+          // Deactivate camera before navigating — prevents the scanner from
+          // firing again during the transition and pushing confirm-meal twice.
+          setState("dismissing");
+          setBarcodeProcessing(false);
           router.push("/(modals)/confirm-meal" as never);
-        } else {
-          // Barcode not found — fall back to error state
-          setState("error");
+          return; // Lock stays set — component is transitioning away
         }
+        setState("error");
       } catch {
         setState("error");
-      } finally {
-        setBarcodeProcessing(false);
-        barcodeLockRef.current = false;
       }
+      // Only reached on failure paths — reset for retry
+      setBarcodeProcessing(false);
+      barcodeLockRef.current = false;
     },
     [startFromBarcode, router, state]
   );
@@ -193,10 +196,12 @@ export default function CameraLoggingScreen() {
         useBackgroundScanStore.getState().failScan(jobId, "Unexpected error");
       });
 
-      // Dismiss immediately — AnalyzingCard on home screen takes over
+      // Set "dismissing" state FIRST — this sets Camera isActive=false so the
+      // AVCaptureSession tears down gracefully before we navigate away.
+      // Without this, VisionCamera crashes on iOS when unmounted while active.
       deactivateCameraBeforeDismiss(
-        () => {},
-        () => router.dismiss()
+        () => setState("dismissing"),
+        () => router.back()
       );
     },
     [
@@ -279,15 +284,33 @@ export default function CameraLoggingScreen() {
 
   const pickFromGallery = useCallback(async () => {
     try {
-      const { status } =
+      const { status, accessPrivileges } =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
         Alert.alert(
           t("camera.photoLibraryRequired"),
           t("camera.photoLibraryRequiredDesc"),
-          [{ text: t("common.ok") }]
+          [
+            { text: t("common.cancel"), style: "cancel" },
+            {
+              text: t("camera.openSettings") ?? "Open Settings",
+              onPress: () => Linking.openSettings(),
+            },
+          ]
         );
         return;
+      }
+
+      // If the user only granted limited access, prompt them to allow full access
+      if (accessPrivileges === "limited") {
+        Alert.alert(
+          "Limited Photo Access",
+          "You've only allowed access to selected photos. For the best experience, allow access to your full photo library in Settings.",
+          [
+            { text: "Continue Anyway", style: "cancel" },
+            { text: "Open Settings", onPress: () => Linking.openSettings() },
+          ]
+        );
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -299,7 +322,11 @@ export default function CameraLoggingScreen() {
 
       if (result.canceled || !result.assets?.[0]?.uri) return;
 
-      runPipeline(result.assets[0].uri);
+      const pickedUri = result.assets[0].uri;
+      // Small delay so the native picker sheet finishes its dismiss animation
+      // before we start the pipeline and dismiss the camera modal.
+      // Without this, two modal dismissals race on iOS and crash the navigator.
+      setTimeout(() => runPipeline(pickedUri), 150);
     } catch {
       Alert.alert("Error", t("camera.pickImageError"));
     }
@@ -442,7 +469,7 @@ export default function CameraLoggingScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: "#000" }]}>
       {/* ── Viewfinder ─────────────────────────────────────────────── */}
       {state === "viewfinder" && (
         <Pressable

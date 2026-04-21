@@ -16,6 +16,7 @@
 import React, { useEffect, useMemo } from "react";
 import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import Animated, {
+    cancelAnimation,
     Easing,
     useAnimatedStyle,
     useSharedValue,
@@ -116,6 +117,9 @@ export function HeartRateCard({
         false
       );
     }
+    return () => {
+      cancelAnimation(heartScale);
+    };
     // heartScale is a stable useSharedValue ref
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentBpm, showHeartbeat]);

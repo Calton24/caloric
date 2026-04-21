@@ -427,7 +427,10 @@ function SlideToStart({ onComplete }: { onComplete: () => void }) {
       -1,
       false
     );
-  }, [shimmer]);
+    return () => {
+      cancelAnimation(shimmer);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Pre-interaction nudge — draws attention to the thumb
   useEffect(() => {

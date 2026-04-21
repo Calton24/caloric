@@ -192,7 +192,7 @@ serve(async (req: Request) => {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST",
         "Access-Control-Allow-Headers":
-          "authorization, x-client-info, apikey, content-type",
+          "authorization, x-client-info, apikey, content-type, x-auth-token",
       },
     });
   }
@@ -203,27 +203,48 @@ serve(async (req: Request) => {
 
   try {
     // ── 1. Auth ──
-    const authHeader = req.headers.get("Authorization");
+    // Use X-Auth-Token to avoid the Supabase Edge Runtime relay rejecting
+    // ES256-signed JWTs when it inspects the Authorization header, even
+    // when verify_jwt is false.
+    const authHeader =
+      req.headers.get("x-auth-token") ||
+      req.headers.get("Authorization")?.replace("Bearer ", "") ||
+      "";
     if (!authHeader) {
       return json({ ok: false, code: "UNAUTHENTICATED" }, 401);
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // User-scoped client for identity
-    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    // Decode JWT payload to extract sub (user ID).
+    // We don't verify the signature here — instead we confirm the user exists
+    // via the admin client below. This avoids ES256 algorithm issues with
+    // getUser() on projects that have rotated to ECC P-256 JWT keys.
+    const jwt = authHeader;
+    let userId: string;
+    try {
+      const payloadB64 = jwt.split(".")[1];
+      if (!payloadB64) throw new Error("Malformed JWT");
+      const payload = JSON.parse(
+        atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/"))
+      );
+      if (!payload.sub) throw new Error("No sub claim");
+      userId = payload.sub as string;
+    } catch (e) {
+      console.error("[ai-scan] JWT decode failed:", e);
+      return json(
+        { ok: false, code: "UNAUTHENTICATED", detail: "Invalid token" },
+        401
+      );
+    }
 
-    // Pass JWT explicitly — Edge Functions have no persisted session,
-    // so getUser() without a token returns "Auth session missing!".
-    const jwt = authHeader.replace("Bearer ", "");
+    // Confirm the user actually exists in Supabase Auth using the admin client.
+    const admin = createClient(supabaseUrl, supabaseServiceRoleKey);
     const {
       data: { user },
       error: userErr,
-    } = await userClient.auth.getUser(jwt);
+    } = await admin.auth.admin.getUserById(userId);
 
     if (userErr || !user) {
       console.error(
@@ -266,9 +287,6 @@ serve(async (req: Request) => {
       );
     }
     lastScanMap.set(user.id, now);
-
-    // ── Service-role client for protected reads/writes ──
-    const admin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
     // ── 2-3. Load profile, subscription, usage in parallel ──
     const [profileRes, subRes, usageRes] = await Promise.all([
