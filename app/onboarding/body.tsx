@@ -20,6 +20,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUnits } from "../../hooks/useUnits";
 import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
+import { useAppTranslation } from "../../src/infrastructure/i18n";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TButton } from "../../src/ui/primitives/TButton";
@@ -28,13 +29,26 @@ import { TText } from "../../src/ui/primitives/TText";
 import { OnboardingProgress } from "./_progress";
 
 const GENDERS = [
-  { id: "male", icon: "male-outline" as const, label: "Male" },
-  { id: "female", icon: "female-outline" as const, label: "Female" },
-  { id: "other", icon: "person-outline" as const, label: "Other" },
+  {
+    id: "male",
+    icon: "male-outline" as const,
+    labelKey: "onboarding.body.male",
+  },
+  {
+    id: "female",
+    icon: "female-outline" as const,
+    labelKey: "onboarding.body.female",
+  },
+  {
+    id: "other",
+    icon: "person-outline" as const,
+    labelKey: "onboarding.body.other",
+  },
 ] as const;
 
 export default function OnboardingBodyScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const units = useUnits();
   const router = useRouter();
   const { profile, saveBodyMeasurements } = useOnboarding();
@@ -71,7 +85,7 @@ export default function OnboardingBodyScreen() {
                 variant="heading"
                 style={[styles.heading, { color: theme.colors.text }]}
               >
-                Tell us about{"\n"}yourself
+                {t("onboarding.body.heading")}
               </TText>
             </Animated.View>
 
@@ -79,7 +93,7 @@ export default function OnboardingBodyScreen() {
 
             <Animated.View entering={FadeInDown.duration(500).delay(200)}>
               <TText color="secondary" style={styles.description}>
-                We need this to calculate your daily calorie needs.
+                {t("onboarding.body.description")}
               </TText>
             </Animated.View>
 
@@ -90,7 +104,7 @@ export default function OnboardingBodyScreen() {
               <TText
                 style={[styles.label, { color: theme.colors.textSecondary }]}
               >
-                Gender
+                {t("onboarding.body.gender")}
               </TText>
               <TSpacer size="sm" />
               <View style={styles.genderRow}>
@@ -134,7 +148,7 @@ export default function OnboardingBodyScreen() {
                             },
                           ]}
                         >
-                          {g.label}
+                          {t(g.labelKey)}
                         </TText>
                       </GlassSurface>
                     </Pressable>
@@ -150,7 +164,7 @@ export default function OnboardingBodyScreen() {
               <TText
                 style={[styles.label, { color: theme.colors.textSecondary }]}
               >
-                Age
+                {t("onboarding.body.age")}
               </TText>
               <TSpacer size="sm" />
               <GlassSurface intensity="light" style={styles.stepperCard}>
@@ -175,7 +189,7 @@ export default function OnboardingBodyScreen() {
                       { color: theme.colors.textMuted },
                     ]}
                   >
-                    years
+                    {t("common.years")}
                   </TText>
                 </View>
                 <Pressable
@@ -197,7 +211,7 @@ export default function OnboardingBodyScreen() {
               <TText
                 style={[styles.label, { color: theme.colors.textSecondary }]}
               >
-                Height
+                {t("onboarding.body.height")}
               </TText>
               <TSpacer size="sm" />
               <View style={styles.heightRow}>
@@ -227,7 +241,7 @@ export default function OnboardingBodyScreen() {
                         { color: theme.colors.textMuted },
                       ]}
                     >
-                      ft
+                      {t("onboarding.body.ft")}
                     </TText>
                   </View>
                   <Pressable
@@ -267,7 +281,7 @@ export default function OnboardingBodyScreen() {
                         { color: theme.colors.textMuted },
                       ]}
                     >
-                      in
+                      {t("onboarding.body.in")}
                     </TText>
                   </View>
                   <Pressable
@@ -290,7 +304,7 @@ export default function OnboardingBodyScreen() {
               <TText
                 style={[styles.label, { color: theme.colors.textSecondary }]}
               >
-                Current weight
+                {t("onboarding.body.currentWeight")}
               </TText>
               <TSpacer size="sm" />
               <GlassSurface intensity="light" style={styles.stepperCard}>
@@ -356,7 +370,7 @@ export default function OnboardingBodyScreen() {
               size="lg"
               testID="onboarding-next-body"
             >
-              Continue
+              {t("common.continue")}
             </TButton>
           </View>
         </KeyboardAvoidingView>

@@ -35,6 +35,7 @@ import Animated, {
 } from "react-native-reanimated";
 import type { ChallengeProgress } from "../../features/challenge/challenge.types";
 import { useRevenueCat } from "../../features/subscription/useRevenueCat";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { TSpacer } from "../primitives/TSpacer";
 import { TText } from "../primitives/TText";
@@ -54,14 +55,14 @@ function getTierKey(pkg: any): TierKey {
   return "other";
 }
 
-function getTierLabel(tier: TierKey): string {
+function getTierLabel(tier: TierKey, t: (key: string) => string): string {
   switch (tier) {
     case "monthly":
-      return "Monthly";
+      return t("settings.monthly");
     case "yearly":
-      return "Yearly";
+      return t("settings.yearly");
     default:
-      return "Plan";
+      return t("settings.plan");
   }
 }
 
@@ -71,28 +72,28 @@ const TIER_ORDER: TierKey[] = ["monthly", "yearly"];
 
 const BENEFITS: {
   icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  subtitle: string;
+  titleKey: string;
+  subtitleKey: string;
 }[] = [
   {
     icon: "scan-outline",
-    title: "Unlimited AI Food Scans",
-    subtitle: "Snap any meal for instant macro breakdown",
+    titleKey: "paywall.benefitScanTitle",
+    subtitleKey: "paywall.benefitScanSub",
   },
   {
     icon: "bar-chart-outline",
-    title: "Weekly Trends & Insights",
-    subtitle: "Track macros, streaks, and progress over time",
+    titleKey: "paywall.benefitTrendsTitle",
+    subtitleKey: "paywall.benefitTrendsSub",
   },
   {
     icon: "bulb-outline",
-    title: "Personalized Recommendations",
-    subtitle: "AI-powered tips based on your eating patterns",
+    titleKey: "paywall.benefitRecsTitle",
+    subtitleKey: "paywall.benefitRecsSub",
   },
   {
     icon: "share-outline",
-    title: "Export & Coach Sharing",
-    subtitle: "Download data or share with your nutritionist",
+    titleKey: "paywall.benefitExportTitle",
+    subtitleKey: "paywall.benefitExportSub",
   },
 ];
 
@@ -204,6 +205,7 @@ export function HardPaywall({
   progress,
 }: HardPaywallProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const { packages, isLoadingOfferings, purchasePackage, restorePurchases } =
     useRevenueCat();
 
@@ -288,7 +290,9 @@ export function HardPaywall({
                   <TText style={[styles.heroStatValue, { color: "#fff" }]}>
                     {completedDays}
                   </TText>
-                  <TText style={styles.heroStatLabel}>days logged</TText>
+                  <TText style={styles.heroStatLabel}>
+                    {t("paywall.daysLogged")}
+                  </TText>
                 </View>
                 <View
                   style={[
@@ -300,7 +304,9 @@ export function HardPaywall({
                   <TText style={[styles.heroStatValue, { color: "#fff" }]}>
                     {Math.round((completedDays / 21) * 100)}%
                   </TText>
-                  <TText style={styles.heroStatLabel}>completion</TText>
+                  <TText style={styles.heroStatLabel}>
+                    {t("paywall.completion")}
+                  </TText>
                 </View>
                 <View
                   style={[
@@ -312,7 +318,9 @@ export function HardPaywall({
                   <TText style={[styles.heroStatValue, { color: "#fff" }]}>
                     21
                   </TText>
-                  <TText style={styles.heroStatLabel}>day streak</TText>
+                  <TText style={styles.heroStatLabel}>
+                    {t("paywall.dayStreak")}
+                  </TText>
                 </View>
               </View>
 
@@ -322,7 +330,7 @@ export function HardPaywall({
                   <Ionicons key={i} name="star" size={16} color="#FBBF24" />
                 ))}
               </View>
-              <TText style={styles.proofText}>Loved by 1,000+ users</TText>
+              <TText style={styles.proofText}>{t("paywall.socialProof")}</TText>
             </Animated.View>
           </View>
 
@@ -336,7 +344,7 @@ export function HardPaywall({
                 variant="heading"
                 style={[styles.headline, { color: theme.colors.text }]}
               >
-                Get full access today
+                {t("paywall.getFullAccess")}
               </TText>
               <TSpacer size="xs" />
               <TText
@@ -345,7 +353,7 @@ export function HardPaywall({
                   { color: theme.colors.textSecondary },
                 ]}
               >
-                Unlock everything from your 21-day journey
+                {t("paywall.unlockEverything")}
               </TText>
             </Animated.View>
 
@@ -374,7 +382,7 @@ export function HardPaywall({
                         { color: theme.colors.text },
                       ]}
                     >
-                      {b.title}
+                      {t(b.titleKey)}
                     </TText>
                     <TText
                       style={[
@@ -382,7 +390,7 @@ export function HardPaywall({
                         { color: theme.colors.textSecondary },
                       ]}
                     >
-                      {b.subtitle}
+                      {t(b.subtitleKey)}
                     </TText>
                   </View>
                 </View>
@@ -407,10 +415,12 @@ export function HardPaywall({
                         key={pkg.identifier}
                         isSelected={pkg.identifier === effectiveSelection}
                         onSelect={() => setSelectedPkg(pkg.identifier)}
-                        label={getTierLabel(tier)}
+                        label={getTierLabel(tier, t)}
                         priceStr={priceStr}
                         badgeText={
-                          tier === "yearly" ? "Best Value ✦" : undefined
+                          tier === "yearly"
+                            ? t("paywall.bestValueStar")
+                            : undefined
                         }
                         primaryColor={theme.colors.primary}
                         borderColor={theme.colors.border}
@@ -446,7 +456,7 @@ export function HardPaywall({
                   {isPurchasing ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
-                    <TText style={styles.ctaText}>Continue</TText>
+                    <TText style={styles.ctaText}>{t("common.continue")}</TText>
                   )}
                 </LinearGradient>
               </Pressable>
@@ -494,14 +504,14 @@ export function HardPaywall({
                 <TText
                   style={[styles.footerLink, { color: theme.colors.textMuted }]}
                 >
-                  Restore Purchases
+                  {t("settings.restorePurchases")}
                 </TText>
               </Pressable>
               <Pressable onPress={onContinueFree} hitSlop={12}>
                 <TText
                   style={[styles.footerLink, { color: theme.colors.textMuted }]}
                 >
-                  Skip
+                  {t("paywall.skip")}
                 </TText>
               </Pressable>
             </Animated.View>

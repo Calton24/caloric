@@ -15,6 +15,10 @@
  *   - service_role client bypasses RLS for writes
  *   - Client has NO write access to subscription_state
  *
+ * Idempotency:
+ *   Inserts event_id into revenuecat_webhook_events first.
+ *   Duplicate event_id (RC retry) → returns 200 immediately, no DB mutation.
+ *
  * RevenueCat event types reference:
  *   INITIAL_PURCHASE, RENEWAL, PRODUCT_CHANGE, CANCELLATION,
  *   UNCANCELLATION, BILLING_ISSUE, SUBSCRIBER_ALIAS,
@@ -23,6 +27,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { serve } from "std/http/server.ts";
+import { normalizeFromWebhookEvent } from "../_shared/entitlement-normalizer.ts";
 
 serve(async (req: Request) => {
   // CORS
@@ -68,12 +73,7 @@ serve(async (req: Request) => {
 
     const eventType = event.type as string;
     const appUserId = event.app_user_id as string;
-    const entitlementIds = event.entitlement_ids as string[] | undefined;
-    const productId = event.product_id as string | undefined;
-    const store = event.store as string | undefined;
-    const expiresAt = event.expiration_at_ms
-      ? new Date(event.expiration_at_ms).toISOString()
-      : null;
+    const eventId = event.id as string | undefined;
 
     if (!appUserId) {
       console.error("[rc-webhook] Missing app_user_id in event");
@@ -81,7 +81,7 @@ serve(async (req: Request) => {
     }
 
     console.log(
-      `[rc-webhook] event=${eventType} user=${appUserId} product=${productId} store=${store}`
+      `[rc-webhook] event=${eventType} id=${eventId ?? "none"} user=${appUserId}`
     );
 
     // ── Handle TEST events ──
@@ -99,61 +99,85 @@ serve(async (req: Request) => {
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(userId)) {
-      // Might be anon RC ID ($RCAnonymousID:...) — skip
+      // Anon RC ID ($RCAnonymousID:...) — skip webhook, pull-sync handles this
+      // on next login via sync-entitlement function.
       console.warn(`[rc-webhook] Non-UUID app_user_id: ${appUserId}, skipping`);
       return json({ ok: true, skipped: true });
     }
 
-    // ── Map event to subscription status ──
-    let status: string;
-    const hasPremium = entitlementIds?.includes("premium");
-
-    switch (eventType) {
-      case "INITIAL_PURCHASE":
-      case "RENEWAL":
-      case "UNCANCELLATION":
-      case "PRODUCT_CHANGE":
-        status = hasPremium ? "active" : "free";
-        break;
-      case "CANCELLATION":
-        // User cancelled but may still have time remaining
-        status = "cancelled";
-        break;
-      case "EXPIRATION":
-        status = "expired";
-        break;
-      case "BILLING_ISSUE":
-        status = "grace_period";
-        break;
-      case "SUBSCRIPTION_PAUSED":
-        status = "expired";
-        break;
-      default:
-        // For unknown events, don't change status
-        console.log(`[rc-webhook] Unhandled event type: ${eventType}`);
-        status = "free";
-        break;
-    }
-
-    // ── Upsert subscription_state ──
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, supabaseServiceKey);
 
+    // ── Idempotency: insert event record first ──
+    // If event_id already exists (RC retry), return immediately without mutating state.
+    if (eventId) {
+      const { error: insertErr } = await admin
+        .from("revenuecat_webhook_events")
+        .insert({
+          event_id: eventId,
+          user_id: userId,
+          event_type: eventType,
+          app_user_id: appUserId,
+          raw_payload: event,
+        });
+
+      if (insertErr) {
+        // Postgres unique violation = duplicate event
+        if (insertErr.code === "23505") {
+          console.log(`[rc-webhook] Duplicate event_id=${eventId}, skipping`);
+          return json({ ok: true, duplicate: true });
+        }
+        // Non-fatal: log but continue processing
+        console.warn(
+          "[rc-webhook] Event log insert failed:",
+          insertErr.message
+        );
+      }
+    }
+
+    // ── Normalize using shared rules (same logic as sync-entitlement) ──
+    const normalized = normalizeFromWebhookEvent({
+      type: eventType,
+      entitlement_ids: event.entitlement_ids as string[] | undefined,
+      product_id: event.product_id as string | undefined,
+      store: event.store as string | undefined,
+      expiration_at_ms: event.expiration_at_ms as number | undefined,
+      grace_period_expiration_at_ms: event.grace_period_expiration_at_ms as
+        | number
+        | undefined,
+      will_renew: event.will_renew as boolean | undefined,
+      transferred_from: event.transferred_from as string[] | undefined,
+    });
+
+    // For TRANSFER events, capture the previous identity for the audit trail
+    const originalAppUserId =
+      eventType === "TRANSFER"
+        ? ((event.transferred_from as string[] | undefined)?.[0] ?? null)
+        : null;
+
+    // ── Upsert subscription_state ──
     const { error: upsertError } = await admin
       .from("subscription_state")
       .upsert(
         {
           user_id: userId,
           app_user_id: appUserId,
-          entitlement_id: hasPremium ? "premium" : null,
-          product_id: productId ?? null,
-          status,
-          expires_at: expiresAt,
-          store: store ?? null,
+          original_app_user_id: originalAppUserId,
+          entitlement_id: normalized.entitlement_id,
+          product_id: normalized.product_id,
+          status: normalized.status,
+          is_active: normalized.is_active,
+          expires_at: normalized.expires_at,
+          will_renew: normalized.will_renew,
+          store: normalized.store,
           last_event_type: eventType,
+          last_event_id: eventId ?? null,
           last_event_at: new Date().toISOString(),
           raw_event: event,
+          last_server_verified_at: new Date().toISOString(),
+          source: "webhook",
+          updated_at: new Date().toISOString(),
         },
         { onConflict: "user_id" }
       );
@@ -186,9 +210,15 @@ serve(async (req: Request) => {
           );
       });
 
-    console.log(`[rc-webhook] Updated user=${userId} status=${status}`);
+    console.log(
+      `[rc-webhook] Updated user=${userId} status=${normalized.status} is_active=${normalized.is_active}`
+    );
 
-    return json({ ok: true, status });
+    return json({
+      ok: true,
+      status: normalized.status,
+      is_active: normalized.is_active,
+    });
   } catch (err) {
     console.error("[rc-webhook] Unexpected error:", err);
     return json({ error: "Internal server error" }, 500);

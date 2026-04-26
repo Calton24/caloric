@@ -2,19 +2,6 @@
   "app": {
     "title": "Caloric"
   },
-  "auth": {
-    "signIn": "Anmelden",
-    "signUp": "Registrieren",
-    "signOut": "Abmelden",
-    "email": "E-Mail",
-    "password": "Passwort",
-    "confirmPassword": "Passwort bestätigen",
-    "forgotPassword": "Passwort vergessen?",
-    "createAccount": "Konto erstellen",
-    "welcome": "Willkommen",
-    "signInToContinue": "Melden Sie sich an, um fortzufahren",
-    "signUpToGetStarted": "Registrieren Sie sich, um loszulegen"
-  },
   "common": {
     "cancel": "Abbrechen",
     "save": "Speichern",
@@ -27,11 +14,41 @@
     "ok": "OK",
     "error": "Fehler",
     "success": "Erfolg",
-    "retry": "Erneut versuchen"
+    "retry": "Erneut versuchen",
+    "continue": "Weiter",
+    "letsGo": "Los geht's!",
+    "weeks": "Wochen",
+    "years": "Jahre",
+    "recommended": "Empfohlen",
+    "email": "E-Mail",
+    "processing": "Wird verarbeitet...",
+    "language": "Language",
+    "notNow": "Not now",
+    "search": "Search",
+    "like": "LIKE",
+    "nope": "NOPE",
+    "now": "now",
+    "optionsA11y": "{{label}} options"
   },
   "calories": {
     "label": "Kalorien",
     "value_one": "{{count}} Kalorie",
     "value_other": "{{count}} Kalorien"
+  },
+  "tabs": {
+    "home": "Startseite",
+    "notes": "Notizen",
+    "auth": "Konto",
+    "playground": "Spielplatz",
+    "caloric": "Caloric"
+  },
+  "days": {
+    "monShort": "M",
+    "tueShort": "D",
+    "wedShort": "M",
+    "thuShort": "D",
+    "friShort": "F",
+    "satShort": "S",
+    "sunShort": "S"
   }
 }

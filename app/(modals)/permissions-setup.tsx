@@ -22,6 +22,9 @@ import {
     requestVoicePermissions,
     usePermissionsStore,
 } from "../../src/features/permissions";
+import { scheduleMealReminders } from "../../src/features/reminders/meal-reminders.service";
+import { useSettingsStore } from "../../src/features/settings/settings.store";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { notifications } from "../../src/infrastructure/notifications/notifications";
 import { useTheme } from "../../src/theme/useTheme";
 import { PermissionRow } from "../../src/ui/components/PermissionRow";
@@ -31,6 +34,7 @@ import { TText } from "../../src/ui/primitives/TText";
 
 export default function PermissionsScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
   const { source } = useLocalSearchParams<{ source?: string }>();
 
@@ -71,6 +75,10 @@ export default function PermissionsScreen() {
         "notifications",
         status === "granted" ? "granted" : "denied"
       );
+    if (status === "granted") {
+      useSettingsStore.getState().setLogReminderEnabled(true);
+      scheduleMealReminders().catch(() => {});
+    }
   };
 
   const handleContinue = async () => {
@@ -82,6 +90,8 @@ export default function PermissionsScreen() {
         return;
       }
     }
+    // Mark permissions as seen so we don't redirect here again
+    useSettingsStore.getState().setHasSeenPermissions(true);
     // All granted now — navigate
     if (isFromVoiceLog) {
       router.back();
@@ -93,6 +103,8 @@ export default function PermissionsScreen() {
   };
 
   const handleSkip = () => {
+    // Mark permissions as seen so we don't redirect here again
+    useSettingsStore.getState().setHasSeenPermissions(true);
     if (isFromVoiceLog) {
       router.back();
     } else if (Platform.OS === "ios") {
@@ -127,14 +139,13 @@ export default function PermissionsScreen() {
             variant="heading"
             style={[styles.title, { color: theme.colors.text }]}
           >
-            Permissions Required
+            {t("permissionsSetup.title")}
           </TText>
           <TSpacer size="sm" />
           <TText
             style={[styles.subtitle, { color: theme.colors.textSecondary }]}
           >
-            Caloric uses your microphone and speech recognition to log meals
-            with your voice, and notifications to keep you on track.
+            {t("permissionsSetup.subtitle")}
           </TText>
         </Animated.View>
 
@@ -147,24 +158,24 @@ export default function PermissionsScreen() {
         >
           <PermissionRow
             icon="mic"
-            label="Microphone"
-            description="Listen to your voice for meal logging"
+            label={t("permissionsSetup.microphone")}
+            description={t("permissionsSetup.microphoneDesc")}
             status={mic}
             onPress={handleMic}
           />
           <TSpacer size="sm" />
           <PermissionRow
             icon="chatbubble-ellipses"
-            label="Speech Recognition"
-            description="Convert your speech to food entries"
+            label={t("permissionsSetup.speechRecognition")}
+            description={t("permissionsSetup.speechRecognitionDesc")}
             status={speech}
             onPress={handleSpeech}
           />
           <TSpacer size="sm" />
           <PermissionRow
             icon="notifications"
-            label="Push Notifications"
-            description="Meal reminders and daily progress updates"
+            label={t("permissionsSetup.pushNotifications")}
+            description={t("permissionsSetup.pushNotificationsDesc")}
             status={notifs}
             onPress={handleNotifications}
           />
@@ -192,7 +203,9 @@ export default function PermissionsScreen() {
             <TText
               style={[styles.ctaText, { color: theme.colors.textInverse }]}
             >
-              {allGranted ? "Continue" : "Grant Permissions"}
+              {allGranted
+                ? t("permissionsSetup.continue")
+                : t("permissionsSetup.grantPermissions")}
             </TText>
           </LinearGradient>
         </Pressable>
@@ -202,7 +215,7 @@ export default function PermissionsScreen() {
         {!allGranted && (
           <Pressable onPress={handleSkip} hitSlop={12}>
             <TText style={[styles.skipText, { color: theme.colors.textMuted }]}>
-              Skip for now
+              {t("permissionsSetup.skipForNow")}
             </TText>
           </Pressable>
         )}

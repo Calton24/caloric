@@ -10,7 +10,6 @@ import React, { useEffect } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
     FadeIn,
-    FadeInUp,
     FadeOut,
     SlideInDown,
 } from "react-native-reanimated";
@@ -54,52 +53,39 @@ export function PostLogCelebration({
     >
       <Pressable style={styles.backdrop} onPress={onDismiss} />
       <Animated.View
-        entering={SlideInDown.duration(400).springify()}
+        entering={SlideInDown.duration(350)}
         style={[styles.card, { backgroundColor: theme.colors.surface }]}
       >
-        <Animated.View entering={FadeInUp.duration(500).delay(100)}>
-          <TText style={styles.emoji}>{emoji}</TText>
-        </Animated.View>
-        <Animated.View entering={FadeInUp.duration(500).delay(200)}>
-          <TText style={[styles.message, { color: theme.colors.text }]}>
-            {message}
-          </TText>
-        </Animated.View>
-        <Animated.View entering={FadeInUp.duration(500).delay(350)}>
-          <TText style={[styles.sub, { color: theme.colors.textMuted }]}>
-            {sub}
-          </TText>
-        </Animated.View>
+        <TText style={styles.emoji}>{emoji}</TText>
+        <TText style={[styles.message, { color: theme.colors.text }]}>
+          {message}
+        </TText>
+        <TText style={[styles.sub, { color: theme.colors.textMuted }]}>
+          {sub}
+        </TText>
 
-        {/* Progress bar micro-reward animation */}
-        <Animated.View
-          entering={FadeInUp.duration(600).delay(500)}
-          style={styles.progressBarContainer}
-        >
+        {/* Progress bar */}
+        <View style={styles.progressBarContainer}>
           <View
             style={[
               styles.progressBarTrack,
               { backgroundColor: theme.colors.border },
             ]}
           >
-            <Animated.View
+            <View
               style={[
                 styles.progressBarFill,
                 { backgroundColor: theme.colors.primary },
               ]}
             />
           </View>
-        </Animated.View>
+        </View>
 
         {/* Micro-trigger nudge on conversion days */}
         {microTrigger && (
-          <Animated.View entering={FadeInUp.duration(500).delay(700)}>
-            <TText
-              style={[styles.microTrigger, { color: theme.colors.primary }]}
-            >
-              {microTrigger}
-            </TText>
-          </Animated.View>
+          <TText style={[styles.microTrigger, { color: theme.colors.primary }]}>
+            {microTrigger}
+          </TText>
         )}
       </Animated.View>
     </Animated.View>

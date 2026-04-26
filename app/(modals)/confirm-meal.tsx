@@ -8,58 +8,69 @@
  * Reads meal data from the draft store (set by logging flow hook).
  */
 
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import RNSlider from "@react-native-community/slider";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+    Modal,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    View,
+} from "react-native";
 import Animated, {
-  FadeIn,
-  FadeInDown,
-  FadeInUp,
+    FadeIn,
+    FadeInDown,
+    FadeInUp,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  getLastScanEventId,
-  markScanConfirmed,
-  recordScanEvent,
-  submitScanCorrection,
-  type ScanSource,
+    getLastScanEventId,
+    markScanConfirmed,
+    recordScanEvent,
+    submitScanCorrection,
+    type ScanSource,
 } from "../../src/features/feedback/scan-feedback.service";
 
 import { useNutritionDraftStore } from "../../src/features/nutrition/nutrition.draft.store";
 
 import { useChallengeStore } from "../../src/features/challenge/challenge.store";
 import {
-  getInsightMessage,
-  isInsightMoment,
+    getInsightMessage,
+    isInsightMoment,
 } from "../../src/features/challenge/insight-trigger.service";
 import {
-  detectMealTime,
-  type MealTime,
+    detectMealTime,
+    type MealTime,
 } from "../../src/features/nutrition/mealtime";
 import {
-  captureOriginalEstimate,
-  clearOriginalEstimate,
-  trackCorrection,
+    captureOriginalEstimate,
+    clearOriginalEstimate,
+    trackCorrection,
 } from "../../src/features/nutrition/memory/correction-tracker";
 import { displayName } from "../../src/features/nutrition/nutrition-pipeline";
 import { getMealsForDate } from "../../src/features/nutrition/nutrition.selectors";
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
 import {
-  useRetentionEngine,
-  useRetentionStore,
+    useRetentionEngine,
+    useRetentionStore,
 } from "../../src/features/retention";
 import {
-  ShareMilestoneModal,
-  useShareMilestone,
+    ShareMilestoneModal,
+    useShareMilestone,
 } from "../../src/features/share";
 import { useScanCreditsStore } from "../../src/features/subscription/scanCredits.store";
 import { usePaywallTrigger } from "../../src/features/subscription/usePaywallTrigger";
+import { formatDateHeader } from "../../src/infrastructure/i18n";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useGoalsStore, useNutritionStore } from "../../src/stores";
 import { useTheme } from "../../src/theme/useTheme";
 import { JourneyPaywall } from "../../src/ui/components/JourneyPaywall";
 import { PostLogCelebration } from "../../src/ui/components/PostLogCelebration";
+import { RichText } from "../../src/ui/components/RichText";
 import { ReportFoodSheet } from "../../src/ui/feedback/ReportFoodSheet";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
@@ -67,6 +78,7 @@ import { useBottomSheet } from "../../src/ui/sheets/useBottomSheet";
 
 export default function ConfirmMealScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
   const {
     draft: hookDraft,
@@ -99,6 +111,15 @@ export default function ConfirmMealScreen() {
   const retention = useRetentionEngine();
   const paywallTrigger = usePaywallTrigger();
 
+  // Guard against state updates / navigation after unmount
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   // Post-log celebration state
   const [celebration, setCelebration] = useState<{
     message: string;
@@ -124,6 +145,187 @@ export default function ConfirmMealScreen() {
 
   // More menu visibility
   const [showMenu, setShowMenu] = useState(false);
+
+  // Inline editing state: { itemIndex, field } → null when not editing
+  // itemIndex = -1 for single-item (no estimatedItems), otherwise 0..n
+  const [editing, setEditing] = useState<{
+    itemIndex: number;
+    field: "serving" | "calories";
+  } | null>(null);
+  const [editValue, setEditValue] = useState("");
+
+  // Serving slider state: tracks which item is being slider-adjusted
+  // baseNutrients stores the per-1-serving nutrients for ratio scaling
+  const [sliderItemIndex, setSliderItemIndex] = useState<number | null>(null);
+  const baseNutrientsRef = useRef<{
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    quantity: number;
+    servings: number;
+  } | null>(null);
+
+  const openSlider = useCallback(
+    (index: number) => {
+      const item = draft?.estimatedItems?.[index];
+      if (!item) return;
+      const qty = item.parsed?.quantity ?? 1;
+      baseNutrientsRef.current = {
+        calories:
+          qty > 0 ? item.nutrients.calories / qty : item.nutrients.calories,
+        protein:
+          qty > 0 ? item.nutrients.protein / qty : item.nutrients.protein,
+        carbs: qty > 0 ? item.nutrients.carbs / qty : item.nutrients.carbs,
+        fat: qty > 0 ? item.nutrients.fat / qty : item.nutrients.fat,
+        quantity: qty,
+        servings: item.estimatedServings,
+      };
+      setSliderItemIndex(index);
+    },
+    [draft]
+  );
+
+  const closeSlider = useCallback(() => {
+    setSliderItemIndex(null);
+    baseNutrientsRef.current = null;
+  }, []);
+
+  const handleSliderChange = useCallback(
+    (newQty: number) => {
+      if (
+        sliderItemIndex === null ||
+        !draft?.estimatedItems ||
+        !baseNutrientsRef.current
+      )
+        return;
+
+      const base = baseNutrientsRef.current;
+      const items = [...draft.estimatedItems];
+      const item = { ...items[sliderItemIndex] };
+
+      item.parsed = { ...item.parsed, quantity: newQty };
+      item.nutrients = {
+        calories: Math.round(base.calories * newQty),
+        protein: Math.round(base.protein * newQty * 10) / 10,
+        carbs: Math.round(base.carbs * newQty * 10) / 10,
+        fat: Math.round(base.fat * newQty * 10) / 10,
+      };
+      item.estimatedServings =
+        base.quantity > 0 ? (base.servings / base.quantity) * newQty : newQty;
+
+      items[sliderItemIndex] = item;
+
+      const totals = items.reduce(
+        (acc, i) => ({
+          calories: acc.calories + i.nutrients.calories,
+          protein: Math.round((acc.protein + i.nutrients.protein) * 10) / 10,
+          carbs: Math.round((acc.carbs + i.nutrients.carbs) * 10) / 10,
+          fat: Math.round((acc.fat + i.nutrients.fat) * 10) / 10,
+        }),
+        { calories: 0, protein: 0, carbs: 0, fat: 0 }
+      );
+
+      const title = items
+        .map((i) => {
+          const qty =
+            (i.parsed?.quantity ?? 1) !== 1 ? `${i.parsed?.quantity} ` : "";
+          return `${qty}${displayName(i)}`;
+        })
+        .join(", ");
+
+      updateDraft({
+        estimatedItems: items,
+        calories: totals.calories,
+        protein: totals.protein,
+        carbs: totals.carbs,
+        fat: totals.fat,
+        title,
+      });
+    },
+    [sliderItemIndex, draft, updateDraft]
+  );
+
+  const startEdit = useCallback(
+    (itemIndex: number, field: "serving" | "calories") => {
+      if (field === "serving") {
+        openSlider(itemIndex);
+        return;
+      }
+      let initial = "";
+      if (itemIndex === -1) {
+        initial = String(draft?.calories ?? 0);
+      } else {
+        const item = draft?.estimatedItems?.[itemIndex];
+        initial = String(item?.nutrients.calories ?? 0);
+      }
+      setEditValue(initial);
+      setEditing({ itemIndex, field });
+    },
+    [draft, openSlider]
+  );
+
+  const commitEdit = useCallback(() => {
+    if (!editing || !draft) {
+      setEditing(null);
+      return;
+    }
+    const numValue = parseFloat(editValue);
+    if (isNaN(numValue) || numValue < 0) {
+      setEditing(null);
+      return;
+    }
+
+    if (editing.itemIndex === -1) {
+      // Single-item mode — edit top-level calories
+      updateDraft({ calories: Math.round(numValue) });
+      setEditing(null);
+      return;
+    }
+
+    // Multi-item mode — calorie edit only (serving uses slider)
+    const items = [...(draft.estimatedItems ?? [])];
+    const item = { ...items[editing.itemIndex] };
+
+    const oldCal = item.nutrients.calories || 1;
+    const ratio = Math.round(numValue) / oldCal;
+    item.nutrients = {
+      calories: Math.round(numValue),
+      protein: Math.round(item.nutrients.protein * ratio * 10) / 10,
+      carbs: Math.round(item.nutrients.carbs * ratio * 10) / 10,
+      fat: Math.round(item.nutrients.fat * ratio * 10) / 10,
+    };
+
+    items[editing.itemIndex] = item;
+
+    const totals = items.reduce(
+      (acc, i) => ({
+        calories: acc.calories + i.nutrients.calories,
+        protein: Math.round((acc.protein + i.nutrients.protein) * 10) / 10,
+        carbs: Math.round((acc.carbs + i.nutrients.carbs) * 10) / 10,
+        fat: Math.round((acc.fat + i.nutrients.fat) * 10) / 10,
+      }),
+      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    );
+
+    const title = items
+      .map((i) => {
+        const qty =
+          (i.parsed?.quantity ?? 1) !== 1 ? `${i.parsed?.quantity} ` : "";
+        return `${qty}${displayName(i)}`;
+      })
+      .join(", ");
+
+    updateDraft({
+      estimatedItems: items,
+      calories: totals.calories,
+      protein: totals.protein,
+      carbs: totals.carbs,
+      fat: totals.fat,
+      title,
+    });
+    setEditing(null);
+  }, [editing, editValue, draft, updateDraft]);
 
   // Track scan event ID for linking reports/corrections
   const scanEventIdRef = useRef<string | null>(null);
@@ -272,9 +474,15 @@ export default function ConfirmMealScreen() {
       } catch {
         /* already saved or draft missing */
       }
-      navigateAfterSave();
+      try {
+        navigateAfterSave();
+      } catch (navErr) {
+        console.error("[ConfirmMeal] navigation fallback error:", navErr);
+        // Last resort: just dismiss the modal
+        if (router.canDismiss()) router.dismiss();
+      }
     }
-  }, [saveDraftWithoutNav, navigateAfterSave, draft, retention]);
+  }, [saveDraftWithoutNav, navigateAfterSave, draft, retention, router]);
 
   /** Called when the celebration overlay dismisses (auto or tap) */
   const handleCelebrationDismiss = useCallback(() => {
@@ -293,6 +501,7 @@ export default function ConfirmMealScreen() {
 
     // Check for share milestone then navigate
     setTimeout(() => {
+      if (!isMounted.current) return;
       const triggered = shareMilestone.check();
       if (!triggered) {
         navigateAfterSave();
@@ -304,6 +513,7 @@ export default function ConfirmMealScreen() {
   const handleJourneyPaywallDismiss = useCallback(() => {
     setJourneyPaywall(null);
     setTimeout(() => {
+      if (!isMounted.current) return;
       const triggered = shareMilestone.check();
       if (!triggered) {
         navigateAfterSave();
@@ -405,7 +615,7 @@ export default function ConfirmMealScreen() {
               variant="heading"
               style={[styles.emptyTitle, { color: theme.colors.text }]}
             >
-              Analysis incomplete
+              {t("mealConfirm.analysisIncomplete")}
             </TText>
             <TSpacer size="sm" />
             <TText
@@ -417,8 +627,7 @@ export default function ConfirmMealScreen() {
                 },
               ]}
             >
-              The image analysis didn{"'"}t produce results. Try again or log
-              manually.
+              {t("mealConfirm.analysisIncompleteDesc")}
             </TText>
             <TSpacer size="md" />
             <Pressable
@@ -434,7 +643,7 @@ export default function ConfirmMealScreen() {
               <TText
                 style={[styles.emptyBtnText, { color: theme.colors.primary }]}
               >
-                Go Back
+                {t("mealConfirm.goBack")}
               </TText>
             </Pressable>
           </View>
@@ -476,7 +685,7 @@ export default function ConfirmMealScreen() {
               variant="heading"
               style={[styles.headerTitle, { color: theme.colors.text }]}
             >
-              No Match
+              {t("mealConfirm.noMatchFound")}
             </TText>
             <View style={{ width: 24 }} />
           </View>
@@ -500,11 +709,20 @@ export default function ConfirmMealScreen() {
               variant="heading"
               style={[styles.emptyTitle, { color: theme.colors.text }]}
             >
-              No match found
+              {t("mealConfirm.noMatchFound")}
             </TText>
             <TSpacer size="sm" />
 
-            <TText
+            <RichText
+              i18nKey="mealConfirm.noMatchRich"
+              values={{ food: draft.rawInput || draft.title }}
+              components={{
+                bold: (
+                  <TText
+                    style={{ fontWeight: "600", color: theme.colors.text }}
+                  />
+                ),
+              }}
               style={{
                 fontSize: 15,
                 textAlign: "center",
@@ -512,15 +730,7 @@ export default function ConfirmMealScreen() {
                 lineHeight: 22,
                 paddingHorizontal: 16,
               }}
-            >
-              We couldn{"'"}t find{" "}
-              <TText style={{ fontWeight: "600", color: theme.colors.text }}>
-                {"\u201C"}
-                {draft.rawInput || draft.title}
-                {"\u201D"}
-              </TText>{" "}
-              in our database. Try again or type it in.
-            </TText>
+            />
 
             <TSpacer size="lg" />
 
@@ -546,7 +756,7 @@ export default function ConfirmMealScreen() {
               <TText
                 style={[styles.noMatchBtnText, { color: theme.colors.primary }]}
               >
-                Try Again with Voice
+                {t("mealConfirm.tryAgainVoice")}
               </TText>
             </Pressable>
 
@@ -570,7 +780,7 @@ export default function ConfirmMealScreen() {
             >
               <Ionicons name="create-outline" size={20} color="#FFF" />
               <TText style={[styles.noMatchBtnText, { color: "#FFF" }]}>
-                Type It In
+                {t("mealConfirm.typeItIn")}
               </TText>
             </Pressable>
           </View>
@@ -603,7 +813,7 @@ export default function ConfirmMealScreen() {
               color={theme.colors.primary}
             />
             <TText style={[styles.guideLabel, { color: theme.colors.primary }]}>
-              Guide
+              {t("tracking.guide")}
             </TText>
           </Pressable>
           <Pressable
@@ -654,11 +864,7 @@ export default function ConfirmMealScreen() {
                     color: theme.colors.primary,
                   }}
                 >
-                  {new Date(logDate + "T12:00:00").toLocaleDateString("en-US", {
-                    weekday: "short",
-                    month: "short",
-                    day: "numeric",
-                  })}
+                  {formatDateHeader(new Date(logDate + "T12:00:00"))}
                 </TText>
                 <Ionicons
                   name="close-circle"
@@ -684,7 +890,7 @@ export default function ConfirmMealScreen() {
               <TText
                 style={[styles.heroCalories, { color: theme.colors.text }]}
               >
-                {draft.calories} kcal
+                {draft.calories} {t("tracking.kcal")}
               </TText>
               <Pressable
                 onPress={() => setShowMenu(true)}
@@ -734,7 +940,7 @@ export default function ConfirmMealScreen() {
                         { color: theme.colors.text },
                       ]}
                     >
-                      Report Food
+                      {t("mealConfirm.reportFood")}
                     </TText>
                   </Pressable>
                   <View
@@ -755,7 +961,7 @@ export default function ConfirmMealScreen() {
                         { color: theme.colors.error },
                       ]}
                     >
-                      Delete Food
+                      {t("mealConfirm.deleteFood")}
                     </TText>
                   </Pressable>
                 </View>
@@ -780,7 +986,7 @@ export default function ConfirmMealScreen() {
                 />
                 <View style={styles.progressLabelContainer}>
                   <TText style={styles.progressLabel}>
-                    {projectedTotal} / {calorieBudget} kcal
+                    {projectedTotal} / {calorieBudget} {t("tracking.kcal")}
                   </TText>
                 </View>
               </View>
@@ -835,16 +1041,33 @@ export default function ConfirmMealScreen() {
 
                   {/* Editable pills */}
                   <View style={styles.pillRow}>
-                    <View
+                    <Pressable
+                      onPress={() =>
+                        sliderItemIndex === index
+                          ? closeSlider()
+                          : startEdit(index, "serving")
+                      }
                       style={[
                         styles.pill,
-                        { backgroundColor: theme.colors.background },
+                        {
+                          backgroundColor: theme.colors.background,
+                          borderWidth: sliderItemIndex === index ? 1.5 : 0,
+                          borderColor:
+                            sliderItemIndex === index
+                              ? theme.colors.primary
+                              : "transparent",
+                        },
                       ]}
                     >
                       <TText
                         style={[
                           styles.pillText,
-                          { color: theme.colors.textSecondary },
+                          {
+                            color:
+                              sliderItemIndex === index
+                                ? theme.colors.primary
+                                : theme.colors.textSecondary,
+                          },
                         ]}
                       >
                         {(item.parsed?.quantity ?? 1) !== 1
@@ -853,32 +1076,159 @@ export default function ConfirmMealScreen() {
                         {item.parsed?.unit ?? "serving"}
                       </TText>
                       <Ionicons
-                        name="pencil"
+                        name={
+                          sliderItemIndex === index ? "chevron-up" : "pencil"
+                        }
                         size={12}
-                        color={theme.colors.textMuted}
+                        color={
+                          sliderItemIndex === index
+                            ? theme.colors.primary
+                            : theme.colors.textMuted
+                        }
                       />
-                    </View>
-                    <View
-                      style={[
-                        styles.pill,
-                        { backgroundColor: theme.colors.background },
-                      ]}
-                    >
-                      <TText
+                    </Pressable>
+                    {editing?.itemIndex === index &&
+                    editing.field === "calories" ? (
+                      <View
                         style={[
-                          styles.pillText,
-                          { color: theme.colors.textSecondary },
+                          styles.pill,
+                          styles.pillEditing,
+                          {
+                            backgroundColor: theme.colors.background,
+                            borderColor: theme.colors.primary,
+                          },
                         ]}
                       >
-                        {item.nutrients.calories} kcal
-                      </TText>
-                      <Ionicons
-                        name="pencil"
-                        size={12}
-                        color={theme.colors.textMuted}
-                      />
-                    </View>
+                        <TextInput
+                          value={editValue}
+                          onChangeText={setEditValue}
+                          keyboardType="number-pad"
+                          autoFocus
+                          selectTextOnFocus
+                          onBlur={commitEdit}
+                          onSubmitEditing={commitEdit}
+                          style={[
+                            styles.pillInput,
+                            { color: theme.colors.text },
+                          ]}
+                        />
+                        <TText
+                          style={[
+                            styles.pillText,
+                            { color: theme.colors.textMuted },
+                          ]}
+                        >
+                          {t("tracking.kcal")}
+                        </TText>
+                      </View>
+                    ) : (
+                      <Pressable
+                        onPress={() => startEdit(index, "calories")}
+                        style={[
+                          styles.pill,
+                          { backgroundColor: theme.colors.background },
+                        ]}
+                      >
+                        <TText
+                          style={[
+                            styles.pillText,
+                            { color: theme.colors.textSecondary },
+                          ]}
+                        >
+                          {item.nutrients.calories} {t("tracking.kcal")}
+                        </TText>
+                        <Ionicons
+                          name="pencil"
+                          size={12}
+                          color={theme.colors.textMuted}
+                        />
+                      </Pressable>
+                    )}
                   </View>
+
+                  {/* Serving slider */}
+                  {sliderItemIndex === index &&
+                    baseNutrientsRef.current &&
+                    (() => {
+                      const qty = item.parsed?.quantity ?? 1;
+                      const originalQty = baseNutrientsRef.current!.quantity;
+                      const isGrams = item.parsed?.unit === "g";
+                      const step = isGrams ? 10 : 0.25;
+                      const sliderMin = isGrams ? step : 0.25;
+                      const sliderMax = isGrams
+                        ? Math.max(originalQty * 3, 500)
+                        : Math.max(originalQty * 5, 5);
+
+                      const formatQty = (q: number) => {
+                        if (isGrams) return `${Math.round(q)}g`;
+                        if (q === Math.floor(q)) return String(q);
+                        return q.toFixed(2).replace(/0$/, "");
+                      };
+
+                      return (
+                        <Animated.View
+                          entering={FadeIn.duration(200)}
+                          style={styles.sliderContainer}
+                        >
+                          <View style={styles.sliderLabelRow}>
+                            <TText
+                              style={[
+                                styles.sliderLabel,
+                                { color: theme.colors.textSecondary },
+                              ]}
+                            >
+                              {isGrams
+                                ? t("editMeal.amount", {
+                                    defaultValue: "Amount",
+                                  })
+                                : t("editMeal.servings", {
+                                    defaultValue: "Servings",
+                                  })}
+                            </TText>
+                            <TText
+                              style={[
+                                styles.sliderValue,
+                                { color: theme.colors.primary },
+                              ]}
+                            >
+                              {formatQty(qty)}
+                              {!isGrams
+                                ? ` ${item.parsed?.unit ?? "serving"}`
+                                : ""}
+                            </TText>
+                          </View>
+                          <RNSlider
+                            value={qty}
+                            minimumValue={sliderMin}
+                            maximumValue={sliderMax}
+                            step={step}
+                            minimumTrackTintColor={theme.colors.primary}
+                            maximumTrackTintColor={theme.colors.border}
+                            thumbTintColor={theme.colors.primary}
+                            onValueChange={handleSliderChange}
+                            style={styles.slider}
+                          />
+                          <View style={styles.sliderEndLabels}>
+                            <TText
+                              style={[
+                                styles.sliderEndLabel,
+                                { color: theme.colors.textMuted },
+                              ]}
+                            >
+                              {isGrams ? `${sliderMin}g` : sliderMin}
+                            </TText>
+                            <TText
+                              style={[
+                                styles.sliderEndLabel,
+                                { color: theme.colors.textMuted },
+                              ]}
+                            >
+                              {isGrams ? `${sliderMax}g` : sliderMax}
+                            </TText>
+                          </View>
+                        </Animated.View>
+                      );
+                    })()}
 
                   {index < draft.estimatedItems!.length - 1 && (
                     <View
@@ -917,26 +1267,59 @@ export default function ConfirmMealScreen() {
                   </Pressable>
                 </View>
                 <View style={styles.pillRow}>
-                  <View
-                    style={[
-                      styles.pill,
-                      { backgroundColor: theme.colors.background },
-                    ]}
-                  >
-                    <TText
+                  {editing?.itemIndex === -1 && editing.field === "calories" ? (
+                    <View
                       style={[
-                        styles.pillText,
-                        { color: theme.colors.textSecondary },
+                        styles.pill,
+                        styles.pillEditing,
+                        {
+                          backgroundColor: theme.colors.background,
+                          borderColor: theme.colors.primary,
+                        },
                       ]}
                     >
-                      {draft.calories} kcal
-                    </TText>
-                    <Ionicons
-                      name="pencil"
-                      size={12}
-                      color={theme.colors.textMuted}
-                    />
-                  </View>
+                      <TextInput
+                        value={editValue}
+                        onChangeText={setEditValue}
+                        keyboardType="number-pad"
+                        autoFocus
+                        selectTextOnFocus
+                        onBlur={commitEdit}
+                        onSubmitEditing={commitEdit}
+                        style={[styles.pillInput, { color: theme.colors.text }]}
+                      />
+                      <TText
+                        style={[
+                          styles.pillText,
+                          { color: theme.colors.textMuted },
+                        ]}
+                      >
+                        {t("tracking.kcal")}
+                      </TText>
+                    </View>
+                  ) : (
+                    <Pressable
+                      onPress={() => startEdit(-1, "calories")}
+                      style={[
+                        styles.pill,
+                        { backgroundColor: theme.colors.background },
+                      ]}
+                    >
+                      <TText
+                        style={[
+                          styles.pillText,
+                          { color: theme.colors.textSecondary },
+                        ]}
+                      >
+                        {draft.calories} {t("tracking.kcal")}
+                      </TText>
+                      <Ionicons
+                        name="pencil"
+                        size={12}
+                        color={theme.colors.textMuted}
+                      />
+                    </Pressable>
+                  )}
                 </View>
               </View>
             )}
@@ -954,7 +1337,9 @@ export default function ConfirmMealScreen() {
                 },
               ]}
             >
-              <TText style={styles.trackBtnText}>Track Calories</TText>
+              <TText style={styles.trackBtnText}>
+                {t("mealConfirm.trackCalories")}
+              </TText>
             </Pressable>
           </Animated.View>
 
@@ -963,7 +1348,7 @@ export default function ConfirmMealScreen() {
           {/* Hint text */}
           <Animated.View entering={FadeIn.duration(400).delay(200)}>
             <TText style={[styles.hintText, { color: theme.colors.text }]}>
-              Need to adjust calories? Just ask!
+              {t("mealConfirm.adjustHint")}
             </TText>
           </Animated.View>
 
@@ -981,7 +1366,7 @@ export default function ConfirmMealScreen() {
                 clearDraft();
                 router.dismiss();
                 setTimeout(() => {
-                  router.push("/tracking/manual" as any);
+                  router.push("/(modals)/manual-log" as any);
                 }, 100);
               }}
               style={[
@@ -989,8 +1374,8 @@ export default function ConfirmMealScreen() {
                 { backgroundColor: theme.colors.surfaceSecondary },
               ]}
             >
-              <Ionicons
-                name="keypad-outline"
+              <MaterialCommunityIcons
+                name="keyboard-outline"
                 size={24}
                 color={theme.colors.text}
               />
@@ -1208,6 +1593,50 @@ const styles = StyleSheet.create({
   pillText: {
     fontSize: 13,
     fontWeight: "500",
+  },
+  pillEditing: {
+    borderWidth: 1.5,
+  },
+  pillInput: {
+    fontSize: 13,
+    fontWeight: "600",
+    minWidth: 36,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    textAlign: "center",
+  },
+  // ── Slider styles ──
+  sliderContainer: {
+    paddingHorizontal: 4,
+    paddingBottom: 4,
+    marginTop: 4,
+  },
+  sliderLabelRow: {
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    alignItems: "center" as const,
+    marginBottom: 4,
+  },
+  sliderLabel: {
+    fontSize: 13,
+    fontWeight: "500" as const,
+  },
+  sliderValue: {
+    fontSize: 15,
+    fontWeight: "700" as const,
+  },
+  slider: {
+    width: "100%" as const,
+    height: 36,
+  },
+  sliderEndLabels: {
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    marginTop: -4,
+  },
+  sliderEndLabel: {
+    fontSize: 11,
+    fontWeight: "400" as const,
   },
   itemDivider: {
     height: StyleSheet.hairlineWidth,

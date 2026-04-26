@@ -19,6 +19,7 @@ import Animated, {
     withTiming,
 } from "react-native-reanimated";
 import Svg, { Circle } from "react-native-svg";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -65,6 +66,7 @@ export function StepCounter({
   style,
 }: StepCounterProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const progress = Math.min(steps / goal, 1);
   const isFullCircle = sweepAngle >= 360;
   const color = progressColor ?? theme.colors.primary;
@@ -124,7 +126,7 @@ export function StepCounter({
       ]}
     >
       <TText color="secondary" style={styles.title}>
-        Steps
+        {t("home.steps")}
       </TText>
 
       <Animated.View style={[styles.ringWrap, celebStyle]}>
@@ -173,11 +175,11 @@ export function StepCounter({
             {formattedSteps}
           </TText>
           <TText style={[styles.goalLabel, { color: theme.colors.textMuted }]}>
-            / {goal.toLocaleString()} steps
+            {t("analytics.stepsGoal", { goal: goal.toLocaleString() })}
           </TText>
           {progress >= 1 && (
             <TText style={[styles.goalHit, { color: theme.colors.success }]}>
-              🎉 Goal reached!
+              {"\uD83C\uDF89 " + t("analytics.goalReached")}
             </TText>
           )}
         </View>
@@ -205,7 +207,7 @@ export function StepCounter({
             <TText
               style={[styles.statLabel, { color: theme.colors.textMuted }]}
             >
-              kcal
+              {t("tracking.kcal")}
             </TText>
           </View>
         )}
@@ -217,7 +219,7 @@ export function StepCounter({
             <TText
               style={[styles.statLabel, { color: theme.colors.textMuted }]}
             >
-              min
+              {t("analytics.activeMin")}
             </TText>
           </View>
         )}

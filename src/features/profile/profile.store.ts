@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { getStorage } from "../../infrastructure/storage";
@@ -92,6 +93,26 @@ export const useProfileStore = create<ProfileStore>()(
           getStorage().setItem(key, value),
         removeItem: (key: string) => getStorage().removeItem(key),
       })),
+      merge: (persisted, current) => ({
+        ...current,
+        profile: {
+          ...(current as ProfileStore).profile,
+          ...((persisted as Partial<ProfileStore>)?.profile ?? {}),
+        },
+      }),
     }
   )
 );
+
+/**
+ * React hook — returns true once the profile store has rehydrated from
+ * AsyncStorage. Uses useSyncExternalStore so index.tsx stays purely
+ * declarative (no useEffect).
+ */
+export function useProfileHydrated(): boolean {
+  return useSyncExternalStore(
+    useProfileStore.persist.onFinishHydration,
+    useProfileStore.persist.hasHydrated,
+    useProfileStore.persist.hasHydrated
+  );
+}

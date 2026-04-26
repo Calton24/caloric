@@ -4,30 +4,40 @@
  * Reached from the landing page "Sign In" link.
  * Shares logic with the (tabs)/auth screen but lives outside
  * the tab navigator so unauthenticated users can access it.
+ *
+ * Design: Social-first layout with clean flat styling, pill buttons,
+ * refined typography, and staggered entry animations.
  */
 
 import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    View,
 } from "react-native";
-import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+import Animated, {
+    FadeIn,
+    FadeInDown,
+    FadeInUp,
+    Layout,
+} from "react-native-reanimated";
 import {
-  SafeAreaView,
-  useSafeAreaInsets,
+    SafeAreaView,
+    useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
 import { AuthCapabilities } from "../../src/features/auth/authCapabilities";
 import { useAuth } from "../../src/features/auth/useAuth";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
-import { GlassCard } from "../../src/ui/glass/GlassCard";
+import { CalCutLogo } from "../../src/ui/brand/CalCutLogo";
 import { TButton } from "../../src/ui/primitives/TButton";
 import { TInput } from "../../src/ui/primitives/TInput";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
@@ -35,6 +45,7 @@ import { TText } from "../../src/ui/primitives/TText";
 
 export default function SignInScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const { signIn, signUp, signInWithAppleNative, signInWithGoogleNative } =
     useAuth();
   const router = useRouter();
@@ -53,7 +64,7 @@ export default function SignInScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Please enter email and password");
+      Alert.alert(t("common.error"), t("auth.enterEmailPassword"));
       return;
     }
 
@@ -61,7 +72,7 @@ export default function SignInScreen() {
     try {
       const { error } = await signIn(email, password);
       if (error) {
-        Alert.alert("Sign In Failed", error.message);
+        Alert.alert(t("auth.signInFailed"), error.message);
       } else {
         // Let index.tsx evaluate auth + onboarding state so routing is
         // always correct regardless of local store hydration timing.
@@ -74,15 +85,15 @@ export default function SignInScreen() {
 
   const handleSignUpSubmit = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Please enter email and password");
+      Alert.alert(t("common.error"), t("auth.enterEmailPassword"));
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
+      Alert.alert(t("common.error"), t("auth.passwordsMismatch"));
       return;
     }
     if (password.length < 6) {
-      Alert.alert("Error", "Password must be at least 6 characters");
+      Alert.alert(t("common.error"), t("auth.passwordTooShort"));
       return;
     }
 
@@ -90,7 +101,7 @@ export default function SignInScreen() {
     try {
       const { error } = await signUp(email, password);
       if (error) {
-        Alert.alert("Sign Up Failed", error.message);
+        Alert.alert(t("auth.signUpFailed"), error.message);
       } else {
         setSignUpSuccess(true);
       }
@@ -121,7 +132,7 @@ export default function SignInScreen() {
 
   const handleGoogleSignIn = async () => {
     if (!AuthCapabilities.google) {
-      Alert.alert("Unavailable", "Google sign-in is disabled for this app.");
+      Alert.alert(t("auth.unavailable"), t("auth.googleUnavailable"));
       return;
     }
     setLoading(true);
@@ -141,7 +152,7 @@ export default function SignInScreen() {
 
   const handleAppleSignIn = async () => {
     if (!AuthCapabilities.apple) {
-      Alert.alert("Unavailable", "Apple sign-in is disabled for this app.");
+      Alert.alert(t("auth.unavailable"), t("auth.appleComingSoon"));
       return;
     }
     setLoading(true);
@@ -180,12 +191,12 @@ export default function SignInScreen() {
               <Stop
                 offset="0%"
                 stopColor={theme.colors.primary}
-                stopOpacity={theme.mode === "light" ? 0.6 : 0.5}
+                stopOpacity={theme.mode === "light" ? 0.45 : 0.35}
               />
               <Stop
-                offset="40%"
+                offset="50%"
                 stopColor={theme.colors.primary}
-                stopOpacity={theme.mode === "light" ? 0.35 : 0.25}
+                stopOpacity={theme.mode === "light" ? 0.15 : 0.1}
               />
               <Stop
                 offset="100%"
@@ -197,8 +208,8 @@ export default function SignInScreen() {
           <Ellipse
             cx="50%"
             cy="0"
-            rx="60%"
-            ry="400"
+            rx="70%"
+            ry="350"
             fill={`url(#grad-signin-${theme.mode})`}
           />
         </Svg>
@@ -206,7 +217,7 @@ export default function SignInScreen() {
 
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
         {/* Back button */}
-        <Animated.View entering={FadeInDown.duration(400)}>
+        <Animated.View entering={FadeIn.duration(300)}>
           <Pressable
             testID="sign-in-back"
             onPress={handleBack}
@@ -214,11 +225,11 @@ export default function SignInScreen() {
               styles.backButton,
               {
                 opacity: pressed ? 0.6 : 1,
-                backgroundColor: theme.colors.surface + "80",
+                backgroundColor: theme.colors.surface,
               },
             ]}
           >
-            <Ionicons name="chevron-back" size={22} color={theme.colors.text} />
+            <Ionicons name="chevron-back" size={20} color={theme.colors.text} />
           </Pressable>
         </Animated.View>
       </SafeAreaView>
@@ -251,17 +262,15 @@ export default function SignInScreen() {
               </View>
               <TSpacer size="xl" />
               <TText variant="heading" style={styles.successTitle}>
-                Account Created!
+                {t("auth.accountCreated")}
               </TText>
               <TSpacer size="md" />
               <TText color="secondary" style={styles.successMessage}>
-                {"We've sent a verification link to\n"}
-                <TText style={{ fontWeight: "600" }}>{email}</TText>
-                {"\n\nCheck your inbox and verify your email, then sign in."}
+                {t("auth.verificationSent", { email })}
               </TText>
               <TSpacer size="xl" />
               <TButton testID="go-to-sign-in-button" onPress={handleGoToSignIn}>
-                Go to Sign In
+                {t("auth.goToSignIn")}
               </TButton>
             </View>
           </SafeAreaView>
@@ -271,182 +280,257 @@ export default function SignInScreen() {
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       >
         <ScrollView
           contentContainerStyle={{
-            paddingHorizontal: 20,
+            paddingHorizontal: 24,
             paddingBottom: Math.max(insets.bottom, 16) + 40,
           }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          {/* ── Header ── */}
           <Animated.View
-            entering={FadeInDown.duration(600).delay(100)}
-            style={styles.content}
+            entering={FadeInDown.duration(500).delay(80)}
+            style={styles.header}
           >
-            {/* Header */}
-            <View style={styles.header}>
-              <TText variant="heading" style={styles.title}>
-                {isSignUp ? "Create Account" : "Welcome back"}
+            {Platform.OS === "ios" ? (
+              <BlurView
+                intensity={40}
+                tint={theme.mode === "dark" ? "dark" : "light"}
+                style={styles.brandPill}
+              >
+                <View style={styles.brandInner}>
+                  <CalCutLogo size={19} color={theme.colors.primary} />
+                  <TText
+                    style={[styles.brandWordmark, { color: theme.colors.text }]}
+                  >
+                    CalCut
+                  </TText>
+                </View>
+              </BlurView>
+            ) : (
+              <View
+                style={[
+                  styles.brandPill,
+                  { backgroundColor: theme.colors.surface },
+                ]}
+              >
+                <View style={styles.brandInner}>
+                  <CalCutLogo size={19} color={theme.colors.primary} />
+                  <TText
+                    style={[styles.brandWordmark, { color: theme.colors.text }]}
+                  >
+                    CalCut
+                  </TText>
+                </View>
+              </View>
+            )}
+            <TSpacer size="lg" />
+            <TText variant="heading" style={styles.title}>
+              {isSignUp ? t("auth.createYourAccount") : t("auth.welcomeBack")}
+            </TText>
+            <TSpacer size="xs" />
+            <TText color="secondary" style={styles.subtitle}>
+              {isSignUp ? t("auth.startJourney") : t("auth.pickUpWhereLeft")}
+            </TText>
+          </Animated.View>
+
+          <TSpacer size="xl" />
+
+          {/* ── Social Auth (show first — higher conversion) ── */}
+          {showOAuth && (
+            <Animated.View entering={FadeInDown.duration(500).delay(180)}>
+              {appleEnabled && (
+                <Pressable
+                  onPress={handleAppleSignIn}
+                  disabled={loading}
+                  style={({ pressed }) => [
+                    styles.socialBtn,
+                    {
+                      backgroundColor: theme.mode === "light" ? "#000" : "#fff",
+                      opacity: pressed ? 0.85 : loading ? 0.5 : 1,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name="logo-apple"
+                    size={19}
+                    color={theme.mode === "light" ? "#fff" : "#000"}
+                  />
+                  <TText
+                    style={[
+                      styles.socialBtnText,
+                      {
+                        color: theme.mode === "light" ? "#fff" : "#000",
+                      },
+                    ]}
+                  >
+                    {t("auth.continueWithApple")}
+                  </TText>
+                </Pressable>
+              )}
+
+              {appleEnabled && googleEnabled && <View style={{ height: 12 }} />}
+
+              {googleEnabled && (
+                <Pressable
+                  onPress={handleGoogleSignIn}
+                  disabled={loading}
+                  style={({ pressed }) => [
+                    styles.socialBtn,
+                    {
+                      backgroundColor: theme.colors.surface,
+                      borderWidth: 1,
+                      borderColor: theme.colors.border,
+                      opacity: pressed ? 0.85 : loading ? 0.5 : 1,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name="logo-google"
+                    size={18}
+                    color={theme.colors.text}
+                  />
+                  <TText
+                    style={[styles.socialBtnText, { color: theme.colors.text }]}
+                  >
+                    {t("auth.continueWithGoogle")}
+                  </TText>
+                </Pressable>
+              )}
+
+              {/* ── Divider ── */}
+              <View style={styles.dividerRow}>
+                <View
+                  style={[
+                    styles.dividerLine,
+                    { backgroundColor: theme.colors.border },
+                  ]}
+                />
+                <TText color="secondary" style={styles.dividerText}>
+                  {t("auth.or")}
+                </TText>
+                <View
+                  style={[
+                    styles.dividerLine,
+                    { backgroundColor: theme.colors.border },
+                  ]}
+                />
+              </View>
+            </Animated.View>
+          )}
+
+          {/* ── Email / Password Form ── */}
+          <Animated.View
+            entering={FadeInDown.duration(500).delay(showOAuth ? 300 : 180)}
+            layout={Layout.springify().damping(18)}
+          >
+            <View style={styles.fieldGroup}>
+              <TText color="secondary" style={styles.label}>
+                {t("auth.email")}
               </TText>
-              <TSpacer size="sm" />
-              <TText color="secondary">
-                {isSignUp ? "Sign up to get started" : "Sign in to continue"}
-              </TText>
+              <View style={{ height: 6 }} />
+              <TInput
+                testID="signin-email-input"
+                placeholder={t("auth.emailPlaceholder")}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
             </View>
 
-            <TSpacer size="xl" />
+            <View style={{ height: 16 }} />
 
-            {/* Sign In Form */}
-            <Animated.View entering={FadeInUp.duration(500).delay(200)}>
-              <GlassCard style={styles.formCard}>
-                <TText color="secondary" style={styles.label}>
-                  Email
-                </TText>
-                <TSpacer size="xs" />
-                <TInput
-                  testID="signin-email-input"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
+            <View style={styles.fieldGroup}>
+              <TText color="secondary" style={styles.label}>
+                {t("auth.password")}
+              </TText>
+              <View style={{ height: 6 }} />
+              <TInput
+                testID="signin-password-input"
+                placeholder="••••••••"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoCapitalize="none"
+              />
+            </View>
 
-                <TSpacer size="md" />
-
-                <TText color="secondary" style={styles.label}>
-                  Password
-                </TText>
-                <TSpacer size="xs" />
-                <TInput
-                  testID="signin-password-input"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  autoCapitalize="none"
-                />
-
-                {/* Confirm Password (Sign Up only) */}
-                {isSignUp && (
-                  <>
-                    <TSpacer size="md" />
-                    <TText color="secondary" style={styles.label}>
-                      Confirm Password
-                    </TText>
-                    <TSpacer size="xs" />
-                    <TInput
-                      testID="signin-confirm-password-input"
-                      placeholder="Confirm your password"
-                      value={confirmPassword}
-                      onChangeText={setConfirmPassword}
-                      secureTextEntry
-                      autoCapitalize="none"
-                    />
-                  </>
-                )}
-
-                {/* Forgot Password (Sign In only) */}
-                {!isSignUp && (
-                  <View style={styles.forgotRow}>
-                    <TButton
-                      onPress={handleForgotPassword}
-                      variant="ghost"
-                      size="sm"
-                    >
-                      <TText color="primary" style={styles.forgotText}>
-                        Forgot Password?
-                      </TText>
-                    </TButton>
-                  </View>
-                )}
-
-                <TSpacer size="lg" />
-
-                <TButton
-                  testID="signin-submit-button"
-                  onPress={isSignUp ? handleSignUpSubmit : handleLogin}
-                  loading={loading}
-                  disabled={loading}
-                >
-                  {isSignUp ? "Create Account" : "Sign In"}
-                </TButton>
-
-                <TSpacer size="md" />
-
-                {/* Toggle Sign In / Sign Up */}
-                <View style={styles.toggleRow}>
-                  <TText color="secondary">
-                    {isSignUp
-                      ? "Already have an account? "
-                      : "Don't have an account? "}
+            {/* Confirm Password (Sign Up only) */}
+            {isSignUp && (
+              <Animated.View entering={FadeInDown.duration(300)}>
+                <View style={{ height: 16 }} />
+                <View style={styles.fieldGroup}>
+                  <TText color="secondary" style={styles.label}>
+                    {t("auth.confirmPassword")}
                   </TText>
-                  <TButton
-                    testID="toggle-auth-mode"
-                    onPress={toggleAuthMode}
-                    variant="ghost"
-                  >
-                    <TText color="primary" style={styles.toggleText}>
-                      {isSignUp ? "Sign In" : "Sign Up"}
-                    </TText>
-                  </TButton>
+                  <View style={{ height: 6 }} />
+                  <TInput
+                    testID="signin-confirm-password-input"
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry
+                    autoCapitalize="none"
+                  />
                 </View>
-              </GlassCard>
-            </Animated.View>
-
-            {/* Social Login */}
-            {showOAuth && (
-              <Animated.View entering={FadeInUp.duration(500).delay(350)}>
-                <TSpacer size="xl" />
-                <GlassCard style={styles.socialCard}>
-                  <TText color="secondary" style={styles.orText}>
-                    Or continue with
-                  </TText>
-                  <TSpacer size="md" />
-
-                  {googleEnabled && (
-                    <TButton
-                      onPress={handleGoogleSignIn}
-                      variant="outline"
-                      disabled={loading}
-                    >
-                      <View style={styles.socialButton}>
-                        <Ionicons
-                          name="logo-google"
-                          size={20}
-                          color={theme.colors.text}
-                        />
-                        <View style={{ width: 12 }} />
-                        <TText>Continue with Google</TText>
-                      </View>
-                    </TButton>
-                  )}
-
-                  {googleEnabled && appleEnabled && <TSpacer size="sm" />}
-
-                  {appleEnabled && (
-                    <TButton
-                      onPress={handleAppleSignIn}
-                      variant="outline"
-                      disabled={loading}
-                    >
-                      <View style={styles.socialButton}>
-                        <Ionicons
-                          name="logo-apple"
-                          size={20}
-                          color={theme.colors.text}
-                        />
-                        <View style={{ width: 12 }} />
-                        <TText>Continue with Apple</TText>
-                      </View>
-                    </TButton>
-                  )}
-                </GlassCard>
               </Animated.View>
             )}
+
+            {/* Forgot Password (Sign In only) */}
+            {!isSignUp && (
+              <Pressable
+                onPress={handleForgotPassword}
+                style={({ pressed }) => [
+                  styles.forgotRow,
+                  { opacity: pressed ? 0.6 : 1 },
+                ]}
+              >
+                <TText
+                  style={[styles.forgotText, { color: theme.colors.primary }]}
+                >
+                  {t("auth.forgotPassword")}
+                </TText>
+              </Pressable>
+            )}
+
+            <TSpacer size="lg" />
+
+            <TButton
+              testID="signin-submit-button"
+              onPress={isSignUp ? handleSignUpSubmit : handleLogin}
+              loading={loading}
+              disabled={loading}
+              size="lg"
+            >
+              {isSignUp ? t("auth.createAccount") : t("auth.signIn")}
+            </TButton>
+          </Animated.View>
+
+          {/* ── Toggle Sign In / Sign Up ── */}
+          <Animated.View
+            entering={FadeInUp.duration(400).delay(showOAuth ? 400 : 280)}
+            style={styles.toggleRow}
+          >
+            <TText color="secondary" style={styles.toggleLabel}>
+              {isSignUp
+                ? t("auth.alreadyHaveAccountShort")
+                : t("auth.dontHaveAccount")}
+            </TText>
+            <Pressable
+              testID="toggle-auth-mode"
+              onPress={toggleAuthMode}
+              style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+            >
+              <TText
+                style={[styles.toggleLink, { color: theme.colors.primary }]}
+              >
+                {isSignUp ? t("auth.signIn") : t("auth.signUp")}
+              </TText>
+            </Pressable>
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -471,66 +555,119 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 400,
+    height: 420,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 16,
     marginTop: 8,
   },
-  content: {
-    paddingTop: 100,
-  },
+
+  // Header
   header: {
+    paddingTop: 100,
     alignItems: "center",
+  },
+  brandPill: {
+    borderRadius: 20,
+    overflow: "hidden",
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(0,0,0,0.06)",
+  },
+  brandInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  brandWordmark: {
+    fontSize: 15,
+    fontWeight: "800",
+    letterSpacing: 0.15,
   },
   title: {
-    fontSize: 30,
+    fontSize: 34,
     fontWeight: "800",
+    lineHeight: 40,
+    letterSpacing: -0.5,
+    alignSelf: "flex-start",
   },
-  formCard: {
-    padding: 20,
+  subtitle: {
+    fontSize: 16,
+    lineHeight: 22,
+    alignSelf: "flex-start",
   },
-  label: {
-    fontSize: 13,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  forgotRow: {
-    alignItems: "flex-end",
-    marginTop: 4,
-  },
-  forgotText: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  socialCard: {
-    padding: 20,
-    alignItems: "center",
-  },
-  orText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  socialButton: {
+
+  // Social buttons
+  socialBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    height: 52,
+    borderRadius: 9999,
+    gap: 10,
   },
+  socialBtnText: {
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: 0.1,
+  },
+
+  // Divider
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+  },
+  dividerText: {
+    fontSize: 13,
+    fontWeight: "500",
+    paddingHorizontal: 16,
+  },
+
+  // Form
+  fieldGroup: {},
+  label: {
+    fontSize: 13,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+  },
+  forgotRow: {
+    alignSelf: "flex-end",
+    marginTop: 10,
+    paddingVertical: 4,
+  },
+  forgotText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  // Toggle
   toggleRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    marginTop: 24,
+    gap: 6,
   },
-  toggleText: {
-    fontSize: 14,
+  toggleLabel: {
+    fontSize: 15,
+  },
+  toggleLink: {
+    fontSize: 15,
     fontWeight: "700",
   },
+
+  // Success overlay
   successOverlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 20,

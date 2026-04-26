@@ -36,30 +36,37 @@ function generateColorScale(hue: number, saturation: number): string[] {
  */
 function generateNeutrals(mode: ColorMode): string[] {
   if (mode === "light") {
+    // 3-tier green-tinted surface system:
+    //   Level 0: background (warm green-grey substrate)
+    //   Level 1: section surface (cards, grouped areas)
+    //   Level 2: elevated surface (active cards, overlays)
+    // Each level separated by ~4-5 L* steps for clear hierarchy.
     return [
-      "#FFFFFF", // 0
-      "#F8F9FA", // 1
-      "#F1F3F5", // 2
-      "#E9ECEF", // 3
-      "#DEE2E6", // 4
-      "#CED4DA", // 5
-      "#ADB5BD", // 6
-      "#868E96", // 7
-      "#495057", // 8
-      "#212529", // 9
+      "#E8EFEB", // 0 - background substrate (green-frosted glass)
+      "#F0F5F2", // 1 - section/card surface
+      "#F7FAF8", // 2 - elevated card surface
+      "#D2DBD6", // 3 - borders
+      "#C4CEC8", // 4 - heavier borders
+      "#AEB5B0", // 5 - muted elements
+      "#8A909C", // 6 - secondary text
+      "#667085", // 7 - body text
+      "#3D4350", // 8 - strong text
+      "#1B1F27", // 9 - heading text
     ];
   } else {
+    // Deep charcoal with subtle depth — never pure #000.
+    // Slightly deeper base lets green accent glow refined.
     return [
-      "#000000", // 0 - pure black background
-      "#1C1C1E", // 1 - dark gray surfaces
-      "#2C2C2E", // 2 - medium gray elevated surfaces
-      "#3A3A3C", // 3 - lighter gray for higher elevation
-      "#48484A", // 4 - mid-tone gray
-      "#636366", // 5 - accent gray
-      "#8E8E93", // 6 - light gray
-      "#AEAEB2", // 7 - lighter gray text
-      "#C7C7CC", // 8 - very light gray
-      "#F2F2F7", // 9 - near white
+      "#0B0F14", // 0 - background (deep charcoal)
+      "#131A1F", // 1 - primary surface
+      "#1A222C", // 2 - elevated surface
+      "#232D3A", // 3 - lighter elevation
+      "#314050", // 4 - mid-tone
+      "#4D5768", // 5 - accent gray
+      "#6B7589", // 6 - muted text
+      "#AAB3C2", // 7 - secondary text
+      "#D0D5DE", // 8 - light text
+      "#F3F5F7", // 9 - heading text
     ];
   }
 }
@@ -104,18 +111,18 @@ export function generatePalette(
       backgroundSecondary: neutrals[1],
       backgroundTertiary: neutrals[2],
 
-      // Surfaces
-      surface: neutrals[0],
-      surfaceSecondary: neutrals[1],
-      surfaceElevated: neutrals[0],
+      // Surfaces — lighter than background for elevation
+      surface: neutrals[1],
+      surfaceSecondary: neutrals[0],
+      surfaceElevated: neutrals[2],
 
       // Text — WCAG AA compliant on white
       text: neutrals[9], // #212529, ~15.4:1 ✓
       textSecondary: "#4B5563", // ~7.6:1 ✓ (was #868E96 at 3.5:1)
       textMuted: "#6B7280", // ~4.9:1 ✓ (was #ADB5BD at 2.1:1)
-      textInverse: neutrals[0],
+      textInverse: "#FFFFFF",
 
-      // Interactive — darkened for AA contrast on white
+      // Interactive — darkened for AA contrast on background
       primary: brandScale[7], // L=30, ~5:1 ✓ (was [5] L=50 at 1.9:1)
       primaryPressed: brandScale[8], // L=20
       secondary: brandScale[3], // L=70, decorative fills
@@ -136,17 +143,22 @@ export function generatePalette(
       overlay: "rgba(0, 0, 0, 0.3)",
       overlayHeavy: "rgba(0, 0, 0, 0.6)",
 
-      // Glass Effects — opaque enough for readable content
-      glassBackground: "rgba(255, 255, 255, 0.78)",
-      glassBorder: "rgba(0, 0, 0, 0.12)",
+      // Glass Effects — frosted glass on green-tinted substrate
+      glassBackground: "rgba(255, 255, 255, 0.65)",
+      glassBorder: "rgba(255, 255, 255, 0.45)",
       glassTint: neutrals[2],
 
       // Glass Widget Kit
-      glassTintLight: "rgba(120, 120, 128, 0.16)",
-      glassTintDark: "rgba(0, 0, 0, 0.10)",
-      glassBorderHighlight: "rgba(255, 255, 255, 0.80)",
-      glassShadow: "rgba(0, 0, 0, 0.10)",
+      glassTintLight: "rgba(255, 255, 255, 0.35)",
+      glassTintDark: "rgba(0, 0, 0, 0.02)",
+      glassBorderHighlight: "rgba(255, 255, 255, 0.90)",
+      glassShadow: "rgba(0, 0, 0, 0.06)",
       glassActiveRing: brandScale[7],
+
+      // Premium Surfaces
+      surfaceMatte: "#ECF2EE",
+      glassSelected: brandScale[1] + "55", // tinted green glass
+      glassSelectedBorder: brandScale[5] + "40",
     };
   } else {
     return {
@@ -187,17 +199,22 @@ export function generatePalette(
       overlay: "rgba(0, 0, 0, 0.5)",
       overlayHeavy: "rgba(0, 0, 0, 0.8)",
 
-      // Glass Effects
-      glassBackground: "rgba(30, 30, 30, 0.7)",
-      glassBorder: "rgba(255, 255, 255, 0.1)",
+      // Glass Effects — subtle translucency on deep charcoal
+      glassBackground: "rgba(11, 15, 20, 0.60)",
+      glassBorder: "rgba(255, 255, 255, 0.12)",
       glassTint: neutrals[1],
 
       // Glass Widget Kit
-      glassTintLight: "rgba(255, 255, 255, 0.12)",
+      glassTintLight: "rgba(255, 255, 255, 0.06)",
       glassTintDark: "rgba(0, 0, 0, 0.25)",
       glassBorderHighlight: "rgba(255, 255, 255, 0.18)",
-      glassShadow: "rgba(0, 0, 0, 0.35)",
+      glassShadow: "rgba(0, 0, 0, 0.50)",
       glassActiveRing: brandScale[4],
+
+      // Premium Surfaces
+      surfaceMatte: "#131A1F",
+      glassSelected: brandScale[6] + "30", // tinted green glass
+      glassSelectedBorder: brandScale[4] + "50",
     };
   }
 }

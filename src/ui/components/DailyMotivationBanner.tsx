@@ -10,6 +10,7 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import type { JourneyPhase } from "../../features/retention/day-journey";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { GlassSurface } from "../glass/GlassSurface";
 import { TText } from "../primitives/TText";
@@ -44,13 +45,16 @@ export function DayJourneyBanner({
   day,
 }: DayJourneyBannerProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const accent = PHASE_ACCENT[phase];
 
   return (
     <Animated.View entering={FadeInDown.duration(400).delay(200)}>
       <GlassSurface variant="card" intensity="light" style={styles.banner}>
         <View style={[styles.dayBadge, { backgroundColor: accent }]}>
-          <TText style={styles.dayBadgeText}>Day {day}</TText>
+          <TText style={styles.dayBadgeText}>
+            {t("dayJourney.dayBadge", { day })}
+          </TText>
         </View>
         <View style={styles.textBlock}>
           <TText style={[styles.header, { color: theme.colors.text }]}>

@@ -25,6 +25,20 @@ interface SubscriptionStore {
     isActive: boolean;
     productId?: string;
   }) => void;
+  /**
+   * Sync the store from a server-side entitlement check (sync-entitlement function).
+   * Server truth ALWAYS overwrites the local AsyncStorage cache.
+   * Called after login, restore, and on the denial recheck path.
+   *
+   * lastServerVerifiedAt MUST come from the server response — never mint it
+   * client-side. This timestamp drives the fresh/stale/expired trust model.
+   */
+  syncFromServer: (data: {
+    isPro: boolean;
+    status: string;
+    expiresAt: string | null;
+    lastServerVerifiedAt: string;
+  }) => void;
 }
 
 export const initialSubscription: SubscriptionState = {
@@ -33,6 +47,7 @@ export const initialSubscription: SubscriptionState = {
   trialEndsAt: null,
   plan: null,
   paywallSeen: false,
+  lastServerVerifiedAt: null,
 };
 
 export const useSubscriptionStore = create<SubscriptionStore>((set, get) => {
@@ -77,6 +92,7 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => {
           trialEndsAt,
           plan,
           paywallSeen: true,
+          lastServerVerifiedAt: null,
         },
       });
       persist();
@@ -131,6 +147,38 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => {
             ...state.subscription,
             hasActiveSubscription: true,
             plan,
+          },
+        };
+      });
+      persist();
+    },
+
+    syncFromServer: ({
+      isPro,
+      status: _status,
+      lastServerVerifiedAt: serverTs,
+    }) => {
+      // Server truth overwrites the local AsyncStorage cache immediately.
+      // Grace period users (billing recovery) are still treated as premium.
+      // serverTs is the timestamp from the server response — never client-minted.
+      set((state) => {
+        if (!isPro) {
+          return {
+            subscription: {
+              ...state.subscription,
+              hasActiveSubscription: false,
+              plan: null,
+              lastServerVerifiedAt: serverTs,
+            },
+          };
+        }
+        // Premium — preserve existing plan if we already know it,
+        // otherwise leave it for the RC SDK listener to fill in.
+        return {
+          subscription: {
+            ...state.subscription,
+            hasActiveSubscription: true,
+            lastServerVerifiedAt: serverTs,
           },
         };
       });

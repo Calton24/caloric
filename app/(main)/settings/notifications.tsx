@@ -11,10 +11,11 @@ import React, { useCallback } from "react";
 import { Pressable, StyleSheet, Switch, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  cancelMealReminders,
-  scheduleMealReminders,
+    cancelMealReminders,
+    scheduleMealReminders,
 } from "../../../src/features/reminders/meal-reminders.service";
 import { useSettingsStore } from "../../../src/features/settings";
+import { useAppTranslation } from "../../../src/infrastructure/i18n/useAppTranslation";
 import { notifications } from "../../../src/infrastructure/notifications";
 import { useTheme } from "../../../src/theme/useTheme";
 import { TSpacer } from "../../../src/ui/primitives/TSpacer";
@@ -22,6 +23,7 @@ import { TText } from "../../../src/ui/primitives/TText";
 
 export default function NotificationsScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
 
   const logReminderEnabled = useSettingsStore(
@@ -59,7 +61,7 @@ export default function NotificationsScreen() {
             variant="heading"
             style={[styles.headerTitle, { color: theme.colors.text }]}
           >
-            Notifications
+            {t("settings.notifications")}
           </TText>
           <View style={{ width: 24 }} />
         </View>
@@ -85,7 +87,7 @@ export default function NotificationsScreen() {
                 <Ionicons name="alarm-outline" size={18} color="#FBBF24" />
               </View>
               <TText style={[styles.rowLabel, { color: theme.colors.text }]}>
-                Log Reminder
+                {t("settings.logReminder")}
               </TText>
               <Switch
                 value={logReminderEnabled}
@@ -106,8 +108,7 @@ export default function NotificationsScreen() {
           <TSpacer size="sm" />
 
           <TText style={[styles.hint, { color: theme.colors.textMuted }]}>
-            Get a daily reminder to log your meals and stay on track with your
-            nutrition goals.
+            {t("settings.logReminderHint")}
           </TText>
         </View>
       </SafeAreaView>

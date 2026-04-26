@@ -1,0 +1,34 @@
+{
+  "guide": {
+    "title": "Guia",
+    "takePhoto": "Tire uma foto da sua comida",
+    "takePhotoDesc": "Toque no ícone da câmera no canto inferior direito e tire uma foto.",
+    "scanBarcodes": "Escanear códigos de barras",
+    "scanBarcodesDesc": "Toque no ícone da câmera e fotografe o código de barras da embalagem.",
+    "speechRecognition": "Reconhecimento de voz",
+    "speechRecognitionDesc": "Toque no ícone do microfone para começar e de novo quando terminar.",
+    "textMode": "Modo texto",
+    "textModeDesc": "Toque no ícone do teclado para adicionar o que comeu por texto.",
+    "editingDetails": "Editar detalhes",
+    "editingDetailsDesc": "Você pode editar a quantidade tocando na opção correspondente.",
+    "trackingCalories": "Registrar calorias",
+    "trackingCaloriesDesc": "Toque no botão Registrar calorias para salvar as entradas."
+  },
+  "liveActivity": {
+    "title": "Atividades ao vivo",
+    "description": "Acompanhe suas calorias em tempo real direto da tela de bloqueio e da Dynamic Island",
+    "remaining": "restantes",
+    "consumed": "consumido",
+    "goal": "meta",
+    "activate": "Ativar",
+    "skip": "Pular",
+    "iosOnly": "Apenas iOS",
+    "iosOnlyDesc": "As atividades ao vivo so estao disponiveis em dispositivos iOS.",
+    "unavailable": "Atividades ao vivo indisponiveis",
+    "unavailableDesc": "Ative as atividades ao vivo em Ajustes iOS > Caloric > Atividades ao vivo e certifique-se de que voce tem iOS 16.2 ou posterior.",
+    "continueWithout": "Continuar sem",
+    "subtitle": "Acompanhe suas calorias em tempo real diretamente na tela de bloqueio e Dynamic Island.",
+    "notNow": "Agora nao",
+    "dynamicIsland": "Dynamic Island"
+  }
+}

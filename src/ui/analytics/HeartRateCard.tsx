@@ -16,6 +16,7 @@
 import React, { useEffect, useMemo } from "react";
 import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import Animated, {
+    cancelAnimation,
     Easing,
     useAnimatedStyle,
     useSharedValue,
@@ -24,6 +25,7 @@ import Animated, {
     withTiming,
 } from "react-native-reanimated";
 import Svg, { Defs, LinearGradient, Path, Stop } from "react-native-svg";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -81,6 +83,7 @@ export function HeartRateCard({
   style,
 }: HeartRateCardProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const zone = zoneProp ?? getZone(currentBpm);
   const zoneInfo = ZONE_CONFIG[zone];
   const strokeColor = lineColor ?? "#FF3B30";
@@ -114,6 +117,9 @@ export function HeartRateCard({
         false
       );
     }
+    return () => {
+      cancelAnimation(heartScale);
+    };
     // heartScale is a stable useSharedValue ref
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentBpm, showHeartbeat]);
@@ -171,7 +177,7 @@ export function HeartRateCard({
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
           <TText color="secondary" style={styles.title}>
-            Heart Rate
+            {t("analytics.heartRate")}
           </TText>
           <View style={styles.bpmRow}>
             {showHeartbeat && (
@@ -183,7 +189,7 @@ export function HeartRateCard({
               {currentBpm}
             </TText>
             <TText style={[styles.bpmUnit, { color: theme.colors.textMuted }]}>
-              BPM
+              {t("analytics.bpm")}
             </TText>
           </View>
         </View>
@@ -227,7 +233,7 @@ export function HeartRateCard({
       <View style={styles.statsRow}>
         {restingBpm !== undefined && (
           <StatPill
-            label="Resting"
+            label={t("analytics.resting")}
             value={`${restingBpm}`}
             color={theme.colors.info}
             mutedColor={theme.colors.textMuted}
@@ -235,7 +241,7 @@ export function HeartRateCard({
         )}
         {min !== undefined && (
           <StatPill
-            label="Min"
+            label={t("analytics.min")}
             value={`${min}`}
             color={theme.colors.success}
             mutedColor={theme.colors.textMuted}
@@ -243,7 +249,7 @@ export function HeartRateCard({
         )}
         {avg !== undefined && (
           <StatPill
-            label="Avg"
+            label={t("analytics.avg")}
             value={`${avg}`}
             color={theme.colors.warning}
             mutedColor={theme.colors.textMuted}
@@ -251,7 +257,7 @@ export function HeartRateCard({
         )}
         {max !== undefined && (
           <StatPill
-            label="Max"
+            label={t("analytics.max")}
             value={`${max}`}
             color={theme.colors.error}
             mutedColor={theme.colors.textMuted}

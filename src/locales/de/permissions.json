@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "title": "Berechtigungen erforderlich",
+    "description": "Caloric nutzt dein Mikrofon und die Spracherkennung, um Mahlzeiten per Sprache zu erfassen.",
+    "microphone": "Mikrofon",
+    "microphoneDesc": "Höre deine Stimme, um Mahlzeiten zu erfassen",
+    "speechRecognition": "Spracherkennung",
+    "speechRecognitionDesc": "Wandle deine Sprache in Text um",
+    "pushNotifications": "Push-Benachrichtigungen",
+    "pushNotificationsDesc": "Mahlzeiterinnerungen und Fortschrittsupdates",
+    "grantPermissions": "Berechtigungen erteilen",
+    "skipForNow": "Vorerst überspringen"
+  },
+  "permissionsSetup": {
+    "title": "Berechtigungen erforderlich",
+    "subtitle": "Caloric nutzt dein Mikrofon und Spracherkennung, um Mahlzeiten per Stimme zu protokollieren, und Benachrichtigungen, um dich auf Kurs zu halten.",
+    "microphone": "Mikrofon",
+    "microphoneDesc": "Höre deine Stimme für die Mahlzeitenprotokollierung",
+    "speechRecognition": "Spracherkennung",
+    "speechRecognitionDesc": "Wandle deine Sprache in Essenseinträge um",
+    "pushNotifications": "Push-Benachrichtigungen",
+    "pushNotificationsDesc": "Erinnerungen und tägliche Fortschrittsupdates",
+    "continue": "Weiter",
+    "grantPermissions": "Berechtigungen erteilen",
+    "skipForNow": "Vorerst überspringen"
+  }
+}

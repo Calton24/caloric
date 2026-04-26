@@ -9,6 +9,7 @@ import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, { FadeInDown, FadeOut } from "react-native-reanimated";
 import type { RecalibrationResult } from "../../features/goals/recalibration.service";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { TSpacer } from "../primitives/TSpacer";
 import { TText } from "../primitives/TText";
@@ -25,6 +26,7 @@ export function RecalibrationCard({
   onDismiss,
 }: RecalibrationCardProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
 
   if (!result.shouldRecalibrate || !result.suggestedBudget) return null;
 
@@ -67,7 +69,7 @@ export function RecalibrationCard({
             variant="subheading"
             style={{ color: theme.colors.text, flex: 1 }}
           >
-            Calorie Estimate Update
+            {t("recalibration.heading")}
           </TText>
         </View>
 
@@ -87,7 +89,7 @@ export function RecalibrationCard({
         <View style={styles.statsRow}>
           <View style={styles.stat}>
             <TText variant="caption" style={{ color: theme.colors.textMuted }}>
-              Estimated
+              {t("recalibration.estimated")}
             </TText>
             <TText
               style={[styles.statValue, { color: theme.colors.textSecondary }]}
@@ -102,7 +104,7 @@ export function RecalibrationCard({
           />
           <View style={styles.stat}>
             <TText variant="caption" style={{ color: theme.colors.textMuted }}>
-              Actual
+              {t("recalibration.actual")}
             </TText>
             <TText style={[styles.statValue, { color: accentColor }]}>
               {result.actualTDEE.toLocaleString()}
@@ -111,7 +113,7 @@ export function RecalibrationCard({
           <View style={{ flex: 1 }} />
           <View style={[styles.stat, { alignItems: "flex-end" }]}>
             <TText variant="caption" style={{ color: theme.colors.textMuted }}>
-              New goal
+              {t("recalibration.newGoal")}
             </TText>
             <TText
               style={[
@@ -136,10 +138,14 @@ export function RecalibrationCard({
               opacity: pressed ? 0.85 : 1,
             },
           ]}
-          accessibilityLabel={`Apply recalibrated budget of ${result.suggestedBudget} calories`}
+          accessibilityLabel={t("recalibration.applyBudgetA11y", {
+            calories: result.suggestedBudget,
+          })}
         >
           <Ionicons name="checkmark-circle" size={18} color="#fff" />
-          <TText style={styles.applyLabel}>Apply Adjustment</TText>
+          <TText style={styles.applyLabel}>
+            {t("recalibration.applyAdjustment")}
+          </TText>
         </Pressable>
       </View>
     </Animated.View>

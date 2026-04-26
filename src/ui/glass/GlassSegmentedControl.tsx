@@ -11,6 +11,7 @@ import {
     Pressable,
     StyleProp,
     StyleSheet,
+    Text,
     View,
     ViewStyle,
 } from "react-native";
@@ -22,8 +23,6 @@ import Animated, {
 } from "react-native-reanimated";
 import { haptics } from "../../infrastructure/haptics";
 import { useTheme } from "../../theme/useTheme";
-import { TText } from "../primitives/TText";
-import { GlassSurface } from "./GlassSurface";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -103,13 +102,17 @@ export function GlassSegmentedControl({
   );
 
   return (
-    <GlassSurface
-      variant="pill"
-      blurEnabled={blurEnabled}
-      reduceTransparency={reduceTransparency}
-      intensity={intensity}
-      tint={tint}
-      style={[styles.container, style]}
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.colors.glassBackground,
+          borderRadius: theme.radius.full,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: theme.colors.glassBorder,
+        },
+        style,
+      ]}
     >
       <View
         style={styles.inner}
@@ -123,7 +126,7 @@ export function GlassSegmentedControl({
             style={[
               styles.indicator,
               {
-                width: segmentWidth - 4, // 2px inset per side
+                width: segmentWidth - 4,
                 backgroundColor: theme.colors.glassBorderHighlight,
                 borderRadius: theme.radius.lg,
               },
@@ -147,7 +150,7 @@ export function GlassSegmentedControl({
           );
         })}
       </View>
-    </GlassSurface>
+    </View>
   );
 }
 
@@ -166,12 +169,6 @@ function SegmentTab({
   onPress: () => void;
 }) {
   const scale = useSharedValue(1);
-  const labelOpacity = useSharedValue(active ? 1 : 0.6);
-
-  // Animate text/icon opacity on active change
-  useEffect(() => {
-    labelOpacity.value = withTiming(active ? 1 : 0.6, { duration: 200 });
-  }, [active, labelOpacity]);
 
   const handlePressIn = useCallback(() => {
     haptics.selection();
@@ -186,10 +183,6 @@ function SegmentTab({
     transform: [{ scale: scale.value }],
   }));
 
-  const labelAnimStyle = useAnimatedStyle(() => ({
-    opacity: labelOpacity.value,
-  }));
-
   return (
     <Animated.View style={[styles.segmentWrapper, animatedStyle]}>
       <Pressable
@@ -202,7 +195,7 @@ function SegmentTab({
         accessibilityState={{ selected: active, disabled }}
         style={styles.segment}
       >
-        <Animated.View style={[styles.segmentContent, labelAnimStyle]}>
+        <View style={styles.segmentContent}>
           {option.icon && (
             <Ionicons
               name={option.icon}
@@ -211,13 +204,17 @@ function SegmentTab({
               style={{ marginRight: option.label ? 4 : 0 }}
             />
           )}
-          <TText
-            color={active ? "primary" : "muted"}
-            style={styles.segmentLabel}
+          <Text
+            style={[
+              styles.segmentLabel,
+              {
+                color: active ? "#FFFFFF" : "rgba(255,255,255,0.6)",
+              },
+            ]}
           >
             {option.label}
-          </TText>
-        </Animated.View>
+          </Text>
+        </View>
       </Pressable>
     </Animated.View>
   );
@@ -255,8 +252,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   segmentLabel: {
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: 14,
+    fontWeight: "700",
     textAlign: "center",
   },
 });

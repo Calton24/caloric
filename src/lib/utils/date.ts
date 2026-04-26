@@ -1,4 +1,14 @@
 /**
+ * Date utilities for calendar views and date operations.
+ * All locale-aware formatting uses the i18n layer.
+ */
+import {
+    formatDateHeader as fmtDateHeader,
+    formatMonthYear,
+    formatWeekdayShort,
+} from "../../infrastructure/i18n";
+
+/**
  * Returns YYYY-MM-DD in the device's local timezone.
  * All date comparisons in the app should use this
  * so that "today" matches the user's wall-clock date.
@@ -8,6 +18,18 @@ export function toLocalDate(date: Date = new Date()): string {
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
+}
+
+/**
+ * Returns YYYY-MM-DDTHH:mm:ss in the device's local timezone.
+ * Use for loggedAt timestamps so startsWith(localDate) matching works.
+ */
+export function toLocalDateTime(date: Date = new Date()): string {
+  const datePart = toLocalDate(date);
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  const ss = String(date.getSeconds()).padStart(2, "0");
+  return `${datePart}T${hh}:${mm}:${ss}`;
 }
 
 /** @deprecated Use toLocalDate instead */
@@ -29,7 +51,7 @@ export function getWeekDays(baseDate = new Date()) {
 
     return {
       key: toISODate(date),
-      label: date.toLocaleDateString("en-GB", { weekday: "short" }).slice(0, 1),
+      label: formatWeekdayShort(date).slice(0, 1), // First letter of localized weekday
       dayNumber: date.getDate(),
       date,
       isToday: toISODate(date) === toISODate(new Date()),
@@ -49,13 +71,10 @@ export function getWeekdayIndex(isoDate: string): number {
 
 /**
  * Formats a Date into a readable string like "Friday, Mar 7"
+ * Uses the current i18n locale.
  */
 export function formatDateHeader(date: Date): string {
-  return date.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "short",
-    day: "numeric",
-  });
+  return fmtDateHeader(date);
 }
 
 /**
@@ -95,19 +114,13 @@ export function getMonthDays(baseDate: Date) {
 
   return {
     days,
-    monthLabel: firstDay.toLocaleDateString("en-US", {
-      month: "long",
-      year: "numeric",
-    }),
+    monthLabel: formatMonthYear(firstDay),
     year,
     month,
   };
 }
 
-/** Format month header e.g. "June 2025" */
+/** Format month header e.g. "June 2025" (locale-aware) */
 export function formatMonthHeader(date: Date): string {
-  return date.toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-  });
+  return formatMonthYear(date);
 }

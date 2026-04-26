@@ -29,6 +29,7 @@ import {
     View,
 } from "react-native";
 import Animated, {
+    cancelAnimation,
     FadeIn,
     FadeInDown,
     FadeInUp,
@@ -47,17 +48,18 @@ import type {
     ResolvedFoodItem,
 } from "../../src/features/meal-analysis/meal-analysis.types";
 import { useMealAnalysis } from "../../src/features/meal-analysis/use-meal-analysis";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 
-// ─── Stage Labels ───────────────────────────────────────────────────────────
+// ─── Stage Labels (translation keys resolved at render time) ────────────────
 
-const ANALYSIS_STAGES = [
-  "Uploading photo…",
-  "Identifying food components…",
-  "Estimating portions…",
-  "Looking up nutrition…",
+const ANALYSIS_STAGE_KEYS = [
+  "mealAnalysis.uploadingPhoto",
+  "mealAnalysis.identifyingFood",
+  "mealAnalysis.estimatingPortions",
+  "mealAnalysis.lookingUpNutrition",
 ];
 
 // ─── Pulsing Image ──────────────────────────────────────────────────────────
@@ -74,7 +76,10 @@ function PulsingImage({ uri }: { uri: string }) {
       -1,
       true
     );
-  }, [scale]);
+    return () => {
+      cancelAnimation(scale);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -94,14 +99,15 @@ function PulsingImage({ uri }: { uri: string }) {
 // ─── Confidence Badge ───────────────────────────────────────────────────────
 
 function ConfidenceBadge({ band }: { band: ConfidenceBand }) {
+  const { t } = useAppTranslation();
   const color =
     band === "high" ? "#34C759" : band === "medium" ? "#FF9500" : "#FF3B30";
   const label =
     band === "high"
-      ? "High confidence"
+      ? t("mealAnalysis.highConfidence")
       : band === "medium"
-        ? "Review suggested"
-        : "Low confidence";
+        ? t("mealAnalysis.reviewSuggested")
+        : t("mealAnalysis.lowConfidence");
 
   return (
     <View style={[styles.confBadge, { backgroundColor: color + "1A" }]}>
@@ -128,6 +134,7 @@ function FoodItemCard({
   onRemove: (index: number) => void;
   theme: ReturnType<typeof useTheme>["theme"];
 }) {
+  const { t } = useAppTranslation();
   const [editingGrams, setEditingGrams] = useState(false);
   const [gramsText, setGramsText] = useState(
     String(item.detected.portion.grams)
@@ -250,7 +257,8 @@ function FoodItemCard({
               ]}
             >
               {item.detected.portion.humanReadable} (
-              {item.detected.portion.grams}g)
+              {item.detected.portion.grams}
+              {t("tracking.g")})
             </TText>
           </Pressable>
         )}
@@ -266,7 +274,7 @@ function FoodItemCard({
       {/* Macros row */}
       <View style={styles.macrosRow}>
         <MacroPill
-          label="Cal"
+          label={t("tracking.cal")}
           value={item.nutrients.calories}
           unit=""
           color={theme.colors.primary}
@@ -275,21 +283,21 @@ function FoodItemCard({
         <MacroPill
           label="P"
           value={item.nutrients.protein}
-          unit="g"
+          unit={t("tracking.g")}
           color="#FF6B6B"
           bgColor="#FF6B6B15"
         />
         <MacroPill
           label="C"
           value={item.nutrients.carbs}
-          unit="g"
+          unit={t("tracking.g")}
           color="#4ECDC4"
           bgColor="#4ECDC415"
         />
         <MacroPill
           label="F"
           value={item.nutrients.fat}
-          unit="g"
+          unit={t("tracking.g")}
           color="#FFD93D"
           bgColor="#FFD93D15"
         />
@@ -300,7 +308,7 @@ function FoodItemCard({
         <View style={styles.reviewRow}>
           <Ionicons name="alert-circle-outline" size={12} color="#FF9500" />
           <TText style={styles.reviewText}>
-            {item.reviewReason ?? "Review suggested"}
+            {item.reviewReason ?? t("mealAnalysis.reviewSuggested")}
           </TText>
         </View>
       )}
@@ -356,6 +364,7 @@ function MacroPill({
 
 export default function MealAnalysisScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{
@@ -393,7 +402,7 @@ export default function MealAnalysisScreen() {
     if (state !== "uploading" && state !== "analyzing") return;
     setStageIndex(0);
     const interval = setInterval(() => {
-      setStageIndex((i) => (i + 1) % ANALYSIS_STAGES.length);
+      setStageIndex((i) => (i + 1) % ANALYSIS_STAGE_KEYS.length);
     }, 2200);
     return () => clearInterval(interval);
   }, [state]);
@@ -429,14 +438,18 @@ export default function MealAnalysisScreen() {
 
   const handleRemove = useCallback(
     (index: number) => {
-      Alert.alert("Remove Item", "Remove this food from the meal?", [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: () => removeItem(index),
-        },
-      ]);
+      Alert.alert(
+        t("mealAnalysis.removeItem"),
+        t("mealAnalysis.removeItemConfirm"),
+        [
+          { text: t("common.cancel"), style: "cancel" },
+          {
+            text: t("mealAnalysis.remove"),
+            style: "destructive",
+            onPress: () => removeItem(index),
+          },
+        ]
+      );
     },
     [removeItem]
   );
@@ -468,7 +481,7 @@ export default function MealAnalysisScreen() {
             variant="heading"
             style={[styles.headerTitle, { color: theme.colors.text }]}
           >
-            Analyzing
+            {t("mealAnalysis.analyzing")}
           </TText>
           <View style={{ width: 44 }} />
         </View>
@@ -486,12 +499,12 @@ export default function MealAnalysisScreen() {
             <TText
               style={[styles.analyzingText, { color: theme.colors.textMuted }]}
             >
-              {ANALYSIS_STAGES[stageIndex]}
+              {t(ANALYSIS_STAGE_KEYS[stageIndex])}
             </TText>
           </Animated.View>
           <TSpacer size="xl" />
           <View style={styles.dotsRow}>
-            {ANALYSIS_STAGES.map((_, i) => (
+            {ANALYSIS_STAGE_KEYS.map((_, i) => (
               <View
                 key={i}
                 style={[
@@ -529,7 +542,7 @@ export default function MealAnalysisScreen() {
             variant="heading"
             style={[styles.headerTitle, { color: theme.colors.text }]}
           >
-            Analysis Failed
+            {t("mealAnalysis.analysisFailed")}
           </TText>
           <View style={{ width: 44 }} />
         </View>
@@ -550,7 +563,7 @@ export default function MealAnalysisScreen() {
           />
           <TSpacer size="md" />
           <TText style={[styles.errorTitle, { color: theme.colors.text }]}>
-            {error || "Something went wrong"}
+            {error || t("common.error")}
           </TText>
           <TSpacer size="xl" />
           <View style={styles.errorBtnRow}>
@@ -562,7 +575,9 @@ export default function MealAnalysisScreen() {
               ]}
             >
               <Ionicons name="refresh" size={18} color="#fff" />
-              <TText style={styles.errorBtnText}>Try Again</TText>
+              <TText style={styles.errorBtnText}>
+                {t("mealAnalysis.tryAgain")}
+              </TText>
             </Pressable>
             <Pressable
               onPress={handleBack}
@@ -575,7 +590,7 @@ export default function MealAnalysisScreen() {
               <TText
                 style={[styles.errorBtnText, { color: theme.colors.text }]}
               >
-                Retake
+                {t("mealAnalysis.retake")}
               </TText>
             </Pressable>
           </View>
@@ -601,7 +616,7 @@ export default function MealAnalysisScreen() {
                 { color: theme.colors.textSecondary },
               ]}
             >
-              Search manually instead
+              {t("mealAnalysis.searchManually")}
             </TText>
           </Pressable>
         </View>
@@ -629,7 +644,7 @@ export default function MealAnalysisScreen() {
           variant="heading"
           style={[styles.headerTitle, { color: theme.colors.text }]}
         >
-          Meal Breakdown
+          {t("mealAnalysis.mealBreakdown")}
         </TText>
         <View style={{ width: 44 }} />
       </View>
@@ -671,7 +686,7 @@ export default function MealAnalysisScreen() {
           style={[styles.totalsBar, { backgroundColor: theme.colors.surface }]}
         >
           <TotalItem
-            label="Calories"
+            label={t("tracking.calories")}
             value={result.totals.calories}
             unit=""
             color={theme.colors.primary}
@@ -683,7 +698,7 @@ export default function MealAnalysisScreen() {
             ]}
           />
           <TotalItem
-            label="Protein"
+            label={t("home.protein")}
             value={result.totals.protein}
             unit="g"
             color="#FF6B6B"
@@ -695,7 +710,7 @@ export default function MealAnalysisScreen() {
             ]}
           />
           <TotalItem
-            label="Carbs"
+            label={t("home.carbs")}
             value={result.totals.carbs}
             unit="g"
             color="#4ECDC4"
@@ -707,7 +722,7 @@ export default function MealAnalysisScreen() {
             ]}
           />
           <TotalItem
-            label="Fat"
+            label={t("home.fat")}
             value={result.totals.fat}
             unit="g"
             color="#FFD93D"
@@ -721,11 +736,14 @@ export default function MealAnalysisScreen() {
           <TText
             style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
           >
-            {result.items.length} item{result.items.length !== 1 ? "s" : ""}{" "}
-            detected
+            {result.items.length === 1
+              ? t("mealAnalysis.itemsDetected", { count: 1 })
+              : t("mealAnalysis.itemsDetectedPlural", {
+                  count: result.items.length,
+                })}
           </TText>
           <TText style={[styles.editHint, { color: theme.colors.textMuted }]}>
-            Tap to edit
+            {t("mealAnalysis.tapToEdit")}
           </TText>
         </View>
 
@@ -759,7 +777,7 @@ export default function MealAnalysisScreen() {
             <TextInput
               value={addItemName}
               onChangeText={setAddItemName}
-              placeholder="Food name (e.g. rice)"
+              placeholder={t("mealAnalysis.foodNamePlaceholder")}
               placeholderTextColor={theme.colors.textMuted}
               autoFocus
               style={[
@@ -771,7 +789,7 @@ export default function MealAnalysisScreen() {
               <TextInput
                 value={addItemGrams}
                 onChangeText={setAddItemGrams}
-                placeholder="Grams"
+                placeholder={t("mealAnalysis.gramsPlaceholder")}
                 placeholderTextColor={theme.colors.textMuted}
                 keyboardType="numeric"
                 style={[
@@ -790,7 +808,9 @@ export default function MealAnalysisScreen() {
                 ]}
               >
                 <Ionicons name="checkmark" size={18} color="#fff" />
-                <TText style={styles.addItemConfirmText}>Add</TText>
+                <TText style={styles.addItemConfirmText}>
+                  {t("mealAnalysis.add")}
+                </TText>
               </Pressable>
               <Pressable
                 onPress={() => {
@@ -821,7 +841,7 @@ export default function MealAnalysisScreen() {
             <TText
               style={[styles.addItemBtnText, { color: theme.colors.primary }]}
             >
-              Add missing food
+              {t("mealAnalysis.addMissingFood")}
             </TText>
           </Pressable>
         )}
@@ -861,7 +881,9 @@ export default function MealAnalysisScreen() {
         {/* Latency info (subtle) */}
         <TSpacer size="sm" />
         <TText style={[styles.latencyText, { color: theme.colors.textMuted }]}>
-          Analysis took {(result.totalLatencyMs / 1000).toFixed(1)}s
+          {t("mealAnalysis.analysisTook", {
+            seconds: (result.totalLatencyMs / 1000).toFixed(1),
+          })}
         </TText>
 
         <TSpacer size="xl" />
@@ -885,7 +907,7 @@ export default function MealAnalysisScreen() {
           >
             <Ionicons name="checkmark-circle" size={22} color="#fff" />
             <TText style={styles.confirmText}>
-              Log Meal · {result.totals.calories} cal
+              {t("mealAnalysis.logMeal", { cal: result.totals.calories })}
             </TText>
           </LinearGradient>
         </Pressable>

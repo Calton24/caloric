@@ -14,6 +14,7 @@ import Animated, {
     useSharedValue,
     withSpring,
 } from "react-native-reanimated";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -62,6 +63,7 @@ export function WaterCard({
   onSettings,
 }: WaterCardProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const progress = goalMl > 0 ? currentMl / goalMl : 0;
   const isComplete = currentMl >= goalMl && goalMl > 0;
 
@@ -85,7 +87,7 @@ export function WaterCard({
 
         <View style={styles.info}>
           <TText style={[styles.label, { color: theme.colors.text }]}>
-            Water
+            {t("analytics.water")}
           </TText>
           <View style={styles.amountRow}>
             <TText

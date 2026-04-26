@@ -67,6 +67,18 @@ export class ExpoNotificationsClient implements NotificationsClient {
       );
     }
 
+    if (this.sdkAvailable) {
+      // Allow scheduled/local notifications to display while app is foregrounded
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldPlaySound: true,
+          shouldSetBadge: false,
+          shouldShowBanner: true,
+          shouldShowList: true,
+        }),
+      });
+    }
+
     // Configure default Android channel
     if (this.sdkAvailable && Platform.OS === "android") {
       Notifications.setNotificationChannelAsync("default", {
@@ -176,10 +188,9 @@ export class ExpoNotificationsClient implements NotificationsClient {
           data: opts.data ?? {},
         },
         trigger: {
-          type: "calendar" as const,
+          type: "daily" as const,
           hour: opts.hour,
           minute: opts.minute,
-          repeats: true,
         },
       });
     } catch (error) {

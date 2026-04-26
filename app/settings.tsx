@@ -33,6 +33,7 @@ import {
 } from "../src/features/export/data-export.service";
 import { deleteUserAccount } from "../src/features/settings/account-deletion.service";
 import { useRevenueCat } from "../src/features/subscription/useRevenueCat";
+import { useAppTranslation } from "../src/infrastructure/i18n/useAppTranslation";
 import {
     useGoalsStore,
     useNutritionStore,
@@ -48,6 +49,7 @@ import { TText } from "../src/ui/primitives/TText";
 // ─── Appearance Toggle Component ───────────────────────────
 function AppearanceToggle() {
   const { theme, toggleMode } = useTheme();
+  const { t } = useAppTranslation();
   const isDark = theme.mode === "dark";
 
   return (
@@ -65,7 +67,7 @@ function AppearanceToggle() {
         />
       </View>
       <TText style={[styles.rowLabel, { color: theme.colors.text }]}>
-        Dark Mode
+        {t("settings.darkMode")}
       </TText>
       <Switch
         value={isDark}
@@ -181,6 +183,7 @@ function SectionHeader({ title }: { title: string }) {
 
 export default function SettingsScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
   const units = useUnits();
   const { user, signOut } = useAuth();
@@ -215,24 +218,27 @@ export default function SettingsScreen() {
       else if (type === "weight") await exportWeightCSV(weightLogs);
       else await exportAllDataCSV(meals, weightLogs);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Export failed";
-      Alert.alert("Export Error", msg);
+      const msg = e instanceof Error ? e.message : t("settings.exportFailed");
+      Alert.alert(t("settings.exportError"), msg);
     }
   };
 
   const planLabel =
     plan && plan.calorieBudget > 0
-      ? `${plan!.calorieBudget} cal/day · ${plan!.timeframeWeeks} weeks`
-      : "Not set";
+      ? t("settings.planSummary", {
+          calories: plan!.calorieBudget,
+          weeks: plan!.timeframeWeeks,
+        })
+      : t("settings.notSet");
 
   const subscriptionLabel =
     subscription.plan === null
-      ? "Free"
+      ? t("settings.free")
       : subscription.trialStarted
-        ? "Challenge"
+        ? t("settings.challenge")
         : subscription.plan === "monthly"
-          ? "Monthly"
-          : "Yearly";
+          ? t("settings.monthly")
+          : t("settings.yearly");
 
   return (
     <View
@@ -248,7 +254,7 @@ export default function SettingsScreen() {
             variant="heading"
             style={[styles.headerTitle, { color: theme.colors.text }]}
           >
-            Settings
+            {t("settings.title")}
           </TText>
           <View style={{ width: 24 }} />
         </View>
@@ -259,7 +265,7 @@ export default function SettingsScreen() {
         >
           {/* ── Appearance ── */}
           <Animated.View entering={FadeIn.duration(400)}>
-            <SectionHeader title="APPEARANCE" />
+            <SectionHeader title={t("settings.appearance")} />
             <View
               style={[
                 styles.section,
@@ -274,7 +280,7 @@ export default function SettingsScreen() {
 
           {/* ── Profile ── */}
           <Animated.View entering={FadeIn.duration(400)}>
-            <SectionHeader title="PROFILE" />
+            <SectionHeader title={t("settings.profile")} />
             <View
               style={[
                 styles.section,
@@ -284,21 +290,25 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="person-outline"
                 iconColor={theme.colors.primary}
-                label="Name"
+                label={t("settings.name")}
                 value={profile.id}
                 onPress={() => {}}
               />
               <SettingsRow
                 icon="resize-outline"
                 iconColor={theme.colors.info}
-                label="Units"
-                value={profile.weightUnit === "lbs" ? "Imperial" : "Metric"}
+                label={t("settings.units")}
+                value={
+                  profile.weightUnit === "lbs"
+                    ? t("settings.imperial")
+                    : t("settings.metric")
+                }
                 onPress={() => units.toggleWeightUnit()}
               />
               <SettingsRow
                 icon="body-outline"
                 iconColor={theme.colors.accent}
-                label="Activity Level"
+                label={t("settings.activityLevel")}
                 value={
                   (profile.activityLevel ?? "moderate")
                     .charAt(0)
@@ -314,7 +324,7 @@ export default function SettingsScreen() {
 
           {/* ── Goal Plan ── */}
           <Animated.View entering={FadeInDown.duration(400).delay(100)}>
-            <SectionHeader title="GOAL PLAN" />
+            <SectionHeader title={t("settings.goalPlan")} />
             <View
               style={[
                 styles.section,
@@ -324,14 +334,14 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="flag-outline"
                 iconColor={theme.colors.success}
-                label="Current Plan"
+                label={t("settings.currentPlan")}
                 value={planLabel}
                 showChevron={false}
               />
               <SettingsRow
                 icon="refresh-outline"
                 iconColor={theme.colors.primary}
-                label="Edit Goals"
+                label={t("settings.editGoals")}
                 onPress={() => router.push("/goals" as any)}
               />
             </View>
@@ -341,7 +351,7 @@ export default function SettingsScreen() {
 
           {/* ── Permissions ── */}
           <Animated.View entering={FadeInDown.duration(400).delay(200)}>
-            <SectionHeader title="PERMISSIONS" />
+            <SectionHeader title={t("settings.permissions")} />
             <View
               style={[
                 styles.section,
@@ -351,21 +361,21 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="mic-outline"
                 iconColor="#60A5FA"
-                label="Microphone"
+                label={t("settings.microphone")}
                 value={permissions.microphone}
                 showChevron={false}
               />
               <SettingsRow
                 icon="camera-outline"
                 iconColor="#F87171"
-                label="Camera"
+                label={t("settings.camera")}
                 value={permissions.camera}
                 showChevron={false}
               />
               <SettingsRow
                 icon="notifications-outline"
                 iconColor="#FBBF24"
-                label="Notifications"
+                label={t("settings.notifications")}
                 value={permissions.notifications}
                 showChevron={false}
               />
@@ -376,7 +386,7 @@ export default function SettingsScreen() {
 
           {/* ── Apple Health & Live Activities ── */}
           <Animated.View entering={FadeInDown.duration(400).delay(300)}>
-            <SectionHeader title="INTEGRATIONS" />
+            <SectionHeader title={t("settings.integrations")} />
             <View
               style={[
                 styles.section,
@@ -386,7 +396,7 @@ export default function SettingsScreen() {
               <SettingsToggle
                 icon="heart-outline"
                 iconColor="#F87171"
-                label="Apple Health (Read)"
+                label={t("settings.appleHealthRead")}
                 value={permissions.appleHealthReadEnabled}
                 onToggle={() =>
                   setAppleHealthReadEnabled(!permissions.appleHealthReadEnabled)
@@ -395,7 +405,7 @@ export default function SettingsScreen() {
               <SettingsToggle
                 icon="heart-outline"
                 iconColor="#F87171"
-                label="Apple Health (Write)"
+                label={t("settings.appleHealthWrite")}
                 value={permissions.appleHealthWriteEnabled}
                 onToggle={() =>
                   setAppleHealthWriteEnabled(
@@ -406,7 +416,7 @@ export default function SettingsScreen() {
               <SettingsToggle
                 icon="phone-portrait-outline"
                 iconColor={theme.colors.primary}
-                label="Live Activities"
+                label={t("settings.liveActivities")}
                 value={permissions.liveActivitiesEnabled}
                 onToggle={() =>
                   setLiveActivitiesEnabled(!permissions.liveActivitiesEnabled)
@@ -419,7 +429,7 @@ export default function SettingsScreen() {
 
           {/* ── Data Export ── */}
           <Animated.View entering={FadeInDown.duration(400).delay(350)}>
-            <SectionHeader title="DATA" />
+            <SectionHeader title={t("settings.data")} />
             <View
               style={[
                 styles.section,
@@ -429,21 +439,21 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="nutrition-outline"
                 iconColor={theme.colors.primary}
-                label="Export Meals"
-                value={`${meals.length} meals`}
+                label={t("settings.exportMeals")}
+                value={t("settings.mealsCount", { count: meals.length })}
                 onPress={() => handleExport("meals")}
               />
               <SettingsRow
                 icon="scale-outline"
                 iconColor={theme.colors.info}
-                label="Export Weight"
-                value={`${weightLogs.length} entries`}
+                label={t("settings.exportWeight")}
+                value={t("settings.entriesCount", { count: weightLogs.length })}
                 onPress={() => handleExport("weight")}
               />
               <SettingsRow
                 icon="download-outline"
                 iconColor={theme.colors.success}
-                label="Export All Data"
+                label={t("settings.exportAllData")}
                 onPress={() => handleExport("all")}
               />
             </View>
@@ -453,7 +463,7 @@ export default function SettingsScreen() {
 
           {/* ── Subscription ── */}
           <Animated.View entering={FadeInDown.duration(400).delay(400)}>
-            <SectionHeader title="SUBSCRIPTION" />
+            <SectionHeader title={t("settings.subscription")} />
             <View
               style={[
                 styles.section,
@@ -463,26 +473,32 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="card-outline"
                 iconColor={theme.colors.success}
-                label="Current Plan"
+                label={t("settings.currentPlan")}
                 value={subscriptionLabel}
                 showChevron={false}
               />
               <SettingsRow
                 icon="star-outline"
                 iconColor={theme.colors.primary}
-                label={isPro ? "You’re Pro" : "Upgrade to Pro"}
+                label={
+                  isPro ? t("settings.yourePro") : t("settings.upgradeToPro")
+                }
                 onPress={presentPaywall}
               />
               <SettingsRow
                 icon="arrow-undo-outline"
                 iconColor={theme.colors.textSecondary}
-                label={isRestoring ? "Restoring…" : "Restore Purchases"}
+                label={
+                  isRestoring
+                    ? t("settings.restoring")
+                    : t("settings.restorePurchases")
+                }
                 onPress={isRestoring ? undefined : restorePurchases}
               />
               <SettingsRow
                 icon="settings-outline"
                 iconColor={theme.colors.textSecondary}
-                label="Manage Subscription"
+                label={t("settings.manageSubscription")}
                 onPress={presentCustomerCenter}
               />
             </View>
@@ -492,7 +508,7 @@ export default function SettingsScreen() {
 
           {/* ── Legal ── */}
           <Animated.View entering={FadeInDown.duration(400).delay(420)}>
-            <SectionHeader title="LEGAL" />
+            <SectionHeader title={t("settings.legal")} />
             <View
               style={[
                 styles.section,
@@ -502,7 +518,7 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="document-text-outline"
                 iconColor={theme.colors.textSecondary}
-                label="Privacy Policy"
+                label={t("settings.privacyPolicy")}
                 onPress={() =>
                   router.push({
                     pathname: "/(modals)/web-viewer",
@@ -510,7 +526,7 @@ export default function SettingsScreen() {
                       url: encodeURIComponent(
                         "https://caloric-sage.vercel.app/privacy"
                       ),
-                      title: encodeURIComponent("Privacy Policy"),
+                      title: encodeURIComponent(t("settings.privacyPolicy")),
                     },
                   })
                 }
@@ -518,7 +534,7 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="document-outline"
                 iconColor={theme.colors.textSecondary}
-                label="Terms of Service"
+                label={t("settings.termsOfService")}
                 onPress={() =>
                   router.push({
                     pathname: "/(modals)/web-viewer",
@@ -526,7 +542,7 @@ export default function SettingsScreen() {
                       url: encodeURIComponent(
                         "https://caloric-sage.vercel.app/terms"
                       ),
-                      title: encodeURIComponent("Terms of Service"),
+                      title: encodeURIComponent(t("settings.termsOfService")),
                     },
                   })
                 }
@@ -538,7 +554,7 @@ export default function SettingsScreen() {
 
           {/* ── Account ── */}
           <Animated.View entering={FadeInDown.duration(400).delay(450)}>
-            <SectionHeader title="ACCOUNT" />
+            <SectionHeader title={t("settings.account")} />
             <View
               style={[
                 styles.section,
@@ -549,7 +565,7 @@ export default function SettingsScreen() {
                 <SettingsRow
                   icon="mail-outline"
                   iconColor={theme.colors.info}
-                  label="Email"
+                  label={t("settings.email")}
                   value={user.email}
                   showChevron={false}
                 />
@@ -557,15 +573,15 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="trash-outline"
                 iconColor={theme.colors.error}
-                label="Delete Account"
+                label={t("settings.deleteAccount")}
                 onPress={() => {
                   Alert.alert(
-                    "Delete Account",
-                    "This will permanently delete your account and all associated data. This action cannot be undone.\n\nAre you sure you want to continue?",
+                    t("settings.deleteAccount"),
+                    t("settings.deleteAccountConfirm"),
                     [
-                      { text: "Cancel", style: "cancel" },
+                      { text: t("common.cancel"), style: "cancel" },
                       {
-                        text: "Delete",
+                        text: t("settings.delete"),
                         style: "destructive",
                         onPress: async () => {
                           const result = await deleteUserAccount();
@@ -573,9 +589,8 @@ export default function SettingsScreen() {
                             router.replace("/(onboarding)/landing");
                           } else {
                             Alert.alert(
-                              "Deletion Failed",
-                              result.error ||
-                                "Unable to delete account. Please contact support at support@caloric.app"
+                              t("settings.deletionFailed"),
+                              result.error || t("settings.deletionFailedDesc")
                             );
                           }
                         },
@@ -587,15 +602,15 @@ export default function SettingsScreen() {
               <SettingsRow
                 icon="log-out-outline"
                 iconColor={theme.colors.error}
-                label="Sign Out"
+                label={t("settings.signOut")}
                 onPress={() => {
                   Alert.alert(
-                    "Sign Out",
-                    "Are you sure you want to sign out?",
+                    t("settings.signOut"),
+                    t("settings.signOutConfirm"),
                     [
-                      { text: "Cancel", style: "cancel" },
+                      { text: t("common.cancel"), style: "cancel" },
                       {
-                        text: "Sign Out",
+                        text: t("settings.signOut"),
                         style: "destructive",
                         onPress: async () => {
                           await signOut();

@@ -6,6 +6,7 @@
 import { ColorPicker, Host } from "@expo/ui/swift-ui";
 import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
+import { useAppTranslation } from "../../infrastructure/i18n";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "./TText";
 
@@ -81,6 +82,7 @@ function hueToHex(hue: number): string {
 
 export function ColorPickerSheet() {
   const { theme, setBrandHue } = useTheme();
+  const { t } = useAppTranslation();
   const initialColor = hueToHex(theme.brandHue);
   const [selectedColor, setSelectedColor] = useState(initialColor);
 
@@ -116,7 +118,7 @@ export function ColorPickerSheet() {
   return (
     <View style={styles.container}>
       <TText variant="subheading" style={styles.title}>
-        Theme Color
+        {t("colorPicker.themeColor")}
       </TText>
 
       <View style={styles.smallSpacer} />
@@ -134,7 +136,8 @@ export function ColorPickerSheet() {
       <View style={styles.info}>
         <TText variant="body">{selectedColor}</TText>
         <TText variant="caption" color="secondary">
-          {theme.brandHue}° Hue
+          {theme.brandHue}
+          {t("colorPicker.hue")}
         </TText>
       </View>
     </View>

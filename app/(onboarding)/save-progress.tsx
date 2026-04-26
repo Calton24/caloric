@@ -2,11 +2,15 @@
  * Onboarding Step 9 — Save Your Progress (Auth Gate)
  *
  * After the user sees their personalised plan, prompt them to
- * sign in / sign up so their data is saved. Mirrors Cal AI's
- * "Save your progress" screen with Apple + Google OAuth and a
- * "Skip" option for users who want to sign in later.
+ * sign in / sign up so their data is saved.
  *
- * On success or skip → continues to paywall.
+ * Psychological conversion tactics:
+ * - Social proof counter ("X users joined this week")
+ * - Loss aversion ("Don't lose your personalized plan")
+ * - Trust signal (privacy note)
+ * - Speed framing ("Takes 5 seconds")
+ *
+ * On success → continues to paywall.
  */
 
 import { Ionicons } from "@expo/vector-icons";
@@ -21,13 +25,17 @@ import Animated, {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthCapabilities } from "../../src/features/auth/authCapabilities";
 import { useAuth } from "../../src/features/auth/useAuth";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
+import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+import { OnboardingBackground } from "./_background";
 import { OnboardingHeader } from "./_progress";
 
 export default function SaveProgressScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
   const { signIn, signUp, signInWithAppleNative, signInWithGoogleNative } =
     useAuth();
@@ -45,10 +53,7 @@ export default function SaveProgressScreen() {
 
   const handleAppleSignIn = async () => {
     if (!AuthCapabilities.apple) {
-      Alert.alert(
-        "Coming Soon",
-        "Sign in with Apple will be available in a future update."
-      );
+      Alert.alert(t("auth.comingSoon"), t("auth.appleComingSoon"));
       return;
     }
     setLoading(true);
@@ -68,7 +73,7 @@ export default function SaveProgressScreen() {
 
   const handleGoogleSignIn = async () => {
     if (!AuthCapabilities.google) {
-      Alert.alert("Unavailable", "Google sign-in is disabled for this app.");
+      Alert.alert(t("auth.unavailable"), t("auth.googleUnavailable"));
       return;
     }
     setLoading(true);
@@ -88,50 +93,68 @@ export default function SaveProgressScreen() {
 
   const handleEmailAuth = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Please enter email and password");
+      Alert.alert(t("common.error"), t("auth.enterEmailPassword"));
       return;
     }
 
     if (isSignUp) {
       if (password !== confirmPassword) {
-        Alert.alert("Error", "Passwords do not match");
+        Alert.alert(t("common.error"), t("auth.passwordsMismatch"));
         return;
       }
       if (password.length < 6) {
-        Alert.alert("Error", "Password must be at least 6 characters");
+        Alert.alert(t("common.error"), t("auth.passwordTooShort"));
         return;
       }
     }
 
     setLoading(true);
     try {
-      const { error } = isSignUp
+      // Try the user's chosen mode first
+      const primary = isSignUp
         ? await signUp(email, password)
         : await signIn(email, password);
-      if (error) {
-        Alert.alert(
-          isSignUp ? "Sign Up Failed" : "Sign In Failed",
-          error.message
-        );
-      } else {
+
+      if (!primary.error) {
         navigateNext();
+        return;
       }
+
+      // If credentials failed, auto-retry with the opposite method.
+      // Supabase returns "Invalid login credentials" both when signUp
+      // hits an existing email and when signIn hits a wrong password,
+      // so only fall back on that specific message.
+      const isCredentialError = primary.error.message
+        ?.toLowerCase()
+        .includes("invalid login credentials");
+
+      if (isCredentialError) {
+        const fallback = isSignUp
+          ? await signIn(email, password)
+          : await signUp(email, password);
+
+        if (!fallback.error) {
+          setIsSignUp(!isSignUp); // sync UI state
+          navigateNext();
+          return;
+        }
+      }
+
+      // Both failed — show the original error
+      Alert.alert(
+        isSignUp ? t("auth.signUpFailed") : t("auth.signInFailed"),
+        primary.error.message
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSkip = () => {
-    navigateNext();
-  };
-
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <OnboardingBackground>
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         {/* ── Header: Back + Progress ── */}
-        <OnboardingHeader step={6} total={6} theme={theme} />
+        <OnboardingHeader step={7} total={7} theme={theme} />
 
         {/* ── Heading ── */}
         <Animated.View
@@ -142,8 +165,62 @@ export default function SaveProgressScreen() {
             variant="heading"
             style={[styles.heading, { color: theme.colors.text }]}
           >
-            Save your progress
+            {t("onboarding.saveProgress.heading")}
           </TText>
+          <TSpacer size="sm" />
+          <TText color="secondary" style={styles.subheading}>
+            {t("onboarding.saveProgress.subtitle")}
+          </TText>
+        </Animated.View>
+
+        {/* ── Social proof + trust signals ── */}
+        <Animated.View
+          entering={FadeInDown.duration(500).delay(250)}
+          style={styles.proofArea}
+        >
+          <GlassSurface
+            intensity="light"
+            variant="pill"
+            style={[styles.proofPill]}
+          >
+            <Ionicons name="people" size={16} color={theme.colors.primary} />
+            <TText style={[styles.proofText, { color: theme.colors.primary }]}>
+              {t("onboarding.saveProgress.socialProof")}
+            </TText>
+          </GlassSurface>
+          <GlassSurface
+            intensity="light"
+            variant="pill"
+            style={styles.trustBadge}
+          >
+            <View style={styles.trustRow}>
+              <View style={styles.trustItem}>
+                <Ionicons
+                  name="lock-closed"
+                  size={14}
+                  color={theme.colors.textMuted}
+                />
+                <TText
+                  style={[styles.trustText, { color: theme.colors.textMuted }]}
+                >
+                  {t("onboarding.saveProgress.privacy")}
+                </TText>
+              </View>
+              <View style={styles.trustDot} />
+              <View style={styles.trustItem}>
+                <Ionicons
+                  name="flash"
+                  size={14}
+                  color={theme.colors.textMuted}
+                />
+                <TText
+                  style={[styles.trustText, { color: theme.colors.textMuted }]}
+                >
+                  {t("onboarding.saveProgress.speed")}
+                </TText>
+              </View>
+            </View>
+          </GlassSurface>
         </Animated.View>
 
         {/* ── Spacer pushes buttons to center-ish ── */}
@@ -180,7 +257,7 @@ export default function SaveProgressScreen() {
               <TText
                 style={[styles.oauthLabel, { color: theme.colors.background }]}
               >
-                Sign in with Apple
+                {t("auth.signInWithApple")}
               </TText>
             </View>
           </Pressable>
@@ -213,7 +290,7 @@ export default function SaveProgressScreen() {
                 color={theme.colors.text}
               />
               <TText style={[styles.oauthLabel, { color: theme.colors.text }]}>
-                Sign in with Google
+                {t("auth.signInWithGoogle")}
               </TText>
             </View>
           </Pressable>
@@ -247,7 +324,7 @@ export default function SaveProgressScreen() {
                 <TText
                   style={[styles.oauthLabel, { color: theme.colors.text }]}
                 >
-                  Continue with Email
+                  {t("auth.continueWithEmail")}
                 </TText>
               </View>
             </Pressable>
@@ -257,6 +334,7 @@ export default function SaveProgressScreen() {
           {showEmailForm && (
             <EmailForm
               theme={theme}
+              t={t}
               isSignUp={isSignUp}
               email={email}
               password={password}
@@ -268,42 +346,16 @@ export default function SaveProgressScreen() {
               onSubmit={handleEmailAuth}
               onToggleMode={() => {
                 setIsSignUp(!isSignUp);
-                setPassword("");
                 setConfirmPassword("");
               }}
             />
           )}
-
-          <TSpacer size="xl" />
-
-          {/* Skip */}
-          <Pressable
-            testID="save-progress-skip"
-            onPress={handleSkip}
-            style={({ pressed }) => ({
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <View style={styles.skipRow}>
-              <TText
-                style={[
-                  styles.skipLabel,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
-                {"Would you like to sign in later?  "}
-              </TText>
-              <TText style={[styles.skipLink, { color: theme.colors.text }]}>
-                Skip
-              </TText>
-            </View>
-          </Pressable>
         </Animated.View>
 
         {/* ── Bottom spacer ── */}
         <View style={styles.bottomSpacer} />
       </SafeAreaView>
-    </View>
+    </OnboardingBackground>
   );
 }
 
@@ -311,6 +363,7 @@ export default function SaveProgressScreen() {
 
 function EmailForm({
   theme,
+  t,
   isSignUp,
   email,
   password,
@@ -323,6 +376,7 @@ function EmailForm({
   onToggleMode,
 }: {
   theme: any;
+  t: (key: string) => string;
   isSignUp: boolean;
   email: string;
   password: string;
@@ -347,7 +401,7 @@ function EmailForm({
     <Animated.View entering={FadeIn.duration(300)} style={styles.emailForm}>
       <TextInput
         testID="save-progress-email-input"
-        placeholder="Email"
+        placeholder={t("auth.email")}
         placeholderTextColor={theme.colors.textMuted}
         value={email}
         onChangeText={setEmail}
@@ -358,7 +412,7 @@ function EmailForm({
       />
       <TextInput
         testID="save-progress-password-input"
-        placeholder="Password"
+        placeholder={t("auth.password")}
         placeholderTextColor={theme.colors.textMuted}
         value={password}
         onChangeText={setPassword}
@@ -369,7 +423,7 @@ function EmailForm({
       {isSignUp && (
         <TextInput
           testID="save-progress-confirm-password-input"
-          placeholder="Confirm Password"
+          placeholder={t("auth.confirmPassword")}
           placeholderTextColor={theme.colors.textMuted}
           value={confirmPassword}
           onChangeText={setConfirmPassword}
@@ -397,16 +451,14 @@ function EmailForm({
           <TText
             style={[styles.oauthLabel, { color: theme.colors.textInverse }]}
           >
-            {isSignUp ? "Create Account" : "Sign In"}
+            {isSignUp ? t("auth.createAccount") : t("auth.signIn")}
           </TText>
         </View>
       </Pressable>
 
       <Pressable onPress={onToggleMode} style={{ marginTop: 8 }}>
         <TText color="secondary" style={styles.toggleText}>
-          {isSignUp
-            ? "Already have an account? Sign In"
-            : "Need an account? Sign Up"}
+          {isSignUp ? t("auth.alreadyHaveAccount") : t("auth.needAccount")}
         </TText>
       </Pressable>
     </Animated.View>
@@ -428,6 +480,50 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     lineHeight: 40,
   },
+  subheading: {
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  proofArea: {
+    paddingHorizontal: 24,
+    alignItems: "center",
+    gap: 12,
+    marginTop: 20,
+  },
+  proofPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  proofText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  trustBadge: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  trustRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  trustItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  trustText: {
+    fontSize: 13,
+  },
+  trustDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: "#999",
+  },
   spacer: {
     flex: 1,
   },
@@ -445,19 +541,6 @@ const styles = StyleSheet.create({
   oauthLabel: {
     fontSize: 17,
     fontWeight: "600",
-  },
-  skipRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  skipLabel: {
-    fontSize: 15,
-  },
-  skipLink: {
-    fontSize: 15,
-    fontWeight: "700",
-    textDecorationLine: "underline",
   },
   bottomSpacer: {
     flex: 0.6,

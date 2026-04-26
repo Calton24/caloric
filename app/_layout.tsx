@@ -1,6 +1,7 @@
 import { CaloricProviders } from "@/src/CaloricProviders";
 import { useScreenTracking } from "@/src/infrastructure/analytics";
 import { useGrowthScreenTracking } from "@/src/infrastructure/growth";
+import { ErrorBoundary } from "@/src/logging/ErrorBoundary";
 import { useTheme } from "@/src/theme/useTheme";
 import {
     PlusJakartaSans_400Regular,
@@ -14,6 +15,7 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
+import { ActivityIndicator, View } from "react-native";
 import "react-native-reanimated";
 
 SplashScreen.preventAutoHideAsync();
@@ -28,13 +30,23 @@ function RootStack() {
       }}
     >
       {/* ── Entry point ── */}
-      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="index"
+        options={{ headerShown: false, animation: "fade" }}
+      />
 
       {/* ── Route Groups ── */}
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="(tabs)"
+        options={{ headerShown: false, animation: "fade" }}
+      />
       <Stack.Screen
         name="(onboarding)"
-        options={{ headerShown: false, gestureEnabled: false }}
+        options={{
+          headerShown: false,
+          gestureEnabled: false,
+          animation: "fade",
+        }}
       />
       <Stack.Screen name="(main)" options={{ headerShown: false }} />
       <Stack.Screen
@@ -47,7 +59,7 @@ function RootStack() {
         name="auth/sign-in"
         options={{
           headerShown: false,
-          animation: "slide_from_right",
+          animation: "fade",
         }}
       />
       <Stack.Screen
@@ -95,7 +107,7 @@ export default function RootLayout() {
   useScreenTracking();
   useGrowthScreenTracking();
 
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     PlusJakartaSans_400Regular,
     PlusJakartaSans_500Medium,
     PlusJakartaSans_600SemiBold,
@@ -105,18 +117,35 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync();
+    // Hide splash once fonts load (success or error — don't block forever)
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync().catch(() => {});
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded) {
-    return null;
+  if (!fontsLoaded && !fontError) {
+    // Return an opaque background so the underlying white native view
+    // never bleeds through while fonts load (e.g. on dev-client hot reload
+    // where the native splash is no longer blocking)
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "#000",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <ActivityIndicator color="#fff" />
+      </View>
+    );
   }
 
   return (
-    <CaloricProviders testID="app-ready">
-      <RootStack />
-    </CaloricProviders>
+    <ErrorBoundary>
+      <CaloricProviders testID="app-ready">
+        <RootStack />
+      </CaloricProviders>
+    </ErrorBoundary>
   );
 }

@@ -5,6 +5,7 @@
  * @deprecated Use src/lib/constants/mock-data.ts for new code.
  */
 
+import { getMealsForDate } from "../features/nutrition/nutrition.selectors";
 import type {
     DailyNutritionSummary,
     GoalPlan,
@@ -103,7 +104,8 @@ export function buildDailySummary(
   meals: MealEntry[],
   date: string
 ): DailyNutritionSummary {
-  const dayMeals = meals.filter((m) => m.loggedAt.startsWith(date));
+  // Use getMealsForDate for consistent timezone-aware filtering
+  const dayMeals = getMealsForDate(meals, date);
   return {
     date,
     totalCalories: dayMeals.reduce((s, m) => s + m.calories, 0),
@@ -146,6 +148,7 @@ export const MOCK_SUBSCRIPTION: SubscriptionState = {
   trialEndsAt: null,
   plan: null,
   paywallSeen: false,
+  lastServerVerifiedAt: null,
 };
 
 // ─── Weekday helpers ───────────────────────────────────────────

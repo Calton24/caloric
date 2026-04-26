@@ -6,10 +6,9 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import Animated, {
     Easing,
     FadeIn,
@@ -25,10 +24,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useUnits } from "../../hooks/useUnits";
 import { useGoalsStore } from "../../src/features/goals/goals.store";
 import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
-import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+import { OnboardingBackground } from "./_background";
+import { OnboardingCTA } from "./_cta";
 
 // ── Food emoji ring ──
 const FOOD_EMOJIS = [
@@ -88,6 +89,7 @@ function FloatingEmoji({
 
 export default function OnboardingCompleteScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const units = useUnits();
   const router = useRouter();
   const { completeOnboarding, profile } = useOnboarding();
@@ -120,9 +122,7 @@ export default function OnboardingCompleteScreen() {
   }));
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <OnboardingBackground>
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <View style={styles.content}>
           {/* ── Emoji explosion ring + check ── */}
@@ -138,42 +138,46 @@ export default function OnboardingCompleteScreen() {
               ))}
             </Animated.View>
 
-            <Animated.View style={[styles.checkCircle, checkStyle]}>
+            <Animated.View style={[styles.checkCircleWrap, checkStyle]}>
               <View
                 style={[
                   styles.checkBg,
-                  { backgroundColor: theme.colors.success + "22" },
+                  { backgroundColor: theme.colors.success + "18" },
                 ]}
               >
                 <Ionicons
                   name="checkmark-circle"
-                  size={72}
+                  size={80}
                   color={theme.colors.success}
                 />
               </View>
             </Animated.View>
           </View>
 
-          <TSpacer size="xl" />
+          <View style={{ height: 32 }} />
 
-          <Animated.View entering={FadeInDown.duration(600).delay(800)}>
+          <Animated.View
+            entering={FadeInDown.springify().damping(16).delay(800)}
+          >
             <TText
               variant="heading"
               style={[styles.title, { color: theme.colors.text }]}
             >
-              You&apos;re All Set Up!
+              {t("onboarding.complete.heading")}
             </TText>
           </Animated.View>
 
-          <TSpacer size="sm" />
+          <View style={{ height: 10 }} />
 
           <Animated.View entering={FadeIn.duration(600).delay(1000)}>
-            <TText color="secondary" style={styles.subtitle}>
-              Your personalised plan is ready.{"\n"}Time to start your journey.
+            <TText
+              style={[styles.subtitle, { color: theme.colors.textSecondary }]}
+            >
+              {t("onboarding.complete.subtitle")}
             </TText>
           </Animated.View>
 
-          <TSpacer size="xl" />
+          <View style={{ height: 28 }} />
 
           {/* ── Summary pills ── */}
           <Animated.View
@@ -183,17 +187,23 @@ export default function OnboardingCompleteScreen() {
             {[
               {
                 icon: "flame-outline" as const,
-                label: `${plan?.calorieBudget?.toLocaleString() ?? "—"} kcal/day`,
+                label: t("onboarding.complete.kcalDay", {
+                  count: plan?.calorieBudget ?? 0,
+                }),
                 color: theme.colors.primary,
               },
               {
                 icon: "trending-down-outline" as const,
-                label: `${units.format(profile.goalWeightLbs ?? 0, 0)} goal`,
+                label: t("onboarding.complete.goalWeight", {
+                  weight: units.format(profile.goalWeightLbs ?? 0, 0),
+                }),
                 color: theme.colors.success,
               },
               {
                 icon: "calendar-outline" as const,
-                label: `${plan?.timeframeWeeks ?? "—"} weeks`,
+                label: t("onboarding.complete.weeksLeft", {
+                  count: plan?.timeframeWeeks ?? 0,
+                }),
                 color: theme.colors.info,
               },
             ].map((p) => (
@@ -208,42 +218,19 @@ export default function OnboardingCompleteScreen() {
         </View>
 
         {/* ── CTA ── */}
-        <Animated.View
-          entering={FadeInUp.duration(500).delay(1400)}
-          style={styles.ctaArea}
-        >
-          <Pressable
-            testID="onboarding-done"
-            onPress={() => {
-              completeOnboarding();
-              router.replace("/(modals)/permissions-setup" as any);
-            }}
-            style={({ pressed }) => ({
-              opacity: pressed ? 0.9 : 1,
-              transform: [{ scale: pressed ? 0.97 : 1 }],
-            })}
-          >
-            <LinearGradient
-              colors={[theme.colors.primary, theme.colors.accent]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.ctaGradient}
-            >
-              <TText
-                style={[styles.ctaText, { color: theme.colors.textInverse }]}
-              >
-                Let&apos;s Go!
-              </TText>
-              <Ionicons
-                name="rocket-outline"
-                size={20}
-                color={theme.colors.textInverse}
-              />
-            </LinearGradient>
-          </Pressable>
-        </Animated.View>
+        <OnboardingCTA
+          label={t("common.letsGo")}
+          icon="rocket-outline"
+          onPress={() => {
+            completeOnboarding();
+            router.replace("/(modals)/permissions-setup" as any);
+          }}
+          theme={theme}
+          testID="onboarding-done"
+          delay={1400}
+        />
       </SafeAreaView>
-    </View>
+    </OnboardingBackground>
   );
 }
 
@@ -256,7 +243,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 24,
   },
-  // Celebration
   celebrationArea: {
     width: 280,
     height: 280,
@@ -276,28 +262,27 @@ const styles = StyleSheet.create({
   emojiText: {
     fontSize: 28,
   },
-  checkCircle: {
+  checkCircleWrap: {
     zIndex: 10,
   },
   checkBg: {
-    width: 110,
-    height: 110,
-    borderRadius: 32,
+    width: 120,
+    height: 120,
+    borderRadius: 36,
     alignItems: "center",
     justifyContent: "center",
   },
-  // Text
   title: {
-    fontSize: 34,
+    fontSize: 28,
     fontWeight: "800",
     textAlign: "center",
+    letterSpacing: -0.3,
   },
   subtitle: {
-    fontSize: 17,
+    fontSize: 16,
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: 22,
   },
-  // Pills
   pillRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -307,30 +292,13 @@ const styles = StyleSheet.create({
   pill: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     borderRadius: 100,
     gap: 6,
   },
   pillLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "600",
-  },
-  // CTA
-  ctaArea: {
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-  },
-  ctaGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 18,
-    borderRadius: 16,
-    gap: 8,
-  },
-  ctaText: {
-    fontSize: 18,
-    fontWeight: "700",
   },
 });

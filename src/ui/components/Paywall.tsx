@@ -32,6 +32,7 @@ import {
 } from "../../features/challenge/challenge-pricing";
 import { resolvePackageByType } from "../../features/subscription/package-utils";
 import { useRevenueCat } from "../../features/subscription/useRevenueCat";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { GlassSurface } from "../glass/GlassSurface";
 import { TSpacer } from "../primitives/TSpacer";
@@ -49,9 +50,15 @@ interface PaywallProps {
 // ── Benefits (shared across intro & milestone) ─────────────────────────────
 
 const BENEFITS = [
-  { icon: "infinite-outline" as const, text: "Unlimited AI scans" },
-  { icon: "bar-chart-outline" as const, text: "Detailed macro trends" },
-  { icon: "sparkles-outline" as const, text: "Personalized recommendations" },
+  {
+    icon: "infinite-outline" as const,
+    textKey: "paywall.benefitUnlimitedScans",
+  },
+  { icon: "bar-chart-outline" as const, textKey: "paywall.benefitMacroTrends" },
+  {
+    icon: "sparkles-outline" as const,
+    textKey: "paywall.benefitRecommendations",
+  },
 ];
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -126,6 +133,7 @@ function ModalPaywall({
   onPurchaseComplete,
 }: PaywallProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const { purchasePackage, restorePurchases, packages, isLoadingOfferings } =
     useRevenueCat();
   const [isPurchasing, setIsPurchasing] = useState(false);
@@ -208,7 +216,7 @@ function ModalPaywall({
                 <TText
                   style={[styles.dayBadgeText, { color: theme.colors.success }]}
                 >
-                  Day {context.milestoneDay}
+                  {t("dayJourney.dayBadge", { day: context.milestoneDay })}
                 </TText>
               </View>
             </Animated.View>
@@ -277,7 +285,7 @@ function ModalPaywall({
             <TText
               style={[styles.pricingHeading, { color: theme.colors.text }]}
             >
-              Choose your plan
+              {t("paywall.choosePlan")}
             </TText>
             <TSpacer size="md" />
             {isUnavailable ? (
@@ -290,7 +298,7 @@ function ModalPaywall({
                     { color: theme.colors.textSecondary },
                   ]}
                 >
-                  Loading plans...
+                  {t("paywall.loadingPlans")}
                 </TText>
               </View>
             ) : (
@@ -390,11 +398,11 @@ function ModalPaywall({
                         <TText style={styles.highlightBadgeText}>
                           {context.showIntroPricing &&
                           tier.displayId === "intro"
-                            ? "Challenge Only"
+                            ? t("paywall.challengeOnly")
                             : tier.displayId === "annual" &&
                                 context.showAnnualDiscount
-                              ? "Challenge Price"
-                              : "Best Value"}
+                              ? t("paywall.challengePrice")
+                              : t("paywall.bestValue")}
                         </TText>
                       </View>
                     )}
@@ -428,7 +436,7 @@ function ModalPaywall({
                   <TText
                     style={[styles.benefitText, { color: theme.colors.text }]}
                   >
-                    {b.text}
+                    {t(b.textKey)}
                   </TText>
                 </View>
               ))}
@@ -448,14 +456,14 @@ function ModalPaywall({
                 { color: theme.colors.textSecondary },
               ]}
             >
-              Maybe later
+              {t("paywall.maybeLater")}
             </TText>
           </Pressable>
           <Pressable onPress={restorePurchases}>
             <TText
               style={[styles.restoreText, { color: theme.colors.textMuted }]}
             >
-              Restore Purchases
+              {t("settings.restorePurchases")}
             </TText>
           </Pressable>
         </Animated.View>

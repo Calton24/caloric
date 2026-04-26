@@ -18,9 +18,9 @@ import { File } from "expo-file-system";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import { getSupabaseClient } from "../../lib/supabase/client";
 import type {
-    AnalyzeMealResponse,
-    MealAnalysisResult,
-    MealDecomposition,
+  AnalyzeMealResponse,
+  MealAnalysisResult,
+  MealDecomposition,
 } from "./meal-analysis.types";
 import { resolveDecomposition } from "./nutrition-resolver.service";
 
@@ -89,8 +89,10 @@ export async function analyzeMealImage(
     );
   }
 
+  // Pass the JWT in a custom header to avoid the Supabase Edge Runtime
+  // relay rejecting ES256-signed tokens when it inspects Authorization.
   const headers: Record<string, string> = {
-    Authorization: `Bearer ${token}`,
+    "X-Auth-Token": token,
   };
 
   const { data, error } = await client.functions.invoke("ai-scan", {

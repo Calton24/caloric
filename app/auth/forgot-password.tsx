@@ -3,6 +3,9 @@
  * User enters their email → taps "Send Reset Link" → sees confirmation UI.
  * Includes client-side rate limiting (60s cooldown) to prevent abuse.
  * The email contains a deep link that opens app/auth/reset-password.
+ *
+ * Design: Matches sign-in screen aesthetic — flat layout, pill buttons,
+ * gradient teardrop, staggered entry animations.
  */
 
 import { Ionicons } from "@expo/vector-icons";
@@ -12,15 +15,25 @@ import {
     Alert,
     KeyboardAvoidingView,
     Platform,
+    Pressable,
     ScrollView,
     StyleSheet,
     View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import Animated, {
+    FadeIn,
+    FadeInDown,
+    FadeInUp,
+} from "react-native-reanimated";
+import {
+    SafeAreaView,
+    useSafeAreaInsets,
+} from "react-native-safe-area-context";
+import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
 import { useAuth } from "../../src/features/auth/useAuth";
 import { analytics } from "../../src/infrastructure/analytics";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
-import { GlassCard } from "../../src/ui/glass/GlassCard";
 import { TButton } from "../../src/ui/primitives/TButton";
 import { TInput } from "../../src/ui/primitives/TInput";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
@@ -47,6 +60,7 @@ type ScreenState = "form" | "sent";
 
 export default function ForgotPasswordScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const { resetPassword } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -81,11 +95,11 @@ export default function ForgotPasswordScreen() {
 
     const trimmed = email.trim();
     if (!trimmed) {
-      Alert.alert("Email Required", "Please enter your email address.");
+      Alert.alert(t("auth.emailRequired"), t("auth.enterEmail"));
       return;
     }
     if (!trimmed.includes("@")) {
-      Alert.alert("Invalid Email", "Please enter a valid email address.");
+      Alert.alert(t("auth.invalidEmail"), t("auth.enterValidEmail"));
       return;
     }
 
@@ -110,7 +124,7 @@ export default function ForgotPasswordScreen() {
         setScreenState("sent");
       }
     } catch {
-      setSendError("Something went wrong. Please try again.");
+      setSendError(t("auth.somethingWentWrong"));
     } finally {
       setLoading(false);
     }
@@ -135,72 +149,121 @@ export default function ForgotPasswordScreen() {
         setCooldown(COOLDOWN_SECONDS);
       }
     } catch {
-      setSendError("Something went wrong. Please try again.");
+      setSendError(t("auth.somethingWentWrong"));
     } finally {
       setLoading(false);
     }
   }, [cooldown, email, resetPassword]);
 
-  const handleBackToSignIn = () => {
+  const insets = useSafeAreaInsets();
+
+  const handleBack = () => {
     router.back();
   };
-
-  // ── Drag handle (replaces modal header) ─────────────────────────────────────
-  const DragHandle = () => (
-    <View style={styles.dragHandleContainer}>
-      <View
-        style={[
-          styles.dragHandle,
-          { backgroundColor: theme.colors.border ?? "rgba(120,120,128,0.3)" },
-        ]}
-      />
-    </View>
-  );
 
   // ── Confirmation state ──────────────────────────────────────────────────────
   if (screenState === "sent") {
     return (
-      <SafeAreaView
+      <View
         style={[styles.container, { backgroundColor: theme.colors.background }]}
-        edges={["top"]}
       >
-        <DragHandle />
+        {/* Gradient teardrop */}
+        <View style={styles.gradientTeardrop}>
+          <Svg height="100%" width="100%" style={StyleSheet.absoluteFill}>
+            <Defs>
+              <RadialGradient
+                id={`grad-forgot-sent-${theme.mode}`}
+                cx="50%"
+                cy="0%"
+                r="100%"
+              >
+                <Stop
+                  offset="0%"
+                  stopColor={theme.colors.primary}
+                  stopOpacity={theme.mode === "light" ? 0.45 : 0.35}
+                />
+                <Stop
+                  offset="50%"
+                  stopColor={theme.colors.primary}
+                  stopOpacity={theme.mode === "light" ? 0.15 : 0.1}
+                />
+                <Stop
+                  offset="100%"
+                  stopColor={theme.colors.primary}
+                  stopOpacity={0}
+                />
+              </RadialGradient>
+            </Defs>
+            <Ellipse
+              cx="50%"
+              cy="0"
+              rx="70%"
+              ry="350"
+              fill={`url(#grad-forgot-sent-${theme.mode})`}
+            />
+          </Svg>
+        </View>
+
+        <SafeAreaView style={styles.safeArea} edges={["top"]}>
+          <Animated.View entering={FadeIn.duration(300)}>
+            <Pressable
+              onPress={handleBack}
+              style={({ pressed }) => [
+                styles.backButton,
+                {
+                  opacity: pressed ? 0.6 : 1,
+                  backgroundColor: theme.colors.surface,
+                },
+              ]}
+            >
+              <Ionicons
+                name="chevron-back"
+                size={20}
+                color={theme.colors.text}
+              />
+            </Pressable>
+          </Animated.View>
+        </SafeAreaView>
+
         <ScrollView
-          contentContainerStyle={styles.centeredScroll}
+          contentContainerStyle={{
+            paddingHorizontal: 24,
+            paddingBottom: Math.max(insets.bottom, 16) + 40,
+          }}
           showsVerticalScrollIndicator={false}
         >
-          <GlassCard style={styles.card}>
-            <View style={styles.iconCircle}>
+          <View style={styles.sentContent}>
+            <Animated.View
+              entering={FadeInDown.duration(500).delay(100)}
+              style={styles.iconCircle}
+            >
               <Ionicons
                 name="mail-outline"
-                size={48}
+                size={44}
                 color={theme.colors.primary}
               />
-            </View>
+            </Animated.View>
 
-            <TSpacer size="lg" />
+            <TSpacer size="xl" />
 
-            <TText variant="heading" style={styles.sentTitle}>
-              Check Your Email
-            </TText>
+            <Animated.View entering={FadeInDown.duration(500).delay(200)}>
+              <TText variant="heading" style={styles.sentTitle}>
+                {t("auth.checkYourEmail")}
+              </TText>
+              <TSpacer size="sm" />
+              <TText color="secondary" style={styles.sentDescription}>
+                {t("auth.resetLinkSent", { email: email.trim() })}
+              </TText>
+              <TSpacer size="xs" />
+              <TText color="secondary" style={styles.sentHint}>
+                {t("auth.checkSpam")}{" "}
+                {cooldown > 0
+                  ? t("auth.resendIn", { seconds: cooldown })
+                  : t("auth.resendNow")}
+                .
+              </TText>
+            </Animated.View>
 
-            <TSpacer size="sm" />
-
-            <TText color="secondary" style={styles.sentDescription}>
-              If an account exists for{" "}
-              <TText style={styles.emailHighlight}>{email.trim()}</TText>, you
-              {"'"}
-              ll receive a password reset link shortly.
-            </TText>
-
-            <TSpacer size="md" />
-
-            <TText color="secondary" style={styles.sentHint}>
-              Check your spam folder. Resend available
-              {cooldown > 0 ? ` in ${cooldown}s` : " now"}.
-            </TText>
-
-            {/* Inline error for resend failures */}
             {sendError && (
               <>
                 <TSpacer size="sm" />
@@ -210,72 +273,147 @@ export default function ForgotPasswordScreen() {
 
             <TSpacer size="xl" />
 
-            <TButton
-              onPress={handleResend}
-              variant="outline"
-              loading={loading}
-              disabled={loading || cooldown > 0}
-            >
-              {cooldown > 0 ? `Resend Link (${cooldown}s)` : "Resend Link"}
-            </TButton>
+            <Animated.View entering={FadeInUp.duration(400).delay(350)}>
+              <TButton
+                onPress={handleResend}
+                variant="outline"
+                size="lg"
+                loading={loading}
+                disabled={loading || cooldown > 0}
+              >
+                {cooldown > 0
+                  ? t("auth.resendLinkCooldown", { seconds: cooldown })
+                  : t("auth.resendLink")}
+              </TButton>
 
-            <TSpacer size="sm" />
+              <TSpacer size="md" />
 
-            <TButton onPress={handleBackToSignIn} variant="ghost">
-              <TText color="primary">Back to Sign In</TText>
-            </TButton>
-          </GlassCard>
+              <Pressable
+                onPress={handleBack}
+                style={({ pressed }) => [
+                  styles.backLink,
+                  { opacity: pressed ? 0.6 : 1 },
+                ]}
+              >
+                <TText
+                  style={[styles.backLinkText, { color: theme.colors.primary }]}
+                >
+                  {t("auth.backToSignIn")}
+                </TText>
+              </Pressable>
+            </Animated.View>
+          </View>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     );
   }
 
   // ── Email entry form ────────────────────────────────────────────────────────
   return (
-    <SafeAreaView
+    <View
       style={[styles.container, { backgroundColor: theme.colors.background }]}
-      edges={["top"]}
     >
-      <DragHandle />
+      {/* Gradient teardrop */}
+      <View style={styles.gradientTeardrop}>
+        <Svg height="100%" width="100%" style={StyleSheet.absoluteFill}>
+          <Defs>
+            <RadialGradient
+              id={`grad-forgot-${theme.mode}`}
+              cx="50%"
+              cy="0%"
+              r="100%"
+            >
+              <Stop
+                offset="0%"
+                stopColor={theme.colors.primary}
+                stopOpacity={theme.mode === "light" ? 0.45 : 0.35}
+              />
+              <Stop
+                offset="50%"
+                stopColor={theme.colors.primary}
+                stopOpacity={theme.mode === "light" ? 0.15 : 0.1}
+              />
+              <Stop
+                offset="100%"
+                stopColor={theme.colors.primary}
+                stopOpacity={0}
+              />
+            </RadialGradient>
+          </Defs>
+          <Ellipse
+            cx="50%"
+            cy="0"
+            rx="70%"
+            ry="350"
+            fill={`url(#grad-forgot-${theme.mode})`}
+          />
+        </Svg>
+      </View>
+
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
+        <Animated.View entering={FadeIn.duration(300)}>
+          <Pressable
+            onPress={handleBack}
+            style={({ pressed }) => [
+              styles.backButton,
+              {
+                opacity: pressed ? 0.6 : 1,
+                backgroundColor: theme.colors.surface,
+              },
+            ]}
+          >
+            <Ionicons name="chevron-back" size={20} color={theme.colors.text} />
+          </Pressable>
+        </Animated.View>
+      </SafeAreaView>
+
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={{
+            paddingHorizontal: 24,
+            paddingBottom: Math.max(insets.bottom, 16) + 40,
+          }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.header}>
+          {/* Header */}
+          <Animated.View
+            entering={FadeInDown.duration(500).delay(80)}
+            style={styles.header}
+          >
             <TText variant="heading" style={styles.title}>
-              Forgot Password
+              {t("auth.forgotPasswordHeading")}
             </TText>
-            <TSpacer size="sm" />
+            <TSpacer size="xs" />
             <TText color="secondary" style={styles.subtitle}>
-              Enter the email address associated with your account and {"we'll"}{" "}
-              send you a link to reset your password.
+              {t("auth.forgotPasswordSubtitle")}
             </TText>
-          </View>
+          </Animated.View>
 
           <TSpacer size="xl" />
 
-          <GlassCard style={styles.card}>
-            <TText color="secondary" style={styles.label}>
-              Email Address
-            </TText>
-            <TSpacer size="xs" />
-            <TInput
-              testID="forgot-email-input"
-              placeholder="Enter your email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoFocus
-            />
+          {/* Form */}
+          <Animated.View entering={FadeInDown.duration(500).delay(200)}>
+            <View style={styles.fieldGroup}>
+              <TText color="secondary" style={styles.label}>
+                {t("auth.email")}
+              </TText>
+              <View style={{ height: 6 }} />
+              <TInput
+                testID="forgot-email-input"
+                placeholder={t("auth.emailPlaceholder")}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoFocus
+              />
+            </View>
 
-            {/* Inline error */}
             {sendError && (
               <>
                 <TSpacer size="sm" />
@@ -283,28 +421,40 @@ export default function ForgotPasswordScreen() {
               </>
             )}
 
-            <TSpacer size="xl" />
+            <TSpacer size="lg" />
 
             <TButton
               testID="send-reset-link-button"
               onPress={handleSendResetLink}
               loading={loading}
               disabled={loading || cooldown > 0}
+              size="lg"
             >
               {cooldown > 0
-                ? `Send Reset Link (${cooldown}s)`
-                : "Send Reset Link"}
+                ? t("auth.sendResetLinkCooldown", { seconds: cooldown })
+                : t("auth.sendResetLink")}
             </TButton>
+          </Animated.View>
 
-            <TSpacer size="md" />
-
-            <TButton onPress={handleBackToSignIn} variant="ghost">
-              <TText color="primary">Back to Sign In</TText>
-            </TButton>
-          </GlassCard>
+          {/* Back to sign in */}
+          <Animated.View
+            entering={FadeInUp.duration(400).delay(300)}
+            style={styles.toggleRow}
+          >
+            <Pressable
+              onPress={handleBack}
+              style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+            >
+              <TText
+                style={[styles.backLinkText, { color: theme.colors.primary }]}
+              >
+                {t("auth.backToSignIn")}
+              </TText>
+            </Pressable>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -315,63 +465,89 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
-  dragHandleContainer: {
+  safeArea: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  gradientTeardrop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 420,
+  },
+  backButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: "center",
-    paddingTop: 8,
-    paddingBottom: 4,
+    justifyContent: "center",
+    marginLeft: 16,
+    marginTop: 8,
   },
-  dragHandle: {
-    width: 36,
-    height: 5,
-    borderRadius: 2.5,
-  },
-  scroll: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
-  },
-  centeredScroll: {
-    paddingHorizontal: 20,
-    paddingTop: 40,
-    paddingBottom: 40,
-  },
+
+  // Header
   header: {
-    alignItems: "center",
+    paddingTop: 100,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
+    fontSize: 34,
+    fontWeight: "800",
+    lineHeight: 40,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    textAlign: "center",
+    fontSize: 16,
     lineHeight: 22,
-    paddingHorizontal: 10,
   },
-  card: {
-    padding: 24,
-  },
+
+  // Form
+  fieldGroup: {},
   label: {
-    fontSize: 14,
-    fontWeight: "500",
+    fontSize: 13,
+    fontWeight: "600",
+    letterSpacing: 0.3,
   },
   errorText: {
     color: "#FF3B30",
     fontSize: 14,
-    textAlign: "center",
+  },
+
+  // Toggle / back link
+  toggleRow: {
+    alignItems: "center",
+    marginTop: 24,
+  },
+  backLink: {
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  backLinkText: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
+
+  // Sent state
+  sentContent: {
+    paddingTop: 140,
+    alignItems: "center",
   },
   iconCircle: {
-    alignSelf: "center",
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: "rgba(120,120,128,0.08)",
     alignItems: "center",
     justifyContent: "center",
   },
   sentTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 28,
+    fontWeight: "800",
     textAlign: "center",
+    letterSpacing: -0.3,
   },
   sentDescription: {
     textAlign: "center",

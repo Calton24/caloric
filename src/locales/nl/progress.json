@@ -1,0 +1,38 @@
+{
+  "progress": {
+    "title": "Voortgang",
+    "week": "Week",
+    "month": "Maand",
+    "year": "Jaar",
+    "recalculate": "Herberekenen",
+    "addWeight": "Gewicht toevoegen",
+    "last7Days": "Laatste 7 dagen",
+    "last30Days": "Laatste 30 dagen",
+    "lastYear": "Laatste jaar",
+    "goalLabel": "Doel: {{weight}} {{unit}}",
+    "current": "Huidig ({{unit}})",
+    "lost": "Verloren ({{unit}})",
+    "toGoal": "Naar doel ({{unit}})",
+    "calorieTrends": "Calorietrends",
+    "budgetLabel": "Dagbudget: {{budget}} kcal",
+    "noMealsLogged": "Geen maaltijden geregistreerd in deze periode",
+    "avgKcalDay": "Gem kcal/dag",
+    "avgProtein": "Gem eiwit",
+    "onTarget": "Op schema",
+    "logWeight": "Gewicht registreren",
+    "recalculatePlan": "Plan herberekenen",
+    "cannotRecalculate": "Kan niet herberekenen",
+    "cannotRecalculateDesc": "Registreer een gewicht en voltooi het onboarding eerst.",
+    "planUpdated": "Plan bijgewerkt",
+    "planUpdatedDesc": "Je plan is herberekend met je huidige gewicht van {{weight}}.",
+    "proteinShort": "P:",
+    "carbsShort": "C:",
+    "fatShort": "F:"
+  },
+  "logWeight": {
+    "title": "Gewicht registreren",
+    "today": "Vandaag",
+    "goalLabel": "Doel: {{weight}} {{unit}} ({{difference}} {{unit}} te gaan)",
+    "save": "Gewicht opslaan"
+  }
+}

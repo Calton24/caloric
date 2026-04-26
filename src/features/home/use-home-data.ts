@@ -8,7 +8,10 @@ import {
 } from "../../lib/utils/date";
 import { buildGoalPlan } from "../goals/goal-calculation.service";
 import { useGoalsStore } from "../goals/goals.store";
-import { getDailyNutritionSummary } from "../nutrition/nutrition.selectors";
+import {
+    getDailyNutritionSummary,
+    getMealsForDate,
+} from "../nutrition/nutrition.selectors";
 import { useNutritionStore } from "../nutrition/nutrition.store";
 import { useProfileStore } from "../profile/profile.store";
 import { getLatestWeight } from "../progress/progress.selectors";
@@ -78,29 +81,33 @@ export function useHomeData() {
 
   const handleDaySelect = (index: number) => {
     const day = weekDays[index];
-    if (day) {
+    if (day && day.key <= today) {
       setSelectedDate(day.key);
     }
   };
 
-  /** Navigate to next week */
+  /** Navigate to next week (capped at today) */
   const goToNextWeek = useCallback(() => {
-    setSelectedDate((prev) => shiftDate(prev, 7));
-  }, []);
+    setSelectedDate((prev) => {
+      const next = shiftDate(prev, 7);
+      return next > today ? today : next;
+    });
+  }, [today]);
 
   /** Navigate to previous week */
   const goToPrevWeek = useCallback(() => {
     setSelectedDate((prev) => shiftDate(prev, -7));
   }, []);
 
-  /** Navigate to next month */
+  /** Navigate to next month (capped at today) */
   const goToNextMonth = useCallback(() => {
     setSelectedDate((prev) => {
       const d = new Date(prev + "T12:00:00");
       d.setMonth(d.getMonth() + 1);
-      return toISODate(d);
+      const next = toISODate(d);
+      return next > today ? today : next;
     });
-  }, []);
+  }, [today]);
 
   /** Navigate to previous month */
   const goToPrevMonth = useCallback(() => {
@@ -120,9 +127,7 @@ export function useHomeData() {
   const activeDays = useMemo(() => {
     const indices: number[] = [];
     for (let i = 0; i < weekDays.length; i++) {
-      const dayMeals = meals.filter((m) =>
-        m.loggedAt.startsWith(weekDays[i].key)
-      );
+      const dayMeals = getMealsForDate(meals, weekDays[i].key);
       if (dayMeals.length > 0) {
         indices.push(i);
       }

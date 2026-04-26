@@ -9,14 +9,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Platform,
-    Pressable,
-    StyleSheet,
-    View,
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { TText } from "../../src/ui/primitives/TText";
 
@@ -24,12 +25,13 @@ export default function WebViewerModal() {
   const { url, title } = useLocalSearchParams<{ url: string; title: string }>();
   const router = useRouter();
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const webViewRef = useRef<WebView>(null);
   const [loading, setLoading] = useState(true);
   const [canGoBack, setCanGoBack] = useState(false);
 
   const decodedUrl = url ? decodeURIComponent(url) : "";
-  const decodedTitle = title ? decodeURIComponent(title) : "Loading...";
+  const decodedTitle = title ? decodeURIComponent(title) : t("common.loading");
 
   return (
     <SafeAreaView
@@ -81,7 +83,7 @@ export default function WebViewerModal() {
         <WebView
           ref={webViewRef}
           source={{ uri: decodedUrl }}
-          style={[styles.webView, { backgroundColor: theme.colors.background }]}
+          style={[styles.webView, { backgroundColor: "#FFFFFF" }]}
           onLoadStart={() => setLoading(true)}
           onLoadEnd={() => setLoading(false)}
           onNavigationStateChange={(state) => setCanGoBack(state.canGoBack)}
@@ -92,12 +94,7 @@ export default function WebViewerModal() {
         />
 
         {loading && (
-          <View
-            style={[
-              styles.loadingOverlay,
-              { backgroundColor: theme.colors.background },
-            ]}
-          >
+          <View style={[styles.loadingOverlay, { backgroundColor: "#FFFFFF" }]}>
             <ActivityIndicator
               size="large"
               color={theme.colors.primary ?? "#22c55e"}

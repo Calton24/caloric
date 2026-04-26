@@ -28,6 +28,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
     Dimensions,
+    Modal,
     Platform,
     Pressable,
     StyleSheet,
@@ -53,6 +54,12 @@ import Animated, {
     withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import {
+    LANGUAGE_LABELS,
+    SUPPORTED_LANGUAGES,
+    type SupportedLanguage,
+} from "../../src/infrastructure/i18n/init";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { CalCutLogo } from "../../src/ui/brand/CalCutLogo";
 import { FilmGrain } from "../../src/ui/effects/FilmGrain";
 
@@ -86,11 +93,7 @@ const MAX_SLIDE = TRACK_W - THUMB - PAD * 2;
 const COMPLETE_AT = 0.85;
 
 // ── Shimmer text ──
-const CTA_LABEL = "Commit to 21 days";
-const CTA_CHARS = CTA_LABEL.split("");
-const CHAR_N = CTA_CHARS.length;
 const SWEEP_W = 5;
-const SWEEP_PAD = SWEEP_W / CHAR_N + 0.1;
 
 // ── Nudge animation ──
 const NUDGE_DELAY = 900;
@@ -154,24 +157,211 @@ const brandStyles = StyleSheet.create({
 });
 
 // ═══════════════════════════════════════════════════════════════
+// Language Flag Mapping
+// ═══════════════════════════════════════════════════════════════
+
+const LANG_FLAGS: Record<SupportedLanguage, string> = {
+  "en-GB": "🇬🇧",
+  "en-US": "🇺🇸",
+  de: "🇩🇪",
+  es: "🇪🇸",
+  fr: "🇫🇷",
+  nl: "🇳🇱",
+  pl: "🇵🇱",
+  pt: "🇵🇹",
+  "pt-BR": "🇧🇷",
+};
+
+// ═══════════════════════════════════════════════════════════════
+// Language Pill + Dropdown
+// ═══════════════════════════════════════════════════════════════
+
+function LanguagePill() {
+  const { t, language, changeLanguage } = useAppTranslation();
+  const [open, setOpen] = useState(false);
+
+  const flag = LANG_FLAGS[language] ?? "🇬🇧";
+
+  const code =
+    language === "en-GB"
+      ? "UK"
+      : language === "en-US"
+        ? "US"
+        : language === "pt-BR"
+          ? "PT"
+          : language.toUpperCase();
+
+  const pill = (
+    <View style={langStyles.inner}>
+      <Text style={langStyles.flag}>{flag}</Text>
+      <Text style={langStyles.code}>{code}</Text>
+      <Ionicons name="chevron-down" size={12} color="rgba(255,255,255,0.7)" />
+    </View>
+  );
+
+  const pillView =
+    Platform.OS === "ios" ? (
+      <BlurView intensity={25} tint="dark" style={langStyles.pill}>
+        {pill}
+      </BlurView>
+    ) : (
+      <View style={[langStyles.pill, langStyles.pillAndroid]}>{pill}</View>
+    );
+
+  return (
+    <>
+      <Pressable
+        onPress={() => setOpen(true)}
+        style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+      >
+        {pillView}
+      </Pressable>
+
+      <Modal
+        visible={open}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOpen(false)}
+      >
+        <Pressable style={langStyles.backdrop} onPress={() => setOpen(false)}>
+          <View style={langStyles.dropdown}>
+            <Text style={langStyles.dropdownTitle}>{t("common.language")}</Text>
+            {SUPPORTED_LANGUAGES.map((lang) => {
+              const isActive = lang === language;
+              return (
+                <Pressable
+                  key={lang}
+                  onPress={() => {
+                    changeLanguage(lang);
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setOpen(false);
+                  }}
+                  style={({ pressed }) => [
+                    langStyles.option,
+                    isActive && langStyles.optionActive,
+                    pressed && { opacity: 0.7 },
+                  ]}
+                >
+                  <Text style={langStyles.optionFlag}>{LANG_FLAGS[lang]}</Text>
+                  <Text
+                    style={[
+                      langStyles.optionLabel,
+                      isActive && langStyles.optionLabelActive,
+                    ]}
+                  >
+                    {LANGUAGE_LABELS[lang]}
+                  </Text>
+                  {isActive && (
+                    <Ionicons name="checkmark" size={18} color="#34D399" />
+                  )}
+                </Pressable>
+              );
+            })}
+          </View>
+        </Pressable>
+      </Modal>
+    </>
+  );
+}
+
+const langStyles = StyleSheet.create({
+  pill: {
+    borderRadius: 20,
+    overflow: "hidden",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+  pillAndroid: {
+    backgroundColor: "rgba(0,0,0,0.38)",
+  },
+  inner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  flag: {
+    fontSize: 15,
+  },
+  code: {
+    fontSize: 13,
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    color: "#fff",
+    letterSpacing: 0.3,
+  },
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 40,
+  },
+  dropdown: {
+    backgroundColor: "#1C1C1E",
+    borderRadius: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 6,
+    width: "100%",
+    maxWidth: 320,
+  },
+  dropdownTitle: {
+    fontSize: 14,
+    fontFamily: "PlusJakartaSans_700Bold",
+    color: "rgba(255,255,255,0.5)",
+    textAlign: "center",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  option: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 12,
+  },
+  optionActive: {
+    backgroundColor: "rgba(52,211,153,0.12)",
+  },
+  optionFlag: {
+    fontSize: 20,
+  },
+  optionLabel: {
+    flex: 1,
+    fontSize: 16,
+    fontFamily: "PlusJakartaSans_500Medium",
+    color: "#fff",
+  },
+  optionLabelActive: {
+    fontFamily: "PlusJakartaSans_700Bold",
+    color: "#34D399",
+  },
+});
+
+// ═══════════════════════════════════════════════════════════════
 // Shimmer Character
 // ═══════════════════════════════════════════════════════════════
 
 const ShimmerChar = React.memo(function ShimmerChar({
   char,
   index,
+  total,
   shimmer,
 }: {
   char: string;
   index: number;
+  total: number;
   shimmer: SharedValue<number>;
 }) {
-  const center = (index + 0.5) / CHAR_N;
+  const center = (index + 0.5) / total;
+  const sweepPad = SWEEP_W / total + 0.1;
 
   const animStyle = useAnimatedStyle(() => {
-    const pos = interpolate(shimmer.value, [0, 1], [-SWEEP_PAD, 1 + SWEEP_PAD]);
+    const pos = interpolate(shimmer.value, [0, 1], [-sweepPad, 1 + sweepPad]);
     const dist = Math.abs(pos - center);
-    const half = SWEEP_W / CHAR_N / 2;
+    const half = SWEEP_W / total / 2;
     const opacity = interpolate(
       dist,
       [0, half, half * 2],
@@ -201,6 +391,11 @@ const shimmerStyles = StyleSheet.create({
 // ═══════════════════════════════════════════════════════════════
 
 function SlideToStart({ onComplete }: { onComplete: () => void }) {
+  const { t } = useAppTranslation();
+  const ctaLabel = t("landing.cta");
+  const ctaChars = ctaLabel.split("");
+  const ctaConfirm = t("landing.ctaConfirm");
+
   const tx = useSharedValue(0);
   const done = useSharedValue(0);
   const shimmer = useSharedValue(0);
@@ -232,7 +427,10 @@ function SlideToStart({ onComplete }: { onComplete: () => void }) {
       -1,
       false
     );
-  }, [shimmer]);
+    return () => {
+      cancelAnimation(shimmer);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Pre-interaction nudge — draws attention to the thumb
   useEffect(() => {
@@ -263,7 +461,7 @@ function SlideToStart({ onComplete }: { onComplete: () => void }) {
 
   const triggerComplete = useCallback(() => {
     setShowConfirm(true);
-    setTimeout(() => onComplete(), 650);
+    setTimeout(() => onComplete(), 550);
   }, [onComplete]);
 
   const pan = Gesture.Pan()
@@ -353,8 +551,14 @@ function SlideToStart({ onComplete }: { onComplete: () => void }) {
       {!showConfirm && (
         <Animated.View style={[sliderStyles.labelWrap, labelAnim]}>
           <View style={sliderStyles.labelRow}>
-            {CTA_CHARS.map((c, i) => (
-              <ShimmerChar key={i} char={c} index={i} shimmer={shimmer} />
+            {ctaChars.map((c, i) => (
+              <ShimmerChar
+                key={`${i}-${c}`}
+                char={c}
+                index={i}
+                total={ctaChars.length}
+                shimmer={shimmer}
+              />
             ))}
           </View>
         </Animated.View>
@@ -366,7 +570,7 @@ function SlideToStart({ onComplete }: { onComplete: () => void }) {
           entering={FadeIn.duration(220)}
           style={sliderStyles.labelWrap}
         >
-          <Text style={sliderStyles.confirmText}>Day 1 starts now</Text>
+          <Text style={sliderStyles.confirmText}>{ctaConfirm}</Text>
         </Animated.View>
       )}
 
@@ -432,6 +636,7 @@ const sliderStyles = StyleSheet.create({
 
 export default function LandingScreen() {
   const router = useRouter();
+  const { t } = useAppTranslation();
 
   // ── Ken Burns state ──
   const l0Op = useSharedValue(1);
@@ -486,18 +691,74 @@ export default function LandingScreen() {
     active.current = to;
   }, [l0Op, l0Sc, l0Tx, l0Ty, l1Op, l1Sc, l1Tx, l1Ty, startKB]);
 
-  useEffect(() => {
-    startKB(l0Sc, l0Tx, l0Ty, 0);
-    timer.current = setInterval(crossfade, KB_CYCLE);
-    return () => {
+  // Ken Burns is started + cleaned up via useFocusEffect below
+
+  // ── Exit animation shared values ──
+  const exitProgress = useSharedValue(0);
+  const heroZoom = useSharedValue(1);
+  const whiteFlash = useSharedValue(0);
+  const brandExitY = useSharedValue(0);
+  const brandExitOp = useSharedValue(1);
+  const copyExitY = useSharedValue(0);
+  const copyExitOp = useSharedValue(1);
+  const ctaExitY = useSharedValue(0);
+  const ctaExitOp = useSharedValue(1);
+
+  // ── Reset all exit state when screen regains focus (back navigation) ──
+  useFocusEffect(
+    useCallback(() => {
+      const ease = Easing.out(Easing.ease);
+      const dur = 300;
+
+      // Smoothly reverse the white overlay + hero zoom
+      whiteFlash.value = withTiming(0, { duration: dur, easing: ease });
+      heroZoom.value = withTiming(1, { duration: dur, easing: ease });
+      exitProgress.value = 0;
+
+      // Content fades back in with a quick spring
+      brandExitY.value = withTiming(0, { duration: dur, easing: ease });
+      brandExitOp.value = withTiming(1, { duration: dur, easing: ease });
+      copyExitY.value = withTiming(0, { duration: dur, easing: ease });
+      copyExitOp.value = withTiming(1, { duration: dur, easing: ease });
+      ctaExitY.value = withTiming(0, { duration: dur, easing: ease });
+      ctaExitOp.value = withTiming(1, { duration: dur, easing: ease });
+
+      // Restart Ken Burns
+      active.current = 0;
+      imgs.current = [0, 1];
+      l0Op.value = 1;
+      l1Op.value = 0;
+      startKB(l0Sc, l0Tx, l0Ty, 0);
       if (timer.current) clearInterval(timer.current);
-    };
-  }, [l0Sc, l0Tx, l0Ty, startKB, crossfade]);
+      timer.current = setInterval(crossfade, KB_CYCLE);
+
+      return () => {
+        if (timer.current) clearInterval(timer.current);
+      };
+    }, [
+      exitProgress,
+      heroZoom,
+      whiteFlash,
+      brandExitY,
+      brandExitOp,
+      copyExitY,
+      copyExitOp,
+      ctaExitY,
+      ctaExitOp,
+      l0Op,
+      l1Op,
+      l0Sc,
+      l0Tx,
+      l0Ty,
+      startKB,
+      crossfade,
+    ])
+  );
 
   const layer0 = useAnimatedStyle(() => ({
     opacity: l0Op.value,
     transform: [
-      { scale: l0Sc.value },
+      { scale: l0Sc.value * heroZoom.value },
       { translateX: l0Tx.value },
       { translateY: l0Ty.value },
     ],
@@ -505,13 +766,97 @@ export default function LandingScreen() {
   const layer1 = useAnimatedStyle(() => ({
     opacity: l1Op.value,
     transform: [
-      { scale: l1Sc.value },
+      { scale: l1Sc.value * heroZoom.value },
       { translateX: l1Tx.value },
       { translateY: l1Ty.value },
     ],
   }));
 
-  const handleStart = () => router.push("/(onboarding)/goal" as any);
+  const brandExitStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: brandExitY.value }],
+    opacity: brandExitOp.value,
+  }));
+  const copyExitStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: copyExitY.value }],
+    opacity: copyExitOp.value,
+  }));
+  const ctaExitStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: ctaExitY.value }],
+    opacity: ctaExitOp.value,
+  }));
+  const whiteOverlayStyle = useAnimatedStyle(() => ({
+    opacity: whiteFlash.value,
+  }));
+
+  const navigateAway = useCallback(() => {
+    router.push("/(onboarding)/goal" as any);
+  }, [router]);
+
+  const handleStart = useCallback(() => {
+    // Stop Ken Burns cycling
+    if (timer.current) clearInterval(timer.current);
+
+    const ease = Easing.bezier(0.4, 0, 0.2, 1);
+
+    // Stage 1: CTA area slides down + fades (0-250ms)
+    ctaExitY.value = withTiming(40, { duration: 250, easing: ease });
+    ctaExitOp.value = withTiming(0, { duration: 200, easing: ease });
+
+    // Stage 2: Copy slides down + fades (80-350ms)
+    copyExitY.value = withDelay(
+      80,
+      withTiming(50, { duration: 280, easing: ease })
+    );
+    copyExitOp.value = withDelay(
+      80,
+      withTiming(0, { duration: 220, easing: ease })
+    );
+
+    // Stage 3: Brand pill floats up + fades (140-400ms)
+    brandExitY.value = withDelay(
+      140,
+      withTiming(-30, { duration: 260, easing: ease })
+    );
+    brandExitOp.value = withDelay(
+      140,
+      withTiming(0, { duration: 220, easing: ease })
+    );
+
+    // Stage 4: Hero zooms in cinematically (100-650ms)
+    heroZoom.value = withDelay(
+      100,
+      withTiming(1.35, {
+        duration: 550,
+        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+      })
+    );
+
+    // Stage 5: White wash fades in (250-650ms)
+    whiteFlash.value = withDelay(
+      250,
+      withTiming(1, { duration: 400, easing: Easing.bezier(0.4, 0, 1, 1) })
+    );
+
+    // Stage 6: Navigate after the exit completes
+    exitProgress.value = withDelay(
+      620,
+      withTiming(1, { duration: 10 }, () => {
+        runOnJS(navigateAway)();
+      })
+    );
+  }, [
+    exitProgress,
+    heroZoom,
+    whiteFlash,
+    brandExitY,
+    brandExitOp,
+    copyExitY,
+    copyExitOp,
+    ctaExitY,
+    ctaExitOp,
+    navigateAway,
+  ]);
+
   const handleSignIn = () => router.push("/auth/sign-in" as any);
 
   return (
@@ -547,14 +892,28 @@ export default function LandingScreen() {
         pointerEvents="none"
       />
 
+      {/* ── White wash overlay for exit ── */}
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          { backgroundColor: "#fff" },
+          whiteOverlayStyle,
+        ]}
+        pointerEvents="none"
+      />
+
       {/* ── Content ── */}
       <SafeAreaView style={s.content} edges={["top", "bottom"]}>
-        {/* Brand pill — anchored near top */}
+        {/* Top bar — brand pill centered, language pill right */}
         <Animated.View
           entering={FadeInUp.duration(500).delay(200)}
-          style={s.brandArea}
+          style={[s.topBar, brandExitStyle]}
         >
+          <View style={s.topBarSpacer} />
           <BrandPill />
+          <View style={s.topBarSpacer}>
+            <LanguagePill />
+          </View>
         </Animated.View>
 
         {/* Spacer pushes copy to bottom */}
@@ -563,18 +922,16 @@ export default function LandingScreen() {
         {/* Copy block */}
         <Animated.View
           entering={FadeInUp.duration(600).delay(400)}
-          style={s.copyBlock}
+          style={[s.copyBlock, copyExitStyle]}
         >
-          <Text style={s.headline}>21 days to better{"\n"}eating habits</Text>
-          <Text style={s.subline}>
-            Snap a photo. AI does the rest.{"\n"}No counting. No guesswork.
-          </Text>
+          <Text style={s.headline}>{t("landing.headline")}</Text>
+          <Text style={s.subline}>{t("landing.subline")}</Text>
         </Animated.View>
 
         {/* CTA area */}
         <Animated.View
           entering={FadeInUp.duration(500).delay(600)}
-          style={s.ctaArea}
+          style={[s.ctaArea, ctaExitStyle]}
         >
           <SlideToStart onComplete={handleStart} />
 
@@ -584,8 +941,8 @@ export default function LandingScreen() {
             style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
           >
             <View style={s.signInRow}>
-              <Text style={s.signInLabel}>Already have an account? </Text>
-              <Text style={s.signInLink}>Sign In</Text>
+              <Text style={s.signInLabel}>{t("landing.signInPrompt")}</Text>
+              <Text style={s.signInLink}>{t("landing.signIn")}</Text>
             </View>
           </Pressable>
         </Animated.View>
@@ -626,10 +983,16 @@ const s = StyleSheet.create({
   },
   flex: { flex: 1 },
 
-  // Brand
-  brandArea: {
+  // Brand + Language bar
+  topBar: {
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     marginTop: IS_SMALL ? 12 : 20,
+  },
+  topBarSpacer: {
+    flex: 1,
+    alignItems: "flex-end",
   },
 
   // Copy

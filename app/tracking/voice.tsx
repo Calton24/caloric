@@ -11,6 +11,7 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
+    cancelAnimation,
     FadeIn,
     FadeInUp,
     useAnimatedStyle,
@@ -19,6 +20,7 @@ import Animated, {
     withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
@@ -27,6 +29,7 @@ type RecordingState = "idle" | "recording" | "done";
 
 export default function VoiceLoggingScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
   const [state, setState] = useState<RecordingState>("idle");
   const [transcript, setTranscript] = useState("");
@@ -34,6 +37,14 @@ export default function VoiceLoggingScreen() {
   // Pulse animation for recording indicator
   const pulseScale = useSharedValue(1);
   const pulseOpacity = useSharedValue(0.4);
+
+  // Cancel any running repeats on unmount
+  React.useEffect(() => {
+    return () => {
+      cancelAnimation(pulseScale);
+      cancelAnimation(pulseOpacity);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pulseStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pulseScale.value }],
@@ -102,7 +113,7 @@ export default function VoiceLoggingScreen() {
             variant="heading"
             style={[styles.headerTitle, { color: theme.colors.text }]}
           >
-            Voice Log
+            {t("tracking.voiceLog")}
           </TText>
           <View style={{ width: 24 }} />
         </View>
@@ -114,7 +125,7 @@ export default function VoiceLoggingScreen() {
               <TText
                 style={[styles.placeholder, { color: theme.colors.textMuted }]}
               >
-                Tap the mic and describe{"\n"}what you ate
+                {t("tracking.tapMic")}
               </TText>
             </Animated.View>
           )}
@@ -131,7 +142,7 @@ export default function VoiceLoggingScreen() {
                 <TText
                   style={[styles.recordingLabel, { color: theme.colors.error }]}
                 >
-                  Listening...
+                  {t("tracking.listening")}
                 </TText>
               </View>
               <TSpacer size="md" />
@@ -148,7 +159,7 @@ export default function VoiceLoggingScreen() {
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  Speak now...
+                  {t("voiceLog.speakNow")}
                 </TText>
               )}
             </Animated.View>
@@ -159,7 +170,7 @@ export default function VoiceLoggingScreen() {
               <TText
                 style={[styles.doneLabel, { color: theme.colors.success }]}
               >
-                Food detected
+                {t("voiceLog.foodDetected")}
               </TText>
               <TSpacer size="md" />
               <View
@@ -215,7 +226,7 @@ export default function VoiceLoggingScreen() {
               >
                 <Ionicons name="refresh" size={20} color={theme.colors.text} />
                 <TText style={[styles.retryText, { color: theme.colors.text }]}>
-                  Retry
+                  {t("tracking.retry")}
                 </TText>
               </Pressable>
 
@@ -237,7 +248,7 @@ export default function VoiceLoggingScreen() {
                       { color: theme.colors.textInverse },
                     ]}
                   >
-                    Confirm
+                    {t("tracking.confirm")}
                   </TText>
                 </LinearGradient>
               </Pressable>

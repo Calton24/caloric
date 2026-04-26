@@ -2,19 +2,6 @@
   "app": {
     "title": "Caloric"
   },
-  "auth": {
-    "signIn": "Iniciar sessão",
-    "signUp": "Registar",
-    "signOut": "Terminar sessão",
-    "email": "E-mail",
-    "password": "Palavra-passe",
-    "confirmPassword": "Confirmar palavra-passe",
-    "forgotPassword": "Esqueceu a palavra-passe?",
-    "createAccount": "Criar conta",
-    "welcome": "Bem-vindo",
-    "signInToContinue": "Inicie sessão para continuar",
-    "signUpToGetStarted": "Registe-se para começar"
-  },
   "common": {
     "cancel": "Cancelar",
     "save": "Guardar",
@@ -27,11 +14,41 @@
     "ok": "OK",
     "error": "Erro",
     "success": "Sucesso",
-    "retry": "Tentar novamente"
+    "retry": "Tentar novamente",
+    "continue": "Continuar",
+    "letsGo": "Vamos!",
+    "weeks": "Semanas",
+    "years": "anos",
+    "recommended": "Recomendado",
+    "email": "E-mail",
+    "processing": "A processar...",
+    "language": "Language",
+    "notNow": "Not now",
+    "search": "Search",
+    "like": "LIKE",
+    "nope": "NOPE",
+    "now": "now",
+    "optionsA11y": "{{label}} options"
   },
   "calories": {
     "label": "Calorias",
     "value_one": "{{count}} caloria",
     "value_other": "{{count}} calorias"
+  },
+  "tabs": {
+    "home": "Início",
+    "notes": "Notas",
+    "auth": "Conta",
+    "playground": "Área de testes",
+    "caloric": "Caloric"
+  },
+  "days": {
+    "monShort": "S",
+    "tueShort": "T",
+    "wedShort": "Q",
+    "thuShort": "Q",
+    "friShort": "S",
+    "satShort": "S",
+    "sunShort": "D"
   }
 }

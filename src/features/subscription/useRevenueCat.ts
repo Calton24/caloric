@@ -15,7 +15,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Platform } from "react-native";
+import { useAppTranslation } from "../../infrastructure/i18n";
 import { getBillingProvider } from "../../lib/billing";
+import { getSupabaseClient } from "../../lib/supabase/client";
 import { logger } from "../../logging/logger";
 import { useChallengeStore } from "../challenge/challenge.store";
 import { useSubscriptionStore } from "./subscription.store";
@@ -38,6 +40,7 @@ export function useRevenueCat() {
   const subscription = useSubscriptionStore((s) => s.subscription);
   const challenge = useChallengeStore((s) => s.challenge);
   const hasSeenIntroMoment = useChallengeStore((s) => s.introUsed);
+  const { t } = useAppTranslation();
 
   const [isRestoring, setIsRestoring] = useState(false);
   const [offerings, setOfferings] = useState<any>(null);
@@ -171,20 +174,23 @@ export function useRevenueCat() {
 
   // ── Purchase ─────────────────────────────────────────────────────────────
 
-  const purchasePackage = useCallback(async (pkg: any) => {
-    try {
-      const provider = getBillingProvider() as any;
-      if (typeof provider.purchasePackage === "function") {
-        return await provider.purchasePackage(pkg);
+  const purchasePackage = useCallback(
+    async (pkg: any) => {
+      try {
+        const provider = getBillingProvider() as any;
+        if (typeof provider.purchasePackage === "function") {
+          return await provider.purchasePackage(pkg);
+        }
+        // Fallback: present managed paywall
+        await provider.presentPaywall();
+        return null;
+      } catch {
+        Alert.alert(t("common.error"), t("settings.purchaseFailed"));
+        return null;
       }
-      // Fallback: present managed paywall
-      await provider.presentPaywall();
-      return null;
-    } catch {
-      Alert.alert("Error", "Purchase failed. Please try again.");
-      return null;
-    }
-  }, []);
+    },
+    [t]
+  );
 
   // ── Paywall ─────────────────────────────────────────────────────────────
 
@@ -192,9 +198,9 @@ export function useRevenueCat() {
     try {
       await getBillingProvider().presentPaywall();
     } catch {
-      Alert.alert("Error", "Could not open the paywall. Please try again.");
+      Alert.alert(t("common.error"), t("settings.paywallFailed"));
     }
-  }, []);
+  }, [t]);
 
   const presentPaywallIfNeeded = useCallback(async () => {
     const provider = getBillingProvider();
@@ -205,9 +211,9 @@ export function useRevenueCat() {
         await provider.presentPaywall();
       }
     } catch {
-      Alert.alert("Error", "Could not open the paywall. Please try again.");
+      Alert.alert(t("common.error"), t("settings.paywallFailed"));
     }
-  }, []);
+  }, [t]);
 
   // ── Customer Center ──────────────────────────────────────────────────────
 
@@ -215,12 +221,9 @@ export function useRevenueCat() {
     try {
       await getBillingProvider().presentCustomerCenter?.();
     } catch {
-      Alert.alert(
-        "Error",
-        "Could not open subscription management. Please try again."
-      );
+      Alert.alert(t("common.error"), t("settings.customerCenterFailed"));
     }
-  }, []);
+  }, [t]);
 
   // ── Restore ──────────────────────────────────────────────────────────────
 
@@ -228,19 +231,29 @@ export function useRevenueCat() {
     setIsRestoring(true);
     try {
       await getBillingProvider().restorePurchases();
-      Alert.alert(
-        "Restored",
-        "Your purchases have been restored successfully."
-      );
+      // Pull server truth after restore — the RC SDK may have attributed the
+      // purchase to an anonymous ID that the webhook never wrote. This closes
+      // the same anonymous-purchase gap as the login path.
+      getSupabaseClient()
+        .functions.invoke("sync-entitlement")
+        .then(({ data, error }) => {
+          if (!error && data?.ok) {
+            useSubscriptionStore.getState().syncFromServer({
+              isPro: data.isPro as boolean,
+              status: data.status as string,
+              expiresAt: (data.expiresAt as string | null) ?? null,
+              lastServerVerifiedAt: data.lastServerVerifiedAt as string,
+            });
+          }
+        })
+        .catch(() => {});
+      Alert.alert(t("settings.restored"), t("settings.restoredDesc"));
     } catch {
-      Alert.alert(
-        "Error",
-        "Could not restore purchases. Please try again later."
-      );
+      Alert.alert(t("common.error"), t("settings.restoreFailed"));
     } finally {
       setIsRestoring(false);
     }
-  }, []);
+  }, [t]);
 
   // ── Derived intro eligibility ────────────────────────────────────────────
 

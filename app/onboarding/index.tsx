@@ -15,6 +15,7 @@ import Animated, {
     FadeInUp,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
@@ -23,23 +24,24 @@ import { TText } from "../../src/ui/primitives/TText";
 const VALUE_PROPS = [
   {
     icon: "flame-outline" as const,
-    title: "Personalized calorie plan",
-    sub: "Tailored to your body & goals",
+    titleKey: "welcome.feature1Title",
+    subKey: "welcome.feature1Sub",
   },
   {
     icon: "trending-down-outline" as const,
-    title: "Science-backed weight loss",
-    sub: "Safe, sustainable rate every week",
+    titleKey: "welcome.feature2Title",
+    subKey: "welcome.feature2Sub",
   },
   {
     icon: "restaurant-outline" as const,
-    title: "Log meals in seconds",
-    sub: "Scan barcodes or search foods",
+    titleKey: "welcome.feature3Title",
+    subKey: "welcome.feature3Sub",
   },
 ];
 
 export default function OnboardingWelcomeScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
 
   return (
@@ -67,7 +69,7 @@ export default function OnboardingWelcomeScreen() {
               variant="heading"
               style={[styles.headline, { color: theme.colors.text }]}
             >
-              Lose weight{"\n"}without guessing{"\n"}calories
+              {t("welcome.heading")}
             </TText>
           </Animated.View>
 
@@ -75,7 +77,7 @@ export default function OnboardingWelcomeScreen() {
 
           <Animated.View entering={FadeIn.duration(600).delay(400)}>
             <TText color="secondary" style={styles.subheadline}>
-              Get a personalised plan in under 2 minutes
+              {t("welcome.subheading")}
             </TText>
           </Animated.View>
         </View>
@@ -103,7 +105,7 @@ export default function OnboardingWelcomeScreen() {
                 <TText
                   style={[styles.valueTitle, { color: theme.colors.text }]}
                 >
-                  {v.title}
+                  {t(v.titleKey)}
                 </TText>
                 <TText
                   style={[
@@ -111,7 +113,7 @@ export default function OnboardingWelcomeScreen() {
                     { color: theme.colors.textSecondary },
                   ]}
                 >
-                  {v.sub}
+                  {t(v.subKey)}
                 </TText>
               </View>
             </GlassSurface>
@@ -140,7 +142,7 @@ export default function OnboardingWelcomeScreen() {
               <TText
                 style={[styles.ctaText, { color: theme.colors.textInverse }]}
               >
-                Get My Plan
+                {t("welcome.cta")}
               </TText>
               <Ionicons
                 name="arrow-forward"
@@ -153,7 +155,7 @@ export default function OnboardingWelcomeScreen() {
           <TSpacer size="sm" />
 
           <TText color="muted" style={styles.disclaimer}>
-            Takes ~2 minutes · No credit card required
+            {t("welcome.disclaimer")}
           </TText>
         </Animated.View>
       </SafeAreaView>

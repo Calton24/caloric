@@ -53,6 +53,14 @@ export interface ThemeTokens {
   glassBorderHighlight: string;
   glassShadow: string;
   glassActiveRing: string;
+
+  // Premium Surfaces
+  /** Matte elevated card — slightly raised from background */
+  surfaceMatte: string;
+  /** Selected-state tinted glass background */
+  glassSelected: string;
+  /** Selected-state tinted glass border */
+  glassSelectedBorder: string;
 }
 
 export interface SpacingTokens {

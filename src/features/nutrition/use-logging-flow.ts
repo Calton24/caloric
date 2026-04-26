@@ -95,7 +95,10 @@ export function useLoggingFlow() {
    */
   function saveDraftWithoutNav() {
     if (!draft) {
-      throw new Error("No meal draft available");
+      console.warn(
+        "[LoggingFlow] saveDraftWithoutNav called with no draft — skipping"
+      );
+      return;
     }
 
     const logDate = useNutritionDraftStore.getState().logDate;
@@ -134,16 +137,16 @@ export function useLoggingFlow() {
 
   /** Navigate back to home after a save (or deferred milestone modal). */
   function navigateAfterSave() {
-    // Dismiss all modals and navigate to home
-    while (router.canDismiss()) {
-      router.dismiss();
+    // Dismiss all modals — returns to the (tabs) screen that was in the background.
+    // Do NOT call router.replace() immediately after; dispatching two navigation
+    // operations in the same tick causes a navigation invariant crash in Expo Router.
+    if (router.canDismiss()) {
+      router.dismissAll();
     }
-    // Navigate to home tab to show the logged food
-    router.push("/(tabs)" as never);
-    // Clear draft after navigation settles
+    // Clear draft after navigation animation settles
     setTimeout(() => {
       clearDraft();
-    }, 100);
+    }, 300);
   }
 
   function saveDraftAsMeal() {

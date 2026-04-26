@@ -21,21 +21,23 @@ import {
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 
 const QUICK_FOODS = [
-  { icon: "🥚", label: "Eggs", cal: 155 },
-  { icon: "🍌", label: "Banana", cal: 105 },
-  { icon: "🥗", label: "Salad", cal: 150 },
-  { icon: "🍗", label: "Chicken", cal: 335 },
-  { icon: "🍚", label: "Rice", cal: 206 },
-  { icon: "🥛", label: "Yogurt", cal: 100 },
+  { icon: "🥚", labelKey: "manualLog.eggs", cal: 155 },
+  { icon: "🍌", labelKey: "manualLog.banana", cal: 105 },
+  { icon: "🥗", labelKey: "manualLog.salad", cal: 150 },
+  { icon: "🍗", labelKey: "manualLog.chicken", cal: 335 },
+  { icon: "🍚", labelKey: "manualLog.rice", cal: 206 },
+  { icon: "🥛", labelKey: "manualLog.yogurt", cal: 100 },
 ];
 
 export default function ManualLoggingScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -70,7 +72,7 @@ export default function ManualLoggingScreen() {
               variant="heading"
               style={[styles.headerTitle, { color: theme.colors.text }]}
             >
-              Manual Log
+              {t("manualLog.title")}
             </TText>
             <View style={{ width: 24 }} />
           </View>
@@ -95,7 +97,7 @@ export default function ManualLoggingScreen() {
                 <TextInput
                   value={query}
                   onChangeText={setQuery}
-                  placeholder="Describe what you ate..."
+                  placeholder={t("manualLog.placeholder")}
                   placeholderTextColor={theme.colors.textMuted}
                   style={[styles.searchInput, { color: theme.colors.text }]}
                   multiline
@@ -114,15 +116,17 @@ export default function ManualLoggingScreen() {
                   { color: theme.colors.textSecondary },
                 ]}
               >
-                Quick Add
+                {t("manualLog.quickAdd")}
               </TText>
               <TSpacer size="sm" />
               <View style={styles.quickGrid}>
                 {QUICK_FOODS.map((food) => (
                   <Pressable
-                    key={food.label}
+                    key={food.labelKey}
                     onPress={() =>
-                      setQuery((q) => (q ? `${q}, ${food.label}` : food.label))
+                      setQuery((q) =>
+                        q ? `${q}, ${t(food.labelKey)}` : t(food.labelKey)
+                      )
                     }
                     style={[
                       styles.quickItem,
@@ -133,7 +137,7 @@ export default function ManualLoggingScreen() {
                     <TText
                       style={[styles.quickLabel, { color: theme.colors.text }]}
                     >
-                      {food.label}
+                      {t(food.labelKey)}
                     </TText>
                     <TText
                       style={[
@@ -141,7 +145,7 @@ export default function ManualLoggingScreen() {
                         { color: theme.colors.textMuted },
                       ]}
                     >
-                      {food.cal} cal
+                      {food.cal} {t("tracking.cal")}
                     </TText>
                   </Pressable>
                 ))}
@@ -187,7 +191,9 @@ export default function ManualLoggingScreen() {
                       { color: theme.colors.textInverse },
                     ]}
                   >
-                    {isProcessing ? "Processing..." : "Log Food"}
+                    {isProcessing
+                      ? t("common.processing")
+                      : t("manualLog.logFood")}
                   </TText>
                 </LinearGradient>
               </Pressable>

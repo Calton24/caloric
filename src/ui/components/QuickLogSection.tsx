@@ -20,6 +20,7 @@ import {
 } from "../../features/nutrition/memory/food-memory.service";
 import { useNutritionDraftStore } from "../../features/nutrition/nutrition.draft.store";
 import type { MealDraft } from "../../features/nutrition/nutrition.draft.types";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -46,6 +47,7 @@ function memoryToDraft(entry: FoodMemoryEntry): MealDraft {
 
 export function QuickLogSection({ isPro = false }: { isPro?: boolean }) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
   const setDraft = useNutritionDraftStore((s) => s.setDraft);
   const [activeTab, setActiveTab] = useState<Tab>("recent");
@@ -76,7 +78,7 @@ export function QuickLogSection({ isPro = false }: { isPro?: boolean }) {
           variant="subheading"
           style={[styles.sectionTitle, { color: theme.colors.text }]}
         >
-          Eat Again
+          {t("quickLog.eatAgain")}
         </TText>
         <View style={styles.tabs}>
           <Pressable
@@ -102,7 +104,7 @@ export function QuickLogSection({ isPro = false }: { isPro?: boolean }) {
                 },
               ]}
             >
-              Recent
+              {t("quickLog.recent")}
             </TText>
           </Pressable>
           {isPro && (
@@ -129,7 +131,7 @@ export function QuickLogSection({ isPro = false }: { isPro?: boolean }) {
                   },
                 ]}
               >
-                Frequent
+                {t("quickLog.frequent")}
               </TText>
             </Pressable>
           )}
@@ -170,7 +172,7 @@ export function QuickLogSection({ isPro = false }: { isPro?: boolean }) {
                     { color: theme.colors.textSecondary },
                   ]}
                 >
-                  {entry.lastCalories} cal
+                  {entry.lastCalories} {t("tracking.cal")}
                 </TText>
                 {activeTab === "frequent" && entry.frequency > 1 && (
                   <View style={styles.pillFreq}>

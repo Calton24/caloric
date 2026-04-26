@@ -1,3 +1,10 @@
+export { getStreakInsight } from "./streak-insight.service";
+export type {
+    StreakInsightInput,
+    StreakInsightModel,
+    StreakInsightState,
+    StreakInsightTone
+} from "./streak-insight.service";
 export {
     getNextMilestone,
     getProgressionMessage,

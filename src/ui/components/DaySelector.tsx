@@ -220,6 +220,11 @@ export function DaySelector({
                       <View
                         style={[
                           styles.circle,
+                          !isSelected &&
+                            !day.isToday && {
+                              borderWidth: 1.5,
+                              borderColor: theme.colors.border,
+                            },
                           isSelected &&
                             !day.isToday && {
                               backgroundColor: arcColor,

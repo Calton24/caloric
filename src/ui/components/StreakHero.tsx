@@ -12,6 +12,7 @@ import {
     getNextMilestone,
     getStreakLabel,
 } from "../../features/streak/streak-psychology.service";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { GlassSurface } from "../glass/GlassSurface";
 import { TText } from "../primitives/TText";
@@ -24,6 +25,7 @@ interface StreakHeroProps {
 
 export function StreakHero({ currentStreak, onPress }: StreakHeroProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const label = getStreakLabel(currentStreak);
   const milestone = getNextMilestone(currentStreak);
 
@@ -35,7 +37,7 @@ export function StreakHero({ currentStreak, onPress }: StreakHeroProps) {
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${currentStreak} day streak`}
+      accessibilityLabel={t("streak.dayStreak_other", { count: currentStreak })}
     >
       <GlassSurface variant="card" intensity="light" style={styles.container}>
         <Animated.View entering={FadeIn.duration(400)} style={styles.row}>
@@ -49,7 +51,7 @@ export function StreakHero({ currentStreak, onPress }: StreakHeroProps) {
             <TText
               style={[styles.daysLabel, { color: theme.colors.textSecondary }]}
             >
-              {currentStreak === 1 ? "day" : "days"}
+              {t("streak.dayLabel", { count: currentStreak })}
             </TText>
           </View>
 
@@ -62,7 +64,7 @@ export function StreakHero({ currentStreak, onPress }: StreakHeroProps) {
               <TText
                 style={[styles.identityLabel, { color: theme.colors.text }]}
               >
-                {label.emoji} {label.label}
+                {label.emoji} {t(label.labelKey)}
               </TText>
             )}
 
@@ -74,9 +76,11 @@ export function StreakHero({ currentStreak, onPress }: StreakHeroProps) {
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  {milestone.remaining} day
-                  {milestone.remaining !== 1 ? "s" : ""} to {milestone.target}
-                  -day milestone
+                  {t("streak.milestone", {
+                    count: milestone.remaining,
+                    remaining: milestone.remaining,
+                    target: milestone.target,
+                  })}
                 </TText>
               </View>
             )}

@@ -12,8 +12,11 @@ import { StyleSheet, View } from "react-native";
 import {
     generateDailyInsights,
     type DailyInsight,
+    type InsightMessage,
 } from "../../features/nutrition/daily-insights.service";
 import type { MealEntry } from "../../features/nutrition/nutrition.types";
+import { formatWeekdayLong } from "../../infrastructure/i18n";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -24,6 +27,7 @@ interface Props {
 
 export function DailyInsightsCard({ allMeals, todayDate }: Props) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
 
   const insights = useMemo(
     () => generateDailyInsights(allMeals, todayDate),
@@ -43,7 +47,7 @@ export function DailyInsightsCard({ allMeals, todayDate }: Props) {
           color={theme.colors.textMuted}
         />
         <TText style={[styles.headerLabel, { color: theme.colors.textMuted }]}>
-          INSIGHTS
+          {t("insights.header")}
         </TText>
       </View>
       {insights.map((insight, i) => (
@@ -65,6 +69,18 @@ function InsightRow({
   isLast: boolean;
 }) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
+
+  /** Resolve an InsightMessage to a localized string */
+  const resolveMessage = (msg: InsightMessage): string => {
+    // If params contain a 'date' ISO string, convert to localized weekday
+    const params = msg.params ? { ...msg.params } : undefined;
+    if (params?.date && typeof params.date === "string") {
+      params.weekday = formatWeekdayLong(new Date(params.date + "T12:00:00"));
+      delete params.date;
+    }
+    return t(msg.key, params);
+  };
 
   return (
     <View
@@ -93,14 +109,14 @@ function InsightRow({
           style={[styles.message, { color: theme.colors.text }]}
           numberOfLines={2}
         >
-          {insight.message}
+          {resolveMessage(insight.message)}
         </TText>
         {insight.detail && (
           <TText
             style={[styles.detail, { color: theme.colors.textMuted }]}
             numberOfLines={1}
           >
-            {insight.detail}
+            {resolveMessage(insight.detail)}
           </TText>
         )}
       </View>

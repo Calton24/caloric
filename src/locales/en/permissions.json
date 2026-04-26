@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "title": "Permissions Required",
+    "description": "Caloric uses your microphone and speech recognition to log meals by voice.",
+    "microphone": "Microphone",
+    "microphoneDesc": "Listen to your voice to log meals",
+    "speechRecognition": "Speech Recognition",
+    "speechRecognitionDesc": "Convert your speech to text",
+    "pushNotifications": "Push Notifications",
+    "pushNotificationsDesc": "Meal reminders and progress updates",
+    "grantPermissions": "Grant Permissions",
+    "skipForNow": "Skip for now"
+  },
+  "permissionsSetup": {
+    "title": "Permissions Required",
+    "subtitle": "Caloric uses your microphone and speech recognition to log meals with your voice, and notifications to keep you on track.",
+    "microphone": "Microphone",
+    "microphoneDesc": "Listen to your voice for meal logging",
+    "speechRecognition": "Speech Recognition",
+    "speechRecognitionDesc": "Convert your speech to food entries",
+    "pushNotifications": "Push Notifications",
+    "pushNotificationsDesc": "Meal reminders and daily progress updates",
+    "continue": "Continue",
+    "grantPermissions": "Grant Permissions",
+    "skipForNow": "Skip for now"
+  }
+}

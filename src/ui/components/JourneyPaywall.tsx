@@ -40,6 +40,7 @@ import Animated, {
 } from "react-native-reanimated";
 import type { PaywallTrigger } from "../../features/retention/day-journey";
 import { useRevenueCat } from "../../features/subscription/useRevenueCat";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { TSpacer } from "../primitives/TSpacer";
 import { TText } from "../primitives/TText";
@@ -67,14 +68,14 @@ function getTierKey(pkg: any): TierKey {
   return "other";
 }
 
-function getTierLabel(tier: TierKey): string {
+function getTierLabel(tier: TierKey, t: (key: string) => string): string {
   switch (tier) {
     case "monthly":
-      return "Monthly";
+      return t("paywall.tierMonthly");
     case "yearly":
-      return "Yearly";
+      return t("paywall.tierYearly");
     default:
-      return "Plan";
+      return t("paywall.tierPlan");
   }
 }
 
@@ -206,6 +207,7 @@ export function JourneyPaywall({
   streakDay,
 }: JourneyPaywallProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const { packages, isLoadingOfferings, purchasePackage, restorePurchases } =
     useRevenueCat();
   const [selectedPkg, setSelectedPkg] = useState<string | null>(null);
@@ -291,12 +293,12 @@ export function JourneyPaywall({
               <TText
                 style={[styles.exitHeadline, { color: theme.colors.text }]}
               >
-                Leave now and lose your streak?
+                {t("paywall.leaveStreak")}
               </TText>
               <TText
                 style={[styles.exitBody, { color: theme.colors.textSecondary }]}
               >
-                {`You've built ${streakDay} days of consistency. Don't throw it away.`}
+                {t("paywall.builtConsistency", { count: streakDay })}
               </TText>
               <TSpacer size="md" />
               <Pressable
@@ -311,7 +313,9 @@ export function JourneyPaywall({
                   end={{ x: 1, y: 1 }}
                   style={styles.exitCta}
                 >
-                  <TText style={styles.exitCtaText}>Stay on Track →</TText>
+                  <TText style={styles.exitCtaText}>
+                    {t("paywall.stayOnTrack")}
+                  </TText>
                 </LinearGradient>
               </Pressable>
               <Pressable onPress={handleExitConfirm} style={styles.exitSkip}>
@@ -321,7 +325,7 @@ export function JourneyPaywall({
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  Continue without upgrading
+                  {t("paywall.continueWithout")}
                 </TText>
               </Pressable>
             </Animated.View>
@@ -357,7 +361,7 @@ export function JourneyPaywall({
                   { color: theme.colors.primary },
                 ]}
               >
-                🔥 {streakDay}-day streak
+                🔥 {t("paywall.dayStreakBadge", { count: streakDay })}
               </TText>
             </View>
           </Animated.View>
@@ -422,10 +426,14 @@ export function JourneyPaywall({
                       key={pkg.identifier}
                       isSelected={pkg.identifier === effectiveSelection}
                       onSelect={() => setSelectedPkg(pkg.identifier)}
-                      label={getTierLabel(tier)}
+                      label={getTierLabel(tier, t)}
                       priceStr={priceStr}
                       subtitle={subtitle}
-                      badgeText={tier === "yearly" ? "Best Value ✦" : undefined}
+                      badgeText={
+                        tier === "yearly"
+                          ? t("paywall.bestValueStar")
+                          : undefined
+                      }
                       primaryColor={theme.colors.primary}
                       borderColor={theme.colors.border}
                       bgColor={theme.colors.surface}
@@ -503,7 +511,7 @@ export function JourneyPaywall({
               <TText
                 style={[styles.restoreText, { color: theme.colors.textMuted }]}
               >
-                Restore Purchases
+                {t("settings.restorePurchases")}
               </TText>
             </Pressable>
           </Animated.View>

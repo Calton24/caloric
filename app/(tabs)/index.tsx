@@ -19,6 +19,7 @@ import {
     Pressable,
     ScrollView,
     StyleSheet,
+    Text,
     View,
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -35,7 +36,9 @@ import {
     useOverLimitColor,
 } from "../../hooks/useOverLimitColor";
 import { useUnits } from "../../hooks/useUnits";
+import { useHealthAutoSync } from "../../src/features/health";
 import { useHomeData } from "../../src/features/home/use-home-data";
+import { getMilestoneInsight } from "../../src/features/milestone/milestone-insight.service";
 import type { MealTime } from "../../src/features/nutrition/mealtime";
 import {
     MEALTIME_ICONS,
@@ -56,26 +59,25 @@ import { useStreakStore } from "../../src/features/streak/streak.store";
 import { useSubscriptionStore } from "../../src/features/subscription/subscription.store";
 import { useWaterStore } from "../../src/features/water/water.store";
 import { haptics } from "../../src/infrastructure/haptics";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { toISODate } from "../../src/lib/utils/date";
 import { useTheme } from "../../src/theme/useTheme";
-import { CoachInsight } from "../../src/ui/components/CoachInsight";
-import { DayJourneyBanner } from "../../src/ui/components/DailyMotivationBanner";
+import { CalCutLogo } from "../../src/ui/brand/CalCutLogo";
+import { AnalyzingCard } from "../../src/ui/components/AnalyzingCard";
 import { DaySelector } from "../../src/ui/components/DaySelector";
 import { EditMealSheet } from "../../src/ui/components/EditMealSheet";
 import { MacroCard } from "../../src/ui/components/MacroCard";
 import { ManualLogSheet } from "../../src/ui/components/ManualLogSheet";
 import { MealCard } from "../../src/ui/components/MealCard";
+import { MilestoneInsightCard } from "../../src/ui/components/MilestoneInsightCard";
 import { MonthlyView } from "../../src/ui/components/MonthlyView";
+import { PerformanceSheet } from "../../src/ui/components/PerformanceSheet";
 import { ProgressRing } from "../../src/ui/components/ProgressRing";
-import { StreakAtRiskBanner } from "../../src/ui/components/StreakAtRiskBanner";
-import { StreakHero } from "../../src/ui/components/StreakHero";
 import { StreakModal } from "../../src/ui/components/StreakModal";
-import { StreakRecoveryBanner } from "../../src/ui/components/StreakRecoveryBanner";
 import { VoiceLogSheet } from "../../src/ui/components/VoiceLogSheet";
 import { WaterCard } from "../../src/ui/components/WaterCard";
 import { WaterSettingsModal } from "../../src/ui/components/WaterSettingsModal";
 import { WeeklyView } from "../../src/ui/components/WeeklyView";
-import { GlassSegmentedControl } from "../../src/ui/glass/GlassSegmentedControl";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 import { useBottomSheet } from "../../src/ui/sheets/useBottomSheet";
@@ -89,8 +91,11 @@ function AnimatedNumber({ value, style }: { value: number; style?: any }) {
     const endValue = value;
     const duration = 400; // ms
     const startTime = Date.now();
+    let rafId: number;
+    let cancelled = false;
 
     const animate = () => {
+      if (cancelled) return;
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
 
@@ -101,11 +106,15 @@ function AnimatedNumber({ value, style }: { value: number; style?: any }) {
       setDisplayValue(Math.round(current));
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        rafId = requestAnimationFrame(animate);
       }
     };
 
-    requestAnimationFrame(animate);
+    rafId = requestAnimationFrame(animate);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(rafId);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]); // Only depend on the target value
 
@@ -129,8 +138,11 @@ function AnimatedWeight({
     const endValue = currentValue;
     const duration = 400; // ms
     const startTime = Date.now();
+    let rafId: number;
+    let cancelled = false;
 
     const animate = () => {
+      if (cancelled) return;
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
 
@@ -141,11 +153,15 @@ function AnimatedWeight({
       setDisplayValue(current);
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        rafId = requestAnimationFrame(animate);
       }
     };
 
-    requestAnimationFrame(animate);
+    rafId = requestAnimationFrame(animate);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(rafId);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentValue]);
 
@@ -175,14 +191,112 @@ function memoryToDraft(entry: FoodMemoryEntry): MealDraft {
   };
 }
 
-/** D/W/M segment options */
-const VIEW_MODE_OPTIONS = [
-  { key: "D", label: "D" },
-  { key: "W", label: "W" },
-  { key: "M", label: "M" },
+/** D/W/M segment options — keys resolved at render via t() */
+const VIEW_MODE_OPTION_KEYS = [
+  { key: "D", labelKey: "home.dayShort" },
+  { key: "W", labelKey: "home.weekShort" },
+  { key: "M", labelKey: "home.monthShort" },
 ] as const;
 
 type ViewMode = "D" | "W" | "M";
+
+const VIEW_MODES: ViewMode[] = ["D", "W", "M"];
+const SEGMENT_W = 40;
+const SEGMENT_H = 30;
+const TOGGLE_PAD = 2;
+const SLIDE_TIMING = {
+  duration: 250,
+  easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+};
+
+function ViewModeToggle({
+  value,
+  onChange,
+}: {
+  value: ViewMode;
+  onChange: (v: ViewMode) => void;
+}) {
+  const { theme } = useTheme();
+  const isDark = theme.mode === "dark";
+  const idx = VIEW_MODES.indexOf(value);
+  const translateX = useSharedValue(idx * SEGMENT_W);
+
+  useEffect(() => {
+    const newIdx = VIEW_MODES.indexOf(value);
+    translateX.value = withTiming(newIdx * SEGMENT_W, SLIDE_TIMING);
+  }, [value, translateX]);
+
+  const indicatorStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
+  // Theme-aware colors
+  const trackBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)";
+  const trackBorder = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.10)";
+  const indicatorBg = isDark
+    ? "rgba(255,255,255,0.22)"
+    : "rgba(255,255,255,0.95)";
+  const activeText = isDark ? "#FFFFFF" : theme.colors.text;
+  const inactiveText = isDark
+    ? "rgba(255,255,255,0.45)"
+    : theme.colors.textSecondary;
+
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        backgroundColor: trackBg,
+        borderRadius: 16,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: trackBorder,
+        padding: TOGGLE_PAD,
+      }}
+    >
+      {/* Sliding indicator */}
+      <Animated.View
+        style={[
+          {
+            position: "absolute",
+            top: TOGGLE_PAD,
+            left: TOGGLE_PAD,
+            width: SEGMENT_W,
+            height: SEGMENT_H,
+            borderRadius: 14,
+            backgroundColor: indicatorBg,
+          },
+          indicatorStyle,
+        ]}
+        pointerEvents="none"
+      />
+      {VIEW_MODES.map((mode) => (
+        <Pressable
+          key={mode}
+          onPress={() => {
+            haptics.selection();
+            onChange(mode);
+          }}
+          style={{
+            width: SEGMENT_W,
+            height: SEGMENT_H,
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: 14,
+          }}
+        >
+          <Text
+            style={{
+              color: value === mode ? activeText : inactiveText,
+              fontSize: 13,
+              fontWeight: "700",
+            }}
+          >
+            {mode}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
 
 /**
  * SwipeTutorialOverlay
@@ -195,6 +309,7 @@ function SwipeTutorialOverlay({
   onDismiss: () => void;
   theme: any;
 }) {
+  const { t } = useAppTranslation();
   const translateX = useSharedValue(0);
   const opacity = useSharedValue(0);
   const isMounted = React.useRef(true);
@@ -275,12 +390,12 @@ function SwipeTutorialOverlay({
           ]}
         >
           <TText style={[styles.tutorialTitle, { color: theme.colors.text }]}>
-            Swipe to Delete
+            {t("home.swipeToDelete")}
           </TText>
           <TText
             style={[styles.tutorialHint, { color: theme.colors.textSecondary }]}
           >
-            Swipe any meal left to remove it
+            {t("home.swipeHint")}
           </TText>
 
           <View style={styles.tutorialDemo}>
@@ -306,7 +421,7 @@ function SwipeTutorialOverlay({
                     { color: theme.colors.text },
                   ]}
                 >
-                  Sample Meal
+                  {t("home.sampleMeal")}
                 </TText>
                 <TText
                   style={[
@@ -314,7 +429,7 @@ function SwipeTutorialOverlay({
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  250 cal
+                  {t("home.sampleCal")}
                 </TText>
               </View>
               <Ionicons
@@ -342,7 +457,7 @@ function SwipeTutorialOverlay({
                 { color: theme.colors.textInverse },
               ]}
             >
-              Got it!
+              {t("home.gotIt")}
             </TText>
           </Pressable>
         </View>
@@ -353,6 +468,7 @@ function SwipeTutorialOverlay({
 
 export default function HomeScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
   const units = useUnits();
   const [viewMode, setViewMode] = useState<ViewMode>("D");
@@ -419,6 +535,9 @@ export default function HomeScreen() {
   // ── Retention engine ──
   const retention = useRetentionEngine();
 
+  // ── Apple Health auto-sync on foreground ──
+  useHealthAutoSync();
+
   // Record app open once per session
   useEffect(() => {
     retention.recordOpen();
@@ -438,6 +557,46 @@ export default function HomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [retention.shouldShowCamera]);
 
+  const totals = {
+    calories: dailySummary.totalCalories,
+    protein: dailySummary.totalProtein,
+    carbs: dailySummary.totalCarbs,
+    fat: dailySummary.totalFat,
+  };
+  const targetCalories = calorieBudget;
+
+  // ── Milestone insight (unified coaching card) ──
+  const today = toISODate(new Date());
+  const hasLoggedToday = lastLogDate === today;
+  const milestoneInsight = useMemo(
+    () =>
+      getMilestoneInsight({
+        currentStreak,
+        lastLogDate: lastLogDate ?? null,
+        hasLoggedToday,
+        streakRecoveryActive: !!retention.streakRecovery,
+        lostStreak: retention.streakRecovery?.lostStreak,
+        dailySummary: {
+          targetCalories,
+          consumedCalories: totals.calories,
+          consumedProtein: totals.protein,
+          targetProtein: proteinTarget,
+          loggedMeals: todayMeals.length,
+        },
+      }),
+    [
+      currentStreak,
+      lastLogDate,
+      hasLoggedToday,
+      retention.streakRecovery,
+      targetCalories,
+      totals.calories,
+      totals.protein,
+      proteinTarget,
+      todayMeals.length,
+    ]
+  );
+
   // Group meals by category in display order
   const MEAL_ORDER: MealTime[] = ["breakfast", "lunch", "dinner", "snack"];
   const groupedMeals = useMemo(() => {
@@ -454,13 +613,6 @@ export default function HomeScreen() {
     return groups;
   }, [todayMeals]);
 
-  const totals = {
-    calories: dailySummary.totalCalories,
-    protein: dailySummary.totalProtein,
-    carbs: dailySummary.totalCarbs,
-    fat: dailySummary.totalFat,
-  };
-  const targetCalories = calorieBudget;
   const displayWeight = latestWeight ?? 0;
   const weightTrending = (latestWeight ?? 0) <= (goalWeightLbs ?? Infinity);
 
@@ -756,7 +908,7 @@ export default function HomeScreen() {
               color: theme.colors.textSecondary,
             }}
           >
-            Frequently Added
+            {t("home.frequentlyAdded")}
           </TText>
           <Pressable
             onPress={() => {
@@ -821,7 +973,7 @@ export default function HomeScreen() {
                       marginTop: 2,
                     }}
                   >
-                    {entry.lastCalories} kcal
+                    {entry.lastCalories} {t("tracking.kcal")}
                   </TText>
                 </View>
                 <View
@@ -854,7 +1006,7 @@ export default function HomeScreen() {
                 textAlign: "center",
               }}
             >
-              Log your first meal to see frequently added foods here
+              {t("home.logFirstMeal")}
             </TText>
           </View>
         )}
@@ -938,14 +1090,16 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Background with depth */}
+      {/* Glassy hue background */}
       <LinearGradient
         colors={
           theme.mode === "light"
             ? [
-                "#FAFAFA", // Very light gray
-                "#FFFFFF", // Pure white
-                "#F8F8F8", // Subtle gray at bottom
+                "#EDF4EF", // top: soft frosted mint
+                "#E8F0EB", // upper-mid
+                "#E2ECE6", // mid: gentle green tint
+                "#DDE8E1", // lower-mid: slightly deeper
+                "#D8E4DC", // bottom: subtle sage wash
               ]
             : [
                 theme.colors.background,
@@ -953,7 +1107,11 @@ export default function HomeScreen() {
                 theme.colors.surfaceSecondary,
               ]
         }
-        locations={[0, 0.4, 1]}
+        locations={
+          theme.mode === "light" ? [0, 0.25, 0.5, 0.75, 1] : [0, 0.45, 1]
+        }
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0.3, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
 
@@ -961,21 +1119,96 @@ export default function HomeScreen() {
       <View style={styles.bgShapes}>
         {theme.mode === "light" ? (
           <>
-            {/* Ultra-subtle radial gradient for soft depth */}
+            {/* Full-width top edge fade — frosted glass band */}
             <LinearGradient
               colors={[
-                "rgba(0, 0, 0, 0.008)",
-                "rgba(0, 0, 0, 0.002)",
-                "rgba(0, 0, 0, 0)",
+                "rgba(34, 197, 94, 0.06)",
+                "rgba(34, 197, 94, 0.025)",
+                "rgba(34, 197, 94, 0)",
+              ]}
+              locations={[0, 0.4, 1]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 320,
+              }}
+            />
+            {/* Left edge linear fade — soft emerald bleed */}
+            <LinearGradient
+              colors={[
+                "rgba(16, 185, 129, 0.06)",
+                "rgba(16, 185, 129, 0.02)",
+                "rgba(16, 185, 129, 0)",
               ]}
               locations={[0, 0.5, 1]}
+              start={{ x: 0, y: 0.3 }}
+              end={{ x: 1, y: 0.5 }}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                bottom: 0,
+                width: "60%",
+              }}
+            />
+            {/* Center horizontal glassy band behind ring */}
+            <LinearGradient
+              colors={[
+                "rgba(255, 255, 255, 0)",
+                "rgba(255, 255, 255, 0.35)",
+                "rgba(255, 255, 255, 0.45)",
+                "rgba(255, 255, 255, 0.35)",
+                "rgba(255, 255, 255, 0)",
+              ]}
+              locations={[0, 0.2, 0.5, 0.8, 1]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
               style={{
                 position: "absolute",
                 top: "15%",
-                left: "10%",
-                right: "10%",
-                height: 450,
-                borderRadius: 225,
+                left: 0,
+                right: 0,
+                height: 380,
+              }}
+            />
+            {/* Bottom edge fade — teal wash */}
+            <LinearGradient
+              colors={[
+                "rgba(16, 185, 129, 0)",
+                "rgba(16, 185, 129, 0.02)",
+                "rgba(16, 185, 129, 0.05)",
+              ]}
+              locations={[0, 0.5, 1]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={{
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 280,
+              }}
+            />
+            {/* Right edge subtle accent bleed */}
+            <LinearGradient
+              colors={[
+                "rgba(52, 211, 153, 0)",
+                "rgba(52, 211, 153, 0.025)",
+                "rgba(52, 211, 153, 0.04)",
+              ]}
+              locations={[0, 0.5, 1]}
+              start={{ x: 0, y: 0.4 }}
+              end={{ x: 1, y: 0.6 }}
+              style={{
+                position: "absolute",
+                top: 0,
+                right: 0,
+                bottom: 0,
+                width: "50%",
               }}
             />
           </>
@@ -1018,80 +1251,83 @@ export default function HomeScreen() {
       <SafeAreaView style={styles.safe} edges={["top"]}>
         {/* Header */}
         <View testID="home-header" style={styles.header}>
-          <View style={styles.headerLeft}>
-            <TText
-              variant="heading"
-              numberOfLines={1}
-              style={[styles.greeting, { color: theme.colors.text }]}
-            >
-              {isToday ? "Today" : dateHeader}
-            </TText>
-          </View>
-          <View style={styles.headerRight}>
-            <Pressable
-              style={styles.streakPill}
-              accessibilityLabel={`${currentStreak} day streak`}
-              accessibilityRole="button"
-              onPress={() => {
-                haptics.impact("medium");
-                setShowStreakModal(true);
-              }}
-            >
-              <TText
+          <View style={styles.headerTopRow}>
+            <View style={styles.brandPill}>
+              <CalCutLogo size={18} color={theme.colors.text} />
+              <TText style={[styles.brandText, { color: theme.colors.text }]}>
+                CalCut
+              </TText>
+            </View>
+            <View style={styles.headerRight}>
+              <Pressable
+                style={styles.streakPill}
+                accessibilityLabel={t("streak.dayStreak_other", {
+                  count: currentStreak,
+                })}
+                accessibilityRole="button"
+                onPress={() => {
+                  haptics.impact("medium");
+                  setShowStreakModal(true);
+                }}
+              >
+                <TText
+                  style={[
+                    styles.streakFlame,
+                    currentStreak === 0 && { opacity: 0.4 },
+                  ]}
+                >
+                  🔥
+                </TText>
+                <AnimatedNumber
+                  value={currentStreak}
+                  style={[
+                    styles.streakText,
+                    {
+                      color:
+                        currentStreak > 0
+                          ? theme.colors.text
+                          : theme.colors.textMuted,
+                    },
+                  ]}
+                />
+              </Pressable>
+              <Pressable
+                onPress={() => router.push("/progress" as any)}
+                accessibilityLabel={t("home.currentWeightA11y", {
+                  weight: units.format(displayWeight),
+                })}
+                accessibilityRole="button"
                 style={[
-                  styles.streakFlame,
-                  currentStreak === 0 && { opacity: 0.4 },
+                  styles.weightPill,
+                  { backgroundColor: theme.colors.surfaceSecondary },
                 ]}
               >
-                🔥
-              </TText>
-              <AnimatedNumber
-                value={currentStreak}
-                style={[
-                  styles.streakText,
-                  {
-                    color:
-                      currentStreak > 0
-                        ? theme.colors.text
-                        : theme.colors.textMuted,
-                  },
-                ]}
-              />
-            </Pressable>
-            <Pressable
-              onPress={() => router.push("/progress" as any)}
-              accessibilityLabel={`Current weight ${units.format(displayWeight)}`}
-              accessibilityRole="button"
-              style={[
-                styles.weightPill,
-                { backgroundColor: theme.colors.surfaceSecondary },
-              ]}
-            >
-              <Ionicons
-                name={weightTrending ? "trending-down" : "trending-up"}
-                size={14}
-                color={
-                  weightTrending ? theme.colors.success : theme.colors.warning
-                }
-              />
-              <AnimatedWeight
-                currentValue={displayWeight}
-                units={units}
-                style={[styles.weightText, { color: theme.colors.text }]}
-              />
-            </Pressable>
-            <Pressable
-              onPress={() => router.push("/settings" as any)}
-              hitSlop={12}
-              accessibilityLabel="Settings"
-              accessibilityRole="button"
-            >
-              <Ionicons
-                name="settings-outline"
-                size={22}
-                color={theme.colors.textMuted}
-              />
-            </Pressable>
+                <Ionicons
+                  name={weightTrending ? "trending-down" : "trending-up"}
+                  size={14}
+                  color={
+                    weightTrending ? theme.colors.success : theme.colors.warning
+                  }
+                />
+                <AnimatedWeight
+                  currentValue={displayWeight}
+                  units={units}
+                  style={[styles.weightText, { color: theme.colors.text }]}
+                />
+              </Pressable>
+              <Pressable
+                onPress={() => router.push("/settings" as any)}
+                hitSlop={12}
+                accessibilityLabel="Settings"
+                accessibilityRole="button"
+              >
+                <Ionicons
+                  name="settings-outline"
+                  size={22}
+                  color={theme.colors.textMuted}
+                />
+              </Pressable>
+            </View>
           </View>
         </View>
 
@@ -1102,13 +1338,20 @@ export default function HomeScreen() {
         >
           <TSpacer size="sm" />
 
-          {/* D / W / M Segmented Control */}
-          <View style={styles.segmentRow}>
-            <GlassSegmentedControl
-              options={VIEW_MODE_OPTIONS as any}
-              value={viewMode}
-              onChange={(key) => setViewMode(key as ViewMode)}
-            />
+          {/* Day label + D / W / M Segmented Control (centered) */}
+          <View style={styles.dayToggleRow}>
+            <TText
+              variant="heading"
+              numberOfLines={1}
+              style={[styles.dayLabel, { color: theme.colors.text }]}
+            >
+              {isToday
+                ? t("home.today")
+                : dateHeader.replace(/[\s,]*\d+.*$/, "")}
+            </TText>
+            <View style={styles.segmentToggle}>
+              <ViewModeToggle value={viewMode} onChange={setViewMode} />
+            </View>
           </View>
 
           <TSpacer size="sm" />
@@ -1127,68 +1370,6 @@ export default function HomeScreen() {
           )}
 
           {viewMode === "D" && <TSpacer size="md" />}
-
-          {/* Streak hero card — visible identity + milestone progress */}
-          {viewMode === "D" && currentStreak > 0 && (
-            <>
-              <StreakHero
-                currentStreak={currentStreak}
-                onPress={() => {
-                  haptics.impact("medium");
-                  setShowStreakModal(true);
-                }}
-              />
-              <TSpacer size="sm" />
-            </>
-          )}
-
-          {/* Streak at risk banner — loss aversion nudge */}
-          {viewMode === "D" && (
-            <StreakAtRiskBanner
-              lastLogDate={lastLogDate ?? null}
-              currentStreak={currentStreak}
-              onPress={() => router.push("/tracking/text" as any)}
-            />
-          )}
-
-          {/* Streak recovery banner — shown when streak broke */}
-          {viewMode === "D" && retention.streakRecovery && (
-            <>
-              <StreakRecoveryBanner
-                recovery={retention.streakRecovery}
-                onPress={() => router.push("/tracking/text" as any)}
-              />
-              <TSpacer size="sm" />
-            </>
-          )}
-
-          {/* Day journey banner — exact day-by-day header + sub */}
-          {viewMode === "D" && retention.dayBanner && (
-            <>
-              <DayJourneyBanner
-                header={retention.dayBanner.header}
-                sub={retention.dayBanner.sub}
-                phase={retention.dayBanner.phase}
-                day={retention.dayBanner.day}
-              />
-              <TSpacer size="sm" />
-            </>
-          )}
-
-          {/* AI Coach nudge — passive, context-aware insight */}
-          {viewMode === "D" && (
-            <>
-              <CoachInsight
-                caloriesConsumed={totals.calories}
-                calorieGoal={targetCalories}
-                proteinLeft={Math.max(0, proteinTarget - totals.protein)}
-                carbsLeft={Math.max(0, carbsTarget - totals.carbs)}
-                fatLeft={Math.max(0, fatTarget - totals.fat)}
-                streakDays={currentStreak}
-              />
-              <TSpacer size="sm" />
-            </>
-          )}
 
           {/* ── Daily view ── */}
           {viewMode === "D" && (
@@ -1218,8 +1399,12 @@ export default function HomeScreen() {
                         size={220}
                         strokeWidth={18}
                         color={overLimit.color}
-                        dayLabel={isToday ? "Today" : dateHeader.split(",")[0]}
-                        subtitle={`of ${targetCalories.toLocaleString()} cal`}
+                        dayLabel={
+                          isToday ? t("home.today") : dateHeader.split(",")[0]
+                        }
+                        subtitle={t("home.calTarget", {
+                          target: targetCalories.toLocaleString(),
+                        })}
                       />
                     </Animated.View>
 
@@ -1257,7 +1442,7 @@ export default function HomeScreen() {
                         { color: theme.colors.textMuted },
                       ]}
                     >
-                      consumed
+                      {t("home.consumed")}
                     </TText>
                   </View>
                   <View
@@ -1281,7 +1466,7 @@ export default function HomeScreen() {
                         { color: theme.colors.textMuted },
                       ]}
                     >
-                      budget
+                      {t("home.budget")}
                     </TText>
                   </View>
                 </View>
@@ -1289,6 +1474,51 @@ export default function HomeScreen() {
               {/* end calorieCard */}
 
               <TSpacer size="md" />
+
+              {/* Milestone insight — unified coaching card */}
+              {milestoneInsight && (
+                <>
+                  <MilestoneInsightCard
+                    model={milestoneInsight}
+                    onPress={() => {
+                      haptics.impact("medium");
+                      switch (milestoneInsight.state) {
+                        case "risk":
+                        case "recovery":
+                          openLogSheet();
+                          break;
+                        case "milestone_achieved":
+                        case "momentum":
+                        case "milestone_preview":
+                        default:
+                          openSheet(
+                            <PerformanceSheet
+                              model={milestoneInsight}
+                              longestStreak={longestStreak ?? 0}
+                              caloriesRemaining={
+                                targetCalories - totals.calories
+                              }
+                              proteinRemaining={proteinTarget - totals.protein}
+                              onClose={closeSheet}
+                              onTrack={() => {
+                                closeSheet();
+                                setTimeout(() => openLogSheet(), 300);
+                              }}
+                            />,
+                            { snapPoints: ["70%"] }
+                          );
+                          break;
+                      }
+                    }}
+                    onCTA={
+                      milestoneInsight.action === "track_meal"
+                        ? () => openLogSheet()
+                        : undefined
+                    }
+                  />
+                  <TSpacer size="sm" />
+                </>
+              )}
 
               {/* Macro + Activity pager */}
               <Animated.View testID="macro-cards" style={contentAnimStyle}>
@@ -1320,25 +1550,25 @@ export default function HomeScreen() {
                         }}
                       >
                         <MacroCard
-                          label="Protein"
+                          label={t("home.protein")}
                           consumedG={totals.protein}
                           targetG={proteinTarget}
                           color={MACRO_COLORS.protein}
                           icon="🍖"
                         />
                         <MacroCard
-                          label="Carbs"
+                          label={t("home.carbs")}
                           consumedG={totals.carbs}
                           targetG={carbsTarget}
                           color={MACRO_COLORS.carbs}
                           icon="🌾"
                         />
                         <MacroCard
-                          label="Fat"
+                          label={t("home.fat")}
                           consumedG={totals.fat}
                           targetG={fatTarget}
                           color={MACRO_COLORS.fat}
-                          icon="💧"
+                          icon="🥑"
                         />
                       </View>
                       {/* Page 1 — Activity (placeholder — no step integration yet) */}
@@ -1350,16 +1580,16 @@ export default function HomeScreen() {
                         }}
                       >
                         <MacroCard
-                          label="Steps"
+                          label={t("home.steps")}
                           consumedG={0}
                           targetG={10000}
-                          color="#34C759"
+                          color={theme.colors.primary}
                           icon="👟"
                           unit=""
                           display="consumed"
                         />
                         <MacroCard
-                          label="Active cal"
+                          label={t("home.activeCal")}
                           consumedG={0}
                           targetG={500}
                           color="#FF9500"
@@ -1454,6 +1684,9 @@ export default function HomeScreen() {
 
           <TSpacer size="lg" />
 
+          {/* Scan in progress / complete card */}
+          <AnalyzingCard />
+
           {/* Meals section */}
           <View testID="meals-section">
             <View style={styles.mealsHeader}>
@@ -1461,7 +1694,7 @@ export default function HomeScreen() {
                 variant="subheading"
                 style={[styles.sectionTitle, { color: theme.colors.text }]}
               >
-                Meals
+                {t("home.meals")}
               </TText>
               <TText
                 style={[
@@ -1469,7 +1702,7 @@ export default function HomeScreen() {
                   { color: theme.colors.textSecondary },
                 ]}
               >
-                {todayMeals.length} logged
+                {t("home.logged", { count: todayMeals.length })}
               </TText>
             </View>
             <TSpacer size="sm" />
@@ -1487,7 +1720,7 @@ export default function HomeScreen() {
                       { color: theme.colors.textMuted },
                     ]}
                   >
-                    No meals logged yet
+                    {t("home.noMealsYet")}
                   </TText>
                   <TText
                     style={[
@@ -1495,7 +1728,7 @@ export default function HomeScreen() {
                       { color: theme.colors.textMuted },
                     ]}
                   >
-                    Tap + to snap, speak, or type your first meal
+                    {t("home.tapToLog")}
                   </TText>
                 </View>
               ) : (
@@ -1650,18 +1883,34 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+  },
+  headerTopRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    height: 64,
   },
   headerLeft: {
-    flex: 1,
-    height: 48,
-    justifyContent: "center",
+    flexShrink: 1,
     marginRight: 8,
+  },
+  brandPillRow: {
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  brandPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  brandText: {
+    fontSize: 14,
+    fontFamily: "PlusJakartaSans_800ExtraBold",
+    letterSpacing: 0.15,
   },
   headerRight: {
     flexDirection: "row",
@@ -1673,6 +1922,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700",
     letterSpacing: -0.3,
+  },
+  dayLabel: {
+    fontSize: 24,
+    fontWeight: "700",
+    letterSpacing: -0.3,
+    zIndex: 1,
   },
   date: {
     fontSize: 14,
@@ -1690,6 +1945,14 @@ const styles = StyleSheet.create({
   weightText: {
     fontSize: 14,
     fontWeight: "600",
+  },
+  streakRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    marginTop: -4,
+    marginBottom: 4,
   },
   streakPill: {
     flexDirection: "row",
@@ -1713,6 +1976,21 @@ const styles = StyleSheet.create({
   segmentRow: {
     alignSelf: "center",
     width: 160,
+  },
+  dayToggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 40,
+    paddingHorizontal: 4,
+  },
+  segmentToggle: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2,
+  },
+  segmentToggleInner: {
+    width: 140,
   },
   calorieCard: {
     borderRadius: 20,

@@ -17,7 +17,7 @@ import { getStorage } from "../../infrastructure/storage";
 // ── Constants ──────────────────────────────────────────────────────────────
 
 const STORAGE_KEY = "caloric:scan_credits";
-const FREE_TIER_TOTAL_LIMIT = 3;
+const FREE_TIER_TOTAL_LIMIT = 999_999; // TEMP: limit disabled
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -65,7 +65,9 @@ export const useScanCreditsStore = create<ScanCreditsStore>((set, get) => ({
         set({
           credits: {
             totalUsed: parsed.totalUsed ?? 0,
-            totalLimit: parsed.totalLimit ?? FREE_TIER_TOTAL_LIMIT,
+            // Always use the constant — never restore from storage so
+            // changing FREE_TIER_TOTAL_LIMIT takes effect immediately.
+            totalLimit: FREE_TIER_TOTAL_LIMIT,
           },
           loaded: true,
         });

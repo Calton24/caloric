@@ -20,7 +20,7 @@ module.exports = {
     ],
   },
   transformIgnorePatterns: [
-    "node_modules/(?!(react-native|@react-native|react-native-url-polyfill)/)",
+    "node_modules/(?!(react-native|@react-native|react-native-url-polyfill|expo-speech-recognition)/)",
   ],
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json"],
   moduleNameMapper: {
@@ -32,6 +32,7 @@ module.exports = {
       "<rootDir>/__mocks__/@react-native-async-storage/async-storage.ts",
     "expo-constants": "<rootDir>/__mocks__/expo-constants.ts",
     "expo-secure-store": "<rootDir>/__mocks__/expo-secure-store.ts",
+    "expo-speech-recognition": "<rootDir>/__mocks__/expo-speech-recognition.ts",
   },
   setupFilesAfterEnv: ["<rootDir>/__tests__/setup.ts"],
   collectCoverageFrom: [

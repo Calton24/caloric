@@ -53,7 +53,9 @@ export type { SwipeCardItem, SwipeCardProps, SwipeCardRef } from "./SwipeCard";
 
 export { Carousel } from "./Carousel";
 export type {
-    CarouselIndicator, CarouselItem, CarouselProps
+    CarouselIndicator,
+    CarouselItem,
+    CarouselProps
 } from "./Carousel";
 
 export { Stories } from "./Stories";
@@ -67,7 +69,8 @@ export type { StarRatingProps, StarRatingSize } from "./StarRating";
 
 export { SplashScreen } from "./SplashScreen";
 export type {
-    SplashAnimation, SplashScreenProps,
+    SplashAnimation,
+    SplashScreenProps,
     SplashScreenRef
 } from "./SplashScreen";
 
@@ -77,4 +80,13 @@ export type {
     CheckboxProps,
     CheckboxSize
 } from "./Checkbox";
+
+// ── i18n-aware components ──
+export {
+    useConfirmDialog,
+    useInfoDialog,
+    useLocalizedAlert
+} from "./ConfirmDialog";
+export { LocalizedText } from "./LocalizedText";
+export { RichText } from "./RichText";
 

@@ -3,6 +3,9 @@
  *
  * Feature code imports this. Never import i18next or react-i18next directly.
  *
+ * The `t` function is typed: simple keys autocomplete without params,
+ * parameterised keys require the correct `{{ }}` variables.
+ *
  * @example
  * ```tsx
  * import { useAppTranslation } from "@/infrastructure/i18n";
@@ -18,9 +21,22 @@ import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { SupportedLanguage } from "./init";
 import { persistLanguage } from "./init";
+import type {
+    ParamTranslationKey,
+    SimpleTranslationKey,
+    TranslationParams,
+} from "./types.generated";
+
+/** Overloaded t() — simple keys need no params, parameterised keys require them */
+type TypedT = {
+  (key: SimpleTranslationKey): string;
+  <K extends ParamTranslationKey>(key: K, params: TranslationParams[K]): string;
+  // Escape hatch: any string with optional params (for dynamic keys like labelKey patterns)
+  (key: string, params?: Record<string, string | number>): string;
+};
 
 export function useAppTranslation() {
-  const { t, i18n } = useTranslation("common");
+  const { t: rawT, i18n } = useTranslation("common");
 
   const changeLanguage = useCallback(
     async (lang: SupportedLanguage) => {
@@ -31,10 +47,10 @@ export function useAppTranslation() {
   );
 
   return {
-    /** Translation function — `t("auth.signIn")` */
-    t,
+    /** Type-safe translation function */
+    t: rawT as TypedT,
     /** Current active language code */
-    language: (i18n.language ?? "en") as SupportedLanguage,
+    language: (i18n.language ?? "en-GB") as SupportedLanguage,
     /** Switch language at runtime + persist to AsyncStorage */
     changeLanguage,
   };
