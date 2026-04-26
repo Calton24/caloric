@@ -1,4 +1,3 @@
-import { toLocalDateTime } from "../../lib/utils/date";
 import { MealDraft } from "./nutrition.draft.types";
 import { MealEntry } from "./nutrition.types";
 
@@ -8,18 +7,37 @@ export function buildMealEntryFromDraft(params: {
 }): MealEntry {
   const { draft, loggedAt } = params;
   // Priority: explicit param > draft.loggedAt > now
-  let timestamp = loggedAt ?? draft.loggedAt;
-  if (timestamp) {
-    // If only a date (YYYY-MM-DD), attach the current time of day
-    if (timestamp.length === 10) {
+  // All timestamps are stored as UTC ISO so that `new Date(loggedAt)` is
+  // unambiguous everywhere — local persist, Supabase TIMESTAMPTZ, and date
+  // math in `getMealsForDate` all agree on the same instant.
+  const provided = loggedAt ?? draft.loggedAt;
+  let timestamp: string;
+  if (provided) {
+    if (provided.length === 10) {
+      // Bare YYYY-MM-DD: anchor it at the current local time of day, then
+      // serialise to UTC ISO so it round-trips through Supabase correctly.
       const now = new Date();
-      const hh = String(now.getHours()).padStart(2, "0");
-      const mm = String(now.getMinutes()).padStart(2, "0");
-      const ss = String(now.getSeconds()).padStart(2, "0");
-      timestamp = `${timestamp}T${hh}:${mm}:${ss}`;
+      const local = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        now.getHours(),
+        now.getMinutes(),
+        now.getSeconds()
+      );
+      const [y, m, d] = provided.split("-").map(Number);
+      local.setFullYear(y, m - 1, d);
+      timestamp = local.toISOString();
+    } else if (/Z$|[+-]\d{2}:?\d{2}$/.test(provided)) {
+      // Already has a timezone — trust it.
+      timestamp = provided;
+    } else {
+      // Legacy local-time string with no offset — interpret as local and
+      // re-serialise to UTC ISO.
+      timestamp = new Date(provided).toISOString();
     }
   } else {
-    timestamp = toLocalDateTime();
+    timestamp = new Date().toISOString();
   }
 
   const entry: MealEntry = {

@@ -212,10 +212,18 @@ export function useProgressSync(): void {
     hasRestoredRef.current = userId;
 
     (async () => {
-      // First push any local data that was created while offline/logged out
-      await pushAllToSupabase();
-      // Then restore anything from remote we don't have locally
+      // ORDER MATTERS. Pull and reconcile first, push second.
+      //
+      // The opposite order silently resurrects deletes done on another
+      // device: if Device A deleted a meal that's still cached locally
+      // here, pushing first would upsert the cached copy back onto the
+      // server, undoing Device A's intent. Pulling first lets
+      // `reconcileWithServer` drop the locally-cached meal, after which
+      // the push only uploads things that genuinely need to exist.
       await restoreFromSupabase();
+      // Replay any locally-added meals (and other state) that the server
+      // doesn't know about yet, e.g. logged while offline.
+      await pushAllToSupabase();
       // Re-derive streak from the now-merged local+remote meals.
       // Local meals are the authoritative source after restore.
       computeLocalStreak();

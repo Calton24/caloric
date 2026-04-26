@@ -8,7 +8,10 @@ import {
 } from "../../lib/utils/date";
 import { buildGoalPlan } from "../goals/goal-calculation.service";
 import { useGoalsStore } from "../goals/goals.store";
-import { getDailyNutritionSummary } from "../nutrition/nutrition.selectors";
+import {
+    getDailyNutritionSummary,
+    getMealsForDate,
+} from "../nutrition/nutrition.selectors";
 import { useNutritionStore } from "../nutrition/nutrition.store";
 import { useProfileStore } from "../profile/profile.store";
 import { getLatestWeight } from "../progress/progress.selectors";
@@ -124,9 +127,7 @@ export function useHomeData() {
   const activeDays = useMemo(() => {
     const indices: number[] = [];
     for (let i = 0; i < weekDays.length; i++) {
-      const dayMeals = meals.filter((m) =>
-        m.loggedAt.startsWith(weekDays[i].key)
-      );
+      const dayMeals = getMealsForDate(meals, weekDays[i].key);
       if (dayMeals.length > 0) {
         indices.push(i);
       }

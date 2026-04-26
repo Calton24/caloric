@@ -1,7 +1,17 @@
+import { toLocalDate } from "../../lib/utils/date";
 import { DailyNutritionSummary, MealEntry } from "./nutrition.types";
 
+/**
+ * Get all meals logged on a specific local date (YYYY-MM-DD).
+ * Converts meal timestamps from UTC to local timezone before comparison
+ * to handle meals logged near midnight in different timezones.
+ */
 export function getMealsForDate(meals: MealEntry[], date: string): MealEntry[] {
-  return meals.filter((meal) => meal.loggedAt.startsWith(date));
+  return meals.filter((meal) => {
+    // Convert UTC timestamp to local date (YYYY-MM-DD)
+    const mealLocalDate = toLocalDate(new Date(meal.loggedAt));
+    return mealLocalDate === date;
+  });
 }
 
 export function getNutritionTotals(meals: MealEntry[]) {
