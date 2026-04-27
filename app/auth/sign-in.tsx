@@ -35,6 +35,7 @@ import {
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
 import { AuthCapabilities } from "../../src/features/auth/authCapabilities";
 import { useAuth } from "../../src/features/auth/useAuth";
+import { reportError } from "../../src/infrastructure/errorReporting";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { CalCutLogo } from "../../src/ui/brand/CalCutLogo";
@@ -42,6 +43,26 @@ import { TButton } from "../../src/ui/primitives/TButton";
 import { TInput } from "../../src/ui/primitives/TInput";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+
+/**
+ * Filter out expected user-facing auth errors so they don't pollute Sentry.
+ * Anything that isn't on this list is treated as an unexpected infra error
+ * and reported.
+ */
+function isExpectedAuthError(message: string | undefined): boolean {
+  if (!message) return false;
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("invalid login credentials") ||
+    lower.includes("invalid email") ||
+    lower.includes("email not confirmed") ||
+    lower.includes("user already registered") ||
+    lower.includes("password should be") ||
+    lower.includes("rate limit") ||
+    lower.includes("too many requests") ||
+    lower === "user cancelled"
+  );
+}
 
 export default function SignInScreen() {
   const { theme } = useTheme();
@@ -72,6 +93,17 @@ export default function SignInScreen() {
     try {
       const { error } = await signIn(email, password);
       if (error) {
+        // Don't report bad-credentials / wrong-password — those are expected
+        // user errors, not infra failures. Treat anything we don't recognise
+        // as expected as a real error.
+        if (!isExpectedAuthError(error.message)) {
+          reportError(error, {
+            area: "auth",
+            action: "signIn_email",
+            screen: "auth/sign-in",
+            provider: "supabase",
+          });
+        }
         Alert.alert(t("auth.signInFailed"), error.message);
       } else {
         // Let index.tsx evaluate auth + onboarding state so routing is
@@ -101,6 +133,14 @@ export default function SignInScreen() {
     try {
       const { error } = await signUp(email, password);
       if (error) {
+        if (!isExpectedAuthError(error.message)) {
+          reportError(error, {
+            area: "auth",
+            action: "signUp_email",
+            screen: "auth/sign-in",
+            provider: "supabase",
+          });
+        }
         Alert.alert(t("auth.signUpFailed"), error.message);
       } else {
         setSignUpSuccess(true);
@@ -140,6 +180,12 @@ export default function SignInScreen() {
       const { error } = await signInWithGoogleNative();
       if (error) {
         if (error.message !== "User cancelled") {
+          reportError(error, {
+            area: "auth",
+            action: "signIn_google",
+            screen: "auth/sign-in",
+            provider: "google",
+          });
           Alert.alert("Error", error.message);
         }
         return;
@@ -160,6 +206,12 @@ export default function SignInScreen() {
       const { error } = await signInWithAppleNative();
       if (error) {
         if (error.message !== "User cancelled") {
+          reportError(error, {
+            area: "auth",
+            action: "signIn_apple",
+            screen: "auth/sign-in",
+            provider: "apple",
+          });
           Alert.alert("Error", error.message);
         }
         return;

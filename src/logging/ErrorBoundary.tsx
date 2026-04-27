@@ -5,6 +5,7 @@
 
 import { Component, ErrorInfo, ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
+import { reportError } from "../infrastructure/errorReporting";
 import { logger } from "./logger";
 
 interface ErrorBoundaryProps {
@@ -41,11 +42,20 @@ export class ErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Log error via logger (not analytics - separation of concerns)
     logger.error("[ErrorBoundary] Caught error", {
       error: error.message,
       stack: error.stack,
       componentStack: errorInfo.componentStack,
+    });
+    // Forward to Sentry. The component stack lives in `extra` so it ends up
+    // on the issue without polluting top-level tags.
+    reportError(error, {
+      area: "bootstrap",
+      action: "react_error_boundary",
+      level: "error",
+      extra: {
+        componentStack: errorInfo.componentStack ?? null,
+      },
     });
   }
 

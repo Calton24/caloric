@@ -173,6 +173,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           enableCodeScanner: true,
         },
       ],
+      [
+        "@sentry/react-native/expo",
+        {
+          organization: process.env.SENTRY_ORG,
+          project: process.env.SENTRY_PROJECT,
+          authToken: process.env.SENTRY_AUTH_TOKEN,
+        },
+      ],
     ],
 
     experiments: {

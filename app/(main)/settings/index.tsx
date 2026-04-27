@@ -44,6 +44,7 @@ import { useTheme } from "../../../src/theme/useTheme";
 import { TSpacer } from "../../../src/ui/primitives/TSpacer";
 import { TText } from "../../../src/ui/primitives/TText";
 
+
 // ─── Shared Row Components ─────────────────────────────────
 
 function SettingsRow({
@@ -551,6 +552,7 @@ export default function SettingsScreen() {
               />
             </View>
           </Animated.View>
+
 
           <TSpacer size="xxl" />
           <TSpacer size="xxl" />

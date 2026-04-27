@@ -11,10 +11,17 @@
  * the first pipeline's writes are silently discarded. No race conditions.
  */
 
+import {
+  reportBreadcrumb,
+  reportError,
+} from "../../infrastructure/errorReporting";
 import { labelFoodImage } from "../image-analysis/ocr/image-labeling.service";
 import { extractTextFromImage } from "../image-analysis/ocr/text-recognition.service";
 import { analyzeImage } from "../image-analysis/pipeline";
-import { analyzeMealImage } from "../meal-analysis/meal-analysis.service";
+import {
+  MealAnalysisError,
+  analyzeMealImage,
+} from "../meal-analysis/meal-analysis.service";
 import type { MealAnalysisResult } from "../meal-analysis/meal-analysis.types";
 import { captionFoodImage } from "../nutrition/image/image-captioning.service";
 import {
@@ -147,8 +154,23 @@ export async function runImagePipeline(
           completeScan(jobId, draft);
           return;
         }
-      } catch {
-        // Fall through to ML Kit labels
+      } catch (cloudErr) {
+        // We fall through to ML Kit labels regardless. But: surface unexpected
+        // throws (network, JS errors, etc) as a crumb. Don't full-report
+        // MealAnalysisError — meal-analysis.service already reported its
+        // canonical event.
+        if (!(cloudErr instanceof MealAnalysisError)) {
+          reportBreadcrumb("cloud-vision branch threw, falling through", {
+            area: "scan",
+            action: "image_pipeline_cloud_vision_fallthrough",
+            level: "warning",
+            extra: {
+              jobId,
+              errorMessage:
+                cloudErr instanceof Error ? cloudErr.message : String(cloudErr),
+            },
+          });
+        }
       }
     }
 
@@ -232,6 +254,13 @@ export async function runImagePipeline(
   } catch (e) {
     if (!isActive(jobId)) return;
     const message = e instanceof Error ? e.message : "Analysis failed";
+    // Pipeline-wide failure — this is the user-visible "Analysis failed"
+    // path. Worth a full event so we know when the whole pipeline craters.
+    reportError(e, {
+      area: "scan",
+      action: "image_pipeline_outer_failure",
+      extra: { jobId },
+    });
     failScan(jobId, message);
   }
 }

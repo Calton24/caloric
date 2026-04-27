@@ -9,6 +9,10 @@
  *   - On local write: pushes to Supabase in background
  */
 
+import {
+    reportBreadcrumb,
+    reportError,
+} from "../../infrastructure/errorReporting";
 import { getCurrentUser, getSupabaseClient } from "../../lib/supabase/client";
 import { useGoalsStore } from "../goals/goals.store";
 import type { GoalPlan } from "../goals/goals.types";
@@ -30,10 +34,27 @@ async function getUserId(): Promise<string | null> {
   }
 }
 
+/**
+ * Per-call sync error logger. Per-meal / per-row sync errors fire frequently
+ * (every offline/online toggle, every flaky network blip), so we emit a
+ * Sentry breadcrumb instead of a full event. The orchestration callers
+ * (restoreFromSupabase, pushAllToSupabase) emit their own full events at
+ * the boundary so we still see when the pipeline fails as a whole.
+ */
 function logSyncError(context: string, error: unknown): void {
   if (__DEV__) {
     console.warn(`[Sync] ${context}:`, error);
   }
+  reportBreadcrumb(`[Sync] ${context} failed`, {
+    area: "sync",
+    action: context,
+    provider: "supabase",
+    level: "warning",
+    extra: {
+      errorMessage: error instanceof Error ? error.message : String(error),
+      errorName: error instanceof Error ? error.name : undefined,
+    },
+  });
 }
 
 // ── Meal Sync ────────────────────────────────────────────────
@@ -602,7 +623,14 @@ export async function restoreFromSupabase(): Promise<void> {
       }
     }
   } catch (e) {
-    logSyncError("restoreFromSupabase", e);
+    // Whole-restore failure on login. Low-frequency, high-signal: full event.
+    if (__DEV__) console.warn("[Sync] restoreFromSupabase:", e);
+    reportError(e, {
+      area: "sync",
+      action: "restoreFromSupabase",
+      provider: "supabase",
+      userId: userId ?? undefined,
+    });
   }
 }
 
@@ -682,6 +710,13 @@ export async function pushAllToSupabase(): Promise<void> {
     const profile = useProfileStore.getState().profile;
     await pushProfile(profile);
   } catch (e) {
-    logSyncError("pushAllToSupabase", e);
+    // Whole-push orchestration failure on login. Low-frequency, high-signal: full event.
+    if (__DEV__) console.warn("[Sync] pushAllToSupabase:", e);
+    reportError(e, {
+      area: "sync",
+      action: "pushAllToSupabase",
+      provider: "supabase",
+      userId: userId ?? undefined,
+    });
   }
 }

@@ -11,6 +11,7 @@
  */
 
 import { useEffect, useRef } from "react";
+import { reportError } from "../../infrastructure/errorReporting";
 import { useAuth } from "../auth/useAuth";
 import { useChallengeStore } from "../challenge/challenge.store";
 import {
@@ -212,42 +213,62 @@ export function useProgressSync(): void {
     hasRestoredRef.current = userId;
 
     (async () => {
-      // ORDER MATTERS. Pull and reconcile first, push second.
-      //
-      // The opposite order silently resurrects deletes done on another
-      // device: if Device A deleted a meal that's still cached locally
-      // here, pushing first would upsert the cached copy back onto the
-      // server, undoing Device A's intent. Pulling first lets
-      // `reconcileWithServer` drop the locally-cached meal, after which
-      // the push only uploads things that genuinely need to exist.
-      await restoreFromSupabase();
-      // Replay any locally-added meals (and other state) that the server
-      // doesn't know about yet, e.g. logged while offline.
-      await pushAllToSupabase();
-      // Re-derive streak from the now-merged local+remote meals.
-      // Local meals are the authoritative source after restore.
-      computeLocalStreak();
-      // Also fetch server streak and call RPC to ensure cloud is up-to-date.
-      // If the server knows a higher streak (e.g. from another device), adopt it.
-      fetchStreak()
-        .then((serverStreak) => {
-          const local = useStreakStore.getState();
-          if (serverStreak.currentStreak > local.currentStreak) {
-            useStreakStore.getState().setStreak(serverStreak);
-          }
-        })
-        .catch(() => {});
+      try {
+        // ORDER MATTERS. Pull and reconcile first, push second.
+        //
+        // The opposite order silently resurrects deletes done on another
+        // device: if Device A deleted a meal that's still cached locally
+        // here, pushing first would upsert the cached copy back onto the
+        // server, undoing Device A's intent. Pulling first lets
+        // `reconcileWithServer` drop the locally-cached meal, after which
+        // the push only uploads things that genuinely need to exist.
+        await restoreFromSupabase();
+        // Replay any locally-added meals (and other state) that the server
+        // doesn't know about yet, e.g. logged while offline.
+        await pushAllToSupabase();
+        // Re-derive streak from the now-merged local+remote meals.
+        // Local meals are the authoritative source after restore.
+        computeLocalStreak();
+        // Also fetch server streak and call RPC to ensure cloud is up-to-date.
+        // If the server knows a higher streak (e.g. from another device), adopt it.
+        fetchStreak()
+          .then((serverStreak) => {
+            const local = useStreakStore.getState();
+            if (serverStreak.currentStreak > local.currentStreak) {
+              useStreakStore.getState().setStreak(serverStreak);
+            }
+          })
+          .catch((err) => {
+            // Streak fetch is non-critical; breadcrumb only.
+            reportError(err, {
+              area: "sync",
+              action: "useProgressSync_fetchStreak",
+              level: "warning",
+              userId,
+            });
+          });
 
-      // Restore challenge: remote wins (server is source of truth after login)
-      const remoteChallenge = await pullChallenge();
-      if (remoteChallenge) {
-        useChallengeStore.getState().setChallenge(remoteChallenge);
-      } else {
-        // If we have a local challenge that hasn't been pushed yet, push it now
-        const localChallenge = useChallengeStore.getState().challenge;
-        if (localChallenge) {
-          createChallenge(localChallenge);
+        // Restore challenge: remote wins (server is source of truth after login)
+        const remoteChallenge = await pullChallenge();
+        if (remoteChallenge) {
+          useChallengeStore.getState().setChallenge(remoteChallenge);
+        } else {
+          // If we have a local challenge that hasn't been pushed yet, push it now
+          const localChallenge = useChallengeStore.getState().challenge;
+          if (localChallenge) {
+            createChallenge(localChallenge);
+          }
         }
+      } catch (err) {
+        // Orchestration-level failure during login restore/push.
+        // restoreFromSupabase / pushAllToSupabase already report their own
+        // canonical failures, so this catch only fires for unexpected throws
+        // (e.g. challenge sync, fetchStreak setup) that escape inner handlers.
+        reportError(err, {
+          area: "sync",
+          action: "useProgressSync_loginRestore",
+          userId,
+        });
       }
     })();
   }, [userId]);

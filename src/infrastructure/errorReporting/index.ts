@@ -7,11 +7,19 @@
 export {
     getErrorReporter,
     initErrorReporting,
-    resetErrorReporting
+    resetErrorReporting,
 } from "./factory";
 
 // Error Boundary component
 export { ErrorBoundary } from "./ErrorBoundary";
+
+// High-level reporting helpers (preferred entry point for callers)
+export {
+    reportBreadcrumb,
+    reportError,
+    scrubExtra,
+} from "./reportError";
+export type { ReportArea, ReportContext } from "./reportError";
 
 // Types
 export type {
@@ -20,7 +28,7 @@ export type {
     ErrorLevel,
     ErrorReporter,
     ErrorReporterConfig,
-    User
+    User,
 } from "./types";
 
 // Noop implementation (safe for testing/mocking)

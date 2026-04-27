@@ -46,6 +46,7 @@ import { createChallenge } from "../../src/features/challenge/challenge.sync";
 import type { UserChallenge } from "../../src/features/challenge/challenge.types";
 import { useSubscriptionStore } from "../../src/features/subscription/subscription.store";
 import { useRevenueCat } from "../../src/features/subscription/useRevenueCat";
+import { reportError } from "../../src/infrastructure/errorReporting";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { logger } from "../../src/logging/logger";
 import { useTheme } from "../../src/theme/useTheme";
@@ -794,9 +795,17 @@ export default function OnboardingChallengeScreen() {
       setChallenge(challenge);
       markPaywallSeen();
 
-      createChallenge(challenge).catch((e) =>
-        logger.warn("[Challenge] Supabase insert failed:", e)
-      );
+      createChallenge(challenge).catch((e) => {
+        logger.warn("[Challenge] Supabase insert failed:", e);
+        reportError(e, {
+          area: "billing",
+          action: "handleStartChallenge_createChallenge",
+          screen: "paywall",
+          provider: "supabase",
+          userId: userId ?? undefined,
+          extra: { challengeId: challenge.id },
+        });
+      });
 
       router.push("/(onboarding)/complete" as any);
     } finally {

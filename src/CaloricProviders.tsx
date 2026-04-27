@@ -32,6 +32,7 @@ import { analytics, initAnalytics } from "./infrastructure/analytics";
 import {
     ErrorBoundary,
     initErrorReporting,
+    reportError,
 } from "./infrastructure/errorReporting";
 import { growth, initGrowth } from "./infrastructure/growth";
 import { initHaptics } from "./infrastructure/haptics";
@@ -128,11 +129,24 @@ function BillingGate({ children }: { children: React.ReactNode }) {
         provider
           .getEntitlements()
           .then(syncFromEntitlement)
-          .catch(() => {});
+          .catch((err) => {
+            reportError(err, {
+              area: "billing",
+              action: "getEntitlements_postInit",
+              provider: "revenuecat",
+            });
+          });
         // Listen for real-time changes (renewals, expirations, new purchases)
         provider.onEntitlementsChanged(syncFromEntitlement);
       })
-      .catch((err) => logger.warn("[Billing] Init failed:", err));
+      .catch((err) => {
+        logger.warn("[Billing] Init failed:", err);
+        reportError(err, {
+          area: "billing",
+          action: "initializeBilling",
+          provider: "revenuecat",
+        });
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -175,19 +189,41 @@ function BillingGate({ children }: { children: React.ReactNode }) {
             } else if (attempt === 1) {
               // Non-authoritative response — retry once; keep current store state
               setTimeout(() => invokeSync(2), 5_000);
+            } else if (error) {
+              // attempt 2 failure with a real error: report. RC SDK listener
+              // still acts as the safety net for real-time entitlement state.
+              reportError(error, {
+                area: "billing",
+                action: "sync-entitlement_final_failure",
+                provider: "supabase",
+                userId: user.id,
+              });
             }
-            // attempt === 2 failure: silent. RC SDK listener still live.
           })
-          .catch(() => {
+          .catch((err) => {
             if (attempt === 1) {
               setTimeout(() => invokeSync(2), 5_000);
+            } else {
+              reportError(err, {
+                area: "billing",
+                action: "sync-entitlement_final_failure",
+                provider: "supabase",
+                userId: user.id,
+              });
             }
           });
       };
 
       provider
         .logIn?.(user.id)
-        ?.catch(() => {})
+        ?.catch((err: unknown) => {
+          reportError(err, {
+            area: "billing",
+            action: "rc_logIn",
+            provider: "revenuecat",
+            userId: user.id,
+          });
+        })
         .finally(invokeSync);
     } else {
       provider.logOut?.();
@@ -209,10 +245,9 @@ interface CaloricProvidersProps {
 export function CaloricProviders({ children, testID }: CaloricProvidersProps) {
   // Initialize cross-cutting infrastructure on mount
   useEffect(() => {
-    const reporter = initErrorReporting();
-    if (reporter.isEnabled()) {
-      console.log("[Caloric] Error reporting initialized");
-    }
+    // Wire up the ErrorReporter singleton to the Sentry SDK that was init'd
+    // at module-load time in app/_layout.tsx. Idempotent.
+    initErrorReporting();
 
     // Pre-load MaterialCommunityIcons font for keyboard icon in FAB picker
     MaterialCommunityIcons.loadFont().catch(() => {});

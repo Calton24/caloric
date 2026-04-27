@@ -20,6 +20,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../src/features/auth/useAuth";
+import { reportError } from "../../src/infrastructure/errorReporting";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassCard } from "../../src/ui/glass/GlassCard";
@@ -56,13 +57,42 @@ export default function ResetPasswordScreen() {
 
     let cancelled = false;
     (async () => {
-      const { error } = await verifyRecoveryToken(token_hash);
-      if (cancelled) return;
-      if (error) {
-        setErrorMessage(error.message);
+      try {
+        const { error } = await verifyRecoveryToken(token_hash);
+        if (cancelled) return;
+        if (error) {
+          // Expired / already-used links are common — only report unexpected
+          // shapes, not the everyday "Token has expired" path.
+          const lower = error.message.toLowerCase();
+          const expected =
+            lower.includes("expired") ||
+            lower.includes("invalid") ||
+            lower.includes("not found");
+          if (!expected) {
+            reportError(error, {
+              area: "auth",
+              action: "verifyRecoveryToken",
+              screen: "auth/reset-password",
+              provider: "supabase",
+            });
+          }
+          setErrorMessage(error.message);
+          setScreenState("invalid-link");
+        } else {
+          setScreenState("form");
+        }
+      } catch (err) {
+        if (cancelled) return;
+        reportError(err, {
+          area: "auth",
+          action: "verifyRecoveryToken_throw",
+          screen: "auth/reset-password",
+          provider: "supabase",
+        });
+        setErrorMessage(
+          err instanceof Error ? err.message : "Recovery link verification failed."
+        );
         setScreenState("invalid-link");
-      } else {
-        setScreenState("form");
       }
     })();
 
@@ -89,10 +119,34 @@ export default function ResetPasswordScreen() {
     try {
       const { error } = await updatePassword(newPassword);
       if (error) {
+        const lower = error.message.toLowerCase();
+        const expected =
+          lower.includes("password should be") ||
+          lower.includes("same password") ||
+          lower.includes("rate limit");
+        if (!expected) {
+          reportError(error, {
+            area: "auth",
+            action: "updatePassword",
+            screen: "auth/reset-password",
+            provider: "supabase",
+          });
+        }
         Alert.alert(t("common.error"), error.message);
       } else {
         setScreenState("success");
       }
+    } catch (err) {
+      reportError(err, {
+        area: "auth",
+        action: "updatePassword_throw",
+        screen: "auth/reset-password",
+        provider: "supabase",
+      });
+      Alert.alert(
+        t("common.error"),
+        err instanceof Error ? err.message : "Could not update password."
+      );
     } finally {
       setLoading(false);
     }

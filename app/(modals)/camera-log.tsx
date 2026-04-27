@@ -45,6 +45,7 @@ import {
 import { runImagePipeline } from "../../src/features/camera/image-pipeline.service";
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
 import { useFeatureAccess } from "../../src/features/subscription/useFeatureAccess";
+import { reportError } from "../../src/infrastructure/errorReporting";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { AuthGateModal } from "../../src/ui/components/AuthGateModal";
@@ -106,7 +107,15 @@ export default function CameraLoggingScreen() {
           return; // Lock stays set — component is transitioning away
         }
         setState("error");
-      } catch {
+      } catch (err) {
+        // startFromBarcode already swallows expected lookup misses (returns
+        // false). A throw here means something unexpected blew up — report.
+        reportError(err, {
+          area: "scan",
+          action: "handleBarcodeScanned",
+          screen: "camera-log",
+          extra: { barcodeLength: barcode?.length },
+        });
         setState("error");
       }
       // Only reached on failure paths — reset for retry
@@ -223,7 +232,12 @@ export default function CameraLoggingScreen() {
       // Use text pipeline with the description
       // NOTE: startFromInput already pushes to /(modals)/confirm-meal internally
       await startFromInput(description.trim(), "camera");
-    } catch {
+    } catch (err) {
+      reportError(err, {
+        area: "scan",
+        action: "handleDescribeAndRetry",
+        screen: "camera-log",
+      });
       setState("error");
     }
   }, [description, startFromInput]);
@@ -275,7 +289,12 @@ export default function CameraLoggingScreen() {
       const uri =
         Platform.OS === "android" ? `file://${photo.path}` : photo.path;
       runPipeline(uri);
-    } catch {
+    } catch (err) {
+      reportError(err, {
+        area: "scan",
+        action: "handleCapture_takePhoto",
+        screen: "camera-log",
+      });
       Alert.alert("Error", t("camera.captureError"));
     }
   }, [runPipeline, t]);

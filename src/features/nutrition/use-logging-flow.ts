@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { reportError } from "../../infrastructure/errorReporting";
 import { getHealthService } from "../health";
 import { labelFoodImage } from "../image-analysis/ocr/image-labeling.service";
 import { extractTextFromImage } from "../image-analysis/ocr/text-recognition.service";
@@ -406,6 +407,10 @@ export function useLoggingFlow() {
       return false;
     } catch (e) {
       console.warn("Image pipeline failed:", e);
+      reportError(e, {
+        area: "scan",
+        action: "useLoggingFlow_startFromImage_outer",
+      });
       return false;
     }
   }
@@ -469,6 +474,11 @@ export function useLoggingFlow() {
       return true;
     } catch (e) {
       console.warn("Barcode lookup failed:", e);
+      reportError(e, {
+        area: "scan",
+        action: "useLoggingFlow_startFromBarcode_outer",
+        extra: { barcodeLength: barcode?.length },
+      });
       return false;
     }
   }

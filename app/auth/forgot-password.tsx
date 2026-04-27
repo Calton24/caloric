@@ -32,6 +32,7 @@ import {
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
 import { useAuth } from "../../src/features/auth/useAuth";
 import { analytics } from "../../src/infrastructure/analytics";
+import { reportError } from "../../src/infrastructure/errorReporting";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { TButton } from "../../src/ui/primitives/TButton";
@@ -111,8 +112,21 @@ export default function ForgotPasswordScreen() {
         const msg = friendlyError(error.message);
         setSendError(msg);
         // If server rate-limited, start a cooldown so user can't spam retry
-        if (error.message.toLowerCase().includes("rate limit")) {
+        const lower = error.message.toLowerCase();
+        if (lower.includes("rate limit")) {
           setCooldown(COOLDOWN_SECONDS);
+        } else if (
+          !lower.includes("not found") &&
+          !lower.includes("invalid") &&
+          !lower.includes("too many requests")
+        ) {
+          // Unexpected backend error — worth knowing about.
+          reportError(error, {
+            area: "auth",
+            action: "resetPassword_send",
+            screen: "auth/forgot-password",
+            provider: "supabase",
+          });
         }
         // Stay on form / show inline error — don't navigate to "sent"
       } else {
@@ -123,12 +137,18 @@ export default function ForgotPasswordScreen() {
         setCooldown(COOLDOWN_SECONDS);
         setScreenState("sent");
       }
-    } catch {
+    } catch (err) {
+      reportError(err, {
+        area: "auth",
+        action: "resetPassword_send_throw",
+        screen: "auth/forgot-password",
+        provider: "supabase",
+      });
       setSendError(t("auth.somethingWentWrong"));
     } finally {
       setLoading(false);
     }
-  }, [cooldown, email, resetPassword]);
+  }, [cooldown, email, resetPassword, t]);
 
   const handleResend = useCallback(async () => {
     if (cooldown > 0) return;
@@ -148,12 +168,18 @@ export default function ForgotPasswordScreen() {
         setSendError(null);
         setCooldown(COOLDOWN_SECONDS);
       }
-    } catch {
+    } catch (err) {
+      reportError(err, {
+        area: "auth",
+        action: "resetPassword_resend_throw",
+        screen: "auth/forgot-password",
+        provider: "supabase",
+      });
       setSendError(t("auth.somethingWentWrong"));
     } finally {
       setLoading(false);
     }
-  }, [cooldown, email, resetPassword]);
+  }, [cooldown, email, resetPassword, t]);
 
   const insets = useSafeAreaInsets();
 

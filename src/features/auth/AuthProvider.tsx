@@ -5,6 +5,7 @@
 
 import React, { createContext, useCallback, useEffect, useState } from "react";
 import { analytics } from "../../infrastructure/analytics";
+import { reportError } from "../../infrastructure/errorReporting";
 import { growth } from "../../infrastructure/growth";
 import {
     authClient,
@@ -64,17 +65,37 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Initialize session on mount
   useEffect(() => {
-    authClient.getSession().then(({ session: initialSession }) => {
-      if (initialSession) {
-        setSession(initialSession);
-        setUser(initialSession.user);
-        analytics.identify(initialSession.user.id, {
-          email_hash: hashEmail(initialSession.user.email),
+    authClient
+      .getSession()
+      .then(({ session: initialSession, error: sessionError }) => {
+        if (sessionError) {
+          // Don't surface to the user — they'll just see the sign-in screen.
+          // But we want to know about it: a session error here is often a
+          // SecureStore / token-corruption issue that breaks app boot.
+          reportError(sessionError, {
+            area: "auth",
+            action: "getSession_initial",
+            provider: "supabase",
+          });
+        }
+        if (initialSession) {
+          setSession(initialSession);
+          setUser(initialSession.user);
+          analytics.identify(initialSession.user.id, {
+            email_hash: hashEmail(initialSession.user.email),
+          });
+          growth.setUser({ userId: initialSession.user.id });
+        }
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        reportError(err, {
+          area: "auth",
+          action: "getSession_initial_throw",
+          provider: "supabase",
         });
-        growth.setUser({ userId: initialSession.user.id });
-      }
-      setIsLoading(false);
-    });
+        setIsLoading(false);
+      });
 
     // Subscribe to auth state changes — single choke point for analytics
     // identity. Fires for signIn, signUp, OAuth, deep-link token exchange,

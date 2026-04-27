@@ -16,6 +16,10 @@
 
 import { File } from "expo-file-system";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
+import {
+  reportBreadcrumb,
+  reportError,
+} from "../../infrastructure/errorReporting";
 import { getSupabaseClient } from "../../lib/supabase/client";
 import type {
   AnalyzeMealResponse,
@@ -142,6 +146,14 @@ export async function analyzeMealImage(
 
     // Map ai-scan error codes to user-facing messages
     if (errorCode === "LIMIT_REACHED") {
+      // Expected user-facing limit; log a crumb only.
+      reportBreadcrumb("ai-scan limit reached", {
+        area: "scan",
+        action: "ai-scan_limit_reached",
+        provider: "supabase",
+        level: "info",
+        extra: { errorCode },
+      });
       throw new MealAnalysisError(
         detail ||
           "You've used all your free scans. Upgrade for unlimited scans.",
@@ -149,6 +161,13 @@ export async function analyzeMealImage(
       );
     }
     if (errorCode === "BLOCKED") {
+      reportBreadcrumb("ai-scan user blocked", {
+        area: "scan",
+        action: "ai-scan_blocked",
+        provider: "supabase",
+        level: "warning",
+        extra: { errorCode },
+      });
       throw new MealAnalysisError(
         "Your account has been restricted. Please contact support.",
         "edge_function_error"
@@ -157,6 +176,18 @@ export async function analyzeMealImage(
 
     const msg = detail || error.message || "Analysis failed. Please try again.";
     console.error("[MealAnalysis] Edge Function error:", msg);
+    // Unexpected backend failure — full report. We deliberately don't include
+    // the image base64 or auth headers; just the error shape and code.
+    reportError(error, {
+      area: "scan",
+      action: "ai-scan_edge_function_error",
+      provider: "supabase",
+      extra: {
+        detail,
+        errorCode,
+        errorName: error.name,
+      },
+    });
     throw new MealAnalysisError(msg, "edge_function_error");
   }
 

@@ -17,6 +17,20 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 import "react-native-reanimated";
+import * as Sentry from "@sentry/react-native";
+
+const sentryDsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
+const sentryEnvironment =
+  process.env.EXPO_PUBLIC_APP_ENV ?? (__DEV__ ? "development" : "production");
+
+Sentry.init({
+  enabled: Boolean(sentryDsn),
+  dsn: sentryDsn,
+  environment: sentryEnvironment,
+  tracesSampleRate: __DEV__ ? 1.0 : 0.1,
+  debug: __DEV__,
+  enableNativeCrashHandling: true,
+});
 
 SplashScreen.preventAutoHideAsync();
 
@@ -103,7 +117,7 @@ function RootStack() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   useScreenTracking();
   useGrowthScreenTracking();
 
@@ -122,6 +136,23 @@ export default function RootLayout() {
       SplashScreen.hideAsync().catch(() => {});
     }
   }, [fontsLoaded, fontError]);
+
+  useEffect(() => {
+    if (!__DEV__) return;
+    // Dev-only manual test hook: run `globalThis.__triggerSentryTestError?.()`
+    // from JS debugger/console to verify event ingestion.
+    (globalThis as typeof globalThis & {
+      __triggerSentryTestError?: () => void;
+    }).__triggerSentryTestError = () => {
+      Sentry.captureException(new Error("Sentry test error"));
+    };
+
+    return () => {
+      delete (globalThis as typeof globalThis & {
+        __triggerSentryTestError?: () => void;
+      }).__triggerSentryTestError;
+    };
+  }, []);
 
   if (!fontsLoaded && !fontError) {
     // Return an opaque background so the underlying white native view
@@ -149,3 +180,5 @@ export default function RootLayout() {
     </ErrorBoundary>
   );
 }
+
+export default Sentry.wrap(RootLayout);
