@@ -35,6 +35,7 @@ import {
     View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -84,6 +85,7 @@ export function NotificationToastProvider({
   children: React.ReactNode;
 }) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const insets = useSafeAreaInsets();
   const [notification, setNotification] = useState<NotificationState | null>(
     null
@@ -261,7 +263,7 @@ export function NotificationToastProvider({
             {/* Timestamp / pill indicator */}
             <View style={styles.trailing}>
               <TText variant="caption" color="muted">
-                now
+                {t("common.now")}
               </TText>
             </View>
           </Pressable>

@@ -10,28 +10,30 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Animated, {
-  FadeIn,
-  FadeInDown,
-  FadeInUp,
+    FadeIn,
+    FadeInDown,
+    FadeInUp,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRevenueCat } from "../../src/features/subscription/useRevenueCat";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { PricingSelector } from "../../src/ui/components/PricingSelector";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 
-const FEATURES = [
-  "Personalized calorie & macro plan",
-  "Barcode scanner & food database",
-  "Progress photos & measurements",
-  "Advanced analytics & insights",
-  "Unlimited meal logging",
-];
+const FEATURE_KEYS = [
+  "paywall.featurePlan",
+  "paywall.featureBarcode",
+  "paywall.featurePhotos",
+  "paywall.featureAnalytics",
+  "paywall.featureLogging",
+] as const;
 
 export default function OnboardingPaywallScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
   const {
     packages,
@@ -73,7 +75,7 @@ export default function OnboardingPaywallScreen() {
                 variant="heading"
                 style={[styles.heading, { color: theme.colors.text }]}
               >
-                Unlock Your{"\n"}Full Plan
+                {t("paywall.heading")}
               </TText>
               <View
                 style={[
@@ -84,7 +86,7 @@ export default function OnboardingPaywallScreen() {
                 <TText
                   style={[styles.trialText, { color: theme.colors.success }]}
                 >
-                  7-DAY FREE TRIAL
+                  {t("paywall.trialBadge")}
                 </TText>
               </View>
             </View>
@@ -94,7 +96,7 @@ export default function OnboardingPaywallScreen() {
 
           <Animated.View entering={FadeIn.duration(500).delay(250)}>
             <TText color="secondary" style={styles.sub}>
-              Try everything free for 7 days.{"\n"}Cancel anytime — no charge.
+              {t("paywall.trialDescription")}
             </TText>
           </Animated.View>
 
@@ -109,10 +111,10 @@ export default function OnboardingPaywallScreen() {
                   { color: theme.colors.textSecondary },
                 ]}
               >
-                EVERYTHING INCLUDED
+                {t("paywall.everythingIncluded")}
               </TText>
               <TSpacer size="md" />
-              {FEATURES.map((f, i) => (
+              {FEATURE_KEYS.map((key, i) => (
                 <View key={i} style={styles.featureRow}>
                   <Ionicons
                     name="checkmark-circle"
@@ -122,7 +124,7 @@ export default function OnboardingPaywallScreen() {
                   <TText
                     style={[styles.featureText, { color: theme.colors.text }]}
                   >
-                    {f}
+                    {t(key)}
                   </TText>
                 </View>
               ))}
@@ -143,8 +145,7 @@ export default function OnboardingPaywallScreen() {
               <TText
                 style={[styles.testimonialText, { color: theme.colors.text }]}
               >
-                &ldquo;I lost 22 lbs in 3 months. The plan was easy to follow
-                and I never felt hungry.&rdquo;
+                {t("paywall.testimonialQuote")}
               </TText>
               <TSpacer size="xs" />
               <TText
@@ -153,7 +154,7 @@ export default function OnboardingPaywallScreen() {
                   { color: theme.colors.textMuted },
                 ]}
               >
-                — Sarah K., verified user
+                {t("paywall.testimonialAuthor")}
               </TText>
             </GlassSurface>
           </Animated.View>
@@ -170,21 +171,21 @@ export default function OnboardingPaywallScreen() {
             packages={packages}
             isLoading={isLoadingOfferings}
             onPurchase={handlePurchase}
-            heading={isPro ? "You're subscribed!" : "Choose your plan"}
+            heading={isPro ? t("paywall.subscribed") : t("paywall.choosePlan")}
           />
 
           <TSpacer size="sm" />
 
           <Pressable onPress={handleSkip} hitSlop={12}>
             <TText style={[styles.skipText, { color: theme.colors.textMuted }]}>
-              No thanks, continue with limited features
+              {t("paywall.skipText")}
             </TText>
           </Pressable>
 
           <TSpacer size="xs" />
 
           <TText style={[styles.legalText, { color: theme.colors.textMuted }]}>
-            Cancel anytime during trial. Subscription auto-renews.
+            {t("paywall.legalText")}
           </TText>
 
           <TSpacer size="xs" />
@@ -193,7 +194,7 @@ export default function OnboardingPaywallScreen() {
             <TText
               style={[styles.restoreText, { color: theme.colors.textMuted }]}
             >
-              Restore Purchases
+              {t("settings.restorePurchases")}
             </TText>
           </Pressable>
         </Animated.View>

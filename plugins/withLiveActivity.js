@@ -554,7 +554,7 @@ function resolveMainBundleId(objects, appName) {
     const bid = configs[key]?.buildSettings?.PRODUCT_BUNDLE_IDENTIFIER;
     if (bid && !bid.includes("$(")) return bid.replace(/"/g, "");
   }
-  return "com.calton24.caloric";
+  return "com.calton.caloric";
 }
 
 function resolveDevTeam(objects) {

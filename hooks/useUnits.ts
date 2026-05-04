@@ -1,6 +1,8 @@
 import { useCallback } from "react";
+import { useAuth } from "../src/features/auth/useAuth";
 import { useProfileStore } from "../src/features/profile/profile.store";
 import type { WeightUnit } from "../src/features/profile/profile.types";
+import { pushUnitPreference } from "../src/features/sync/sync.service";
 import {
     convertWeight,
     formatWeight,
@@ -18,14 +20,58 @@ import {
  * the profile globally (persisted).
  */
 export function useUnits() {
+  const { user } = useAuth();
   const weightUnit = useProfileStore((s) => s.profile.weightUnit);
+  const heightUnit = useProfileStore((s) => s.profile.heightUnit);
   const updateProfile = useProfileStore((s) => s.updateProfile);
 
   const setWeightUnit = useCallback(
     (unit: WeightUnit) => {
-      updateProfile({ weightUnit: unit });
+      const nextHeightUnit: "cm" | "ft_in" = unit === "kg" ? "cm" : "ft_in";
+      const userId = user?.id ?? null;
+
+      // Log #1 — fires before ANY conditions, even if unauthenticated
+      console.log("[UnitsPersistence] toggle triggered", {
+        userId,
+        nextWeightUnit: unit,
+        nextHeightUnit,
+      });
+
+      const now = new Date().toISOString();
+      updateProfile({ weightUnit: unit, heightUnit: nextHeightUnit, updatedAt: now });
+
+      // Log #2 — confirm local store updated
+      const updated = useProfileStore.getState().profile;
+      console.log("[UnitsPersistence] local updated", {
+        weightUnit: updated.weightUnit,
+        heightUnit: updated.heightUnit,
+        updatedAt: updated.updatedAt,
+      });
+
+      if (!userId) {
+        console.log("[UnitsPersistence] remote write SKIPPED — unauthenticated");
+        return;
+      }
+
+      // Log #3 — fires immediately before the network call
+      console.log("[UnitsPersistence] remote write START", {
+        userId,
+        weightUnit: updated.weightUnit,
+        heightUnit: updated.heightUnit,
+        updatedAt: updated.updatedAt,
+      });
+
+      void pushUnitPreference(
+        userId,
+        updated.weightUnit,
+        updated.heightUnit,
+        updated.updatedAt ?? now
+      ).then((result) => {
+        // Log #4 — always fires with the exact result from Supabase
+        console.log("[UnitsPersistence] remote write RESULT", result);
+      });
     },
-    [updateProfile]
+    [updateProfile, user?.id]
   );
 
   const toggleWeightUnit = useCallback(() => {

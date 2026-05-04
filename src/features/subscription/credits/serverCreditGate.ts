@@ -10,6 +10,7 @@
  *   - checkUserBlocked() → check on app load
  */
 
+import { reportError } from "../../../infrastructure/errorReporting";
 import { getSupabaseClient } from "../../../lib/supabase/client";
 import { logger } from "../../../logging/logger";
 
@@ -119,7 +120,15 @@ export async function checkUserBlocked(userId: string): Promise<boolean> {
 
     if (error || !data) return false;
     return data.is_blocked === true;
-  } catch {
+  } catch (err) {
+    // App startup gating fails closed (returns false). Report so we can see
+    // when this happens — a real outage here means we're under-blocking.
+    reportError(err, {
+      area: "billing",
+      action: "checkUserBlocked",
+      provider: "supabase",
+      userId,
+    });
     return false;
   }
 }

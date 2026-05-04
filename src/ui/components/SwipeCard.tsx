@@ -33,6 +33,7 @@ import Animated, {
     useSharedValue,
     withTiming,
 } from "react-native-reanimated";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -88,6 +89,7 @@ function StampOverlay({
   type: "like" | "nope";
   translateX: SharedValue<number>;
 }) {
+  const { t } = useAppTranslation();
   const isLike = type === "like";
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -112,7 +114,7 @@ function StampOverlay({
       <TText
         style={[styles.stampText, { color: isLike ? "#4CD964" : "#FF3B30" }]}
       >
-        {isLike ? "LIKE" : "NOPE"}
+        {isLike ? t("common.like") : t("common.nope")}
       </TText>
     </Animated.View>
   );
@@ -252,6 +254,7 @@ export const SwipeCard = React.forwardRef<SwipeCardRef, SwipeCardProps>(
     ref
   ) {
     const { theme } = useTheme();
+    const { t } = useAppTranslation();
     const radius = cardRadius ?? theme.radius.xl;
     const translateX = useSharedValue(0);
     const currentIndex = useRef(0);
@@ -314,7 +317,7 @@ export const SwipeCard = React.forwardRef<SwipeCardRef, SwipeCardProps>(
                 color={theme.colors.textMuted}
               />
               <TText color="muted" style={{ marginTop: 12 }}>
-                No more cards
+                {t("home.noMoreCards")}
               </TText>
             </View>
           ) : (

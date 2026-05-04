@@ -11,6 +11,7 @@ import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { getStreakUrgency } from "../../features/streak/streak-psychology.service";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -26,6 +27,7 @@ export function StreakAtRiskBanner({
   onPress,
 }: StreakAtRiskBannerProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const urgency = getStreakUrgency(lastLogDate, currentStreak);
 
   if (!urgency) return null;
@@ -55,13 +57,13 @@ export function StreakAtRiskBanner({
         <View style={styles.textBlock}>
           <TText style={[styles.title, { color: accentColor }]}>
             {isCritical
-              ? "Last chance — your streak ends tonight"
-              : `Your ${currentStreak}-day streak is at risk`}
+              ? t("streak.lastChance")
+              : t("streak.atRisk", { count: currentStreak })}
           </TText>
           <TText
             style={[styles.subtitle, { color: theme.colors.textSecondary }]}
           >
-            Log a meal now to keep it alive
+            {t("streak.logNowToKeep")}
           </TText>
         </View>
         <Ionicons

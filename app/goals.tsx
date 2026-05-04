@@ -18,25 +18,42 @@ import type { GoalType } from "@/src/features/goals/goals.types";
 import { useProfileStore } from "@/src/features/profile/profile.store";
 import type { ActivityLevel } from "@/src/features/profile/profile.types";
 import { haptics } from "@/src/infrastructure/haptics";
+import { useAppTranslation } from "@/src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "@/src/theme/useTheme";
 import { GlassSurface } from "@/src/ui/glass/GlassSurface";
 import { TSpacer } from "@/src/ui/primitives/TSpacer";
 import { TText } from "@/src/ui/primitives/TText";
 
 // ─── Goal type options ────────────────────────────────────
-const GOAL_OPTIONS: { id: GoalType; icon: string; label: string }[] = [
-  { id: "lose", icon: "trending-down-outline", label: "Lose weight" },
-  { id: "maintain", icon: "swap-horizontal-outline", label: "Maintain" },
-  { id: "gain", icon: "trending-up-outline", label: "Gain muscle" },
+const GOAL_OPTIONS: { id: GoalType; icon: string; labelKey: string }[] = [
+  { id: "lose", icon: "trending-down-outline", labelKey: "goals.loseWeight" },
+  {
+    id: "maintain",
+    icon: "swap-horizontal-outline",
+    labelKey: "goals.maintain",
+  },
+  { id: "gain", icon: "trending-up-outline", labelKey: "goals.gainMuscle" },
 ];
 
 // ─── Activity levels ──────────────────────────────────────
-const ACTIVITY_OPTIONS: { id: ActivityLevel; label: string; desc: string }[] = [
-  { id: "sedentary", label: "Sedentary", desc: "Little or no exercise" },
-  { id: "light", label: "Light", desc: "1-3 days/week" },
-  { id: "moderate", label: "Moderate", desc: "3-5 days/week" },
-  { id: "very", label: "Very Active", desc: "6-7 days/week" },
-  { id: "super", label: "Super Active", desc: "Twice daily" },
+const ACTIVITY_OPTIONS: {
+  id: ActivityLevel;
+  labelKey: string;
+  descKey: string;
+}[] = [
+  {
+    id: "sedentary",
+    labelKey: "goals.sedentary",
+    descKey: "goals.sedentaryDesc",
+  },
+  { id: "light", labelKey: "goals.light", descKey: "goals.lightDesc" },
+  { id: "moderate", labelKey: "goals.moderate", descKey: "goals.moderateDesc" },
+  { id: "very", labelKey: "goals.veryActive", descKey: "goals.veryActiveDesc" },
+  {
+    id: "super",
+    labelKey: "goals.superActive",
+    descKey: "goals.superActiveDesc",
+  },
 ];
 
 // ─── Timeframe options ────────────────────────────────────
@@ -118,6 +135,7 @@ function Stepper({
 // ─── Main Screen ─────────────────────────────────────────
 export default function GoalsScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
 
   // ── Store values ──
@@ -190,7 +208,7 @@ export default function GoalsScreen() {
   const handleRecalculate = useCallback(() => {
     if (!canCalculate) {
       Alert.alert(
-        "Missing Profile Data",
+        t("goals.missingProfile"),
         "Please complete your profile in settings first (gender, age, height)."
       );
       return;
@@ -224,12 +242,12 @@ export default function GoalsScreen() {
       haptics.impact("medium");
 
       Alert.alert(
-        "Plan Updated",
-        `Daily target: ${newPlan.calorieBudget} cal\nProtein: ${newPlan.macros.protein}g · Carbs: ${newPlan.macros.carbs}g · Fat: ${newPlan.macros.fat}g`
+        t("progress.planUpdated"),
+        `${t("goals.calDay")}: ${newPlan.calorieBudget}\n${t("home.protein")}: ${newPlan.macros.protein}g · ${t("home.carbs")}: ${newPlan.macros.carbs}g · ${t("home.fat")}: ${newPlan.macros.fat}g`
       );
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Calculation failed";
-      Alert.alert("Error", msg);
+      const msg = e instanceof Error ? e.message : t("common.error");
+      Alert.alert(t("common.error"), msg);
     }
   }, [
     canCalculate,
@@ -259,7 +277,7 @@ export default function GoalsScreen() {
             variant="heading"
             style={[styles.headerTitle, { color: theme.colors.text }]}
           >
-            Goals
+            {t("goals.title")}
           </TText>
           <View style={{ width: 24 }} />
         </View>
@@ -289,7 +307,7 @@ export default function GoalsScreen() {
                           { color: theme.colors.textMuted },
                         ]}
                       >
-                        cal/day
+                        {t("goals.calDay")}
                       </TText>
                     </View>
                     <View
@@ -313,7 +331,7 @@ export default function GoalsScreen() {
                           { color: theme.colors.textMuted },
                         ]}
                       >
-                        protein
+                        {t("home.protein")}
                       </TText>
                     </View>
                     <View
@@ -337,7 +355,7 @@ export default function GoalsScreen() {
                           { color: theme.colors.textMuted },
                         ]}
                       >
-                        carbs
+                        {t("home.carbs")}
                       </TText>
                     </View>
                     <View
@@ -361,7 +379,7 @@ export default function GoalsScreen() {
                           { color: theme.colors.textMuted },
                         ]}
                       >
-                        fat
+                        {t("home.fat")}
                       </TText>
                     </View>
                   </View>
@@ -373,23 +391,22 @@ export default function GoalsScreen() {
                     ]}
                   >
                     {plan.goalType === "lose"
-                      ? "Losing"
+                      ? t("goals.losing")
                       : plan.goalType === "gain"
-                        ? "Gaining"
-                        : "Maintaining"}{" "}
+                        ? t("goals.gaining")
+                        : t("goals.maintaining")}{" "}
                     ·{" "}
                     {plan.weeklyRateLbs > 0
-                      ? `${plan.weeklyRateLbs} lbs/wk`
-                      : "Steady"}{" "}
-                    · {plan.timeframeWeeks} weeks
+                      ? `${plan.weeklyRateLbs} ${t("goals.lbsWk")}`
+                      : t("goals.steady")}{" "}
+                    · {plan.timeframeWeeks} {t("goals.weeks")}
                   </TText>
                 </>
               ) : (
                 <TText
                   style={[styles.noGoal, { color: theme.colors.textMuted }]}
                 >
-                  No plan set yet. Configure your goals below and tap
-                  Recalculate.
+                  {t("goals.noplanYet")}
                 </TText>
               )}
             </GlassSurface>
@@ -402,7 +419,7 @@ export default function GoalsScreen() {
             <TText
               style={[styles.sectionTitle, { color: theme.colors.textMuted }]}
             >
-              GOAL
+              {t("goals.goalSectionTitle")}
             </TText>
             <View style={styles.goalRow}>
               {GOAL_OPTIONS.map((opt) => {
@@ -445,7 +462,7 @@ export default function GoalsScreen() {
                         },
                       ]}
                     >
-                      {opt.label}
+                      {t(opt.labelKey)}
                     </TText>
                   </Pressable>
                 );
@@ -460,11 +477,11 @@ export default function GoalsScreen() {
             <TText
               style={[styles.sectionTitle, { color: theme.colors.textMuted }]}
             >
-              WEIGHT
+              {t("goals.weight")}
             </TText>
             <GlassSurface intensity="light" style={styles.card}>
               <Stepper
-                label="Current Weight"
+                label={t("goals.currentWeight")}
                 value={displayCurrentWeight}
                 unit={weightUnit}
                 onDecrement={() =>
@@ -487,7 +504,7 @@ export default function GoalsScreen() {
                 ]}
               />
               <Stepper
-                label="Goal Weight"
+                label={t("goals.goalWeight")}
                 value={displayGoalWeight}
                 unit={weightUnit}
                 onDecrement={() =>
@@ -509,7 +526,7 @@ export default function GoalsScreen() {
             <TText
               style={[styles.sectionTitle, { color: theme.colors.textMuted }]}
             >
-              ACTIVITY LEVEL
+              {t("goals.activityLevel").toUpperCase()}
             </TText>
             <GlassSurface intensity="light" style={styles.card}>
               {ACTIVITY_OPTIONS.map((opt, i) => {
@@ -538,7 +555,7 @@ export default function GoalsScreen() {
                             { color: theme.colors.text },
                           ]}
                         >
-                          {opt.label}
+                          {t(opt.labelKey)}
                         </TText>
                         <TText
                           style={[
@@ -546,7 +563,7 @@ export default function GoalsScreen() {
                             { color: theme.colors.textMuted },
                           ]}
                         >
-                          {opt.desc}
+                          {t(opt.descKey)}
                         </TText>
                       </View>
                       <View
@@ -582,7 +599,7 @@ export default function GoalsScreen() {
             <TText
               style={[styles.sectionTitle, { color: theme.colors.textMuted }]}
             >
-              TIMEFRAME
+              {t("goals.timeframe").toUpperCase()}
             </TText>
             <ScrollView
               horizontal
@@ -660,7 +677,7 @@ export default function GoalsScreen() {
                   },
                 ]}
               >
-                {plan ? "Recalculate Plan" : "Calculate Plan"}
+                {plan ? t("settings.recalculatePlan") : "Calculate Plan"}
               </TText>
             </Pressable>
           </Animated.View>

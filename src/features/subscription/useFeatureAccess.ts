@@ -29,6 +29,7 @@
  */
 
 import { useCallback } from "react";
+import { getSupabaseClient } from "../../lib/supabase/client";
 import type { GatedFeature } from "../../ui/components/FeatureGatePaywall";
 import { useAuth } from "../auth/useAuth";
 import { FREE_SCAN_LIMIT, useScanCreditsStore } from "./scanCredits.store";
@@ -41,7 +42,36 @@ export type AccessDeniedReason =
   | "no_credits"
   | "premium_required"
   | "blocked"
-  | "daily_limit";
+  | "daily_limit"
+  | "verification_required";
+
+/**
+ * Trust freshness of the server-verified entitlement.
+ *   fresh      — verified within 24h → allow immediately
+ *   stale      — verified within 72h → soft recheck (preserve on network failure)
+ *   expired    — verified >72h ago   → hard recheck (deny if server unreachable)
+ *   unverified — no timestamp yet    → hard recheck (same as expired)
+ */
+export type VerificationStatus = "fresh" | "stale" | "expired" | "unverified";
+
+/**
+ * Classify verification freshness from a server-supplied ISO timestamp.
+ * Uses Date.now() only for age comparison — this is acceptable because
+ * device clock tampering can skew classification but cannot forge entitlement.
+ * The server controls the write path.
+ *
+ * Pure function, safe to call outside React.
+ */
+export function getVerificationStatus(
+  lastVerifiedAt: string | null
+): VerificationStatus {
+  if (!lastVerifiedAt) return "unverified";
+  const hours =
+    (Date.now() - new Date(lastVerifiedAt).getTime()) / (1000 * 60 * 60);
+  if (hours <= 24) return "fresh";
+  if (hours <= 72) return "stale";
+  return "expired";
+}
 
 export type AccessResult =
   | { allowed: true }
@@ -63,6 +93,13 @@ export function useFeatureAccess() {
   const isPro = useSubscriptionStore(
     (s) => s.subscription.hasActiveSubscription
   );
+  const lastServerVerifiedAt = useSubscriptionStore(
+    (s) => s.subscription.lastServerVerifiedAt
+  );
+  const verificationStatus = getVerificationStatus(lastServerVerifiedAt);
+  // Premium users whose last server verification is not fresh need a recheck
+  // before the scan proceeds. Stale = soft (preserve on failure); expired/unverified = hard.
+  const requiresRevalidation = isPro && verificationStatus !== "fresh";
   const { hasCredits, remaining, consumeCredit } = useScanCreditsStore();
 
   /**
@@ -118,5 +155,55 @@ export function useFeatureAccess() {
     scansRemaining: isPro ? Infinity : remaining(),
     /** Total scan limit for free tier */
     scanLimit: FREE_SCAN_LIMIT,
+    /**
+     * How stale the last server verification is. Use alongside
+     * requiresRevalidation to decide whether to trigger a hard or soft recheck.
+     */
+    verificationStatus,
+    /**
+     * True when the user is premium but their last server-verified timestamp
+     * is stale or expired. The gate in camera-log triggers recheck() when true.
+     */
+    requiresRevalidation,
+    /**
+     * Server-side recheck for premium status.
+     *
+     * @param hard — when true, returns { allowed: false, reason: "verification_required" }
+     *               if the server is unreachable (expired/unverified premium).
+     *               When false (stale premium), falls back to canScan() on failure.
+     *
+     * Call on the denial path OR when requiresRevalidation is true before allowing a scan.
+     * ~200ms latency, one RC API call. Saves a premium user from a bogus paywall.
+     */
+    recheck: useCallback(
+      async ({
+        hard = false,
+      }: { hard?: boolean } = {}): Promise<AccessResult> => {
+        try {
+          const { data, error } =
+            await getSupabaseClient().functions.invoke("sync-entitlement");
+          if (!error && data?.ok) {
+            useSubscriptionStore.getState().syncFromServer({
+              isPro: data.isPro as boolean,
+              status: data.status as string,
+              expiresAt: (data.expiresAt as string | null) ?? null,
+              lastServerVerifiedAt: data.lastServerVerifiedAt as string,
+            });
+            // Re-read store state directly (not from React closure)
+            const freshIsPro =
+              useSubscriptionStore.getState().subscription
+                .hasActiveSubscription;
+            if (freshIsPro) return { allowed: true };
+            return { allowed: false, reason: "no_credits" };
+          }
+        } catch {
+          // Non-fatal — fall through
+        }
+        // Network failure path
+        if (hard) return { allowed: false, reason: "verification_required" };
+        return canScan();
+      },
+      [canScan]
+    ),
   };
 }

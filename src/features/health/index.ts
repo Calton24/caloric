@@ -11,4 +11,5 @@ export type {
     HealthKitWeightSample,
     HealthService
 } from "./health.types";
+export { useHealthAutoSync } from "./use-health-auto-sync";
 

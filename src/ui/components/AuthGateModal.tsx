@@ -10,6 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Modal, Pressable, StyleSheet, View } from "react-native";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { TSpacer } from "../primitives/TSpacer";
 import { TText } from "../primitives/TText";
@@ -67,6 +68,7 @@ export function AuthGateModal({
   reason,
 }: AuthGateModalProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const content = GATE_CONTENT[reason];
 
   const handleSignUp = () => {
@@ -146,7 +148,7 @@ export function AuthGateModal({
             <TText
               style={[styles.dismissText, { color: theme.colors.textMuted }]}
             >
-              Not now
+              {t("common.notNow")}
             </TText>
           </Pressable>
         </Animated.View>

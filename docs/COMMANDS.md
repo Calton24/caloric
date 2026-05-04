@@ -228,7 +228,7 @@ xcrun simctl erase "$UDID"
 ### Uninstall app from simulator
 
 ```bash
-xcrun simctl uninstall "$UDID" com.calton24.caloric.dev
+xcrun simctl uninstall "$UDID" com.calton.caloric
 ```
 
 ## GitHub Actions Management

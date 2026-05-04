@@ -14,6 +14,7 @@ import Animated, {
     withTiming,
 } from "react-native-reanimated";
 import { haptics } from "../../infrastructure/haptics";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 import { GlassSurface } from "./GlassSurface";
@@ -59,6 +60,7 @@ export function GlassTogglePill({
   style,
 }: GlassTogglePillProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const scale = useSharedValue(1);
   const activeProgress = useSharedValue(value ? 1 : 0);
 
@@ -163,7 +165,7 @@ export function GlassTogglePill({
             onPress={onPressMenu}
             disabled={disabled}
             accessibilityRole="button"
-            accessibilityLabel={`${label} options`}
+            accessibilityLabel={t("common.optionsA11y", { label })}
             hitSlop={8}
             style={styles.chevronZone}
           >

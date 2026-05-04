@@ -8,8 +8,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useEffect } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Alert, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
     Easing,
     FadeIn,
@@ -23,8 +23,12 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUnits } from "../../hooks/useUnits";
+import { useAuth } from "../../src/features/auth/useAuth";
 import { useGoalsStore } from "../../src/features/goals/goals.store";
+import { markOnboardingCompleteRemote } from "../../src/features/onboarding/onboarding-authority";
+import { useOnboardingAuthorityStore } from "../../src/features/onboarding/onboarding-authority.store";
 import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
@@ -88,10 +92,48 @@ function FloatingEmoji({
 
 export default function OnboardingCompleteScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const units = useUnits();
   const router = useRouter();
   const { completeOnboarding, profile } = useOnboarding();
   const plan = useGoalsStore((s) => s.plan);
+  const { user } = useAuth();
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleLetsGo = async () => {
+    if (submitting) return;
+    if (!user?.id) {
+      Alert.alert(
+        t("common.error"),
+        "You must be signed in to finish onboarding."
+      );
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const result = await markOnboardingCompleteRemote(user.id);
+      if (!result.ok) {
+        Alert.alert(
+          t("common.error"),
+          "We couldn't save your setup. Please try again."
+        );
+        return;
+      }
+      useOnboardingAuthorityStore
+        .getState()
+        .setResolved(
+          user.id,
+          "complete",
+          true,
+          null,
+          result.updatedAt ?? null
+        );
+      completeOnboarding();
+      router.replace("/permissions" as any);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   // Checkmark scale-in
   const checkScale = useSharedValue(0);
@@ -161,7 +203,7 @@ export default function OnboardingCompleteScreen() {
               variant="heading"
               style={[styles.title, { color: theme.colors.text }]}
             >
-              You&apos;re All Set Up!
+              {t("onboarding.complete.heading")}
             </TText>
           </Animated.View>
 
@@ -169,7 +211,7 @@ export default function OnboardingCompleteScreen() {
 
           <Animated.View entering={FadeIn.duration(600).delay(1000)}>
             <TText color="secondary" style={styles.subtitle}>
-              Your personalised plan is ready.{"\n"}Time to start your journey.
+              {t("onboarding.complete.subtitle")}
             </TText>
           </Animated.View>
 
@@ -214,12 +256,10 @@ export default function OnboardingCompleteScreen() {
         >
           <Pressable
             testID="onboarding-done"
-            onPress={() => {
-              completeOnboarding();
-              router.replace("/permissions" as any);
-            }}
+            onPress={handleLetsGo}
+            disabled={submitting}
             style={({ pressed }) => ({
-              opacity: pressed ? 0.9 : 1,
+              opacity: submitting ? 0.6 : pressed ? 0.9 : 1,
               transform: [{ scale: pressed ? 0.97 : 1 }],
             })}
           >
@@ -232,7 +272,7 @@ export default function OnboardingCompleteScreen() {
               <TText
                 style={[styles.ctaText, { color: theme.colors.textInverse }]}
               >
-                Let&apos;s Go!
+                {t("common.letsGo")}
               </TText>
               <Ionicons
                 name="rocket-outline"

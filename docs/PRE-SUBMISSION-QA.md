@@ -28,7 +28,7 @@
 ### Build Configuration
 
 - [ ] App built with `caloric-store` profile (not dev)
-- [ ] Bundle identifier is production (`com.calton24.caloric`)
+- [ ] Bundle identifier is production (`com.calton.caloric`)
 - [ ] Version number is correct in app.json
 - [ ] Build number auto-incremented
 - [ ] All environment variables set correctly
@@ -364,7 +364,7 @@
 #### App Store Connect Configuration
 
 - [ ] App created in App Store Connect
-- [ ] Bundle ID matches production (`com.calton24.caloric`)
+- [ ] Bundle ID matches production (`com.calton.caloric`)
 - [ ] App Store Connect app ID is `6761738426`
 - [ ] Team ID is correct (`93HBV58WBY`)
 - [ ] Pricing set (Free with IAP)
@@ -418,7 +418,7 @@
 #### Google Play Console Configuration
 
 - [ ] App created in Google Play Console
-- [ ] Package name matches (`com.calton24.caloric`)
+- [ ] Package name matches (`com.calton.caloric`)
 - [ ] App signed with production keystore
 - [ ] Pricing set (Free with IAP)
 - [ ] Availability set (all regions or specific)

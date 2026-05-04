@@ -1,4 +1,4 @@
-﻿/**
+/**
  * RevenueCat Billing Provider
  *
  * Full implementation using:
@@ -11,6 +11,7 @@
 
 import { Platform } from "react-native";
 import type { RevenueCatConfig } from "../../config/types";
+import { reportError } from "../../infrastructure/errorReporting";
 import { logger } from "../../logging/logger";
 import type { BillingProvider, Entitlement, SubscriptionTier } from "./types";
 
@@ -109,9 +110,19 @@ export class RevenueCatProvider implements BillingProvider {
     try {
       const RC = getPurchases();
 
-      // Enable verbose logging in dev for easier debugging
+      // Enable verbose logging in dev for easier debugging.
+      // IMPORTANT: setLogHandler MUST be called before setLogLevel.
+      // We route all SDK logs through console.warn (never console.error) to
+      // prevent Expo Metro's HMR client from calling Reflect.construct on a
+      // NamelessError subclass — which crashes under Hermes when the native
+      // RevenueCat SDK emits config/offerings errors via RCTDeviceEventEmitter.
       if (__DEV__) {
-        RC.setLogLevel(RC.LOG_LEVEL?.VERBOSE ?? 4);
+        if (RC.setLogHandler) {
+          RC.setLogHandler((_logLevel: any, message: string) => {
+            console.warn("[RevenueCat-SDK]", message);
+          });
+        }
+        RC.setLogLevel(RC.LOG_LEVEL?.WARN ?? 2);
       }
 
       // Always call configure() — the SDK handles duplicate calls gracefully.
@@ -156,6 +167,12 @@ export class RevenueCatProvider implements BillingProvider {
       // Reset so a retry can attempt init again
       this.initPromise = null;
       logger.error("[RevenueCat] Initialization failed:", error);
+      reportError(error, {
+        area: "billing",
+        action: "rc_initialize",
+        provider: "revenuecat",
+        extra: rcError(error),
+      });
       throw error;
     }
   }
@@ -183,6 +200,13 @@ export class RevenueCatProvider implements BillingProvider {
     } catch (error) {
       // Non-fatal — the user can still use the app anonymously
       logger.error("[RevenueCat] logIn failed:", rcError(error));
+      reportError(error, {
+        area: "billing",
+        action: "rc_logIn",
+        provider: "revenuecat",
+        userId,
+        extra: rcError(error),
+      });
     }
   }
 
@@ -209,6 +233,12 @@ export class RevenueCatProvider implements BillingProvider {
       logger.log("[RevenueCat] Logged out");
     } catch (error) {
       logger.error("[RevenueCat] logOut failed:", rcError(error));
+      reportError(error, {
+        area: "billing",
+        action: "rc_logOut",
+        provider: "revenuecat",
+        extra: rcError(error),
+      });
     }
   }
 
@@ -222,6 +252,12 @@ export class RevenueCatProvider implements BillingProvider {
       return this.mapCustomerInfo(customerInfo);
     } catch (error) {
       logger.error("[RevenueCat] Failed to get entitlements:", rcError(error));
+      reportError(error, {
+        area: "billing",
+        action: "rc_getEntitlements",
+        provider: "revenuecat",
+        extra: rcError(error),
+      });
       throw error;
     }
   }
@@ -243,8 +279,15 @@ export class RevenueCatProvider implements BillingProvider {
       const offerings = await RC.getOfferings();
       return offerings;
     } catch (error) {
-      logger.error("[RevenueCat] Failed to get offerings:", error);
-      throw error;
+      // Use warn (not error) to avoid crashing Expo Metro's HMR client under
+      // Hermes — its NamelessError stack-capture uses Reflect.construct which
+      // throws when console.error is called with a native error object.
+      // Pass only the string message to avoid redactSensitive crashing on
+      // Proxy-based native NSError objects.
+      const msg =
+        error instanceof Error ? error.message : String(error ?? "unknown");
+      logger.warn(`[RevenueCat] Failed to get offerings (non-fatal): ${msg}`);
+      return null;
     }
   }
 
@@ -274,6 +317,12 @@ export class RevenueCatProvider implements BillingProvider {
       }
     } catch (error) {
       logger.error("[RevenueCat] presentPaywall failed:", error);
+      reportError(error, {
+        area: "billing",
+        action: "rc_presentPaywall",
+        provider: "revenuecat",
+        extra: rcError(error),
+      });
       throw error;
     }
   }
@@ -294,6 +343,12 @@ export class RevenueCatProvider implements BillingProvider {
       logger.log("[RevenueCat] PaywallIfNeeded result:", result);
     } catch (error) {
       logger.error("[RevenueCat] presentPaywallIfNeeded failed:", error);
+      reportError(error, {
+        area: "billing",
+        action: "rc_presentPaywallIfNeeded",
+        provider: "revenuecat",
+        extra: rcError(error),
+      });
       throw error;
     }
   }
@@ -312,6 +367,12 @@ export class RevenueCatProvider implements BillingProvider {
       logger.log("[RevenueCat] Customer Center closed");
     } catch (error) {
       logger.error("[RevenueCat] presentCustomerCenter failed:", error);
+      reportError(error, {
+        area: "billing",
+        action: "rc_presentCustomerCenter",
+        provider: "revenuecat",
+        extra: rcError(error),
+      });
       throw error;
     }
   }
@@ -329,6 +390,12 @@ export class RevenueCatProvider implements BillingProvider {
       logger.log("[RevenueCat] Purchases restored");
     } catch (error) {
       logger.error("[RevenueCat] Failed to restore purchases:", error);
+      reportError(error, {
+        area: "billing",
+        action: "rc_restorePurchases",
+        provider: "revenuecat",
+        extra: rcError(error),
+      });
       throw error;
     }
   }
@@ -365,6 +432,15 @@ export class RevenueCatProvider implements BillingProvider {
         return null;
       }
       logger.error("[RevenueCat] Purchase failed:", error);
+      reportError(error, {
+        area: "billing",
+        action: "rc_purchasePackage",
+        provider: "revenuecat",
+        extra: {
+          packageIdentifier: pkg?.identifier,
+          ...rcError(error),
+        },
+      });
       throw error;
     }
   }

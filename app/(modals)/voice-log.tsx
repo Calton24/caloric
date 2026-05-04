@@ -9,10 +9,11 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
+    cancelAnimation,
     FadeIn,
     useAnimatedStyle,
     useSharedValue,
@@ -22,13 +23,18 @@ import Animated, {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
 import { useVoiceCapture } from "../../src/features/voice";
+import { addFoodLoggingBreadcrumb } from "../../src/infrastructure/errorReporting/foodLoggingErrors";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+import { FoodLoggingErrorBoundary } from "../../src/ui/errors/FoodLoggingErrorBoundary";
 
-export default function VoiceLoggingScreen() {
+function VoiceLoggingScreenInner() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
+  const pathname = usePathname();
   const { startFromInput } = useLoggingFlow();
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingError, setProcessingError] = useState<string | null>(null);
@@ -49,13 +55,22 @@ export default function VoiceLoggingScreen() {
     retry(); // calls store.reset() — clears transcript, status, error
   }, [retry]);
 
+  useEffect(() => {
+    addFoodLoggingBreadcrumb("food_logging.voice_opened", {
+      route: pathname,
+    });
+  }, [pathname]);
+
   // ── Auto-start listening on mount ─────────────────────────────────────
   const hasStarted = useRef(false);
   useEffect(() => {
     if (hasStarted.current) return;
     hasStarted.current = true;
     // Small delay so the screen animates in and reset completes
-    const t = setTimeout(() => startListening(), 400);
+    const t = setTimeout(() => {
+      addFoodLoggingBreadcrumb("food_logging.voice_recording_started");
+      startListening();
+    }, 400);
     return () => clearTimeout(t);
   }, [startListening]);
 
@@ -78,18 +93,27 @@ export default function VoiceLoggingScreen() {
     (async () => {
       setIsProcessing(true);
       setProcessingError(null);
+      addFoodLoggingBreadcrumb("food_logging.voice_transcription_started", {
+        transcript_length: transcript.trim().length,
+      });
       try {
         const foundFood = await startFromInput(transcript, "voice");
         if (!foundFood) {
+          addFoodLoggingBreadcrumb("food_logging.voice_transcription_failed", {
+            reason: "no_food",
+          });
           setIsProcessing(false);
-          setProcessingError(
-            'No food detected. Try saying just the food name, e.g. "chicken and rice".'
-          );
+          setProcessingError(t("voiceLog.noFoodDetected"));
           hasProcessed.current = false;
+        } else {
+          addFoodLoggingBreadcrumb("food_logging.voice_transcription_success");
         }
       } catch {
+        addFoodLoggingBreadcrumb("food_logging.voice_transcription_failed", {
+          reason: "exception",
+        });
         setIsProcessing(false);
-        setProcessingError("Couldn't look up nutrition. Tap retry.");
+        setProcessingError(t("voiceLog.lookupFailed"));
         hasProcessed.current = false;
       }
     })();
@@ -128,9 +152,15 @@ export default function VoiceLoggingScreen() {
         true
       );
     } else {
+      cancelAnimation(pulseScale);
+      cancelAnimation(pulseOpacity);
       pulseScale.value = withTiming(1, { duration: 300 });
       pulseOpacity.value = withTiming(0, { duration: 300 });
     }
+    return () => {
+      cancelAnimation(pulseScale);
+      cancelAnimation(pulseOpacity);
+    };
   }, [isListening, pulseScale, pulseOpacity]);
 
   // ── Actions ───────────────────────────────────────────────────────────
@@ -166,7 +196,9 @@ export default function VoiceLoggingScreen() {
             variant="heading"
             style={[styles.headerTitle, { color: theme.colors.text }]}
           >
-            {displayState === "processing" ? "Looking it up…" : "Listening"}
+            {displayState === "processing"
+              ? t("voiceLog.lookingItUp")
+              : t("voiceLog.listening")}
           </TText>
           <View style={{ width: 24 }} />
         </View>
@@ -217,7 +249,7 @@ export default function VoiceLoggingScreen() {
                 <TText
                   style={[styles.recordingLabel, { color: theme.colors.error }]}
                 >
-                  Listening
+                  {t("voiceLog.listening")}
                 </TText>
               </View>
 
@@ -242,7 +274,7 @@ export default function VoiceLoggingScreen() {
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  Describe what you ate…
+                  {t("voiceLog.describeFood")}
                 </TText>
               )}
 
@@ -251,7 +283,7 @@ export default function VoiceLoggingScreen() {
               <TText
                 style={[styles.micHint, { color: theme.colors.textMuted }]}
               >
-                Tap mic to finish early
+                {t("voiceLog.tapMicFinish")}
               </TText>
             </Animated.View>
           )}
@@ -285,7 +317,7 @@ export default function VoiceLoggingScreen() {
                   { color: theme.colors.textMuted },
                 ]}
               >
-                Looking up nutrition…
+                {t("voiceLog.lookingUpNutrition")}
               </TText>
             </Animated.View>
           )}
@@ -303,7 +335,7 @@ export default function VoiceLoggingScreen() {
               />
               <TSpacer size="md" />
               <TText style={[styles.errorTitle, { color: theme.colors.text }]}>
-                {error || processingError || "Something went wrong"}
+                {error || processingError || t("common.error")}
               </TText>
               <TSpacer size="lg" />
               <Pressable
@@ -315,7 +347,7 @@ export default function VoiceLoggingScreen() {
               >
                 <Ionicons name="refresh" size={20} color={theme.colors.text} />
                 <TText style={[styles.retryText, { color: theme.colors.text }]}>
-                  Try again
+                  {t("voiceLog.tryAgain")}
                 </TText>
               </Pressable>
             </Animated.View>
@@ -323,6 +355,14 @@ export default function VoiceLoggingScreen() {
         </View>
       </SafeAreaView>
     </View>
+  );
+}
+
+export default function VoiceLoggingScreen() {
+  return (
+    <FoodLoggingErrorBoundary routeLabel="/(modals)/voice-log">
+      <VoiceLoggingScreenInner />
+    </FoodLoggingErrorBoundary>
   );
 }
 

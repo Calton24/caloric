@@ -21,7 +21,8 @@ export function getHealthService(): HealthService {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { AppleHealthService } = require("./apple-health.service");
       instance = new AppleHealthService();
-    } catch {
+    } catch (e) {
+      console.warn("[HealthKit] Failed to load AppleHealthService:", e);
       instance = new NoopHealthService();
     }
   } else {

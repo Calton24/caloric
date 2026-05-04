@@ -1,0 +1,31 @@
+{
+  "app": {
+    "title": "Caloric"
+  },
+  "common": {
+    "cancel": "Annuleren",
+    "save": "Opslaan",
+    "loading": "Laden…",
+    "done": "Klaar",
+    "delete": "Verwijderen",
+    "edit": "Bewerken",
+    "back": "Terug",
+    "next": "Volgende",
+    "ok": "OK",
+    "error": "Fout",
+    "success": "Gelukt",
+    "retry": "Opnieuw proberen",
+    "continue": "Doorgaan",
+    "letsGo": "Laten we gaan!",
+    "weeks": "Weken",
+    "years": "jaar",
+    "recommended": "Aanbevolen",
+    "email": "E-mail",
+    "processing": "Verwerken..."
+  },
+  "calories": {
+    "label": "Calorieën",
+    "value_one": "{{count}} calorie",
+    "value_other": "{{count}} calorieën"
+  }
+}

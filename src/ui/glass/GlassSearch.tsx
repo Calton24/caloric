@@ -29,6 +29,7 @@ import Animated, {
     withTiming,
 } from "react-native-reanimated";
 import { haptics } from "../../infrastructure/haptics";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { GlassSurface } from "../glass/GlassSurface";
 import { TText } from "../primitives/TText";
@@ -80,7 +81,7 @@ export interface GlassSearchProps {
 export function GlassSearch({
   value,
   onChangeText,
-  placeholder = "Search",
+  placeholder,
   onSubmit,
   onCancel,
   showCancel = true,
@@ -90,7 +91,9 @@ export function GlassSearch({
   style,
 }: GlassSearchProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const inputRef = useRef<TextInput>(null);
+  const resolvedPlaceholder = placeholder ?? t("common.search");
   const [cancelVisible, setCancelVisible] = useState(false);
 
   // Focus ring (Reanimated — runs on UI thread)
@@ -149,7 +152,7 @@ export function GlassSearch({
             ref={inputRef}
             value={value}
             onChangeText={onChangeText}
-            placeholder={placeholder}
+            placeholder={resolvedPlaceholder}
             placeholderTextColor={theme.colors.textMuted}
             onFocus={handleFocus}
             onBlur={handleBlur}
@@ -196,7 +199,7 @@ export function GlassSearch({
               fontWeight: theme.typography.fontWeight.medium,
             }}
           >
-            Cancel
+            {t("common.cancel")}
           </TText>
         </Pressable>
       )}

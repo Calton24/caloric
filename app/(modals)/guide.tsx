@@ -10,62 +10,53 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React from "react";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { TText } from "../../src/ui/primitives/TText";
 
 /** Guide list items */
 const GUIDE_ITEMS: {
   icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  description: string;
+  titleKey: string;
+  descKey: string;
 }[] = [
   {
     icon: "camera-outline",
-    title: "Take a Photo of Your Food",
-    description:
-      "Tap the Camera icon in the bottom right of the app home screen then snap a photo.",
+    titleKey: "guide.takePhoto",
+    descKey: "guide.takePhotoDesc",
   },
   {
     icon: "barcode-outline",
-    title: "Scanning Barcodes",
-    description:
-      "To get started tap the Camera icon in the home screen then snap a photo of the bar code on the package.",
+    titleKey: "guide.scanBarcodes",
+    descKey: "guide.scanBarcodesDesc",
   },
   {
     icon: "mic-outline",
-    title: "Speech Recognition",
-    description:
-      "Tap the Microphone icon in the home screen to start then again when you are done speaking.",
+    titleKey: "guide.speechRecognition",
+    descKey: "guide.speechRecognitionDesc",
   },
   {
     icon: "keypad-outline",
-    title: "Text Mode",
-    description:
-      "Tap the Keyboard icon in the home screen to start adding things you ate via text input.",
+    titleKey: "guide.textMode",
+    descKey: "guide.textModeDesc",
   },
   {
     icon: "create-outline",
-    title: "Editing Details",
-    description:
-      "You can edit the quantity or measurements of items you have added by tapping the relevant option.",
+    titleKey: "guide.editingDetails",
+    descKey: "guide.editingDetailsDesc",
   },
   {
     icon: "flame-outline",
-    title: "Tracking Calories",
-    description:
-      "Tap the Track calories button when you are done to save the entries.",
+    titleKey: "guide.trackingCalories",
+    descKey: "guide.trackingCaloriesDesc",
   },
 ];
 
 export default function GuideScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
 
   return (
@@ -110,7 +101,7 @@ export default function GuideScreen() {
               color="#FFF"
               style={styles.headerIcon}
             />
-            <TText style={styles.headerTitle}>Guide</TText>
+            <TText style={styles.headerTitle}>{t("guide.title")}</TText>
           </View>
         </SafeAreaView>
       </LinearGradient>
@@ -122,7 +113,7 @@ export default function GuideScreen() {
         showsVerticalScrollIndicator={false}
       >
         {GUIDE_ITEMS.map((item, index) => (
-          <View key={item.title}>
+          <View key={item.titleKey}>
             <View style={styles.itemRow}>
               {/* Icon container */}
               <View
@@ -140,10 +131,8 @@ export default function GuideScreen() {
 
               {/* Text content */}
               <View style={styles.itemText}>
-                <TText
-                  style={[styles.itemTitle, { color: theme.colors.text }]}
-                >
-                  {item.title}
+                <TText style={[styles.itemTitle, { color: theme.colors.text }]}>
+                  {t(item.titleKey)}
                 </TText>
                 <TText
                   style={[
@@ -151,7 +140,7 @@ export default function GuideScreen() {
                     { color: theme.colors.textSecondary },
                   ]}
                 >
-                  {item.description}
+                  {t(item.descKey)}
                 </TText>
               </View>
 

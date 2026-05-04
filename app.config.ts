@@ -1,6 +1,10 @@
 /**
  * Expo App Configuration
  * Dynamically generated from active app profile
+ *
+ * iOS bundleIdentifier and Android package come from `src/config/app-profiles.js`
+ * base `app` for each profile. Environment (EXPO_PUBLIC_APP_ENV) must not override
+ * bundle IDs — all builds use `com.calton.caloric` for the Caloric profile.
  */
 
 import { ConfigContext, ExpoConfig } from "expo/config";
@@ -76,6 +80,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           "Allow Caloric to use speech recognition to convert your voice to food entries.",
         NSCameraUsageDescription:
           "Allow Caloric to use the camera to scan and identify food for calorie tracking.",
+        NSPhotoLibraryUsageDescription:
+          "Allow Caloric to access your photo library to select food images for calorie tracking.",
+        NSPhotoLibraryAddUsageDescription:
+          "Allow Caloric to save food scan photos to your photo library.",
         NSLocationWhenInUseUsageDescription:
           "Allow Caloric to add location data to photos taken with the camera for food logging.",
         NSHealthShareUsageDescription:
@@ -167,6 +175,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           cameraPermissionText:
             "Allow Caloric to use the camera to scan and identify food for calorie tracking.",
           enableCodeScanner: true,
+        },
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          organization: process.env.SENTRY_ORG,
+          project: process.env.SENTRY_PROJECT,
+          authToken: process.env.SENTRY_AUTH_TOKEN,
         },
       ],
     ],

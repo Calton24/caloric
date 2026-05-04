@@ -13,6 +13,8 @@ import { Pressable, StyleSheet, View } from "react-native";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUnits } from "../hooks/useUnits";
+import { formatMonthDay } from "../src/infrastructure/i18n";
+import { useAppTranslation } from "../src/infrastructure/i18n/useAppTranslation";
 import { useProfileStore, useProgressStore } from "../src/stores";
 import { useTheme } from "../src/theme/useTheme";
 import { TSpacer } from "../src/ui/primitives/TSpacer";
@@ -20,6 +22,7 @@ import { TText } from "../src/ui/primitives/TText";
 
 export default function LogWeightScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
   const units = useUnits();
 
@@ -57,14 +60,14 @@ export default function LogWeightScreen() {
             <TText
               style={[styles.cancelText, { color: theme.colors.textMuted }]}
             >
-              Cancel
+              {t("common.cancel")}
             </TText>
           </Pressable>
           <TText
             variant="heading"
             style={[styles.headerTitle, { color: theme.colors.text }]}
           >
-            Log Weight
+            {t("logWeight.title")}
           </TText>
           <View style={{ width: 50 }} />
         </View>
@@ -75,11 +78,7 @@ export default function LogWeightScreen() {
             <TText
               style={[styles.dateText, { color: theme.colors.textSecondary }]}
             >
-              Today,{" "}
-              {new Date().toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-              })}
+              {t("progress.logWeight.today")}, {formatMonthDay(new Date())}
             </TText>
           </Animated.View>
 
@@ -169,12 +168,13 @@ export default function LogWeightScreen() {
               <TText
                 style={[styles.goalText, { color: theme.colors.textSecondary }]}
               >
-                Goal: {units.display(profile.goalWeightLbs ?? 0)} {units.label}{" "}
-                (
-                {(
-                  weight - Number(units.display(profile.goalWeightLbs ?? 0))
-                ).toFixed(1)}{" "}
-                {units.label} to go)
+                {t("logWeight.goalLabel", {
+                  weight: units.display(profile.goalWeightLbs ?? 0),
+                  unit: units.label,
+                  difference: (
+                    weight - Number(units.display(profile.goalWeightLbs ?? 0))
+                  ).toFixed(1),
+                })}
               </TText>
             </View>
           </Animated.View>
@@ -206,7 +206,7 @@ export default function LogWeightScreen() {
               <TText
                 style={[styles.saveText, { color: theme.colors.textInverse }]}
               >
-                Save Weight
+                {t("logWeight.save")}
               </TText>
             </LinearGradient>
           </Pressable>

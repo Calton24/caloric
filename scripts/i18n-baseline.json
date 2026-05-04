@@ -1,0 +1,13 @@
+{
+  "description": "Baseline count of i18n/no-hardcoded-strings violations. Must only go down, never up.",
+  "date": "2026-04-17",
+  "count": 336,
+  "breakdown": {
+    "playground_design_system": 199,
+    "dev_panels": 109,
+    "caloric_dev_tabs": 19,
+    "growth_dev_tab": 5,
+    "false_positives_brand_names_scaffold": 4,
+    "user_facing": 0
+  }
+}

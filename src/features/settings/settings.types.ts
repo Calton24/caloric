@@ -4,11 +4,18 @@
  * App-level preferences and feature toggles.
  */
 
+import type {
+  SupportedLanguage,
+  VoiceLanguageCode,
+} from "../../config/languages";
+
 export type UnitsPreference = "system" | "metric" | "imperial";
 
 export interface AppSettings {
-  /** BCP-47 language code for voice/text input, e.g. "en-US" */
-  inputLanguage: string;
+  /** App UI language (shared with i18n), e.g. "en-GB". */
+  appLanguage: SupportedLanguage;
+  /** Voice parsing language. "auto" follows app language. */
+  voiceLanguage: VoiceLanguageCode;
   /** Unit system preference */
   unitsPreference: UnitsPreference;
   /** Whether the log-reminder notification is enabled */
@@ -28,5 +35,5 @@ export interface AppSettings {
 export interface LanguageOption {
   label: string;
   flag: string;
-  value: string;
+  value: VoiceLanguageCode;
 }

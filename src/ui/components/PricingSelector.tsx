@@ -11,6 +11,7 @@
 
 import { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { GlassSurface } from "../glass/GlassSurface";
 import { TSpacer } from "../primitives/TSpacer";
@@ -34,14 +35,14 @@ function getTierKey(pkg: any): TierKey {
   return "other";
 }
 
-function getTierLabel(tier: TierKey): string {
+function getTierLabel(tier: TierKey, t: (key: string) => string): string {
   switch (tier) {
     case "monthly":
-      return "Monthly";
+      return t("paywall.tierMonthly");
     case "yearly":
-      return "Yearly";
+      return t("paywall.tierYearly");
     default:
-      return "Plan";
+      return t("paywall.tierPlan");
   }
 }
 
@@ -93,6 +94,7 @@ export function PricingSelector({
   heading = "Choose your plan",
 }: PricingSelectorProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const [purchasingId, setPurchasingId] = useState<string | null>(null);
 
   if (isLoading) {
@@ -133,7 +135,7 @@ export function PricingSelector({
           const tier = getTierKey(pkg);
           const product = pkg.product ?? pkg.storeProduct;
           const priceStr = product?.priceString ?? product?.price ?? "—";
-          const label = getTierLabel(tier);
+          const label = getTierLabel(tier, t);
           const subtitle = getTierSubtitle(pkg, tier, sorted);
           const isYearly = tier === "yearly";
           const isBuying = purchasingId === pkg.identifier;
@@ -174,7 +176,7 @@ export function PricingSelector({
                         { color: theme.colors.textInverse },
                       ]}
                     >
-                      Best Value ✦
+                      {t("paywall.bestValueStar")}
                     </TText>
                   </View>
                 )}

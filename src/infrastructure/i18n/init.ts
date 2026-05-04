@@ -18,55 +18,260 @@
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import { getAppConfig } from "../../config";
+import {
+  LANGUAGE_LABELS,
+  SUPPORTED_APP_LANGUAGE_CODES,
+  type SupportedLanguage,
+} from "../../config/languages";
 import { logger } from "../../logging/logger";
 
-// Translation resources — static imports (bundled)
-import de from "../../locales/de/common.json";
-import en from "../../locales/en/common.json";
-import es from "../../locales/es/common.json";
-import fr from "../../locales/fr/common.json";
-import nl from "../../locales/nl/common.json";
-import pl from "../../locales/pl/common.json";
-import ptBR from "../../locales/pt-BR/common.json";
-import pt from "../../locales/pt/common.json";
+// Translation resources — static imports, split by feature namespace
+// Each feature file exports its own top-level keys (e.g. auth.json → { auth: { ... } })
+// They are deep-merged into a single "common" namespace for i18next.
+
+import enAuth from "../../locales/en/auth.json";
+import enCoaching from "../../locales/en/coaching.json";
+import enCommon from "../../locales/en/common.json";
+import enGoals from "../../locales/en/goals.json";
+import enGuide from "../../locales/en/guide.json";
+import enHome from "../../locales/en/home.json";
+import enOnboarding from "../../locales/en/onboarding.json";
+import enPermissions from "../../locales/en/permissions.json";
+import enProgress from "../../locales/en/progress.json";
+import enSettings from "../../locales/en/settings.json";
+import enTracking from "../../locales/en/tracking.json";
+
+import deAuth from "../../locales/de/auth.json";
+import deCoaching from "../../locales/de/coaching.json";
+import deCommon from "../../locales/de/common.json";
+import deGoals from "../../locales/de/goals.json";
+import deGuide from "../../locales/de/guide.json";
+import deHome from "../../locales/de/home.json";
+import deOnboarding from "../../locales/de/onboarding.json";
+import dePermissions from "../../locales/de/permissions.json";
+import deProgress from "../../locales/de/progress.json";
+import deSettings from "../../locales/de/settings.json";
+import deTracking from "../../locales/de/tracking.json";
+
+import esAuth from "../../locales/es/auth.json";
+import esCoaching from "../../locales/es/coaching.json";
+import esCommon from "../../locales/es/common.json";
+import esGoals from "../../locales/es/goals.json";
+import esGuide from "../../locales/es/guide.json";
+import esHome from "../../locales/es/home.json";
+import esOnboarding from "../../locales/es/onboarding.json";
+import esPermissions from "../../locales/es/permissions.json";
+import esProgress from "../../locales/es/progress.json";
+import esSettings from "../../locales/es/settings.json";
+import esTracking from "../../locales/es/tracking.json";
+
+import frAuth from "../../locales/fr/auth.json";
+import frCoaching from "../../locales/fr/coaching.json";
+import frCommon from "../../locales/fr/common.json";
+import frGoals from "../../locales/fr/goals.json";
+import frGuide from "../../locales/fr/guide.json";
+import frHome from "../../locales/fr/home.json";
+import frOnboarding from "../../locales/fr/onboarding.json";
+import frPermissions from "../../locales/fr/permissions.json";
+import frProgress from "../../locales/fr/progress.json";
+import frSettings from "../../locales/fr/settings.json";
+import frTracking from "../../locales/fr/tracking.json";
+
+import nlAuth from "../../locales/nl/auth.json";
+import nlCoaching from "../../locales/nl/coaching.json";
+import nlCommon from "../../locales/nl/common.json";
+import nlGoals from "../../locales/nl/goals.json";
+import nlGuide from "../../locales/nl/guide.json";
+import nlHome from "../../locales/nl/home.json";
+import nlOnboarding from "../../locales/nl/onboarding.json";
+import nlPermissions from "../../locales/nl/permissions.json";
+import nlProgress from "../../locales/nl/progress.json";
+import nlSettings from "../../locales/nl/settings.json";
+import nlTracking from "../../locales/nl/tracking.json";
+
+import plAuth from "../../locales/pl/auth.json";
+import plCoaching from "../../locales/pl/coaching.json";
+import plCommon from "../../locales/pl/common.json";
+import plGoals from "../../locales/pl/goals.json";
+import plGuide from "../../locales/pl/guide.json";
+import plHome from "../../locales/pl/home.json";
+import plOnboarding from "../../locales/pl/onboarding.json";
+import plPermissions from "../../locales/pl/permissions.json";
+import plProgress from "../../locales/pl/progress.json";
+import plSettings from "../../locales/pl/settings.json";
+import plTracking from "../../locales/pl/tracking.json";
+
+import ptAuth from "../../locales/pt/auth.json";
+import ptCoaching from "../../locales/pt/coaching.json";
+import ptCommon from "../../locales/pt/common.json";
+import ptGoals from "../../locales/pt/goals.json";
+import ptGuide from "../../locales/pt/guide.json";
+import ptHome from "../../locales/pt/home.json";
+import ptOnboarding from "../../locales/pt/onboarding.json";
+import ptPermissions from "../../locales/pt/permissions.json";
+import ptProgress from "../../locales/pt/progress.json";
+import ptSettings from "../../locales/pt/settings.json";
+import ptTracking from "../../locales/pt/tracking.json";
+
+import ptBRAuth from "../../locales/pt-BR/auth.json";
+import ptBRCoaching from "../../locales/pt-BR/coaching.json";
+import ptBRCommon from "../../locales/pt-BR/common.json";
+import ptBRGoals from "../../locales/pt-BR/goals.json";
+import ptBRGuide from "../../locales/pt-BR/guide.json";
+import ptBRHome from "../../locales/pt-BR/home.json";
+import ptBROnboarding from "../../locales/pt-BR/onboarding.json";
+import ptBRPermissions from "../../locales/pt-BR/permissions.json";
+import ptBRProgress from "../../locales/pt-BR/progress.json";
+import ptBRSettings from "../../locales/pt-BR/settings.json";
+import ptBRTracking from "../../locales/pt-BR/tracking.json";
+
+/**
+ * Shallow-merge feature JSON files into one `common` namespace.
+ * Top-level keys from later files overwrite earlier ones (e.g. both
+ * `onboarding.json` and `settings.json` define `paywall` — only the last
+ * wins). Keep all `paywall.*` strings in `settings.json` per locale.
+ */
+function mergeNamespaces(
+  ...files: Record<string, unknown>[]
+): Record<string, unknown> {
+  const merged: Record<string, unknown> = {};
+  for (const file of files) {
+    Object.assign(merged, file);
+  }
+  return merged;
+}
 
 // ---------- Constants ----------
 
-export const SUPPORTED_LANGUAGES = [
-  "en",
-  "de",
-  "es",
-  "fr",
-  "nl",
-  "pl",
-  "pt",
-  "pt-BR",
-] as const;
-export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
+export const SUPPORTED_LANGUAGES = SUPPORTED_APP_LANGUAGE_CODES;
+export { LANGUAGE_LABELS };
+export type { SupportedLanguage };
 
-export const LANGUAGE_LABELS: Record<SupportedLanguage, string> = {
-  en: "English",
-  de: "Deutsch",
-  es: "Español",
-  fr: "Français",
-  nl: "Nederlands",
-  pl: "Polski",
-  pt: "Português",
-  "pt-BR": "Português (BR)",
-};
-
-const FALLBACK_LANGUAGE: SupportedLanguage = "en";
+const FALLBACK_LANGUAGE: SupportedLanguage = "en-GB";
 const STORAGE_KEY = "mobile_core_i18n_language";
 
+const en = mergeNamespaces(
+  enCommon,
+  enAuth,
+  enOnboarding,
+  enHome,
+  enSettings,
+  enTracking,
+  enProgress,
+  enPermissions,
+  enGoals,
+  enGuide,
+  enCoaching
+);
+
 const resources = {
-  en: { common: en },
-  de: { common: de },
-  es: { common: es },
-  fr: { common: fr },
-  nl: { common: nl },
-  pl: { common: pl },
-  pt: { common: pt },
-  "pt-BR": { common: ptBR },
+  "en-GB": { common: en },
+  "en-US": { common: en },
+  de: {
+    common: mergeNamespaces(
+      deCommon,
+      deAuth,
+      deOnboarding,
+      deHome,
+      deSettings,
+      deTracking,
+      deProgress,
+      dePermissions,
+      deGoals,
+      deGuide,
+      deCoaching
+    ),
+  },
+  es: {
+    common: mergeNamespaces(
+      esCommon,
+      esAuth,
+      esOnboarding,
+      esHome,
+      esSettings,
+      esTracking,
+      esProgress,
+      esPermissions,
+      esGoals,
+      esGuide,
+      esCoaching
+    ),
+  },
+  fr: {
+    common: mergeNamespaces(
+      frCommon,
+      frAuth,
+      frOnboarding,
+      frHome,
+      frSettings,
+      frTracking,
+      frProgress,
+      frPermissions,
+      frGoals,
+      frGuide,
+      frCoaching
+    ),
+  },
+  nl: {
+    common: mergeNamespaces(
+      nlCommon,
+      nlAuth,
+      nlOnboarding,
+      nlHome,
+      nlSettings,
+      nlTracking,
+      nlProgress,
+      nlPermissions,
+      nlGoals,
+      nlGuide,
+      nlCoaching
+    ),
+  },
+  pl: {
+    common: mergeNamespaces(
+      plCommon,
+      plAuth,
+      plOnboarding,
+      plHome,
+      plSettings,
+      plTracking,
+      plProgress,
+      plPermissions,
+      plGoals,
+      plGuide,
+      plCoaching
+    ),
+  },
+  pt: {
+    common: mergeNamespaces(
+      ptCommon,
+      ptAuth,
+      ptOnboarding,
+      ptHome,
+      ptSettings,
+      ptTracking,
+      ptProgress,
+      ptPermissions,
+      ptGoals,
+      ptGuide,
+      ptCoaching
+    ),
+  },
+  "pt-BR": {
+    common: mergeNamespaces(
+      ptBRCommon,
+      ptBRAuth,
+      ptBROnboarding,
+      ptBRHome,
+      ptBRSettings,
+      ptBRTracking,
+      ptBRProgress,
+      ptBRPermissions,
+      ptBRGoals,
+      ptBRGuide,
+      ptBRCoaching
+    ),
+  },
 } as const;
 
 // ---------- Dynamic requires (optional deps) ----------
@@ -93,6 +298,12 @@ try {
 // ---------- State ----------
 
 let initialized = false;
+/**
+ * Tracks whether we have done at least a synchronous English-only init.
+ * Allows modal screens that render before the async `initI18n()` finishes to
+ * still show real copy (English) rather than raw keys.
+ */
+let syncBootstrapped = false;
 
 type I18nMode = "disabled" | "enabled";
 
@@ -107,7 +318,7 @@ function logBoot(mode: I18nMode, locale?: string, fallback?: string): void {
 // ---------- Helpers ----------
 
 function isSupportedLanguage(lang: string): lang is SupportedLanguage {
-  return (SUPPORTED_LANGUAGES as readonly string[]).includes(lang);
+  return (SUPPORTED_APP_LANGUAGE_CODES as readonly string[]).includes(lang);
 }
 
 function resolveDeviceLocale(): string {
@@ -115,7 +326,7 @@ function resolveDeviceLocale(): string {
     if (Localization?.getLocales) {
       const locales = Localization.getLocales();
       if (Array.isArray(locales) && locales.length > 0) {
-        return locales[0].languageTag ?? locales[0].languageCode ?? "en";
+        return locales[0].languageTag ?? locales[0].languageCode ?? "en-GB";
       }
     }
     // Fallback to locale string
@@ -125,19 +336,22 @@ function resolveDeviceLocale(): string {
   } catch {
     // Swallow — non-fatal
   }
-  return "en";
+  return "en-GB";
 }
 
 function matchSupportedLanguage(deviceLocale: string): SupportedLanguage {
-  // Exact match first (e.g. "pt-BR")
+  // Exact match first (e.g. "pt-BR", "en-US", "en-GB")
   if (isSupportedLanguage(deviceLocale)) return deviceLocale;
 
-  // Try language code only (e.g. "pt-BR" → "pt" — no match, "de-AT" → "de")
   const langCode = deviceLocale.split("-")[0];
+
+  // English variants: US stays US, everything else → GB
+  if (langCode === "en") return "en-GB";
+
+  // Try language code only (e.g. "de-AT" → "de")
   if (isSupportedLanguage(langCode)) return langCode;
 
   // Special case: "pt" without region → pt (European Portuguese)
-  // pt-BR is matched via exact match above
   if (langCode === "pt") return "pt";
 
   return FALLBACK_LANGUAGE;
@@ -175,6 +389,39 @@ export async function clearPersistedLanguage(): Promise<void> {
 // ---------- Public API ----------
 
 /**
+ * Bootstrap i18next synchronously with English so the first React render
+ * always shows real copy rather than raw keys.
+ *
+ * Called at module-load time by CaloricProviders (before any useEffect).
+ * Idempotent and safe to call multiple times — the async `initI18n()` will
+ * later upgrade the language to the correct locale.
+ */
+export function bootstrapI18nSync(): void {
+  if (syncBootstrapped) return;
+  syncBootstrapped = true;
+
+  const config = getAppConfig();
+  if (!config.features.i18n) return;
+
+  // Use `init` only if i18next hasn't started initialising yet.
+  // The synchronous path skips AsyncStorage (no await) and always
+  // uses English. The async `initI18n()` will call `changeLanguage`
+  // after reading the stored preference, upgrading to the right locale.
+  if (!i18next.isInitialized) {
+    i18next.use(initReactI18next).init({
+      resources,
+      lng: FALLBACK_LANGUAGE,
+      fallbackLng: FALLBACK_LANGUAGE,
+      defaultNS: "common",
+      ns: ["common"],
+      interpolation: { escapeValue: false },
+      compatibilityJSON: "v4",
+      react: { useSuspense: false },
+    });
+  }
+}
+
+/**
  * Initialise i18next.
  * Idempotent — safe to call multiple times.
  * Must be awaited before rendering translated UI.
@@ -197,21 +444,28 @@ export async function initI18n(): Promise<void> {
       ? stored
       : matchSupportedLanguage(deviceLocale);
 
-  // eslint-disable-next-line import/no-named-as-default-member
-  await i18next.use(initReactI18next).init({
-    resources,
-    lng: resolved,
-    fallbackLng: FALLBACK_LANGUAGE,
-    defaultNS: "common",
-    ns: ["common"],
-    interpolation: {
-      escapeValue: false, // React already escapes
-    },
-    compatibilityJSON: "v4", // Proper plural rules
-    react: {
-      useSuspense: false, // Avoid Suspense in RN
-    },
-  });
+  if (i18next.isInitialized) {
+    // bootstrapI18nSync() already ran — just upgrade to the correct locale.
+    if (i18next.language !== resolved) {
+      await i18next.changeLanguage(resolved);
+    }
+  } else {
+    // eslint-disable-next-line import/no-named-as-default-member
+    await i18next.use(initReactI18next).init({
+      resources,
+      lng: resolved,
+      fallbackLng: FALLBACK_LANGUAGE,
+      defaultNS: "common",
+      ns: ["common"],
+      interpolation: {
+        escapeValue: false, // React already escapes
+      },
+      compatibilityJSON: "v4", // Proper plural rules
+      react: {
+        useSuspense: false, // Avoid Suspense in RN
+      },
+    });
+  }
 
   logBoot("enabled", resolved, FALLBACK_LANGUAGE);
   initialized = true;

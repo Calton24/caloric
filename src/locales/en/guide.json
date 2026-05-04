@@ -1,0 +1,34 @@
+{
+  "guide": {
+    "title": "Guide",
+    "takePhoto": "Take a Photo of Your Food",
+    "takePhotoDesc": "Tap the Camera icon in the bottom right of the app home screen then snap a photo.",
+    "scanBarcodes": "Scanning Barcodes",
+    "scanBarcodesDesc": "To get started tap the Camera icon in the home screen then snap a photo of the bar code on the package.",
+    "speechRecognition": "Speech Recognition",
+    "speechRecognitionDesc": "Tap the Microphone icon in the home screen to start then again when you are done speaking.",
+    "textMode": "Text Mode",
+    "textModeDesc": "Tap the Keyboard icon in the home screen to start adding things you ate via text input.",
+    "editingDetails": "Editing Details",
+    "editingDetailsDesc": "You can edit the quantity or measurements of items you have added by tapping the relevant option.",
+    "trackingCalories": "Tracking Calories",
+    "trackingCaloriesDesc": "Tap the Track calories button when you are done to save the entries."
+  },
+  "liveActivity": {
+    "title": "Live Activities",
+    "description": "Track your calories in real-time right from your Lock Screen and Dynamic Island",
+    "remaining": "remaining",
+    "consumed": "consumed",
+    "goal": "goal",
+    "activate": "Activate",
+    "skip": "Skip",
+    "iosOnly": "iOS Only",
+    "iosOnlyDesc": "Live Activities are only available on iOS devices.",
+    "unavailable": "Live Activities Unavailable",
+    "unavailableDesc": "Please enable Live Activities in iOS Settings > Caloric > Live Activities, and make sure you're running iOS 16.2 or later.",
+    "continueWithout": "Continue Without",
+    "subtitle": "Track your calories in real-time right from your Lock Screen and Dynamic Island.",
+    "dynamicIsland": "Dynamic Island",
+    "notNow": "Not now"
+  }
+}

@@ -24,7 +24,7 @@ export const caloricConfig: AppProfileConfig = {
       storageBucket: "caloric-prod.appspot.com",
       clientId:
         "123456789-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com",
-      bundleId: "com.yourcompany.caloric",
+      bundleId: "com.calton.caloric",
     },
     android: {
       googleAppId: "1:123456789:android:abcdef123456",
@@ -34,7 +34,7 @@ export const caloricConfig: AppProfileConfig = {
       gcmSenderId: "123456789",
       clientId:
         "123456789-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com",
-      packageName: "com.yourcompany.caloric",
+      packageName: "com.calton.caloric",
     },
   },
 
@@ -68,8 +68,8 @@ export const caloricConfig: AppProfileConfig = {
   app: {
     name: "Caloric",
     slug: "caloric",
-    bundleIdentifier: "com.calton24.caloric",
-    androidPackage: "com.calton24.caloric",
+    bundleIdentifier: "com.calton.caloric",
+    androidPackage: "com.calton.caloric",
     version: "1.0.0",
     scheme: "caloric",
   },
@@ -82,7 +82,7 @@ export const caloricConfig: AppProfileConfig = {
         ios: {
           projectId: "caloric-dev",
           storageBucket: "caloric-dev.appspot.com",
-          bundleId: "com.calton24.caloric.dev",
+          bundleId: "com.calton.caloric",
           googleAppId: "1:123456789:ios:dev123456",
           gcmSenderId: "123456789",
           apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
@@ -90,7 +90,7 @@ export const caloricConfig: AppProfileConfig = {
         android: {
           projectId: "caloric-dev",
           storageBucket: "caloric-dev.appspot.com",
-          packageName: "com.calton24.caloric.dev",
+          packageName: "com.calton.caloric",
           googleAppId: "1:123456789:android:dev123456",
           apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
           gcmSenderId: "123456789",
@@ -107,16 +107,12 @@ export const caloricConfig: AppProfileConfig = {
       app: {
         name: "Caloric",
         slug: "caloric-dev",
-        bundleIdentifier: "com.calton24.caloric.dev",
-        androidPackage: "com.calton24.caloric.dev",
       },
     },
     staging: {
       // Supabase config comes from env vars (base config)
       app: {
         name: "Caloric Staging",
-        bundleIdentifier: "com.calton24.caloric.staging",
-        androidPackage: "com.calton24.caloric.staging",
       },
     },
     prod: {

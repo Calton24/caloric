@@ -10,6 +10,7 @@ import {
     growth,
     GrowthRequestError,
 } from "../../infrastructure/growth";
+import { useAppTranslation } from "../../infrastructure/i18n";
 import { useTheme } from "../../theme/useTheme";
 import { FormField } from "../forms/FormField";
 import { useSubmitLock } from "../forms/useSubmitLock";
@@ -21,21 +22,22 @@ import { TText } from "../primitives/TText";
 import { useBottomSheet } from "../sheets/useBottomSheet";
 
 const CATEGORY_OPTIONS = [
-  { key: "bug", label: "Bug" },
-  { key: "feature", label: "Feature" },
-  { key: "improvement", label: "Improvement" },
+  { key: "bug", labelKey: "featureRequest.categoryBug" },
+  { key: "feature", labelKey: "featureRequest.categoryFeature" },
+  { key: "improvement", labelKey: "featureRequest.categoryImprovement" },
 ] as const;
 
 const SEVERITY_OPTIONS = [
-  { key: "low", label: "Low" },
-  { key: "med", label: "Med" },
-  { key: "high", label: "High" },
+  { key: "low", labelKey: "featureRequest.severityLow" },
+  { key: "med", labelKey: "featureRequest.severityMed" },
+  { key: "high", labelKey: "featureRequest.severityHigh" },
 ] as const;
 
 type RequestStatus = "idle" | "loading" | "success";
 
 export function FeatureRequestSheet() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const { close } = useBottomSheet();
   const { isSubmitting, withSubmitLock } = useSubmitLock();
 
@@ -72,7 +74,7 @@ export function FeatureRequestSheet() {
 
       const trimmedTitle = title.trim();
       if (!trimmedTitle) {
-        setError("Title is required.");
+        setError(t("featureRequest.titleRequired"));
         return;
       }
 
@@ -82,7 +84,7 @@ export function FeatureRequestSheet() {
           (COOLDOWN_MS - (now - lastLocalSubmitAt)) / 1000
         );
         setCooldownMessage(
-          `Please wait ${remaining}s before submitting another request.`
+          t("featureRequest.cooldown", { seconds: remaining })
         );
         return;
       }
@@ -103,20 +105,20 @@ export function FeatureRequestSheet() {
         if (err instanceof GrowthRequestError) {
           if (err.code === "cooldown") {
             setCooldownMessage(
-              `Please wait about ${cooldownSeconds}s before submitting again.`
+              t("featureRequest.cooldownRetry", { seconds: cooldownSeconds })
             );
             return;
           }
           if (err.code === "duplicate") {
-            setError("You already sent this request in the last 24 hours.");
+            setError(t("featureRequest.duplicate"));
             return;
           }
           if (err.code === "invalid_title") {
-            setError("Title is required.");
+            setError(t("featureRequest.titleRequired"));
             return;
           }
         }
-        setError("Something went wrong. Please try again.");
+        setError(t("featureRequest.genericError"));
       }
     });
   };
@@ -124,9 +126,9 @@ export function FeatureRequestSheet() {
   if (status === "success") {
     return (
       <View style={[styles.container, { padding: theme.spacing.lg }]}>
-        <TText variant="heading">Request sent</TText>
+        <TText variant="heading">{t("featureRequest.successHeading")}</TText>
         <TSpacer size="sm" />
-        <TText color="secondary">Thanks for the feedback.</TText>
+        <TText color="secondary">{t("featureRequest.successMessage")}</TText>
         <TSpacer size="lg" />
         <TButton
           onPress={() => {
@@ -135,11 +137,11 @@ export function FeatureRequestSheet() {
           }}
           variant="secondary"
         >
-          Send another
+          {t("featureRequest.sendAnother")}
         </TButton>
         <TSpacer size="sm" />
         <TButton onPress={close} variant="outline">
-          Close
+          {t("featureRequest.close")}
         </TButton>
       </View>
     );
@@ -152,20 +154,18 @@ export function FeatureRequestSheet() {
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
-      <TText variant="heading">Feature request</TText>
+      <TText variant="heading">{t("featureRequest.heading")}</TText>
       <TSpacer size="xs" />
-      <TText color="secondary">
-        Share a quick request or improvement. We keep it lightweight.
-      </TText>
+      <TText color="secondary">{t("featureRequest.subtitle")}</TText>
 
       <TSpacer size="lg" />
 
       <FormField
-        label="Title"
+        label={t("featureRequest.titleLabel")}
         required
         value={title}
         onChangeText={setTitle}
-        placeholder="Short summary"
+        placeholder={t("featureRequest.titlePlaceholder")}
         autoCorrect={false}
         autoCapitalize="sentences"
         returnKeyType="next"
@@ -174,13 +174,13 @@ export function FeatureRequestSheet() {
       <TSpacer size="md" />
 
       <TText style={{ fontSize: theme.typography.fontSize.sm }}>
-        Description
+        {t("featureRequest.descriptionLabel")}
       </TText>
       <TSpacer size="xs" />
       <TInput
         value={description}
         onChangeText={setDescription}
-        placeholder="Extra detail helps"
+        placeholder={t("featureRequest.descriptionPlaceholder")}
         multiline
         numberOfLines={4}
         style={{ height: 110, textAlignVertical: "top" }}
@@ -188,13 +188,15 @@ export function FeatureRequestSheet() {
 
       <TSpacer size="md" />
 
-      <TText style={{ fontSize: theme.typography.fontSize.sm }}>Category</TText>
+      <TText style={{ fontSize: theme.typography.fontSize.sm }}>
+        {t("featureRequest.categoryLabel")}
+      </TText>
       <TSpacer size="xs" />
       <View style={styles.pillRow}>
         {CATEGORY_OPTIONS.map((option) => (
           <PillOption
             key={option.key}
-            label={option.label}
+            label={t(option.labelKey)}
             selected={category === option.key}
             onPress={() =>
               setCategory(category === option.key ? undefined : option.key)
@@ -205,13 +207,15 @@ export function FeatureRequestSheet() {
 
       <TSpacer size="md" />
 
-      <TText style={{ fontSize: theme.typography.fontSize.sm }}>Severity</TText>
+      <TText style={{ fontSize: theme.typography.fontSize.sm }}>
+        {t("featureRequest.severityLabel")}
+      </TText>
       <TSpacer size="xs" />
       <View style={styles.pillRow}>
         {SEVERITY_OPTIONS.map((option) => (
           <PillOption
             key={option.key}
-            label={option.label}
+            label={t(option.labelKey)}
             selected={severity === option.key}
             onPress={() =>
               setSeverity(severity === option.key ? undefined : option.key)
@@ -240,7 +244,7 @@ export function FeatureRequestSheet() {
         onPress={handleSubmit}
         loading={isSubmitting || status === "loading"}
       >
-        Submit request
+        {t("featureRequest.submit")}
       </TButton>
     </ScrollView>
   );

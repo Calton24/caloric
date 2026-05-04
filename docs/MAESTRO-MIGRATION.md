@@ -130,7 +130,7 @@ git push origin your-branch
 
 ```yaml
 # maestro/flows/login-test.yaml
-appId: com.calton24.caloric.dev
+appId: com.calton.caloric
 ---
 # Test login flow
 - launchApp

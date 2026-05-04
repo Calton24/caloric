@@ -16,6 +16,7 @@
  */
 
 import { analytics } from "../../infrastructure/analytics";
+import { reportError } from "../../infrastructure/errorReporting";
 import { getStorage } from "../../infrastructure/storage";
 import { getSupabaseClient } from "../../lib/supabase/client";
 
@@ -60,7 +61,12 @@ export async function deleteUserAccount(): Promise<{
     });
 
     if (error) {
-      console.error("[AccountDeletion] Server-side deletion failed:", error);
+      reportError(error, {
+        area: "auth",
+        action: "deleteUserAccount_edgeFunction",
+        provider: "supabase",
+        userId: user.id,
+      });
       return { success: false, error: error.message };
     }
 
@@ -76,7 +82,11 @@ export async function deleteUserAccount(): Promise<{
 
     return { success: true };
   } catch (error) {
-    console.error("[AccountDeletion] Failed:", error);
+    reportError(error, {
+      area: "auth",
+      action: "deleteUserAccount_throw",
+      provider: "supabase",
+    });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",
@@ -107,13 +117,24 @@ export async function exportUserDataBeforeDeletion(): Promise<string | null> {
     );
 
     if (error || !userData) {
-      console.error("[AccountDeletion] Data export failed:", error);
+      if (error) {
+        reportError(error, {
+          area: "auth",
+          action: "exportUserData_edgeFunction",
+          provider: "supabase",
+          userId: user.id,
+        });
+      }
       return null;
     }
 
     return JSON.stringify(userData, null, 2);
   } catch (error) {
-    console.error("[AccountDeletion] Export failed:", error);
+    reportError(error, {
+      area: "auth",
+      action: "exportUserData_throw",
+      provider: "supabase",
+    });
     return null;
   }
 }

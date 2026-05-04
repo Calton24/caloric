@@ -123,10 +123,8 @@ eas submit --platform android --profile caloric-store
 
 Production bundle identifiers (configured in `app.json`):
 
-- **iOS Development:** `com.calton24.caloric.dev`
-- **iOS Production:** `com.calton24.caloric` (update before store build)
-- **Android Development:** `com.calton24.caloric.dev`
-- **Android Production:** `com.calton24.caloric` (update before store build)
+- **iOS (all environments):** `com.calton.caloric`
+- **Android (all environments):** `com.calton.caloric`
 
 ### Privacy Permissions (iOS)
 

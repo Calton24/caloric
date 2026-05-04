@@ -1,12 +1,12 @@
 # maestro/flows/smoke-test.yaml
-appId: com.calton24.caloric.dev
+appId: com.calton.caloric
 
 ---
-- stopApp: com.calton24.caloric.dev
-- clearState: com.calton24.caloric.dev
+- stopApp: com.calton.caloric
+- clearState: com.calton.caloric
 
 - launchApp:
-    appId: com.calton24.caloric.dev
+    appId: com.calton.caloric
 
 - assertNotVisible:
     text: "No script URL provided"

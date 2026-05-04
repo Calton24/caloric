@@ -11,7 +11,7 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Animated, {
@@ -32,6 +32,8 @@ import { rebuildFoodMemory } from "../../src/features/nutrition/memory/food-memo
 import { useNutritionStore } from "../../src/features/nutrition/nutrition.store";
 import { useSubscriptionStore } from "../../src/features/subscription/subscription.store";
 import { useRevenueCat } from "../../src/features/subscription/useRevenueCat";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
+import { safeOpenFoodTracking } from "../../src/navigation/safeOpenFoodTracking";
 import { useTheme } from "../../src/theme/useTheme";
 import { ChallengeCompletionCard } from "../../src/ui/components/ChallengeCompletionCard";
 import { DailyInsightsCard } from "../../src/ui/components/DailyInsightsCard";
@@ -55,7 +57,9 @@ const MACRO_COLORS = {
 
 export default function HomeScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
+  const pathname = usePathname();
 
   // ── Derived data from stores ──
   const {
@@ -178,7 +182,7 @@ export default function HomeScreen() {
               variant="heading"
               style={[styles.greeting, { color: theme.colors.text }]}
             >
-              {isToday ? "Today" : dateHeader}
+              {isToday ? t("home.today") : dateHeader}
             </TText>
             {isToday && (
               <TText style={[styles.date, { color: theme.colors.textMuted }]}>
@@ -203,7 +207,7 @@ export default function HomeScreen() {
                 <TText
                   style={[styles.weightText, { color: theme.colors.text }]}
                 >
-                  {displayWeight} lbs
+                  {displayWeight} {t("home.lbs")}
                 </TText>
               </Pressable>
             )}
@@ -274,7 +278,7 @@ export default function HomeScreen() {
                       { color: theme.colors.textMuted },
                     ]}
                   >
-                    consumed
+                    {t("home.consumed")}
                   </TText>
                 </View>
                 <View
@@ -298,7 +302,7 @@ export default function HomeScreen() {
                       { color: theme.colors.textMuted },
                     ]}
                   >
-                    budget
+                    {t("home.budget")}
                   </TText>
                 </View>
               </View>
@@ -313,19 +317,19 @@ export default function HomeScreen() {
             style={styles.macroRow}
           >
             <MacroCard
-              label="Protein"
+              label={t("home.protein")}
               consumedG={totals.protein}
               targetG={proteinTarget}
               color={MACRO_COLORS.protein}
             />
             <MacroCard
-              label="Carbs"
+              label={t("home.carbs")}
               consumedG={totals.carbs}
               targetG={carbsTarget}
               color={MACRO_COLORS.carbs}
             />
             <MacroCard
-              label="Fat"
+              label={t("home.fat")}
               consumedG={totals.fat}
               targetG={fatTarget}
               color={MACRO_COLORS.fat}
@@ -341,7 +345,7 @@ export default function HomeScreen() {
                 variant="subheading"
                 style={[styles.sectionTitle, { color: theme.colors.text }]}
               >
-                Meals
+                {t("home.meals")}
               </TText>
               <TText
                 style={[
@@ -349,7 +353,7 @@ export default function HomeScreen() {
                   { color: theme.colors.textSecondary },
                 ]}
               >
-                {todayMeals.length} logged
+                {t("home.logged", { count: todayMeals.length })}
               </TText>
             </View>
             <TSpacer size="sm" />
@@ -436,7 +440,12 @@ export default function HomeScreen() {
         style={styles.fabContainer}
       >
         <Pressable
-          onPress={() => router.push("/(modals)/tracking" as any)}
+          onPress={() =>
+            safeOpenFoodTracking({
+              source: "home_fab",
+              currentRoute: pathname,
+            })
+          }
           style={({ pressed }) => [
             styles.fab,
             {

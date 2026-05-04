@@ -14,7 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
@@ -28,14 +28,7 @@ import {
     TextInput,
     View,
 } from "react-native";
-import Animated, {
-    FadeIn,
-    useAnimatedStyle,
-    useSharedValue,
-    withRepeat,
-    withSequence,
-    withTiming,
-} from "react-native-reanimated";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
     Camera,
@@ -44,74 +37,66 @@ import {
     useCodeScanner,
 } from "react-native-vision-camera";
 import { useAccountGate } from "../../src/features/auth/useAccountGate";
+import { useBackgroundScanStore } from "../../src/features/camera/background-scan.store";
 import {
     computeFocusPoint,
     deactivateCameraBeforeDismiss,
 } from "../../src/features/camera/camera-log.helpers";
+import { runImagePipeline } from "../../src/features/camera/image-pipeline.service";
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
 import { useFeatureAccess } from "../../src/features/subscription/useFeatureAccess";
+import { reportError } from "../../src/infrastructure/errorReporting";
+import { addFoodLoggingBreadcrumb } from "../../src/infrastructure/errorReporting/foodLoggingErrors";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { AuthGateModal } from "../../src/ui/components/AuthGateModal";
 import { FeatureGatePaywall } from "../../src/ui/components/FeatureGatePaywall";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+import { FoodLoggingErrorBoundary } from "../../src/ui/errors/FoodLoggingErrorBoundary";
 
-type CameraState = "viewfinder" | "analyzing" | "error";
+type CameraState = "viewfinder" | "error" | "dismissing";
 
-const STAGE_LABELS = [
-  "Detecting food…",
-  "Reading packaging…",
-  "Matching product…",
-  "Estimating nutrition…",
-];
-
-/* ── Pulsing image component for analyzing state ── */
-function PulsingImage({ uri }: { uri: string }) {
-  const scale = useSharedValue(1);
-
-  React.useEffect(() => {
-    scale.value = withRepeat(
-      withSequence(
-        withTiming(1.04, { duration: 900 }),
-        withTiming(1, { duration: 900 })
-      ),
-      -1,
-      true
-    );
-  }, [scale]);
-
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  return (
-    <Animated.View style={animStyle}>
-      <Image
-        source={{ uri }}
-        style={styles.analyzingImage}
-        contentFit="cover"
-      />
-    </Animated.View>
-  );
-}
-
-export default function CameraLoggingScreen() {
+function CameraLoggingScreenInner() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
-  const { startFromImage, startFromInput, startFromBarcode } = useLoggingFlow();
+  const pathname = usePathname();
+  const { startFromInput, startFromBarcode } = useLoggingFlow();
   const { requireAccount, gateVisible, gateReason, dismissGate } =
     useAccountGate();
-  const { canScan, consumeScan, scansRemaining, isPro } = useFeatureAccess();
+  const {
+    canScan,
+    consumeScan,
+    scansRemaining,
+    isPro,
+    recheck,
+    verificationStatus,
+    requiresRevalidation,
+  } = useFeatureAccess();
   const [showScanGate, setShowScanGate] = useState(false);
 
   const cameraRef = useRef<Camera>(null);
   const device = useCameraDevice("back");
   const { hasPermission, requestPermission } = useCameraPermission();
 
+  useEffect(() => {
+    addFoodLoggingBreadcrumb("food_logging.camera_opened", {
+      route: pathname,
+    });
+  }, [pathname]);
+
+  useEffect(() => {
+    addFoodLoggingBreadcrumb("food_logging.camera_permission_status", {
+      granted: hasPermission,
+      source: "hook",
+    });
+  }, [hasPermission]);
+
   const [state, setState] = useState<CameraState>("viewfinder");
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [torch, setTorch] = useState<"off" | "on">("off");
-  const [stageIndex, setStageIndex] = useState(0);
+  const [barcodeProcessing, setBarcodeProcessing] = useState(false);
   const [description, setDescription] = useState("");
   const barcodeLockRef = useRef(false);
   const [cameraLayout, setCameraLayout] = useState({ width: 0, height: 0 });
@@ -122,24 +107,40 @@ export default function CameraLoggingScreen() {
   // ── Barcode scanner ──────────────────────────────────────────────────
 
   const handleBarcodeScanned = useCallback(
-    async (barcode: string) => {
+    async (barcode: string, symbology?: string) => {
       if (barcodeLockRef.current || state !== "viewfinder") return;
       barcodeLockRef.current = true;
+      addFoodLoggingBreadcrumb("food_logging.barcode_detected", {
+        symbology: symbology ?? "unknown",
+        code_length: barcode.length,
+      });
       setTorch("off");
-      setState("analyzing");
+      setBarcodeProcessing(true);
       try {
         const success = await startFromBarcode(barcode);
         if (success) {
+          // Deactivate camera before navigating — prevents the scanner from
+          // firing again during the transition and pushing confirm-meal twice.
+          setState("dismissing");
+          setBarcodeProcessing(false);
           router.push("/(modals)/confirm-meal" as never);
-        } else {
-          // Barcode not found — fall back to error state
-          setState("error");
+          return; // Lock stays set — component is transitioning away
         }
-      } catch {
         setState("error");
-      } finally {
-        barcodeLockRef.current = false;
+      } catch (err) {
+        // startFromBarcode already swallows expected lookup misses (returns
+        // false). A throw here means something unexpected blew up — report.
+        reportError(err, {
+          area: "scan",
+          action: "handleBarcodeScanned",
+          screen: "camera-log",
+          extra: { barcodeLength: barcode?.length },
+        });
+        setState("error");
       }
+      // Only reached on failure paths — reset for retry
+      setBarcodeProcessing(false);
+      barcodeLockRef.current = false;
     },
     [startFromBarcode, router, state]
   );
@@ -155,9 +156,9 @@ export default function CameraLoggingScreen() {
       "qr",
     ],
     onCodeScanned: (codes) => {
-      if (codes.length > 0 && codes[0].value) {
-        handleBarcodeScanned(codes[0].value);
-      }
+      const raw = codes[0];
+      if (!raw?.value) return;
+      handleBarcodeScanned(raw.value, raw.type);
     },
   });
 
@@ -168,35 +169,33 @@ export default function CameraLoggingScreen() {
     }
   }, [state]);
 
-  // ── Cycle stage labels while analyzing ───────────────────────────────
-
-  useEffect(() => {
-    if (state !== "analyzing") return;
-    setStageIndex(0);
-    const interval = setInterval(() => {
-      setStageIndex((i) => (i + 1) % STAGE_LABELS.length);
-    }, 1800);
-    return () => clearInterval(interval);
-  }, [state]);
-
   // ── Permission handling ──────────────────────────────────────────────
 
   const handleRequestPermission = useCallback(async () => {
+    addFoodLoggingBreadcrumb("food_logging.camera_permission_status", {
+      source: "user_prompt",
+      action: "request_started",
+    });
     const granted = await requestPermission();
+    addFoodLoggingBreadcrumb("food_logging.camera_permission_status", {
+      source: "user_prompt",
+      granted,
+      action: "request_completed",
+    });
     if (!granted) {
       Alert.alert(
-        "Camera Access Required",
-        "Please allow camera access in Settings to scan food.",
+        t("camera.cameraAccessRequired"),
+        t("camera.cameraAccessRequiredDesc"),
         [
-          { text: "Cancel", style: "cancel" },
+          { text: t("common.cancel"), style: "cancel" },
           {
-            text: "Open Settings",
+            text: t("camera.openSettings"),
             onPress: () => Linking.openSettings(),
           },
         ]
       );
     }
-  }, [requestPermission]);
+  }, [requestPermission, t]);
 
   // ── Run pipeline (called automatically after capture/pick) ───────────
 
@@ -204,49 +203,70 @@ export default function CameraLoggingScreen() {
     async (uri: string, desc?: string) => {
       // Gate: require account + scan credits for AI scans
       if (!requireAccount("scan")) return;
-      const access = canScan();
+      let access = canScan();
+      // If pro but verification is stale/expired, recheck with server before allowing.
+      // Expired or unverified = hard (deny if server unreachable).
+      // Stale = soft (preserve local state on network failure).
+      if (access.allowed && requiresRevalidation) {
+        const hard =
+          verificationStatus === "expired" ||
+          verificationStatus === "unverified";
+        access = await recheck({ hard });
+      }
+      // If denied, try a server recheck before showing paywall (catches anonymous-purchase gap).
+      if (!access.allowed && access.reason === "no_credits") {
+        access = await recheck({ hard: false });
+      }
       if (!access.allowed) {
         setShowScanGate(true);
         return;
       }
 
+      // Consume a scan credit upfront (optimistic — same behaviour as before)
+      await consumeScan();
+
+      // Start the background job and fire-and-forget the pipeline.
+      // .catch() is a safety net — the pipeline has its own try/catch,
+      // but an uncaught rejection would crash the app on some RN versions.
+      const jobId = useBackgroundScanStore.getState().startScan(uri);
       setImageUri(uri);
-      setTorch("off");
-      setState("analyzing");
-      setDescription("");
-      try {
-        const success = await startFromImage(uri, desc);
-        console.log(
-          "[CameraLog] runPipeline — startFromImage returned:",
-          success
-        );
-        if (success) {
-          // Consume a scan credit after successful analysis
-          await consumeScan();
-          console.log("[CameraLog] runPipeline — navigating to confirm-meal");
-          // Draft is populated with real data — navigate to confirm
-          router.push("/(modals)/confirm-meal" as never);
-        } else {
-          // Pipeline returned no usable result
-          setState("error");
-        }
-      } catch {
-        setState("error");
-      }
+      runImagePipeline(jobId, uri, desc).catch(() => {
+        useBackgroundScanStore.getState().failScan(jobId, "Unexpected error");
+      });
+
+      // Set "dismissing" state FIRST — this sets Camera isActive=false so the
+      // AVCaptureSession tears down gracefully before we navigate away.
+      // Without this, VisionCamera crashes on iOS when unmounted while active.
+      deactivateCameraBeforeDismiss(
+        () => setState("dismissing"),
+        () => router.back()
+      );
     },
-    [startFromImage, router, requireAccount, canScan, consumeScan]
+    [
+      router,
+      requireAccount,
+      canScan,
+      consumeScan,
+      recheck,
+      verificationStatus,
+      requiresRevalidation,
+    ]
   );
 
   // ── Describe & retry (user types what the food is) ───────────────────
 
   const handleDescribeAndRetry = useCallback(async () => {
     if (!description.trim()) return;
-    setState("analyzing");
     try {
       // Use text pipeline with the description
       // NOTE: startFromInput already pushes to /(modals)/confirm-meal internally
       await startFromInput(description.trim(), "camera");
-    } catch {
+    } catch (err) {
+      reportError(err, {
+        area: "scan",
+        action: "handleDescribeAndRetry",
+        screen: "camera-log",
+      });
       setState("error");
     }
   }, [description, startFromInput]);
@@ -255,7 +275,7 @@ export default function CameraLoggingScreen() {
 
   const handleClose = useCallback(() => {
     deactivateCameraBeforeDismiss(
-      () => setState("analyzing"), // deactivates camera via isActive check
+      () => {},
       () => router.back()
     );
   }, [router]);
@@ -298,24 +318,47 @@ export default function CameraLoggingScreen() {
       const uri =
         Platform.OS === "android" ? `file://${photo.path}` : photo.path;
       runPipeline(uri);
-    } catch {
-      Alert.alert("Error", "Failed to capture photo. Please try again.");
+    } catch (err) {
+      reportError(err, {
+        area: "scan",
+        action: "handleCapture_takePhoto",
+        screen: "camera-log",
+      });
+      Alert.alert("Error", t("camera.captureError"));
     }
-  }, [runPipeline]);
+  }, [runPipeline, t]);
 
   // ── Pick from gallery ────────────────────────────────────────────────
 
   const pickFromGallery = useCallback(async () => {
     try {
-      const { status } =
+      const { status, accessPrivileges } =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
         Alert.alert(
-          "Photo Library Access Required",
-          "Please allow photo library access in Settings to select food photos.",
-          [{ text: "OK" }]
+          t("camera.photoLibraryRequired"),
+          t("camera.photoLibraryRequiredDesc"),
+          [
+            { text: t("common.cancel"), style: "cancel" },
+            {
+              text: t("camera.openSettings") ?? "Open Settings",
+              onPress: () => Linking.openSettings(),
+            },
+          ]
         );
         return;
+      }
+
+      // If the user only granted limited access, prompt them to allow full access
+      if (accessPrivileges === "limited") {
+        Alert.alert(
+          "Limited Photo Access",
+          "You've only allowed access to selected photos. For the best experience, allow access to your full photo library in Settings.",
+          [
+            { text: "Continue Anyway", style: "cancel" },
+            { text: "Open Settings", onPress: () => Linking.openSettings() },
+          ]
+        );
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -327,11 +370,15 @@ export default function CameraLoggingScreen() {
 
       if (result.canceled || !result.assets?.[0]?.uri) return;
 
-      runPipeline(result.assets[0].uri);
+      const pickedUri = result.assets[0].uri;
+      // Small delay so the native picker sheet finishes its dismiss animation
+      // before we start the pipeline and dismiss the camera modal.
+      // Without this, two modal dismissals race on iOS and crash the navigator.
+      setTimeout(() => runPipeline(pickedUri), 150);
     } catch {
-      Alert.alert("Error", "Failed to pick image. Please try again.");
+      Alert.alert("Error", t("camera.pickImageError"));
     }
-  }, [runPipeline]);
+  }, [runPipeline, t]);
 
   // ── No permission state ─────────────────────────────────────────────
 
@@ -349,7 +396,7 @@ export default function CameraLoggingScreen() {
               variant="heading"
               style={[styles.headerTitle, { color: theme.colors.text }]}
             >
-              Scan Food
+              {t("camera.scanFood")}
             </TText>
             <View style={{ width: 24 }} />
           </View>
@@ -371,7 +418,7 @@ export default function CameraLoggingScreen() {
               variant="heading"
               style={[styles.permTitle, { color: theme.colors.text }]}
             >
-              Camera Access Needed
+              {t("camera.cameraAccessNeeded")}
             </TText>
             <TSpacer size="sm" />
             <TText
@@ -380,8 +427,7 @@ export default function CameraLoggingScreen() {
                 { color: theme.colors.textSecondary },
               ]}
             >
-              Caloric needs camera access to scan and{"\n"}identify food for
-              calorie tracking.
+              {t("camera.cameraAccessNeededDesc")}
             </TText>
             <TSpacer size="xl" />
             <Pressable
@@ -411,7 +457,7 @@ export default function CameraLoggingScreen() {
                     { color: theme.colors.textInverse },
                   ]}
                 >
-                  Enable Camera
+                  {t("camera.enableCamera")}
                 </TText>
               </LinearGradient>
             </Pressable>
@@ -420,7 +466,7 @@ export default function CameraLoggingScreen() {
               <TText
                 style={[styles.galleryAltText, { color: theme.colors.primary }]}
               >
-                Or choose from gallery
+                {t("camera.chooseFromGallery")}
               </TText>
             </Pressable>
           </View>
@@ -445,7 +491,7 @@ export default function CameraLoggingScreen() {
               variant="heading"
               style={[styles.headerTitle, { color: theme.colors.text }]}
             >
-              Scan Food
+              {t("camera.scanFood")}
             </TText>
             <View style={{ width: 24 }} />
           </View>
@@ -456,12 +502,12 @@ export default function CameraLoggingScreen() {
                 { color: theme.colors.textMuted },
               ]}
             >
-              No camera device found.
+              {t("camera.noCameraDevice")}
             </TText>
             <TSpacer size="lg" />
             <Pressable onPress={pickFromGallery}>
               <TText style={{ color: theme.colors.primary, fontWeight: "600" }}>
-                Choose from gallery instead
+                {t("camera.chooseFromGalleryInstead")}
               </TText>
             </Pressable>
           </View>
@@ -471,7 +517,19 @@ export default function CameraLoggingScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          // During camera teardown + navigation, the viewfinder unmounts
+          // first — if the root stays pure black, users see a "black sheet"
+          // until the next modal paints. Use the themed surface instead and
+          // paint an explicit transition overlay below.
+          backgroundColor:
+            state === "dismissing" ? theme.colors.background : "#000",
+        },
+      ]}
+    >
       {/* ── Viewfinder ─────────────────────────────────────────────── */}
       {state === "viewfinder" && (
         <Pressable
@@ -504,7 +562,7 @@ export default function CameraLoggingScreen() {
           <SafeAreaView style={styles.viewfinderOverlay} edges={["top"]}>
             <View style={styles.vfHeader}>
               <View style={{ width: 40 }} />
-              <TText style={styles.vfTitle}>Scan Food</TText>
+              <TText style={styles.vfTitle}>{t("camera.scanFood")}</TText>
               <Pressable
                 onPress={handleClose}
                 hitSlop={12}
@@ -525,13 +583,10 @@ export default function CameraLoggingScreen() {
               <View style={[styles.corner, styles.cornerBR]} />
             </View>
             <TSpacer size="md" />
-            <TText style={styles.scanHint}>
-              Point at food or scan a barcode
-            </TText>
+            <TText style={styles.scanHint}>{t("camera.scanHint")}</TText>
             {!isPro && (
               <TText style={styles.scanCredits}>
-                {scansRemaining} free scan{scansRemaining !== 1 ? "s" : ""}{" "}
-                remaining
+                {t("camera.freeScansRemaining", { count: scansRemaining })}
               </TText>
             )}
           </View>
@@ -578,87 +633,6 @@ export default function CameraLoggingScreen() {
         </Pressable>
       )}
 
-      {/* ── Analyzing — auto-triggered after capture ──────────────── */}
-      {state === "analyzing" && (
-        <View
-          style={[
-            styles.container,
-            { backgroundColor: theme.colors.background },
-          ]}
-        >
-          <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-            {/* Header with cancel */}
-            <View style={styles.header}>
-              <Pressable
-                onPress={() => {
-                  setImageUri(null);
-                  setState("viewfinder");
-                }}
-                hitSlop={12}
-              >
-                <Ionicons
-                  name="chevron-back"
-                  size={24}
-                  color={theme.colors.text}
-                />
-              </Pressable>
-              <TText
-                variant="heading"
-                style={[styles.headerTitle, { color: theme.colors.text }]}
-              >
-                Analyzing
-              </TText>
-              <View style={{ width: 24 }} />
-            </View>
-
-            <View style={styles.centeredContent}>
-              {/* Captured image with pulse */}
-              {imageUri && (
-                <Animated.View entering={FadeIn.duration(300)}>
-                  <PulsingImage uri={imageUri} />
-                </Animated.View>
-              )}
-
-              <TSpacer size="xl" />
-
-              {/* Spinner + stage label */}
-              <ActivityIndicator size="large" color={theme.colors.primary} />
-              <TSpacer size="md" />
-              <Animated.View key={stageIndex} entering={FadeIn.duration(300)}>
-                <TText
-                  style={[
-                    styles.analyzingText,
-                    { color: theme.colors.textMuted },
-                  ]}
-                >
-                  {STAGE_LABELS[stageIndex]}
-                </TText>
-              </Animated.View>
-
-              <TSpacer size="xl" />
-
-              {/* Progress dots */}
-              <View style={styles.dotsRow}>
-                {STAGE_LABELS.map((_, i) => (
-                  <View
-                    key={i}
-                    style={[
-                      styles.dot,
-                      {
-                        backgroundColor:
-                          i <= stageIndex
-                            ? theme.colors.primary
-                            : theme.colors.border,
-                      },
-                    ]}
-                  />
-                ))}
-              </View>
-            </View>
-          </SafeAreaView>
-        </View>
-      )}
-
       {/* ── Error — analysis failed or no result ──────────────────── */}
       {state === "error" && (
         <View
@@ -687,7 +661,7 @@ export default function CameraLoggingScreen() {
                 variant="heading"
                 style={[styles.headerTitle, { color: theme.colors.text }]}
               >
-                Couldn&apos;t Identify
+                {t("camera.couldntIdentify")}
               </TText>
               <View style={{ width: 24 }} />
             </View>
@@ -713,7 +687,7 @@ export default function CameraLoggingScreen() {
               />
               <TSpacer size="md" />
               <TText style={[styles.errorTitle, { color: theme.colors.text }]}>
-                We couldn&apos;t identify this food
+                {t("camera.couldntIdentifyTitle")}
               </TText>
               <TSpacer size="xs" />
               <TText
@@ -722,7 +696,7 @@ export default function CameraLoggingScreen() {
                   { color: theme.colors.textMuted },
                 ]}
               >
-                Describe what you see and we&apos;ll look it up
+                {t("camera.describeHint")}
               </TText>
 
               <TSpacer size="lg" />
@@ -731,7 +705,7 @@ export default function CameraLoggingScreen() {
               <TextInput
                 value={description}
                 onChangeText={setDescription}
-                placeholder="e.g., Walkers Sensations Thai Sweet Chilli crisps"
+                placeholder={t("camera.placeholder")}
                 placeholderTextColor={theme.colors.textMuted}
                 style={[
                   styles.errorInput,
@@ -763,7 +737,9 @@ export default function CameraLoggingScreen() {
                 ]}
               >
                 <Ionicons name="search" size={18} color="#fff" />
-                <TText style={styles.errorPrimaryBtnText}>Look it up</TText>
+                <TText style={styles.errorPrimaryBtnText}>
+                  {t("camera.lookItUp")}
+                </TText>
               </Pressable>
 
               <TSpacer size="sm" />
@@ -789,7 +765,7 @@ export default function CameraLoggingScreen() {
                       { color: theme.colors.text },
                     ]}
                   >
-                    Retry
+                    {t("camera.retry")}
                   </TText>
                 </Pressable>
 
@@ -811,12 +787,50 @@ export default function CameraLoggingScreen() {
                       { color: theme.colors.text },
                     ]}
                   >
-                    Retake
+                    {t("camera.retake")}
                   </TText>
                 </Pressable>
               </View>
             </View>
           </SafeAreaView>
+        </View>
+      )}
+
+      {/* ── Camera teardown / navigation hand-off (barcode + photo pipeline) ── */}
+      {state === "dismissing" && (
+        <View
+          style={[
+            StyleSheet.absoluteFillObject,
+            styles.transitionOverlay,
+            { backgroundColor: theme.colors.background },
+          ]}
+          pointerEvents="none"
+        >
+          <ActivityIndicator size="large" color={theme.colors.textSecondary} />
+          <TSpacer size="md" />
+          <TText
+            style={{
+              fontSize: 15,
+              fontWeight: "500",
+              color: theme.colors.textSecondary,
+            }}
+          >
+            {t("common.loading")}
+          </TText>
+        </View>
+      )}
+
+      {/* ── Barcode lookup overlay ── */}
+      {barcodeProcessing && (
+        <View
+          style={[
+            StyleSheet.absoluteFillObject,
+            styles.barcodeOverlay,
+            { backgroundColor: theme.colors.overlay },
+          ]}
+          pointerEvents="none"
+        >
+          <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
       )}
 
@@ -834,6 +848,14 @@ export default function CameraLoggingScreen() {
         reason={gateReason}
       />
     </View>
+  );
+}
+
+export default function CameraLoggingScreen() {
+  return (
+    <FoodLoggingErrorBoundary routeLabel="/(modals)/camera-log">
+      <CameraLoggingScreenInner />
+    </FoodLoggingErrorBoundary>
   );
 }
 
@@ -905,6 +927,16 @@ const styles = StyleSheet.create({
   galleryAltText: {
     fontSize: 15,
     fontWeight: "600",
+  },
+  barcodeOverlay: {
+    zIndex: 50,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  transitionOverlay: {
+    zIndex: 100,
+    alignItems: "center",
+    justifyContent: "center",
   },
   // ── Viewfinder ──
   viewfinderContainer: {

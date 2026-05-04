@@ -1,0 +1,34 @@
+{
+  "guide": {
+    "title": "Gids",
+    "takePhoto": "Maak een foto van je eten",
+    "takePhotoDesc": "Tik op het camera-icoon rechtsonder en maak een foto.",
+    "scanBarcodes": "Barcodes scannen",
+    "scanBarcodesDesc": "Tik op het camera-icoon en fotografeer de barcode op de verpakking.",
+    "speechRecognition": "Spraakherkenning",
+    "speechRecognitionDesc": "Tik op het microfoon-icoon om te starten en opnieuw als je klaar bent.",
+    "textMode": "Tekstmodus",
+    "textModeDesc": "Tik op het toetsenbord-icoon om eten via tekst toe te voegen.",
+    "editingDetails": "Details bewerken",
+    "editingDetailsDesc": "Je kunt de hoeveelheid aanpassen door op de betreffende optie te tikken.",
+    "trackingCalories": "Calorieën bijhouden",
+    "trackingCaloriesDesc": "Tik op de knop Calorieën bijhouden om de vermeldingen op te slaan."
+  },
+  "liveActivity": {
+    "title": "Live activiteiten",
+    "description": "Volg je calorieën in realtime direct vanaf je vergrendelingsscherm en Dynamic Island",
+    "remaining": "resterend",
+    "consumed": "gegeten",
+    "goal": "doel",
+    "activate": "Activeren",
+    "skip": "Overslaan",
+    "iosOnly": "Alleen iOS",
+    "iosOnlyDesc": "Live activiteiten zijn alleen beschikbaar op iOS-apparaten.",
+    "unavailable": "Live activiteiten niet beschikbaar",
+    "unavailableDesc": "Schakel live activiteiten in via iOS Instellingen > Caloric > Live activiteiten en zorg dat je iOS 16.2 of nieuwer gebruikt.",
+    "continueWithout": "Ga verder zonder",
+    "subtitle": "Volg je calorieen in realtime direct vanaf je vergrendelscherm en Dynamic Island.",
+    "notNow": "Niet nu",
+    "dynamicIsland": "Dynamic Island"
+  }
+}

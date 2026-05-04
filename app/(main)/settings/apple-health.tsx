@@ -24,12 +24,14 @@ import {
 } from "../../../src/features/health";
 import { usePermissionsStore } from "../../../src/features/permissions";
 import { useSettingsStore } from "../../../src/features/settings";
+import { useAppTranslation } from "../../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../../src/theme/useTheme";
 import { TSpacer } from "../../../src/ui/primitives/TSpacer";
 import { TText } from "../../../src/ui/primitives/TText";
 
 export default function AppleHealthScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
 
   // Settings store
@@ -65,38 +67,55 @@ export default function AppleHealthScreen() {
   const handleToggleMaster = useCallback(
     async (value: boolean) => {
       if (value) {
-        // Request HealthKit permissions when enabling
+        // Request HealthKit permissions when enabling.
+        // We skip isAvailable() and go straight to requestPermissions() because
+        // initHealthKit internally checks availability and handles both cases.
         const service = getHealthService();
-        const available = await service.isAvailable();
-        if (!available) {
-          Alert.alert(
-            "Not Available",
-            "Apple Health is not available on this device."
-          );
-          return;
-        }
         const granted = await service.requestPermissions({
           read: true,
           write: true,
         });
         if (!granted) {
           Alert.alert(
-            "Permission Required",
-            "Please grant Apple Health permissions in Settings to enable sync."
+            t("settings.notAvailable"),
+            t("settings.notAvailableDesc")
           );
           return;
         }
-      }
-      setAppleHealthSyncEnabled(value);
-      if (!value) {
+        // Auto-enable both read and write when master is turned on
+        setAppleHealthReadEnabled(true);
+        setAppleHealthWriteEnabled(true);
+      } else {
         setAppleHealthReadEnabled(false);
         setAppleHealthWriteEnabled(false);
+      }
+      setAppleHealthSyncEnabled(value);
+
+      // Auto-sync immediately after enabling
+      if (value) {
+        setSyncing(true);
+        try {
+          const result = await syncWithHealthKit({ read: true, write: true });
+          setLastAppleHealthSyncAt(new Date().toISOString());
+          Alert.alert(
+            t("settings.syncComplete"),
+            t("settings.syncCompleteDesc", {
+              weightImported: result.weightImported,
+              mealsExported: result.mealsExported,
+            })
+          );
+        } catch {
+          // Silently fail initial sync — user can retry with Sync Now
+        } finally {
+          setSyncing(false);
+        }
       }
     },
     [
       setAppleHealthSyncEnabled,
       setAppleHealthReadEnabled,
       setAppleHealthWriteEnabled,
+      setLastAppleHealthSyncAt,
     ]
   );
 
@@ -110,14 +129,14 @@ export default function AppleHealthScreen() {
       });
       setLastAppleHealthSyncAt(new Date().toISOString());
       Alert.alert(
-        "Sync Complete",
-        `Imported ${result.weightImported} weight entries, exported ${result.mealsExported} meals.`
+        t("settings.syncComplete"),
+        t("settings.syncCompleteDesc", {
+          weightImported: result.weightImported,
+          mealsExported: result.mealsExported,
+        })
       );
     } catch {
-      Alert.alert(
-        "Sync Failed",
-        "Could not sync with Apple Health. Please try again."
-      );
+      Alert.alert(t("settings.syncFailed"), t("settings.syncFailedDesc"));
     } finally {
       setSyncing(false);
     }
@@ -129,8 +148,10 @@ export default function AppleHealthScreen() {
   ]);
 
   const lastSyncLabel = lastAppleHealthSyncAt
-    ? `Last synced: ${new Date(lastAppleHealthSyncAt).toLocaleString()}`
-    : "Never synced";
+    ? t("settings.lastSynced", {
+        date: new Date(lastAppleHealthSyncAt).toLocaleString(),
+      })
+    : t("settings.neverSynced");
 
   return (
     <View
@@ -146,7 +167,7 @@ export default function AppleHealthScreen() {
             variant="heading"
             style={[styles.headerTitle, { color: theme.colors.text }]}
           >
-            Apple Health
+            {t("settings.appleHealth")}
           </TText>
           <View style={{ width: 24 }} />
         </View>
@@ -158,7 +179,7 @@ export default function AppleHealthScreen() {
           <TText
             style={[styles.sectionTitle, { color: theme.colors.textMuted }]}
           >
-            Sync
+            {t("settings.sync")}
           </TText>
           <View
             style={[
@@ -169,7 +190,7 @@ export default function AppleHealthScreen() {
             <ToggleRow
               icon="heart"
               iconColor="#F87171"
-              label="Apple Health Sync"
+              label={t("settings.appleHealthSync")}
               value={appleHealthSyncEnabled}
               onToggle={handleToggleMaster}
             />
@@ -181,7 +202,7 @@ export default function AppleHealthScreen() {
           <TText
             style={[styles.sectionTitle, { color: theme.colors.textMuted }]}
           >
-            Data
+            {t("settings.data")}
           </TText>
           <View
             style={[
@@ -195,7 +216,7 @@ export default function AppleHealthScreen() {
             <ToggleRow
               icon="download-outline"
               iconColor="#60A5FA"
-              label="Import Weight"
+              label={t("settings.importWeight")}
               value={appleHealthReadEnabled}
               onToggle={(v) =>
                 appleHealthSyncEnabled && setAppleHealthReadEnabled(v)
@@ -211,7 +232,7 @@ export default function AppleHealthScreen() {
             <ToggleRow
               icon="push-outline"
               iconColor="#34D399"
-              label="Export Nutrition"
+              label={t("settings.exportNutrition")}
               value={appleHealthWriteEnabled}
               onToggle={(v) =>
                 appleHealthSyncEnabled && setAppleHealthWriteEnabled(v)
@@ -226,7 +247,7 @@ export default function AppleHealthScreen() {
           <TText
             style={[styles.sectionTitle, { color: theme.colors.textMuted }]}
           >
-            Status
+            {t("settings.status")}
           </TText>
           <View
             style={[
@@ -263,7 +284,9 @@ export default function AppleHealthScreen() {
             {syncing ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <TText style={styles.syncButtonText}>Sync Now</TText>
+              <TText style={styles.syncButtonText}>
+                {t("settings.syncNow")}
+              </TText>
             )}
           </Pressable>
         </View>

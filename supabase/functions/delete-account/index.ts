@@ -1,12 +1,11 @@
 /// <reference lib="deno.ns" />
 /**
- * Supabase Edge Function: Delete Account
+ * Supabase Edge Function: delete-account
  *
- * Deletes the authenticated user's data from all tables, then
- * removes their auth account. Uses service role key server-side
- * so the client never has admin access.
- *
- * Required by Apple App Store & Google Play Store guidelines.
+ * Security model:
+ * - Requires valid caller JWT (user identity comes from token, not request body)
+ * - Uses service role key ONLY server-side
+ * - Deletes user-owned application data first, then auth user
  */
 
 import { createClient } from "@supabase/supabase-js";
@@ -18,37 +17,54 @@ const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
+  "Content-Type": "application/json",
 };
 
-serve(async (req: Request) => {
-  // CORS preflight
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+type DeleteResult = { ok: true } | { ok: false; table: string; message: string };
 
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+function json(body: Record<string, unknown>, status = 200): Response {
+  return new Response(JSON.stringify(body), { status, headers: corsHeaders });
+}
+
+function isMissingTableError(error: unknown): boolean {
+  const message =
+    typeof error === "object" && error && "message" in error
+      ? String((error as { message: unknown }).message).toLowerCase()
+      : "";
+  return message.includes("could not find the table") || message.includes("does not exist");
+}
+
+async function deleteRowsByUserId(
+  adminClient: ReturnType<typeof createClient>,
+  table: string,
+  userId: string
+): Promise<DeleteResult> {
+  const { error } = await adminClient.from(table).delete().eq("user_id", userId);
+  if (!error) return { ok: true };
+  if (isMissingTableError(error)) {
+    console.warn("[DeleteAccount] missing table skipped", { table });
+    return { ok: true };
   }
+  return { ok: false, table, message: error.message };
+}
+
+serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return json({ ok: false, error: "METHOD_NOT_ALLOWED" }, 405);
+
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return json({ ok: false, error: "UNAUTHORIZED" }, 401);
 
   try {
-    // Verify the caller's JWT
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Create a client scoped to the user's JWT to verify identity
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
     });
 
     const {
@@ -57,44 +73,66 @@ serve(async (req: Request) => {
     } = await userClient.auth.getUser();
 
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ ok: false, error: "UNAUTHORIZED" }, 401);
     }
 
-    // Use service role to delete user data (bypasses RLS)
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    // Delete app-owned user data first (avoid partial state where auth user is
+    // removed while rows remain). Order is child -> parent where relevant.
+    const deleteOrder = [
+      "vision_item_corrections",
+      "food_scan_corrections",
+      "food_scan_reports",
+      "food_scan_events",
+      "ai_usage_events",
+      "billing_identity_map",
+      "usage_state",
+      "subscription_state",
+      "subscriptions",
+      "profiles",
+      "user_challenges",
+      "daily_log_dates",
+      "user_streaks",
+      "user_goals",
+      "weight_logs",
+      "meal_entries",
+      "user_profiles",
+      "notes",
+      "food_cache",
+      "scan_feedback",
+    ] as const;
 
-    // Delete user data from all tables
-    await adminClient.from("subscriptions").delete().eq("user_id", user.id);
-    await adminClient.from("notes").delete().eq("user_id", user.id);
-    await adminClient.from("food_cache").delete().eq("user_id", user.id);
-    await adminClient.from("scan_feedback").delete().eq("user_id", user.id);
+    for (const table of deleteOrder) {
+      const result = await deleteRowsByUserId(adminClient, table, user.id);
+      if (!result.ok) {
+        console.error("[DeleteAccount] table delete failed", {
+          userId: user.id,
+          table: result.table,
+          message: result.message,
+        });
+        return json(
+          { ok: false, error: "DATA_DELETE_FAILED", table: result.table },
+          500
+        );
+      }
+    }
 
-    // Delete the auth account itself
-    const { error: deleteError } = await adminClient.auth.admin.deleteUser(
-      user.id
+    const { error: authDeleteError } = await adminClient.auth.admin.deleteUser(
+      user.id,
+      false
     );
-
-    if (deleteError) {
-      return new Response(
-        JSON.stringify({ error: "Failed to delete account" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+    if (authDeleteError) {
+      console.error("[DeleteAccount] auth delete failed", {
+        userId: user.id,
+        message: authDeleteError.message,
+      });
+      return json({ ok: false, error: "AUTH_DELETE_FAILED" }, 500);
     }
 
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return json({ ok: true }, 200);
+  } catch (error) {
+    console.error("[DeleteAccount] unexpected failure", {
+      message: error instanceof Error ? error.message : String(error),
     });
-  } catch (_err) {
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ ok: false, error: "INTERNAL_SERVER_ERROR" }, 500);
   }
 });

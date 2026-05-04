@@ -1,77 +1,98 @@
 /**
  * Onboarding Step 7 — Plan Calculation
  *
- * Anticipation / loading screen. Shows an animated "weight loss curve"
- * descending from current weight to goal weight, with a pulsing progress
- * label. Auto-advances after ~3 seconds.
+ * Premium anticipation screen. Shows an animated circular progress ring,
+ * sequential step checkmarks, and a bold weight journey summary.
+ * Auto-advances after ~3 seconds.
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
-    Easing,
+    cancelAnimation,
     FadeIn,
     FadeInDown,
+    FadeInUp,
+    useAnimatedProps,
     useAnimatedStyle,
     useSharedValue,
     withRepeat,
     withSequence,
+    withSpring,
     withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme } from "../../src/theme/useTheme";
+import Svg, { Circle } from "react-native-svg";
+import { useUnits } from "../../hooks/useUnits";
 import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
+import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
-import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
-
-const STEPS = [
-  "Analyzing body composition…",
-  "Computing daily energy needs…",
-  "Building macro split…",
-  "Optimizing meal timing…",
-  "Finalizing your plan…",
+import { OnboardingBackground } from "./_background";
+const STEP_KEYS = [
+  "onboarding.calculating.step1",
+  "onboarding.calculating.step2",
+  "onboarding.calculating.step3",
+  "onboarding.calculating.step4",
+  "onboarding.calculating.step5",
 ];
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+const RING_SIZE = 160;
+const RING_STROKE = 8;
+const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 export default function OnboardingCalculatingScreen() {
   const { theme } = useTheme();
   const router = useRouter();
-  const { calculatePlan } = useOnboarding();
+  const { t } = useAppTranslation();
+  const units = useUnits();
+  const { calculatePlan, profile } = useOnboarding();
   const [stepIdx, setStepIdx] = useState(0);
   const [progress, setProgress] = useState(0);
   const navigated = useRef(false);
 
-  // Pulsing dot opacity
-  const pulseOpacity = useSharedValue(1);
+  const currentDisplay = Number(units.display(profile.currentWeightLbs ?? 160));
+  const goalDisplay = Number(
+    units.display(
+      profile.goalWeightLbs ??
+        Math.round((profile.currentWeightLbs ?? 160) * 0.9)
+    )
+  );
+
+  // Pulsing glow
+  const glowOpacity = useSharedValue(0.4);
   useEffect(() => {
-    pulseOpacity.value = withRepeat(
+    glowOpacity.value = withRepeat(
       withSequence(
-        withTiming(0.3, { duration: 600 }),
-        withTiming(1, { duration: 600 })
+        withTiming(0.8, { duration: 800 }),
+        withTiming(0.4, { duration: 800 })
       ),
       -1,
       true
     );
-  }, [pulseOpacity]);
+    return () => {
+      cancelAnimation(glowOpacity);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const pulseStyle = useAnimatedStyle(() => ({
-    opacity: pulseOpacity.value,
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: glowOpacity.value,
   }));
 
-  // Curve reveal animation
-  const curveWidth = useSharedValue(0);
+  // Ring progress value
+  const ringProgress = useSharedValue(RING_CIRCUMFERENCE);
   useEffect(() => {
-    curveWidth.value = withTiming(100, {
-      duration: 3000,
-      easing: Easing.out(Easing.cubic),
-    });
-  }, [curveWidth]);
+    ringProgress.value = withTiming(0, { duration: 3200 });
+  }, [ringProgress]);
 
-  const curveStyle = useAnimatedStyle(() => ({
-    width: `${curveWidth.value}%`,
+  const ringAnimatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: ringProgress.value,
   }));
 
   // Progress + step cycling
@@ -82,8 +103,12 @@ export default function OnboardingCalculatingScreen() {
         if (next >= 100 && !navigated.current) {
           navigated.current = true;
           setTimeout(() => {
-            try { calculatePlan(); } catch (e) { console.error("Plan calculation failed:", e); }
-          router.replace("/(onboarding)/plan" as any);
+            try {
+              calculatePlan();
+            } catch (e) {
+              console.error("Plan calculation failed:", e);
+            }
+            router.replace("/(onboarding)/plan" as any);
           }, 400);
         }
         return next;
@@ -91,7 +116,7 @@ export default function OnboardingCalculatingScreen() {
     }, 60);
 
     const stepInterval = setInterval(() => {
-      setStepIdx((s) => Math.min(s + 1, STEPS.length - 1));
+      setStepIdx((s) => Math.min(s + 1, STEP_KEYS.length - 1));
     }, 600);
 
     return () => {
@@ -100,10 +125,19 @@ export default function OnboardingCalculatingScreen() {
     };
   }, [router]);
 
+  // Step check scale
+  const stepScales = STEP_KEYS.map(() => useSharedValue(0));
+  useEffect(() => {
+    if (stepIdx < stepScales.length) {
+      stepScales[stepIdx].value = withSpring(1, {
+        damping: 12,
+        stiffness: 200,
+      });
+    }
+  }, [stepIdx]);
+
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <OnboardingBackground>
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <View style={styles.content}>
           {/* ── Heading ── */}
@@ -112,123 +146,202 @@ export default function OnboardingCalculatingScreen() {
               variant="heading"
               style={[styles.heading, { color: theme.colors.text }]}
             >
-              Creating your{"\n"}weight plan…
+              {t("onboarding.calculating.heading")}
             </TText>
           </Animated.View>
 
-          <TSpacer size="sm" />
+          <View style={{ height: 8 }} />
 
           <Animated.View entering={FadeIn.duration(600).delay(300)}>
-            <TText color="secondary" style={styles.subtitle}>
-              Crunching the numbers just for you
+            <TText
+              style={[styles.subtitle, { color: theme.colors.textSecondary }]}
+            >
+              {t("onboarding.calculating.subtitle")}
             </TText>
           </Animated.View>
 
-          <TSpacer size="xxl" />
+          <View style={{ height: 40 }} />
 
-          {/* ── Weight curve visualization ── */}
-          <Animated.View entering={FadeIn.duration(800).delay(400)}>
-            <GlassSurface intensity="light" style={styles.curveCard}>
-              {/* Y-axis labels */}
-              <View style={styles.yAxis}>
-                <TText style={[styles.yLabel, { color: theme.colors.primary }]}>
-                  160
-                </TText>
-                <TText style={[styles.yLabel, { color: theme.colors.success }]}>
-                  145
-                </TText>
-              </View>
-
-              {/* Curve area */}
-              <View style={styles.curveArea}>
-                {/* Start dot */}
-                <View style={[styles.startDot, { top: 0 }]}>
-                  <View
-                    style={[
-                      styles.dot,
-                      { backgroundColor: theme.colors.primary },
-                    ]}
-                  />
-                </View>
-
-                {/* Animated curve line (simplified as a diagonal gradient) */}
-                <Animated.View style={[styles.curveLine, curveStyle]}>
-                  <LinearGradient
-                    colors={[theme.colors.primary, theme.colors.success]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.curveGradient}
-                  />
-                </Animated.View>
-
-                {/* Goal line (dashed) */}
-                <View
+          {/* ── Circular ring on frosted panel ── */}
+          <Animated.View
+            entering={FadeIn.duration(800).delay(350)}
+            style={styles.ringOuter}
+          >
+            <GlassSurface intensity="medium" border style={styles.ringPanel}>
+              <View style={styles.ringContainer}>
+                {/* Glow behind ring */}
+                <Animated.View
                   style={[
-                    styles.goalLine,
-                    {
-                      borderColor: theme.colors.success + "44",
-                    },
+                    styles.ringGlow,
+                    { backgroundColor: theme.colors.primary },
+                    glowStyle,
                   ]}
                 />
 
-                {/* End dot with pulse */}
-                <Animated.View style={[styles.endDot, pulseStyle]}>
-                  <View
-                    style={[
-                      styles.dot,
-                      { backgroundColor: theme.colors.success },
-                    ]}
+                <Svg width={RING_SIZE} height={RING_SIZE}>
+                  {/* Track */}
+                  <Circle
+                    cx={RING_SIZE / 2}
+                    cy={RING_SIZE / 2}
+                    r={RING_RADIUS}
+                    stroke={theme.colors.border + "30"}
+                    strokeWidth={RING_STROKE}
+                    fill="none"
                   />
-                </Animated.View>
+                  {/* Fill */}
+                  <AnimatedCircle
+                    cx={RING_SIZE / 2}
+                    cy={RING_SIZE / 2}
+                    r={RING_RADIUS}
+                    stroke={theme.colors.primary}
+                    strokeWidth={RING_STROKE}
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeDasharray={RING_CIRCUMFERENCE}
+                    animatedProps={ringAnimatedProps}
+                    rotation="-90"
+                    origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
+                  />
+                </Svg>
+
+                {/* Center text */}
+                <View style={styles.ringCenter}>
+                  <TText style={[styles.ringPct, { color: theme.colors.text }]}>
+                    {progress}%
+                  </TText>
+                </View>
               </View>
             </GlassSurface>
           </Animated.View>
 
-          <TSpacer size="xl" />
+          <View style={{ height: 32 }} />
 
-          {/* ── Step label & progress ── */}
-          <Animated.View entering={FadeIn.duration(600).delay(600)}>
-            <View style={styles.stepRow}>
-              <Animated.View style={pulseStyle}>
+          {/* ── Weight journey pill ── */}
+          <Animated.View entering={FadeInUp.duration(500).delay(500)}>
+            <GlassSurface intensity="medium" border style={styles.journeyCard}>
+              <View style={styles.journeyCol}>
+                <TText
+                  style={[
+                    styles.journeyLabel,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  {t("onboarding.weightGoal.current")}
+                </TText>
+                <TText
+                  style={[styles.journeyWeight, { color: theme.colors.text }]}
+                >
+                  {currentDisplay}
+                  <TText
+                    style={[
+                      styles.journeyUnit,
+                      { color: theme.colors.textMuted },
+                    ]}
+                  >
+                    {" "}
+                    {units.label}
+                  </TText>
+                </TText>
+              </View>
+              <View
+                style={[
+                  styles.journeyArrow,
+                  { backgroundColor: theme.colors.primary + "15" },
+                ]}
+              >
                 <Ionicons
-                  name="ellipse"
-                  size={10}
+                  name="arrow-forward"
+                  size={18}
                   color={theme.colors.primary}
                 />
-              </Animated.View>
-              <TText
-                style={[styles.stepText, { color: theme.colors.textSecondary }]}
-              >
-                {STEPS[stepIdx]}
-              </TText>
-            </View>
+              </View>
+              <View style={[styles.journeyCol, { alignItems: "flex-end" }]}>
+                <TText
+                  style={[
+                    styles.journeyLabel,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  {t("onboarding.weightGoal.goal")}
+                </TText>
+                <TText
+                  style={[
+                    styles.journeyWeight,
+                    { color: theme.colors.success },
+                  ]}
+                >
+                  {goalDisplay}
+                  <TText
+                    style={[
+                      styles.journeyUnit,
+                      { color: theme.colors.textMuted },
+                    ]}
+                  >
+                    {" "}
+                    {units.label}
+                  </TText>
+                </TText>
+              </View>
+            </GlassSurface>
+          </Animated.View>
 
-            <TSpacer size="md" />
+          <View style={{ height: 32 }} />
 
-            {/* Progress bar */}
-            <View
-              style={[
-                styles.progressTrack,
-                { backgroundColor: theme.colors.border },
-              ]}
-            >
-              <LinearGradient
-                colors={[theme.colors.primary, theme.colors.accent]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={[styles.progressFill, { width: `${progress}%` }]}
-              />
-            </View>
-
-            <TSpacer size="sm" />
-
-            <TText style={[styles.pctText, { color: theme.colors.textMuted }]}>
-              {progress}%
-            </TText>
+          {/* ── Step checklist on translucent card ── */}
+          <Animated.View entering={FadeInUp.duration(500).delay(600)}>
+            <GlassSurface intensity="light" style={styles.stepListCard}>
+              {STEP_KEYS.map((key, i) => {
+                const isDone = i <= stepIdx;
+                const isActive = i === stepIdx;
+                const animStyle = useAnimatedStyle(() => ({
+                  transform: [{ scale: stepScales[i].value }],
+                }));
+                return (
+                  <View key={i} style={styles.stepRow}>
+                    {isDone ? (
+                      <Animated.View style={animStyle}>
+                        <View
+                          style={[
+                            styles.stepCheck,
+                            { backgroundColor: theme.colors.primary },
+                          ]}
+                        >
+                          <Ionicons name="checkmark" size={12} color="#fff" />
+                        </View>
+                      </Animated.View>
+                    ) : (
+                      <View
+                        style={[
+                          styles.stepCheck,
+                          {
+                            backgroundColor: "transparent",
+                            borderWidth: 2,
+                            borderColor: theme.colors.border,
+                          },
+                        ]}
+                      />
+                    )}
+                    <TText
+                      style={[
+                        styles.stepText,
+                        {
+                          color: isDone
+                            ? theme.colors.text
+                            : theme.colors.textMuted,
+                          fontWeight: isActive ? "700" : "400",
+                        },
+                      ]}
+                    >
+                      {t(key)}
+                    </TText>
+                  </View>
+                );
+              })}
+            </GlassSurface>
           </Animated.View>
         </View>
       </SafeAreaView>
-    </View>
+    </OnboardingBackground>
   );
 }
 
@@ -239,95 +352,105 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     paddingHorizontal: 24,
+    alignItems: "center",
   },
   heading: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "800",
-    lineHeight: 40,
+    lineHeight: 34,
     textAlign: "center",
+    letterSpacing: -0.3,
   },
   subtitle: {
-    fontSize: 17,
+    fontSize: 16,
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: 22,
   },
-  curveCard: {
+  ringOuter: {
+    alignItems: "center",
+  },
+  ringPanel: {
+    padding: 28,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ringContainer: {
+    width: RING_SIZE,
+    height: RING_SIZE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ringGlow: {
+    position: "absolute",
+    width: RING_SIZE + 40,
+    height: RING_SIZE + 40,
+    borderRadius: (RING_SIZE + 40) / 2,
+  },
+  ringCenter: {
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ringPct: {
+    fontSize: 36,
+    fontWeight: "800",
+    letterSpacing: -1,
+  },
+  journeyCard: {
     flexDirection: "row",
-    padding: 20,
-    borderRadius: 20,
-    height: 160,
-  },
-  yAxis: {
+    alignItems: "center",
     justifyContent: "space-between",
-    marginRight: 12,
-    paddingVertical: 4,
+    padding: 20,
+    borderRadius: 16,
+    width: "100%",
   },
-  yLabel: {
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  curveArea: {
+  journeyCol: {
     flex: 1,
-    position: "relative",
   },
-  startDot: {
-    position: "absolute",
-    left: 0,
-    top: 4,
-    zIndex: 2,
+  journeyLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 4,
   },
-  endDot: {
-    position: "absolute",
-    right: 0,
-    bottom: 4,
-    zIndex: 2,
+  journeyWeight: {
+    fontSize: 28,
+    fontWeight: "800",
+    letterSpacing: -0.5,
   },
-  dot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+  journeyUnit: {
+    fontSize: 14,
+    fontWeight: "500",
   },
-  curveLine: {
-    position: "absolute",
-    top: 8,
-    left: 4,
-    height: "85%",
-    overflow: "hidden",
-    borderRadius: 4,
+  journeyArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: 12,
   },
-  curveGradient: {
-    flex: 1,
-    width: 4,
-  },
-  goalLine: {
-    position: "absolute",
-    bottom: 10,
-    left: 0,
-    right: 0,
-    height: 0,
-    borderTopWidth: 1,
-    borderStyle: "dashed",
+  stepListCard: {
+    width: "100%",
+    gap: 14,
+    padding: 16,
+    borderRadius: 16,
   },
   stepRow: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 12,
+  },
+  stepCheck: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
     justifyContent: "center",
-    gap: 8,
   },
   stepText: {
     fontSize: 15,
-  },
-  progressTrack: {
-    height: 6,
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: 3,
-  },
-  pctText: {
-    fontSize: 13,
-    textAlign: "center",
   },
 });

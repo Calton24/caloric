@@ -14,6 +14,7 @@ import Animated, {
     FadeInUp,
 } from "react-native-reanimated";
 import { useRevenueCat } from "../../features/subscription/useRevenueCat";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { GlassSurface } from "../glass/GlassSurface";
 import { TSpacer } from "../primitives/TSpacer";
@@ -61,6 +62,7 @@ export function SoftPaywall({
   milestoneValue,
 }: SoftPaywallProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const { packages, isLoadingOfferings, purchasePackage, restorePurchases } =
     useRevenueCat();
 
@@ -208,7 +210,7 @@ export function SoftPaywall({
             <TText
               style={[styles.maybeLaterText, { color: theme.colors.textMuted }]}
             >
-              Maybe later
+              {t("paywall.maybeLater")}
             </TText>
           </Pressable>
 
@@ -216,7 +218,7 @@ export function SoftPaywall({
             <TText
               style={[styles.restoreText, { color: theme.colors.textMuted }]}
             >
-              Restore Purchases
+              {t("settings.restorePurchases")}
             </TText>
           </Pressable>
         </Animated.View>

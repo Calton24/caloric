@@ -5,7 +5,7 @@
  *   node scripts/generate-apple-secret.js <path-to-.p8-file> <key-id> <team-id> <services-id>
  *
  * Example:
- *   node scripts/generate-apple-secret.js ~/Downloads/AuthKey_XXXXXXXXXX.p8 XXXXXXXXXX 93HBV58WBY com.calton24.caloric.auth
+ *   node scripts/generate-apple-secret.js ~/Downloads/AuthKey_XXXXXXXXXX.p8 XXXXXXXXXX 93HBV58WBY com.calton.caloric.auth
  */
 
 const jwt = require("jsonwebtoken");
