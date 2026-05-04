@@ -5,6 +5,25 @@
  * for testability and reuse.
  */
 
+/** Two compositor ticks (RN / browser). Jest/Node has no `requestAnimationFrame`. */
+function waitTwoAnimationFrames(): Promise<void> {
+  const schedule =
+    typeof globalThis.requestAnimationFrame === "function"
+      ? (cb: () => void) => {
+          globalThis.requestAnimationFrame(() => cb());
+        }
+      : (cb: () => void) => {
+          setTimeout(cb, 0);
+        };
+  return new Promise((resolve) => {
+    schedule(() => {
+      schedule(() => {
+        resolve();
+      });
+    });
+  });
+}
+
 /**
  * Deactivate the camera before navigating away.
  * VisionCamera on iOS keeps the AVCaptureSession alive until
@@ -22,11 +41,9 @@ export async function deactivateCameraBeforeDismiss(
   } catch {
     // Camera may already be released — proceed anyway
   }
-  // Let the viewfinder unmount (isActive false) before navigation — one frame
-  // is enough on most devices; avoids a long blank hand-off vs. setTimeout(50).
-  await new Promise<void>((resolve) => {
-    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-  });
+  // Let the viewfinder unmount (isActive false) before navigation — two RAF
+  // ticks on device; in Jest/Node we fall back to two queued microtasks.
+  await waitTwoAnimationFrames();
   navigate();
 }
 
