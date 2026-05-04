@@ -27,7 +27,226 @@
     "planUpdatedDesc": "Dein Plan wurde mit deinem aktuellen Gewicht von {{weight}} neu berechnet.",
     "proteinShort": "P:",
     "carbsShort": "C:",
-    "fatShort": "F:"
+    "fatShort": "F:",
+    "ranges": {
+      "7d": "7D",
+      "30d": "30D",
+      "90d": "90D",
+      "all": "All"
+    },
+    "weight": "Weight",
+    "current_label": "Current",
+    "goal_label": "Goal",
+    "nextWeighIn": "Next weigh-in",
+    "logToday": "Log today",
+    "soon": "Today",
+    "tomorrow": "Tomorrow",
+    "in_n_days": "In {{count}} days",
+    "streak": "Streak",
+    "dayStreak": "{{count}}-day streak",
+    "thisWeek": "This week",
+    "weightTrend": "Weight Trend",
+    "progressBadge": "{{percent}}% to goal",
+    "weeklyRate": "{{rate}} {{unit}}/wk",
+    "trendUp": "↑",
+    "trendDown": "↓",
+    "trendFlat": "→",
+    "insights": {
+      "cta": {
+        "logMeal": "Log meal",
+        "logFirstMeal": "Log first meal",
+        "logWeight": "Log weight",
+        "openMacros": "Open macros",
+        "viewProgress": "View progress",
+        "recalculatePlan": "Recalculate plan",
+        "openPaywall": "Upgrade",
+        "dismiss": "Got it"
+      },
+      "streak_about_to_break": {
+        "title": "Don't lose your {{n}}-day streak",
+        "title_soft": "Your {{n}}-day streak is still alive",
+        "title_bold": "Save your {{n}}-day streak",
+        "message": "Log a meal before midnight to keep it going.",
+        "message_soft": "A quick log keeps it going — even something small counts.",
+        "message_bold": "Log now or it resets at midnight."
+      },
+      "streak_personal_best_chance": {
+        "title": "1 day from your best streak ever",
+        "title_bold": "One log between you and a new personal best",
+        "message": "Best so far: {{best}} days. Log today to make it {{today}}.",
+        "message_soft": "You're {{best}} days deep. One more log and you set a new record."
+      },
+      "streak_restart_opportunity": {
+        "title": "Pick the streak back up",
+        "title_soft": "Welcome back — let's start a new one",
+        "title_bold": "Rebuild it. Today.",
+        "message": "Your last streak hit {{prior}} days. Log a meal today and start a new one.",
+        "message_soft": "Your last streak hit {{prior}} days — every comeback starts with one log."
+      },
+      "calorie_surplus_3d": {
+        "title": "3 days over your goal",
+        "title_bold": "You're drifting over budget",
+        "message": "You've averaged {{over}} kcal over your daily target. Adjust today's plan to stay on track.",
+        "message_soft": "Three days over by ~{{over}} kcal. Today's a clean slate — small wins from here."
+      },
+      "calorie_deficit_too_aggressive": {
+        "title": "You're under-eating — refuel",
+        "title_soft": "Your deficit looks aggressive",
+        "title_bold": "Cut too deep — back off",
+        "message": "Three days well below your target. Eating more in your range protects muscle and progress.",
+        "message_soft": "Going too low for too long stalls progress. Try eating closer to your plan today."
+      },
+      "consistency_dropped": {
+        "title": "Consistency dropped this week",
+        "title_bold": "Your consistency just slipped {{drop}} points",
+        "message": "Log a meal today and the trend resets. The wins come from showing up, not perfection.",
+        "message_soft": "Off weeks happen. One log today and you're already turning it around."
+      },
+      "protein_chronic_low": {
+        "title": "Protein is limiting your progress",
+        "title_bold": "Hit your protein — every day",
+        "message": "You've been ~{{gap}}g below your {{target}}g target for 5 of 7 days. Add a protein source to today's meals.",
+        "message_soft": "You're about {{gap}}g shy of {{target}}g most days — small protein adds compound fast."
+      },
+      "weight_log_stale": {
+        "title": "Step on the scale",
+        "title_soft": "Time for a check-in",
+        "title_bold": "{{days}} days without a weigh-in",
+        "message": "{{days}} days since your last weight log. Logging weekly is what makes the trend honest.",
+        "message_soft": "It's been {{days}} days. Even one weigh-in unlocks the next chapter of your trend."
+      },
+      "near_goal": {
+        "title": "You're {{remaining}} lbs from your goal",
+        "title_bold": "Almost there — {{remaining}} lbs out",
+        "message": "Stay locked in. The last stretch is the one most people quit before.",
+        "message_soft": "You're so close. Keep doing what's working."
+      },
+      "streak_milestone": {
+        "title": "{{n}}-day streak",
+        "title_bold": "{{n}} days. Locked in.",
+        "message": "You showed up {{n}} days in a row. That's the system working.",
+        "message_soft": "{{n}} days of logs — proud of you. Keep going."
+      },
+      "best_week_ever": {
+        "title": "Best week of adherence yet",
+        "title_bold": "{{pct}}% — your best week ever",
+        "message": "You hit your calorie target on {{pct}}% of logged days this week. New high.",
+        "message_soft": "Your most on-target week yet. Anchor what worked."
+      },
+      "on_pace_for_goal": {
+        "title": "Right on pace",
+        "title_bold": "Locked in at {{rate}} lbs/wk",
+        "message": "Your weekly rate is matching your plan. The math is working.",
+        "message_soft": "You're trending exactly where the plan expects. Keep going."
+      },
+      "protein_optimization": {
+        "title": "Add ~{{gap}}g of protein",
+        "title_bold": "{{gap}}g closer to your protein target",
+        "message": "You're close — averaging {{target}}g daily would lock in better composition.",
+        "message_soft": "You're trending well. A tiny protein bump would dial it in."
+      },
+      "weekend_drift": {
+        "title": "Your weekends drift",
+        "title_bold": "Weekend calories are {{pct}}% higher",
+        "message": "Weekends average {{pct}}% over your weekday baseline. Plan Friday's meals first.",
+        "message_soft": "Weekends slip a bit — picking Friday's meals on Thursday usually fixes it."
+      },
+      "late_log_pattern": {
+        "title": "Try logging meals as you eat",
+        "title_bold": "Log meals live — accuracy doubles",
+        "message": "You've been logging mostly after 8pm. Logging in real time keeps the data honest.",
+        "message_soft": "Logging in the moment is way more accurate than logging from memory."
+      },
+      "no_data": {
+        "title": "Log your first meal",
+        "title_soft": "Welcome — let's get your first log in",
+        "message": "One meal unlocks your dashboard, your streak, and your trend.",
+        "message_soft": "Log anything — coffee, a snack — and the dashboard lights up."
+      },
+      "neutral_steady": {
+        "title": "Steady so far",
+        "title_soft": "You're showing up",
+        "title_bold": "Stay locked in",
+        "message": "Stay consistent and let the trend lead the way.",
+        "message_soft": "Keep doing what you're doing — the data will catch up.",
+        "message_bold": "Discipline daily. The trend follows."
+      }
+    },
+    "macros": "Calories & Macros",
+    "avgCarbs": "Avg carbs",
+    "avgFat": "Avg fat",
+    "daysOnTarget": "% days on target",
+    "bmiTitle": "BMI",
+    "bmiUnderweight": "Underweight",
+    "bmiHealthy": "Healthy",
+    "bmiOverweight": "Overweight",
+    "bmiObese": "Obese",
+    "bmiNeedsHeight": "Add height in profile to see BMI.",
+    "emptyWeightTitle": "No weight logged yet",
+    "emptyWeightSubtitle": "Log your first weight to unlock trend charts.",
+    "emptyMealsTitle": "No meals yet",
+    "emptyMealsSubtitle": "Log meals to see calories & macros over time.",
+    "weightCard": {
+      "delta_loss": "−{{value}} {{unit}} this period",
+      "delta_gain": "+{{value}} {{unit}} this period",
+      "delta_flat": "No change this period",
+      "confidence_on_track": "On track",
+      "confidence_too_fast": "Too fast",
+      "confidence_stalling": "Stalling",
+      "confidence_off_pace": "Off pace",
+      "ctaLog": "Log weight",
+      "ctaTrend": "View trend"
+    },
+    "streakCard": {
+      "risk_safe": "Safe",
+      "risk_at_risk": "At risk",
+      "risk_critical": "Critical",
+      "urgency_log_today": "Log today",
+      "urgency_log_tonight": "Log tonight",
+      "urgency_before_midnight": "Log before midnight",
+      "milestone_to_best": "{{count}} days to beat your best",
+      "milestone_to_target": "{{count}} days to {{value}}d streak",
+      "ctaLogNow": "Log now"
+    },
+    "weightTrendCard": {
+      "trend_perfect_pace": "Perfect pace",
+      "trend_losing_too_fast": "Losing too fast",
+      "trend_gaining_too_fast": "Gaining too fast",
+      "trend_plateau": "Plateau detected",
+      "trend_drifting_up": "Drifting up",
+      "trend_drifting_down": "Drifting down",
+      "trend_holding_steady": "Holding steady",
+      "ctaAdjustPlan": "Adjust plan"
+    },
+    "macroCard": {
+      "balance_balanced": "Macros balanced",
+      "balance_protein_low": "Protein too low",
+      "balance_protein_high": "Protein very high",
+      "balance_fat_high": "Fat intake high",
+      "balance_fat_low": "Fat too low",
+      "balance_carbs_high": "Carbs running high",
+      "balance_carbs_low": "Carbs too low",
+      "balance_protein_low_with_fat": "Protein too low · fat high",
+      "balance_protein_low_with_carbs": "Protein too low · carbs high",
+      "kcal_vs_target": "Avg {{avg}} vs {{target}} kcal target",
+      "kcal_vs_target_no_target": "Avg {{avg}} kcal/day",
+      "best_day": "Best day",
+      "worst_day": "Worst day",
+      "calories_kcal": "{{calories}} kcal",
+      "ctaImprove": "Improve today"
+    },
+    "weeklyScore": {
+      "title": "Weekly Score",
+      "label_excellent": "Excellent",
+      "label_good": "Good",
+      "label_fair": "Fair",
+      "label_needs_work": "Needs work",
+      "label_no_data": "Log meals to start scoring",
+      "breakdownCalories": "Calories",
+      "breakdownProtein": "Protein",
+      "breakdownConsistency": "Consistency",
+      "ctaImprove": "Improve score"
+    }
   },
   "logWeight": {
     "title": "Gewicht erfassen",
