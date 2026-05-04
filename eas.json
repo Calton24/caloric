@@ -6,7 +6,10 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "ios": {
+        "image": "sdk-55"
+      }
     },
 
     "caloric-dev": {
@@ -16,7 +19,8 @@
         "EXPO_PUBLIC_APP_ENV": "dev"
       },
       "ios": {
-        "simulator": true
+        "simulator": true,
+        "image": "sdk-55"
       },
       "android": {
         "buildType": "apk"
@@ -44,7 +48,7 @@
       "ios": {
         "simulator": false,
         "autoIncrement": true,
-        "image": "macos-sequoia-15.3-xcode-16.2"
+        "image": "sdk-55"
       }
     },
 
@@ -59,7 +63,7 @@
       "prebuildCommand": "npx expo prebuild --clean",
       "ios": {
         "autoIncrement": true,
-        "image": "macos-sequoia-15.3-xcode-16.2"
+        "image": "sdk-55"
       }
     },
 
@@ -68,7 +72,8 @@
       "channel": "preview",
       "ios": {
         "simulator": true,
-        "buildConfiguration": "Release"
+        "buildConfiguration": "Release",
+        "image": "sdk-55"
       },
       "android": {
         "buildType": "apk"
