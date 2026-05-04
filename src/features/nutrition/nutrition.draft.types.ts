@@ -33,6 +33,14 @@ export interface MealDraft {
   /** Local URI of the captured food photo */
   imageUri?: string;
 
+  /** Storage object path inside `meal-review-images`. Server-authoritative
+   *  reference for the captured photo; preferred over `imageUri` when set. */
+  imagePath?: string;
+
+  /** Pending review row this draft was restored from (if any). Saving a
+   *  draft with this set should mark the linked pending review as `saved`. */
+  pendingReviewId?: string;
+
   /** Override date for the meal (ISO YYYY-MM-DD). When set, the meal
    *  is logged for this date instead of "now". */
   loggedAt?: string;

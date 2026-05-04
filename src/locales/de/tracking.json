@@ -75,7 +75,26 @@
     "adjustHint": "Kalorien anpassen? Einfach fragen!",
     "reportFood": "Essen melden",
     "deleteFood": "Essen löschen",
-    "noMatchRich": "Wir konnten <bold>„{{food}}“</bold> nicht in unserer Datenbank finden. Versuche es erneut oder tippe es ein."
+    "noMatchRich": "Wir konnten <bold>„{{food}}“</bold> nicht in unserer Datenbank finden. Versuche es erneut oder tippe es ein.",
+    "moreOptionsA11y": "More options for this meal",
+    "fixWithAI": "Mit KI korrigieren",
+    "fixWithAISubtitle": "Sag CalCut, was nicht stimmt",
+    "fixSheet": {
+      "title": "Mahlzeit korrigieren",
+      "currentLabel": "Aktuell",
+      "calories": "{{count}} kcal",
+      "placeholder": "Beispiel: Es war ein halber Teller Spaghetti mit 2 Frikadellen",
+      "submit": "Mahlzeit aktualisieren",
+      "submitting": "Aktualisiere…",
+      "cancel": "Abbrechen",
+      "successToast": "Mahlzeit aktualisiert",
+      "errorRecoverable": "Konnte diese Mahlzeit nicht aktualisieren. Erneut versuchen oder manuell anpassen.",
+      "errorRateLimited": "Zu viele Korrekturen. Bitte kurz warten.",
+      "errorNoSession": "Melde dich an, um KI-Korrekturen zu nutzen.",
+      "errorAIUnavailable": "KI ist gerade nicht verfügbar. Bitte gleich erneut versuchen.",
+      "errorValidation": "Diese Änderung konnte nicht angewendet werden. Bitte umformulieren oder manuell bearbeiten.",
+      "explanationLabel": "Was sich geändert hat"
+    }
   },
   "scanReview": {
     "addToToday": "Heute hinzufügen",
@@ -163,5 +182,25 @@
     "eatAgain": "Eat Again",
     "recent": "Recent",
     "frequent": "Frequent"
+  },
+  "scan": {
+    "identifying": "Essen wird analysiert…",
+    "holdTight": "Das dauert nur einen Moment",
+    "failedTitle": "Mahlzeit konnte nicht analysiert werden",
+    "swipeToDismiss": "Wischen, um zu verwerfen",
+    "kcalDetected": "{{calories}} kcal erkannt",
+    "review": "Prüfen",
+    "canSwitchApps": "Du kannst die App wechseln oder dein Telefon ausschalten — wir speichern es.",
+    "notifyWhenDone": "Wir benachrichtigen dich, wenn's fertig ist!",
+    "recentlyUploaded": "Kürzlich hochgeladen",
+    "analyzing": "Essen wird analysiert…",
+    "stageUploading": "Bild wird hochgeladen…",
+    "stageIdentifying": "Zutaten werden erkannt…",
+    "stageEstimating": "Kalorien werden geschätzt…",
+    "stagePreparing": "Vorschau wird vorbereitet…",
+    "tryAgain": "Erneut versuchen oder verwerfen",
+    "retry": "Erneut versuchen",
+    "reviewFailedTitle": "Mahlzeit konnte nicht geöffnet werden",
+    "reviewFailedMessage": "Beim Wiederherstellen der Mahlzeit ist etwas schiefgelaufen. Bitte erneut versuchen."
   }
 }

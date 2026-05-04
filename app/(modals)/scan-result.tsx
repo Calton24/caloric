@@ -118,7 +118,23 @@ function ScanResultScreenInner() {
 
   // Data sources
   const draft = useNutritionDraftStore((s) => s.draft);
-  const imageUri = useBackgroundScanStore((s) => s.job?.imageUri ?? null);
+  // Most-recent local URI from the queue, used as a fallback when the
+  // draft hasn't carried `imageUri` from the pipeline.
+  const latestJobImageUri = useBackgroundScanStore((s) => {
+    const jobs = Object.values(s.jobs);
+    if (jobs.length === 0) return null;
+    let latest = jobs[0];
+    for (const j of jobs) {
+      if (
+        new Date(j.createdAt).getTime() >
+        new Date(latest.createdAt).getTime()
+      ) {
+        latest = j;
+      }
+    }
+    return latest?.imageUri ?? null;
+  });
+  const imageUri = draft?.imageUri ?? latestJobImageUri;
   const resetScan = useBackgroundScanStore((s) => s.resetScan);
   const plan = useGoalsStore((s) => s.plan);
   const allMeals = useNutritionStore((s) => s.meals);

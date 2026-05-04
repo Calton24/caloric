@@ -3,7 +3,7 @@
  * Run: node scripts/generate-i18n-types.js
  *
  * Generated from 11 English locale files.
- * Total keys: 1146 (981 simple, 165 with interpolation)
+ * Total keys: 1182 (1015 simple, 167 with interpolation)
  */
 
 /** All valid translation keys (no interpolation params) */
@@ -34,6 +34,7 @@ export type SimpleTranslationKey =
   | "common.like"
   | "common.nope"
   | "common.now"
+  | "common.dismiss"
   | "calories.label"
   | "tabs.home"
   | "tabs.notes"
@@ -615,8 +616,24 @@ export type SimpleTranslationKey =
   | "mealConfirm.trackCalories"
   | "mealConfirm.invalidMealDraft"
   | "mealConfirm.adjustHint"
+  | "mealConfirm.moreOptionsA11y"
   | "mealConfirm.reportFood"
   | "mealConfirm.deleteFood"
+  | "mealConfirm.fixWithAI"
+  | "mealConfirm.fixWithAISubtitle"
+  | "mealConfirm.fixSheet.title"
+  | "mealConfirm.fixSheet.currentLabel"
+  | "mealConfirm.fixSheet.placeholder"
+  | "mealConfirm.fixSheet.submit"
+  | "mealConfirm.fixSheet.submitting"
+  | "mealConfirm.fixSheet.cancel"
+  | "mealConfirm.fixSheet.successToast"
+  | "mealConfirm.fixSheet.errorRecoverable"
+  | "mealConfirm.fixSheet.errorRateLimited"
+  | "mealConfirm.fixSheet.errorNoSession"
+  | "mealConfirm.fixSheet.errorAIUnavailable"
+  | "mealConfirm.fixSheet.errorValidation"
+  | "mealConfirm.fixSheet.explanationLabel"
   | "scanReview.addToToday"
   | "scanReview.adding"
   | "scanReview.aiEstimate"
@@ -673,6 +690,23 @@ export type SimpleTranslationKey =
   | "manualLog.rice"
   | "manualLog.yogurt"
   | "manualLog.logFood"
+  | "scan.recentlyUploaded"
+  | "scan.analyzing"
+  | "scan.identifying"
+  | "scan.stageUploading"
+  | "scan.stageIdentifying"
+  | "scan.stageEstimating"
+  | "scan.stagePreparing"
+  | "scan.canSwitchApps"
+  | "scan.notifyWhenDone"
+  | "scan.holdTight"
+  | "scan.failedTitle"
+  | "scan.tryAgain"
+  | "scan.swipeToDismiss"
+  | "scan.review"
+  | "scan.retry"
+  | "scan.reviewFailedTitle"
+  | "scan.reviewFailedMessage"
   | "report.whatWentWrong"
   | "report.additionalDetailsOptional"
   | "report.submitted"
@@ -1065,12 +1099,14 @@ export type ParamTranslationKey =
   | "camera.freeScansRemaining"
   | "camera.freeScansRemaining_plural"
   | "mealConfirm.noMatchRich"
+  | "mealConfirm.fixSheet.calories"
   | "editMeal.deleteMealConfirm"
   | "editMeal.items"
   | "mealAnalysis.itemsDetected"
   | "mealAnalysis.itemsDetectedPlural"
   | "mealAnalysis.logMeal"
   | "mealAnalysis.analysisTook"
+  | "scan.kcalDetected"
   | "progress.goalLabel"
   | "progress.current"
   | "progress.lost"
@@ -1237,12 +1273,14 @@ export interface TranslationParams {
   "camera.freeScansRemaining": { count: string | number };
   "camera.freeScansRemaining_plural": { count: string | number };
   "mealConfirm.noMatchRich": { food: string | number };
+  "mealConfirm.fixSheet.calories": { count: string | number };
   "editMeal.deleteMealConfirm": { title: string | number };
   "editMeal.items": { count: string | number };
   "mealAnalysis.itemsDetected": { count: string | number };
   "mealAnalysis.itemsDetectedPlural": { count: string | number };
   "mealAnalysis.logMeal": { cal: string | number };
   "mealAnalysis.analysisTook": { seconds: string | number };
+  "scan.kcalDetected": { calories: string | number };
   "progress.goalLabel": { weight: string | number; unit: string | number };
   "progress.current": { unit: string | number };
   "progress.lost": { unit: string | number };

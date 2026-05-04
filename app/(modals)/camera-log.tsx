@@ -37,12 +37,11 @@ import {
     useCodeScanner,
 } from "react-native-vision-camera";
 import { useAccountGate } from "../../src/features/auth/useAccountGate";
+import { useAuth } from "../../src/features/auth/useAuth";
 import { useBackgroundScanStore } from "../../src/features/camera/background-scan.store";
-import {
-    computeFocusPoint,
-    deactivateCameraBeforeDismiss,
-} from "../../src/features/camera/camera-log.helpers";
-import { runImagePipeline } from "../../src/features/camera/image-pipeline.service";
+import { computeFocusPoint } from "../../src/features/camera/camera-log.helpers";
+import { runBackgroundScan } from "../../src/features/food-logging/background-scan.service";
+import { copyImageToDurableLocation } from "../../src/features/food-logging/meal-image-upload.service";
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
 import { useFeatureAccess } from "../../src/features/subscription/useFeatureAccess";
 import { reportError } from "../../src/infrastructure/errorReporting";
@@ -53,6 +52,7 @@ import { AuthGateModal } from "../../src/ui/components/AuthGateModal";
 import { FeatureGatePaywall } from "../../src/ui/components/FeatureGatePaywall";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+import { dismissRootSheet } from "../../src/ui/sheets/BottomSheetProvider";
 import { FoodLoggingErrorBoundary } from "../../src/ui/errors/FoodLoggingErrorBoundary";
 
 type CameraState = "viewfinder" | "error" | "dismissing";
@@ -62,23 +62,19 @@ function CameraLoggingScreenInner() {
   const { t } = useAppTranslation();
   const router = useRouter();
   const pathname = usePathname();
+  const { user } = useAuth();
   const { startFromInput, startFromBarcode } = useLoggingFlow();
   const { requireAccount, gateVisible, gateReason, dismissGate } =
     useAccountGate();
-  const {
-    canScan,
-    consumeScan,
-    scansRemaining,
-    isPro,
-    recheck,
-    verificationStatus,
-    requiresRevalidation,
-  } = useFeatureAccess();
+  const { canScan, scansRemaining, isPro, requiresRevalidation } =
+    useFeatureAccess();
   const [showScanGate, setShowScanGate] = useState(false);
 
   const cameraRef = useRef<Camera>(null);
   const device = useCameraDevice("back");
   const { hasPermission, requestPermission } = useCameraPermission();
+  // Single-shot lock so a fast double-tap on the shutter only enqueues one job.
+  const captureLockRef = useRef(false);
 
   useEffect(() => {
     addFoodLoggingBreadcrumb("food_logging.camera_opened", {
@@ -197,60 +193,113 @@ function CameraLoggingScreenInner() {
     }
   }, [requestPermission, t]);
 
-  // ── Run pipeline (called automatically after capture/pick) ───────────
+  // ── Capture → dismiss → background analysis ─────────────────────────────
+  //
+  // Hand-off contract (production-grade):
+  //   The shutter is sacred. The ONLY awaited operation between user tap and
+  //   modal dismiss is `cameraRef.current.takePhoto()`. Everything else —
+  //   entitlement recheck, credit decrement, the AI pipeline — runs AFTER
+  //   the camera modal is dismissed, owned by the Home AnalyzingCard.
+  //
+  // What used to make the modal feel like a 10-second hang:
+  //   1. Default `takePhoto({})` is high-quality + metadata, 1–2 s on iOS.
+  //   2. Conditional `{state === "viewfinder" && <Camera />}` UNMOUNTED the
+  //      Camera component on the dismiss state change. VisionCamera blocks
+  //      the JS thread while it tears down an *active* AVCaptureSession.
+  //   3. `router.back()` from a nested modal stack pops within `(modals)/`,
+  //      sometimes leaving an empty modal frame. `router.dismissAll()` exits
+  //      the entire modal presentation in one step.
+  //
+  // Each is fixed in `handleCapture` below.
 
-  const runPipeline = useCallback(
-    async (uri: string, desc?: string) => {
-      // Gate: require account + scan credits for AI scans
+  const enqueueScan = useCallback(
+    (uri: string, desc?: string) => {
+      // ── 1. Synchronous fail-fast gate (no network) ──────────────────────
       if (!requireAccount("scan")) return;
-      let access = canScan();
-      // If pro but verification is stale/expired, recheck with server before allowing.
-      // Expired or unverified = hard (deny if server unreachable).
-      // Stale = soft (preserve local state on network failure).
-      if (access.allowed && requiresRevalidation) {
-        const hard =
-          verificationStatus === "expired" ||
-          verificationStatus === "unverified";
-        access = await recheck({ hard });
-      }
-      // If denied, try a server recheck before showing paywall (catches anonymous-purchase gap).
-      if (!access.allowed && access.reason === "no_credits") {
-        access = await recheck({ hard: false });
-      }
-      if (!access.allowed) {
+      const initialAccess = canScan();
+
+      const canFlipViaRecheck =
+        (!initialAccess.allowed && initialAccess.reason === "no_credits") ||
+        (initialAccess.allowed && requiresRevalidation);
+
+      if (!initialAccess.allowed && !canFlipViaRecheck) {
         setShowScanGate(true);
         return;
       }
 
-      // Consume a scan credit upfront (optimistic — same behaviour as before)
-      await consumeScan();
-
-      // Start the background job and fire-and-forget the pipeline.
-      // .catch() is a safety net — the pipeline has its own try/catch,
-      // but an uncaught rejection would crash the app on some RN versions.
-      const jobId = useBackgroundScanStore.getState().startScan(uri);
+      // ── 2. Optimistic commit ─────────────────────────────────────────────
+      const jobId = useBackgroundScanStore.getState().startScan({
+        imageUri: uri,
+        userId: user?.id ?? "anon",
+      });
       setImageUri(uri);
-      runImagePipeline(jobId, uri, desc).catch(() => {
-        useBackgroundScanStore.getState().failScan(jobId, "Unexpected error");
+      addFoodLoggingBreadcrumb("food_logging.background_scan_created", {
+        job_id: jobId,
+        source: "ai_camera",
       });
 
-      // Set "dismissing" state FIRST — this sets Camera isActive=false so the
-      // AVCaptureSession tears down gracefully before we navigate away.
-      // Without this, VisionCamera crashes on iOS when unmounted while active.
-      deactivateCameraBeforeDismiss(
-        () => setState("dismissing"),
-        () => router.back()
-      );
+      // ── 3. Dismiss the camera modal IMMEDIATELY ─────────────────────────
+      // Kill the Home FAB sheet (root provider tree) synchronously so it
+      // isn't visible behind the modal as it slides off.
+      dismissRootSheet({ immediate: true });
+
+      // Tear down the camera session before unmount. We KEEP the <Camera />
+      // mounted in the JSX (just isActive=false via state) so VisionCamera
+      // can release the AVCaptureSession asynchronously without blocking
+      // the JS thread.
+      addFoodLoggingBreadcrumb("food_logging.camera_dismiss_requested", {
+        job_id: jobId,
+      });
+      setState("dismissing");
+
+      // Pop the entire (modals) presentation, not just one screen. This is
+      // what eliminates the dark "ghost modal" frame.
+      requestAnimationFrame(() => {
+        if (router.canDismiss()) {
+          router.dismissAll();
+        } else {
+          router.replace("/(tabs)" as never);
+        }
+        addFoodLoggingBreadcrumb("food_logging.camera_dismissed", {
+          job_id: jobId,
+        });
+      });
+
+      // ── 4. Background analysis (runs after dismiss frame) ───────────────
+      const entitlement: "allowed" | "needs_recheck" | "premium_stale" =
+        !initialAccess.allowed && initialAccess.reason === "no_credits"
+          ? "needs_recheck"
+          : initialAccess.allowed && requiresRevalidation
+            ? "premium_stale"
+            : "allowed";
+      const consumeCredit = !isPro;
+
+      setTimeout(() => {
+        // Copy the captured photo into the app's document directory under
+        // a deterministic <jobId>.jpg path so the thumbnail survives a
+        // force-quit. The OS may evict the VisionCamera tmp/cache path
+        // between sessions, leaving the Home stack with a broken URI.
+        // Best-effort: failure falls back to the original `uri` so we
+        // never block the camera dismiss or the analysis pipeline.
+        try {
+          const durableUri = copyImageToDurableLocation(uri, jobId);
+          if (durableUri) {
+            useBackgroundScanStore
+              .getState()
+              .setLocalImageUri(jobId, durableUri);
+          }
+        } catch {
+          // copyImageToDurableLocation already logs; safe to swallow here.
+        }
+
+        void runBackgroundScan(jobId, {
+          description: desc,
+          entitlement,
+          consumeCredit,
+        });
+      }, 0);
     },
-    [
-      router,
-      requireAccount,
-      canScan,
-      consumeScan,
-      recheck,
-      verificationStatus,
-      requiresRevalidation,
-    ]
+    [router, requireAccount, canScan, requiresRevalidation, isPro, user?.id]
   );
 
   // ── Describe & retry (user types what the food is) ───────────────────
@@ -274,10 +323,14 @@ function CameraLoggingScreenInner() {
   // ── Close / dismiss ──────────────────────────────────────────────────
 
   const handleClose = useCallback(() => {
-    deactivateCameraBeforeDismiss(
-      () => {},
-      () => router.back()
-    );
+    setState("dismissing");
+    requestAnimationFrame(() => {
+      if (router.canDismiss()) {
+        router.dismissAll();
+      } else {
+        router.replace("/(tabs)" as never);
+      }
+    });
   }, [router]);
 
   // ── Tap-to-focus ─────────────────────────────────────────────────────
@@ -313,20 +366,36 @@ function CameraLoggingScreenInner() {
 
   const handleCapture = useCallback(async () => {
     if (!cameraRef.current) return;
+    if (captureLockRef.current) return;
+    captureLockRef.current = true;
+    addFoodLoggingBreadcrumb("food_logging.photo_capture_started");
+
     try {
-      const photo = await cameraRef.current.takePhoto({});
+      // ONLY native await before dismiss. Speed prioritisation is set via
+      // `photoQualityBalance="speed"` on the <Camera> component below — that
+      // shaves ~500-1500 ms off the iOS capture path. We disable the shutter
+      // sound here so the haptic + UI take over the feedback loop instantly.
+      const photo = await cameraRef.current.takePhoto({
+        enableShutterSound: false,
+      });
       const uri =
         Platform.OS === "android" ? `file://${photo.path}` : photo.path;
-      runPipeline(uri);
+      if (!uri) {
+        throw new Error("missing_photo_uri");
+      }
+      addFoodLoggingBreadcrumb("food_logging.photo_captured");
+      enqueueScan(uri);
     } catch (err) {
+      captureLockRef.current = false;
       reportError(err, {
         area: "scan",
         action: "handleCapture_takePhoto",
         screen: "camera-log",
+        extra: { flow: "ai_camera", step: "capture" },
       });
       Alert.alert("Error", t("camera.captureError"));
     }
-  }, [runPipeline, t]);
+  }, [enqueueScan, t]);
 
   // ── Pick from gallery ────────────────────────────────────────────────
 
@@ -374,11 +443,11 @@ function CameraLoggingScreenInner() {
       // Small delay so the native picker sheet finishes its dismiss animation
       // before we start the pipeline and dismiss the camera modal.
       // Without this, two modal dismissals race on iOS and crash the navigator.
-      setTimeout(() => runPipeline(pickedUri), 150);
+      setTimeout(() => enqueueScan(pickedUri), 150);
     } catch {
       Alert.alert("Error", t("camera.pickImageError"));
     }
-  }, [runPipeline, t]);
+  }, [enqueueScan, t]);
 
   // ── No permission state ─────────────────────────────────────────────
 
@@ -521,21 +590,29 @@ function CameraLoggingScreenInner() {
       style={[
         styles.container,
         {
-          // During camera teardown + navigation, the viewfinder unmounts
-          // first — if the root stays pure black, users see a "black sheet"
-          // until the next modal paints. Use the themed surface instead and
-          // paint an explicit transition overlay below.
-          backgroundColor:
-            state === "dismissing" ? theme.colors.background : "#000",
+          // The Camera view stays mounted during dismiss (just isActive=false)
+          // so iOS has the live viewfinder to slide off-screen with — no
+          // empty/black frame between camera and home.
+          backgroundColor: "#000",
         },
       ]}
     >
       {/* ── Viewfinder ─────────────────────────────────────────────── */}
-      {state === "viewfinder" && (
+      {/*
+        Mount the Camera for both `viewfinder` AND `dismissing` states. The
+        only thing that changes during dismiss is `isActive=false`, which
+        lets VisionCamera tear down the AVCaptureSession asynchronously.
+        Unmounting the Camera while it's still active blocks the JS thread
+        for several seconds — that was the real source of the 10 s hang.
+      */}
+      {(state === "viewfinder" || state === "dismissing") && (
         <Pressable
           style={styles.viewfinderContainer}
-          onPress={handleTapToFocus}
+          onPress={state === "viewfinder" ? handleTapToFocus : undefined}
           onLayout={handleCameraLayout}
+          // Once we're dismissing, ignore further taps but keep the view in
+          // the tree so iOS has something to slide off-screen with.
+          pointerEvents={state === "viewfinder" ? "auto" : "none"}
         >
           <Camera
             ref={cameraRef}
@@ -543,12 +620,13 @@ function CameraLoggingScreenInner() {
             device={device}
             isActive={state === "viewfinder"}
             photo={true}
-            torch={torch}
+            photoQualityBalance="speed"
+            torch={state === "viewfinder" ? torch : "off"}
             codeScanner={codeScanner}
           />
 
           {/* Focus ring indicator */}
-          {focusPoint && (
+          {state === "viewfinder" && focusPoint && (
             <View
               pointerEvents="none"
               style={[
@@ -747,7 +825,7 @@ function CameraLoggingScreenInner() {
               <View style={styles.errorSecondaryRow}>
                 <Pressable
                   onPress={() => {
-                    if (imageUri) runPipeline(imageUri);
+                    if (imageUri) enqueueScan(imageUri);
                   }}
                   style={[
                     styles.errorSecondaryBtn,
@@ -796,28 +874,17 @@ function CameraLoggingScreenInner() {
         </View>
       )}
 
-      {/* ── Camera teardown / navigation hand-off (barcode + photo pipeline) ── */}
+      {/* ── Camera teardown / navigation hand-off (barcode + photo pipeline) ──
+          No loading overlay — user returns to the home tab immediately while
+          analysis runs in the background; results appear on the home screen. */}
       {state === "dismissing" && (
         <View
           style={[
             StyleSheet.absoluteFillObject,
-            styles.transitionOverlay,
             { backgroundColor: theme.colors.background },
           ]}
           pointerEvents="none"
-        >
-          <ActivityIndicator size="large" color={theme.colors.textSecondary} />
-          <TSpacer size="md" />
-          <TText
-            style={{
-              fontSize: 15,
-              fontWeight: "500",
-              color: theme.colors.textSecondary,
-            }}
-          >
-            {t("common.loading")}
-          </TText>
-        </View>
+        />
       )}
 
       {/* ── Barcode lookup overlay ── */}
@@ -930,11 +997,6 @@ const styles = StyleSheet.create({
   },
   barcodeOverlay: {
     zIndex: 50,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  transitionOverlay: {
-    zIndex: 100,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1087,26 +1149,6 @@ const styles = StyleSheet.create({
     height: 62,
     borderRadius: 31,
     backgroundColor: "#fff",
-  },
-  // ── Analyzing ──
-  analyzingImage: {
-    width: 180,
-    height: 180,
-    borderRadius: 24,
-  },
-  analyzingText: {
-    fontSize: 15,
-    fontWeight: "500",
-    textAlign: "center",
-  },
-  dotsRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
   },
   // ── Error state ──
   errorContent: {

@@ -75,7 +75,26 @@
     "adjustHint": "Calorieën aanpassen? Vraag het gewoon!",
     "reportFood": "Eten melden",
     "deleteFood": "Eten verwijderen",
-    "noMatchRich": "We konden <bold>“{{food}}”</bold> niet vinden in onze database. Probeer het opnieuw of typ het in."
+    "noMatchRich": "We konden <bold>“{{food}}”</bold> niet vinden in onze database. Probeer het opnieuw of typ het in.",
+    "moreOptionsA11y": "More options for this meal",
+    "fixWithAI": "Met AI corrigeren",
+    "fixWithAISubtitle": "Vertel CalCut wat er niet klopt",
+    "fixSheet": {
+      "title": "Deze maaltijd corrigeren",
+      "currentLabel": "Momenteel",
+      "calories": "{{count}} kcal",
+      "placeholder": "Voorbeeld: Het was een halve kom spaghetti met 2 gehaktballen",
+      "submit": "Maaltijd bijwerken",
+      "submitting": "Bezig…",
+      "cancel": "Annuleren",
+      "successToast": "Maaltijd bijgewerkt",
+      "errorRecoverable": "Kon deze maaltijd niet bijwerken. Probeer het opnieuw of bewerk handmatig.",
+      "errorRateLimited": "Te veel correcties. Wacht even.",
+      "errorNoSession": "Log in om AI-correcties te gebruiken.",
+      "errorAIUnavailable": "AI is nu niet beschikbaar. Probeer het zo opnieuw.",
+      "errorValidation": "Die wijziging kon niet worden toegepast. Herformuleer of bewerk handmatig.",
+      "explanationLabel": "Wat is gewijzigd"
+    }
   },
   "scanReview": {
     "addToToday": "Toevoegen aan vandaag",
@@ -163,5 +182,25 @@
     "eatAgain": "Eat Again",
     "recent": "Recent",
     "frequent": "Frequent"
+  },
+  "scan": {
+    "identifying": "Maaltijd analyseren…",
+    "holdTight": "Dit duurt meestal even",
+    "failedTitle": "Kon deze maaltijd niet analyseren",
+    "swipeToDismiss": "Veeg om te negeren",
+    "kcalDetected": "{{calories}} kcal gedetecteerd",
+    "review": "Bekijken",
+    "canSwitchApps": "Je kunt van app wisselen of je telefoon uitzetten — we slaan het op.",
+    "notifyWhenDone": "We laten het je weten wanneer het klaar is!",
+    "recentlyUploaded": "Recent geüpload",
+    "analyzing": "Maaltijd analyseren…",
+    "stageUploading": "Afbeelding uploaden…",
+    "stageIdentifying": "Ingrediënten herkennen…",
+    "stageEstimating": "Calorieën schatten…",
+    "stagePreparing": "Voorvertoning voorbereiden…",
+    "tryAgain": "Probeer opnieuw of negeer",
+    "retry": "Opnieuw",
+    "reviewFailedTitle": "Kon maaltijd niet openen",
+    "reviewFailedMessage": "Er ging iets mis bij het herstellen van de maaltijd. Probeer het opnieuw."
   }
 }

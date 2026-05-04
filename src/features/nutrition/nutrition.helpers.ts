@@ -89,5 +89,9 @@ export function buildMealEntryFromDraft(params: {
     entry.imageUri = draft.imageUri;
   }
 
+  if (draft.imagePath) {
+    entry.imagePath = draft.imagePath;
+  }
+
   return entry;
 }

@@ -26,6 +26,11 @@ export interface BottomSheetOptions {
   enablePanDownToClose?: boolean;
 }
 
+export interface CloseSheetOptions {
+  /** Skip dismiss animation (use before pushing full-screen modals e.g. camera). */
+  immediate?: boolean;
+}
+
 export interface BottomSheetContextValue {
   open: (content: React.ReactNode, options?: BottomSheetOptions) => void;
   /**
@@ -33,18 +38,44 @@ export interface BottomSheetContextValue {
    * animation completes and the sheet is fully closed (use to navigate after
    * close so a second modal layer does not show a blank/loading state).
    */
-  close: (onDismissed?: () => void) => void;
+  close: (onDismissed?: () => void, options?: CloseSheetOptions) => void;
 }
 
 export const BottomSheetContext = createContext<
   BottomSheetContextValue | undefined
 >(undefined);
 
-interface BottomSheetProviderProps {
-  children: React.ReactNode;
+/**
+ * Module-scoped reference to the *root* provider's dismiss function.
+ *
+ * Why this exists: full-screen modals (e.g. `(modals)/camera-log`) live under
+ * a separate `BottomSheetProvider` mounted by the `(modals)` layout. Calling
+ * `useBottomSheet().close()` from inside those screens hits the modal-level
+ * provider and CANNOT close the Home FAB log sheet (which is owned by the
+ * root provider in `CaloricProviders`). That orphan root sheet was producing
+ * the dark "ghost layer" visible during camera dismiss in production.
+ *
+ * Mark exactly one provider as `isRoot` and any code (including non-React
+ * call sites) can synchronously kill the root sheet via `dismissRootSheet()`.
+ */
+let rootDismissImpl: ((immediate: boolean) => void) | null = null;
+
+export function dismissRootSheet({
+  immediate = true,
+}: { immediate?: boolean } = {}): void {
+  rootDismissImpl?.(immediate);
 }
 
-export function BottomSheetProvider({ children }: BottomSheetProviderProps) {
+interface BottomSheetProviderProps {
+  children: React.ReactNode;
+  /** Set true on the outermost provider — registers it as the global root. */
+  isRoot?: boolean;
+}
+
+export function BottomSheetProvider({
+  children,
+  isRoot,
+}: BottomSheetProviderProps) {
   const { theme } = useTheme();
   const bottomSheetRef = useRef<BottomSheetModalType>(null);
   const [content, setContent] = useState<React.ReactNode | null>(null);
@@ -116,14 +147,36 @@ export function BottomSheetProvider({ children }: BottomSheetProviderProps) {
     isShowingRef.current = index >= 0;
   }, []);
 
-  const close = useCallback((onDismissed?: () => void) => {
-    if (!isShowingRef.current) {
-      onDismissed?.();
-      return;
-    }
-    onDismissedRef.current = onDismissed ?? null;
-    bottomSheetRef.current?.dismiss();
-  }, []);
+  const close = useCallback(
+    (onDismissed?: () => void, options?: CloseSheetOptions) => {
+      const immediate = options?.immediate === true;
+      if (!immediate && !isShowingRef.current) {
+        onDismissed?.();
+        return;
+      }
+      onDismissedRef.current = onDismissed ?? null;
+      bottomSheetRef.current?.dismiss(
+        immediate ? { duration: 1 } : undefined
+      );
+    },
+    []
+  );
+
+  // Register this provider as the global root if requested.
+  // Only the root tree's provider should opt in.
+  useEffect(() => {
+    if (!isRoot) return;
+    rootDismissImpl = (immediate: boolean) => {
+      if (!isShowingRef.current && !sheetMounted) return;
+      onDismissedRef.current = null;
+      bottomSheetRef.current?.dismiss(
+        immediate ? { duration: 1 } : undefined
+      );
+    };
+    return () => {
+      rootDismissImpl = null;
+    };
+  }, [isRoot, sheetMounted]);
 
   const renderBackdrop = useCallback(
     (props: any) => (

@@ -29,6 +29,8 @@ export type FoodLoggingContext = {
   hasImage?: boolean;
   barcode?: string;
   provider?: "openai" | "gemini" | "barcode_api" | "local" | "supabase";
+  /** Free-form, scrubbed extras for one-off step diagnostics. Avoid PII. */
+  extras?: Record<string, unknown>;
 };
 
 function normaliseError(error: unknown): Error {
@@ -63,6 +65,7 @@ function foodLoggingExtra(ctx: FoodLoggingContext): Record<string, unknown> {
     has_image: ctx.hasImage === true,
     barcode: truncateBarcode(ctx.barcode),
     provider: ctx.provider,
+    ...(ctx.extras ?? {}),
   });
 }
 

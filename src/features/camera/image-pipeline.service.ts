@@ -5,7 +5,7 @@
  * Writes progress and results to useBackgroundScanStore.
  *
  * Every store write is guarded by a stale-check:
- *   if (getState().activeJobId !== jobId) return;
+ *   if (getState().job?.id !== jobId) return;
  *
  * This means if the user starts a second scan before the first finishes,
  * the first pipeline's writes are silently discarded. No race conditions.
@@ -31,12 +31,55 @@ import {
 import { useNutritionDraftStore } from "../nutrition/nutrition.draft.store";
 import { isLocalLlmReady } from "../nutrition/parsing/local-llm.service";
 import { validateFoodResult } from "../nutrition/validation/food-validator.service";
-import { useBackgroundScanStore } from "./background-scan.store";
+import {
+  type ScanStage,
+  SCAN_STAGE_PROGRESS,
+  useBackgroundScanStore,
+} from "./background-scan.store";
 
-// ─── Stale-guard helper ───────────────────────────────────────────────────────
+// ─── Stale-guard helpers ──────────────────────────────────────────────────────
 
 function isActive(jobId: string): boolean {
-  return useBackgroundScanStore.getState().activeJobId === jobId;
+  const job = useBackgroundScanStore.getState().jobs[jobId];
+  if (!job) return false;
+  return (
+    job.status === "queued" ||
+    job.status === "analyzing" ||
+    job.status === "complete" ||
+    job.status === "error"
+  );
+}
+
+function emitStage(jobId: string, stage: ScanStage): void {
+  if (!isActive(jobId)) return;
+  useBackgroundScanStore
+    .getState()
+    .setStage(jobId, stage, SCAN_STAGE_PROGRESS[stage]);
+}
+
+/**
+ * Stamp the captured image identity onto a draft so the confirm-meal screen
+ * (and saved meal_entries row) can render the photo. Returns a draft copy
+ * with `imageUri`, `imagePath`, and `pendingReviewId` filled in.
+ *
+ * Uses a structural type so this works on both the canonical `MealDraft`
+ * and the inline result objects produced by individual pipeline branches
+ * before they are widened to `MealDraft` at the call site.
+ */
+function stampImageOnDraft<T extends object>(draft: T, jobId: string): T {
+  const job = useBackgroundScanStore.getState().jobs[jobId];
+  if (!job) return draft;
+  const d = draft as T & {
+    imageUri?: string;
+    imagePath?: string;
+    pendingReviewId?: string;
+  };
+  return {
+    ...d,
+    imageUri: d.imageUri ?? job.imageUri,
+    imagePath: d.imagePath ?? job.imagePath,
+    pendingReviewId: d.pendingReviewId ?? job.id,
+  } as T;
 }
 
 // ─── Main pipeline ────────────────────────────────────────────────────────────
@@ -53,21 +96,19 @@ export async function runImagePipeline(
   imagePath: string,
   description?: string
 ): Promise<void> {
-  const { setStage, completeScan, failScan } =
-    useBackgroundScanStore.getState();
+  const { completeScan, failScan } = useBackgroundScanStore.getState();
   const setDraft = useNutritionDraftStore.getState().setDraft;
 
   try {
-    // ── Stage 0: OCR ──────────────────────────────────────────────────
+    // ── Stage: identifying (OCR) ──────────────────────────────────────
     if (!isActive(jobId)) return;
-    setStage(jobId, 0);
+    emitStage(jobId, "identifying");
 
     const rawOcr = await extractTextFromImage(imagePath);
     const ocrText = rawOcr && rawOcr.trim().length >= 4 ? rawOcr : null;
 
-    // ── Stage 1: Image analysis pipeline ─────────────────────────────
+    // ── Stage: identifying (image analysis pipeline) ─────────────────
     if (!isActive(jobId)) return;
-    setStage(jobId, 1);
 
     const imageResult = await analyzeImage(
       imagePath,
@@ -92,14 +133,15 @@ export async function runImagePipeline(
         parseMethod: `image-analysis (${imageResult.evidence.route})`,
         imageAnalysis: imageResult,
       };
-      setDraft(draft);
-      completeScan(jobId, draft);
+      const stamped = stampImageOnDraft(draft, jobId);
+      setDraft(stamped);
+      completeScan(jobId, stamped);
       return;
     }
 
-    // ── Stage 2: Local vision / cloud vision ──────────────────────────
+    // ── Stage: estimating (local vision / cloud vision) ───────────────
     if (!isActive(jobId)) return;
-    setStage(jobId, 2);
+    emitStage(jobId, "estimating");
 
     if (isLocalLlmReady()) {
       const captionResult = await captionFoodImage(imagePath, description);
@@ -123,8 +165,9 @@ export async function runImagePipeline(
           source: "camera" as const,
         };
         if (!isActive(jobId)) return;
-        setDraft(draft);
-        completeScan(jobId, draft);
+        const stamped = stampImageOnDraft(draft, jobId);
+        setDraft(stamped);
+        completeScan(jobId, stamped);
         return;
       }
     } else {
@@ -150,8 +193,9 @@ export async function runImagePipeline(
             confidence: cloudResult.overallConfidence,
             parseMethod: "cloud-vision (gpt-4o-mini)",
           };
-          setDraft(draft);
-          completeScan(jobId, draft);
+          const stamped = stampImageOnDraft(draft, jobId);
+          setDraft(stamped);
+          completeScan(jobId, stamped);
           return;
         }
       } catch (cloudErr) {
@@ -174,9 +218,9 @@ export async function runImagePipeline(
       }
     }
 
-    // ── Stage 3: ML Kit labels + text fallback ────────────────────────
+    // ── Stage: preparing (ML Kit labels + text fallback) ──────────────
     if (!isActive(jobId)) return;
-    setStage(jobId, 3);
+    emitStage(jobId, "preparing");
 
     const imageLabels = await labelFoodImage(imagePath);
     if (imageLabels && imageLabels.length > 0) {
@@ -213,8 +257,9 @@ export async function runImagePipeline(
           );
         }
         if (!isActive(jobId)) return;
-        setDraft(pipelineDraft);
-        completeScan(jobId, pipelineDraft);
+        const stamped = stampImageOnDraft(pipelineDraft, jobId);
+        setDraft(stamped);
+        completeScan(jobId, stamped);
         return;
       }
     }
@@ -242,8 +287,9 @@ export async function runImagePipeline(
               100
           ) / 100;
         if (!isActive(jobId)) return;
-        setDraft(pipelineDraft);
-        completeScan(jobId, pipelineDraft);
+        const stamped = stampImageOnDraft(pipelineDraft, jobId);
+        setDraft(stamped);
+        completeScan(jobId, stamped);
         return;
       }
     }

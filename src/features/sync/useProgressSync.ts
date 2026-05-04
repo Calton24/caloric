@@ -11,10 +11,12 @@
  */
 
 import { useEffect, useRef } from "react";
+import { AppState, type AppStateStatus } from "react-native";
 import { reportError } from "../../infrastructure/errorReporting";
 import { addFoodLoggingBreadcrumb } from "../../infrastructure/errorReporting/foodLoggingErrors";
 import { logColdStartStep } from "../../infrastructure/tracing/coldStartTrace";
 import { useAuth } from "../auth/useAuth";
+import { replayPendingReviewOutbox } from "../food-logging/pending-review.service";
 import { useChallengeStore } from "../challenge/challenge.store";
 import {
     createChallenge,
@@ -649,5 +651,47 @@ export function useProgressSync(): void {
     });
 
     return unsub;
+  }, [userId]);
+
+  // ── Pending-review outbox: foreground replay ──
+  // Triggers replay every time the app returns to foreground so any
+  // dismiss/save/upsert that happened offline gets reconciled with the
+  // server. The replay itself is idempotent and bounded (see
+  // MAX_OUTBOX_ATTEMPTS in pending-review.service).
+  useEffect(() => {
+    if (!userId) return;
+
+    let lastReplayAt = 0;
+    const MIN_INTERVAL_MS = 30 * 1000; // throttle to ≤1 replay / 30 s
+
+    const tryReplay = (reason: "foreground" | "auth_ready") => {
+      const now = Date.now();
+      if (now - lastReplayAt < MIN_INTERVAL_MS) return;
+      lastReplayAt = now;
+      void replayPendingReviewOutbox(userId).catch((err) => {
+        // Replay logs its own failures; this catch only protects the hook.
+        if (__DEV__) {
+          console.warn(
+            `[PendingReviewOutbox] replay error (trigger=${reason}):`,
+            err
+          );
+        }
+      });
+    };
+
+    // Run once now in case there's already an outstanding mutation when
+    // login completes (e.g. user dismissed offline before the app booted).
+    tryReplay("auth_ready");
+
+    const subscription = AppState.addEventListener(
+      "change",
+      (nextState: AppStateStatus) => {
+        if (nextState === "active") {
+          tryReplay("foreground");
+        }
+      }
+    );
+
+    return () => subscription.remove();
   }, [userId]);
 }

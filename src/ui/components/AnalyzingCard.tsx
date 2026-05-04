@@ -1,367 +1,680 @@
 /**
- * AnalyzingCard
+ * AnalyzingCard — "Recently Uploaded" pending-review queue
  *
- * Compact home-screen card that reflects the background scan state.
- * Returns null when no scan job is active.
+ * Renders the full pending-review stack on the Home screen. Each pending
+ * scan is its own row, ordered newest-first. The component is exported
+ * under the original name (`AnalyzingCard`) so existing import sites on
+ * Home / confirm-meal continue to compile, but the responsibility has
+ * moved from "single in-flight job" to "list of pending review items".
  *
- * States:
- *   analyzing  — thumbnail + pulse + rotating stage labels + progress dots
- *   complete   — thumbnail + meal name + calories + "Review" CTA
- *                Stays on screen until the user swipes to remove (same
- *                gesture family as MealCard) or clears from scan-result.
- *   error      — dimmed thumbnail + message + swipe to dismiss
+ * Per-row states (one shell, fading content):
+ *
+ *   queued / analyzing
+ *     • blurred thumbnail with circular progress ring
+ *     • "Analyzing food…" + dynamic stage label
+ *     • skeleton shimmer lines
+ *     • "We'll notify you when done!" helper
+ *
+ *   complete
+ *     • thumbnail (sharp)
+ *     • detected food title + "<calories> kcal detected"
+ *     • Review CTA → restores draft and opens confirm-meal
+ *
+ *   error
+ *     • thumbnail (dimmed)
+ *     • "Couldn't analyze this meal"
+ *     • Retry CTA + Dismiss CTA
+ *
+ * Swipe-to-delete:
+ *   Each row is wrapped in `react-native-gesture-handler`'s `Swipeable`
+ *   with the same friction/threshold/animation contract as `MealCard`.
+ *   The delete action calls `dismissPendingReview(jobId)` which marks the
+ *   row as `dismissed` locally and pushes a soft-delete to the server.
  */
 
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import Animated, {
-  cancelAnimation,
   FadeIn,
   FadeOut,
   SlideInRight,
   SlideOutRight,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
 } from "react-native-reanimated";
-import { useBackgroundScanStore } from "../../features/camera/background-scan.store";
+import Svg, { Circle } from "react-native-svg";
+
+import {
+  type BackgroundScanJob,
+  type ScanStage,
+  selectVisibleJobs,
+  useBackgroundScanStore,
+} from "../../features/camera/background-scan.store";
+import {
+  dismissPendingReview,
+  retryBackgroundScan,
+} from "../../features/food-logging/background-scan.service";
+import {
+  invalidateSignedUrl,
+  useMealImageSource,
+} from "../../features/food-logging/useMealImageSource";
+import { useNutritionDraftStore } from "../../features/nutrition/nutrition.draft.store";
+import { addFoodLoggingBreadcrumb } from "../../infrastructure/errorReporting/foodLoggingErrors";
+import { reportError } from "../../infrastructure/errorReporting";
 import { useAppTranslation } from "../../infrastructure/i18n";
 import { useTheme } from "../../theme/useTheme";
 import { formatFoodName } from "../../utils/formatFoodName";
 import { TText } from "../primitives/TText";
+import { Skeleton } from "./Skeleton";
 
-// ─── Stage labels ─────────────────────────────────────────────────────────────
+const CONTENT_FADE_MS = 220;
 
-const STAGE_LABELS = [
-  "Detecting food…",
-  "Reading packaging…",
-  "Matching product…",
-  "Estimating nutrition…",
-];
+function stageSubtitleKey(stage: ScanStage): string {
+  switch (stage) {
+    case "uploading":
+      return "scan.stageUploading";
+    case "identifying":
+      return "scan.stageIdentifying";
+    case "estimating":
+      return "scan.stageEstimating";
+    case "preparing":
+    default:
+      return "scan.stagePreparing";
+  }
+}
 
-// ─── Pulse animation ──────────────────────────────────────────────────────────
+// ─── Circular progress ring (SVG) ────────────────────────────────────────────
 
-function PulsingThumbnail({ uri }: { uri: string }) {
-  const opacity = useSharedValue(1);
+interface CircularProgressProps {
+  progress: number;
+  size: number;
+  strokeWidth: number;
+  trackColor: string;
+  progressColor: string;
+  textColor: string;
+}
 
-  useEffect(() => {
-    opacity.value = withRepeat(
-      withSequence(
-        withTiming(0.65, { duration: 800 }),
-        withTiming(1, { duration: 800 })
-      ),
-      -1,
-      true
-    );
-    return () => {
-      cancelAnimation(opacity);
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const animStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+function CircularProgress({
+  progress,
+  size,
+  strokeWidth,
+  trackColor,
+  progressColor,
+  textColor,
+}: CircularProgressProps) {
+  const center = size / 2;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference * (1 - progress);
 
   return (
-    <Animated.View style={[styles.thumbnail, animStyle]}>
-      <Image source={{ uri }} style={styles.thumbnailImg} contentFit="cover" />
-    </Animated.View>
+    <View style={{ width: size, height: size }}>
+      <Svg width={size} height={size}>
+        <Circle
+          cx={center}
+          cy={center}
+          r={radius}
+          stroke={trackColor}
+          strokeWidth={strokeWidth}
+          fill="none"
+        />
+        <Circle
+          cx={center}
+          cy={center}
+          r={radius}
+          stroke={progressColor}
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          rotation="-90"
+          origin={`${center}, ${center}`}
+        />
+      </Svg>
+      <View style={styles.progressLabel}>
+        <TText style={{ fontSize: 16, fontWeight: "700", color: textColor }}>
+          {Math.round(progress * 100)}%
+        </TText>
+      </View>
+    </View>
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Row ─────────────────────────────────────────────────────────────────────
 
-export function AnalyzingCard() {
+interface PendingReviewRowProps {
+  job: BackgroundScanJob;
+}
+
+function PendingReviewRow({ job }: PendingReviewRowProps) {
   const { theme } = useTheme();
   const { t } = useAppTranslation();
   const router = useRouter();
-  const job = useBackgroundScanStore((s) => s.job);
-  const { resetScan } = useBackgroundScanStore.getState();
+  const setDraft = useNutritionDraftStore((s) => s.setDraft);
   const swipeRef = useRef<Swipeable>(null);
 
-  const [stageIndex, setStageIndex] = useState(0);
-  const cycleRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isAnalyzing = job.status === "queued" || job.status === "analyzing";
+  const isComplete = job.status === "complete";
+  const isError = job.status === "error";
 
-  const confirmSwipeRemove = useCallback(() => {
+  // Resolve the best image URI: signed URL when online, durable local URI
+  // otherwise. The hook handles caching + lazy refresh; we just point the
+  // <Image> at whatever it returns. A null result means BOTH sources are
+  // unavailable and we fall through to the placeholder icon — but we keep
+  // the card visible regardless.
+  const { uri: thumbnailUri } = useMealImageSource({
+    imageUri: job.imageUri,
+    imagePath: job.imagePath,
+  });
+
+  // ── Actions ─────────────────────────────────────────────────────────────
+  const handleReview = useCallback(() => {
+    if (job.status !== "complete" || !job.resultDraft) return;
+    try {
+      // Hydrate the draft with everything the confirm-meal screen needs to
+      // render the photo and link the save back to this pending review.
+      setDraft({
+        ...job.resultDraft,
+        imageUri: job.resultDraft.imageUri ?? job.imageUri,
+        imagePath: job.resultDraft.imagePath ?? job.imagePath,
+        pendingReviewId: job.id,
+      });
+      addFoodLoggingBreadcrumb("food_logging.background_scan_review", {
+        job_id: job.id,
+        calories: job.resultDraft.calories,
+      });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      router.push("/(modals)/confirm-meal" as never);
+    } catch (e) {
+      reportError(e, {
+        area: "scan",
+        action: "background_scan_review_restore",
+        extra: { jobId: job.id, step: "review_restore" },
+      });
+      Alert.alert(t("scan.reviewFailedTitle"), t("scan.reviewFailedMessage"));
+    }
+  }, [job, router, setDraft, t]);
+
+  const handleRetry = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void retryBackgroundScan(job.id);
+  }, [job.id]);
+
+  const handleConfirmDismiss = useCallback(() => {
     swipeRef.current?.close();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert(t("home.dismissPendingScanTitle"), t("home.dismissPendingScanMessage"), [
-      { text: t("common.cancel"), style: "cancel" },
-      {
-        text: t("common.delete"),
-        style: "destructive",
-        onPress: () => {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          resetScan();
+    Alert.alert(
+      t("home.dismissPendingScanTitle"),
+      t("home.dismissPendingScanMessage"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("common.delete"),
+          style: "destructive",
+          onPress: () => {
+            Haptics.notificationAsync(
+              Haptics.NotificationFeedbackType.Success
+            );
+            dismissPendingReview(job.id);
+          },
         },
-      },
-    ]);
-  }, [resetScan, t]);
+      ]
+    );
+  }, [job.id, t]);
 
-  const renderRightActions = useCallback(() => {
+  // ── Theme tokens ─────────────────────────────────────────────────────────
+  const cardBg = theme.colors.surface ?? theme.colors.surfaceSecondary;
+  const borderColor = isError
+    ? theme.colors.error + "55"
+    : isComplete
+      ? theme.colors.primary + "66"
+      : theme.colors.border;
+
+  const accessibilityLabel = isAnalyzing
+    ? `${t("scan.analyzing")}, ${Math.round(job.progress * 100)}%`
+    : isComplete && job.resultDraft
+      ? `${formatFoodName(job.resultDraft.title)}, ${job.resultDraft.calories} ${t("tracking.cal")}`
+      : t("scan.failedTitle");
+
+  // ── Body / trailing ──────────────────────────────────────────────────────
+  const renderBody = () => {
+    if (isError) {
+      return (
+        <Animated.View
+          key="error"
+          entering={FadeIn.duration(CONTENT_FADE_MS)}
+          exiting={FadeOut.duration(CONTENT_FADE_MS)}
+          style={styles.body}
+        >
+          <TText
+            style={[styles.title, { color: theme.colors.text }]}
+            numberOfLines={1}
+          >
+            {t("scan.failedTitle")}
+          </TText>
+          <TText
+            style={[styles.subtitle, { color: theme.colors.error }]}
+            numberOfLines={2}
+          >
+            {job.errorMessage ?? t("scan.tryAgain")}
+          </TText>
+        </Animated.View>
+      );
+    }
+
+    if (isComplete && job.resultDraft) {
+      return (
+        <Animated.View
+          key="complete"
+          entering={FadeIn.duration(CONTENT_FADE_MS)}
+          exiting={FadeOut.duration(CONTENT_FADE_MS)}
+          style={styles.body}
+        >
+          <TText
+            style={[styles.title, { color: theme.colors.text }]}
+            numberOfLines={1}
+          >
+            {formatFoodName(job.resultDraft.title)}
+          </TText>
+          <TText
+            style={[styles.subtitle, { color: theme.colors.textSecondary }]}
+            numberOfLines={1}
+          >
+            {t("scan.kcalDetected", { calories: job.resultDraft.calories })}
+          </TText>
+        </Animated.View>
+      );
+    }
+
     return (
       <Animated.View
-        entering={SlideInRight.duration(250).damping(20)}
-        exiting={SlideOutRight.duration(200)}
-        style={styles.deleteActionContainer}
+        key="analyzing"
+        entering={FadeIn.duration(CONTENT_FADE_MS)}
+        exiting={FadeOut.duration(CONTENT_FADE_MS)}
+        style={styles.bodyAnalyzing}
       >
-        <Pressable
-          onPress={confirmSwipeRemove}
-          style={({ pressed }) => [
-            styles.deleteAction,
-            {
-              backgroundColor: theme.colors.error,
-              opacity: pressed ? 0.85 : 1,
-              transform: [{ scale: pressed ? 0.96 : 1 }],
-            },
-          ]}
+        <TText
+          style={[styles.title, { color: theme.colors.text }]}
+          numberOfLines={1}
         >
-          <Ionicons name="trash" size={20} color="#fff" />
-          <TText style={styles.deleteText}>{t("common.delete")}</TText>
-        </Pressable>
+          {t("scan.analyzing")}
+        </TText>
+        <TText
+          style={[styles.subtitleFaded, { color: theme.colors.textMuted }]}
+          numberOfLines={1}
+        >
+          {t(stageSubtitleKey(job.stage))}
+        </TText>
+        <View style={styles.skeletonLines}>
+          <Skeleton height={10} borderRadius={5} />
+          <Skeleton height={8} width="80%" borderRadius={4} />
+          <Skeleton height={8} width="60%" borderRadius={4} />
+        </View>
       </Animated.View>
     );
-  }, [confirmSwipeRemove, t, theme.colors.error]);
+  };
 
-  // Cycle stage labels while analyzing
-  useEffect(() => {
-    if (job?.status === "analyzing") {
-      setStageIndex(0);
-      cycleRef.current = setInterval(() => {
-        setStageIndex((i) => (i + 1) % STAGE_LABELS.length);
-      }, 1800);
-    } else {
-      if (cycleRef.current) clearInterval(cycleRef.current);
-    }
-    return () => {
-      if (cycleRef.current) clearInterval(cycleRef.current);
-    };
-  }, [job?.status]);
-
-  if (!job) return null;
-
-  const cardBg = theme.colors.surface ?? theme.colors.surfaceSecondary;
-
-  const swipeableProps = {
-    ref: swipeRef,
-    renderRightActions,
-    overshootRight: false,
-    friction: 2,
-    rightThreshold: 40,
-    onSwipeableWillOpen: () => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    },
-  } as const;
-
-  // ── Error state ─────────────────────────────────────────────────────────────
-  if (job.status === "error") {
-    return (
-      <View style={styles.cardShell}>
-        <Swipeable {...swipeableProps}>
-          <Animated.View
-            entering={FadeIn.duration(250)}
-            exiting={FadeOut.duration(200)}
-            style={[
-              styles.card,
-              { backgroundColor: cardBg, borderColor: theme.colors.error + "44" },
+  const renderTrailing = () => {
+    if (isComplete && job.resultDraft) {
+      return (
+        <Animated.View
+          entering={FadeIn.duration(CONTENT_FADE_MS)}
+          exiting={FadeOut.duration(CONTENT_FADE_MS)}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t("scan.review")}
+            onPress={handleReview}
+            style={({ pressed }) => [
+              styles.primaryBtn,
+              {
+                backgroundColor: theme.colors.primary,
+                opacity: pressed ? 0.85 : 1,
+              },
             ]}
+            hitSlop={8}
           >
-            <View style={[styles.thumbnail, { opacity: 0.5 }]}>
-              <Image
-                source={{ uri: job.imageUri }}
-                style={styles.thumbnailImg}
-                contentFit="cover"
+            <TText style={styles.primaryBtnText}>{t("scan.review")}</TText>
+          </Pressable>
+        </Animated.View>
+      );
+    }
+    if (isError) {
+      return (
+        <Animated.View
+          entering={FadeIn.duration(CONTENT_FADE_MS)}
+          exiting={FadeOut.duration(CONTENT_FADE_MS)}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t("scan.retry")}
+            onPress={handleRetry}
+            style={({ pressed }) => [
+              styles.primaryBtn,
+              {
+                backgroundColor: theme.colors.primary,
+                opacity: pressed ? 0.85 : 1,
+              },
+            ]}
+            hitSlop={8}
+          >
+            <TText style={styles.primaryBtnText}>{t("scan.retry")}</TText>
+          </Pressable>
+        </Animated.View>
+      );
+    }
+    return null;
+  };
+
+  // ── Right-side delete action (matches MealCard exactly) ──────────────────
+  const renderRightActions = () => (
+    <Animated.View
+      entering={SlideInRight.duration(250).damping(20)}
+      exiting={SlideOutRight.duration(200)}
+      style={styles.deleteActionContainer}
+    >
+      <Pressable
+        onPress={handleConfirmDismiss}
+        style={({ pressed }) => [
+          styles.deleteAction,
+          {
+            backgroundColor: theme.colors.error,
+            opacity: pressed ? 0.85 : 1,
+            transform: [{ scale: pressed ? 0.96 : 1 }],
+          },
+        ]}
+      >
+        <Ionicons name="trash" size={20} color="#fff" />
+        <TText style={styles.deleteText}>{t("common.delete")}</TText>
+      </Pressable>
+    </Animated.View>
+  );
+
+  // ── Card body ────────────────────────────────────────────────────────────
+  const cardContent = (
+    <Animated.View
+      entering={FadeIn.duration(CONTENT_FADE_MS)}
+      exiting={FadeOut.duration(CONTENT_FADE_MS)}
+      style={[styles.card, { backgroundColor: cardBg, borderColor }]}
+      accessible
+      accessibilityLabel={accessibilityLabel}
+    >
+      <View style={styles.row}>
+        <View
+          style={[
+            styles.thumbnail,
+            { backgroundColor: theme.colors.surfaceSecondary },
+            isError ? styles.thumbnailDimmed : null,
+          ]}
+        >
+          {thumbnailUri ? (
+            <Image
+              source={{ uri: thumbnailUri }}
+              style={styles.thumbnailImg}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              onError={() => {
+                // Cached signed URL is no longer resolvable (rotation,
+                // expiry, or the underlying object went away). Drop it
+                // from the cache so the next render re-fetches; the
+                // local URI fallback keeps us visible in the meantime.
+                if (job.imagePath) invalidateSignedUrl(job.imagePath);
+              }}
+            />
+          ) : (
+            <View style={styles.thumbnailFallback}>
+              <Ionicons
+                name="image-outline"
+                size={28}
+                color={theme.colors.textMuted}
               />
             </View>
+          )}
+          {isAnalyzing ? (
+            <>
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.thumbOverlay,
+                  {
+                    backgroundColor:
+                      theme.mode === "dark"
+                        ? "rgba(0,0,0,0.5)"
+                        : "rgba(255,255,255,0.3)",
+                  },
+                ]}
+              />
+              <View
+                style={styles.progressRingContainer}
+                accessibilityRole="progressbar"
+              >
+                <CircularProgress
+                  progress={Math.max(0.01, Math.min(0.99, job.progress))}
+                  size={68}
+                  strokeWidth={4}
+                  trackColor={
+                    theme.mode === "dark"
+                      ? "rgba(255,255,255,0.2)"
+                      : "rgba(0,0,0,0.15)"
+                  }
+                  progressColor={theme.colors.primary}
+                  textColor={theme.colors.text}
+                />
+              </View>
+            </>
+          ) : null}
+        </View>
 
-            <View style={styles.body}>
-              <TText
-                style={[styles.title, { color: theme.colors.text }]}
-                numberOfLines={1}
-              >
-                Analysis failed
-              </TText>
-              <TText
-                style={[styles.subtitle, { color: theme.colors.error }]}
-                numberOfLines={1}
-              >
-                {job.error ?? "Swipe to dismiss"}
-              </TText>
-            </View>
-          </Animated.View>
-        </Swipeable>
+        {renderBody()}
+        {renderTrailing()}
       </View>
-    );
-  }
 
-  // ── Complete state ──────────────────────────────────────────────────────────
-  if (job.status === "complete" && job.draft) {
-    return (
-      <View style={styles.cardShell}>
-        <Swipeable {...swipeableProps}>
-          <Animated.View
-            entering={FadeIn.duration(250)}
-            exiting={FadeOut.duration(200)}
-            style={[
-              styles.card,
-              styles.completeCard,
+      {isAnalyzing ? (
+        <View style={styles.helperRow}>
+          <TText
+            style={[styles.helper, { color: theme.colors.textMuted }]}
+            numberOfLines={1}
+          >
+            {t("scan.notifyWhenDone")}
+          </TText>
+        </View>
+      ) : null}
+    </Animated.View>
+  );
+
+  // Wrap in Swipeable for parity with the meal cards below.
+  return (
+    <View style={styles.rowOuter}>
+      <Swipeable
+        ref={swipeRef}
+        renderRightActions={renderRightActions}
+        overshootRight={false}
+        friction={2}
+        rightThreshold={40}
+        onSwipeableWillOpen={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }}
+      >
+        {isComplete ? (
+          <Pressable
+            onPress={handleReview}
+            style={({ pressed }) => [
               {
-                backgroundColor: cardBg,
-                borderColor: theme.colors.primary + "55",
+                opacity: pressed ? 0.92 : 1,
+                transform: [{ scale: pressed ? 0.99 : 1 }],
               },
             ]}
           >
-            <View style={styles.thumbnail}>
-              <Image
-                source={{ uri: job.imageUri }}
-                style={styles.thumbnailImg}
-                contentFit="cover"
-              />
-            </View>
-
-            <View style={styles.completeBody}>
-              <TText
-                style={[styles.title, { color: theme.colors.text }]}
-                numberOfLines={1}
-              >
-                {formatFoodName(job.draft.title)}
-              </TText>
-              <TText
-                style={[styles.subtitle, { color: theme.colors.textSecondary }]}
-                numberOfLines={1}
-              >
-                {job.draft.calories} kcal detected
-              </TText>
-            </View>
-
-            <Pressable
-              onPress={() => router.push("/(modals)/scan-result" as never)}
-              style={[styles.reviewBtn, { backgroundColor: theme.colors.primary }]}
-              hitSlop={6}
-            >
-              <TText style={styles.reviewBtnText}>Review</TText>
-            </Pressable>
-          </Animated.View>
-        </Swipeable>
-      </View>
-    );
-  }
-
-  // ── Analyzing state ─────────────────────────────────────────────────────────
-  return (
-    <View style={styles.cardShell}>
-      <Swipeable {...swipeableProps}>
-        <Animated.View
-          entering={FadeIn.duration(250)}
-          style={[
-            styles.card,
-            { backgroundColor: cardBg, borderColor: theme.colors.border },
-          ]}
-        >
-          <PulsingThumbnail uri={job.imageUri} />
-
-          <View style={styles.body}>
-            <TText
-              style={[styles.title, { color: theme.colors.text }]}
-              numberOfLines={1}
-            >
-              {STAGE_LABELS[stageIndex]}
-            </TText>
-
-            <View style={styles.dotsRow}>
-              {STAGE_LABELS.map((_, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.dot,
-                    {
-                      backgroundColor:
-                        i <= (job.stageIndex ?? 0)
-                          ? theme.colors.primary
-                          : theme.colors.border,
-                    },
-                  ]}
-                />
-              ))}
-            </View>
-          </View>
-        </Animated.View>
+            {cardContent}
+          </Pressable>
+        ) : (
+          cardContent
+        )}
       </Swipeable>
     </View>
   );
 }
 
+// ─── List entry (default export — keeps existing imports working) ───────────
+
+export function AnalyzingCard() {
+  const { t } = useAppTranslation();
+  const { theme } = useTheme();
+  const purgeIfExpired = useBackgroundScanStore((s) => s.purgeIfExpired);
+  const jobsMap = useBackgroundScanStore((s) => s.jobs);
+
+  // Drop expired jobs whenever the list re-mounts or jobs change.
+  useEffect(() => {
+    purgeIfExpired();
+  }, [purgeIfExpired]);
+
+  const jobs = useMemo(
+    () => selectVisibleJobs({ jobs: jobsMap } as never),
+    [jobsMap]
+  );
+
+  if (jobs.length === 0) return null;
+
+  return (
+    <View style={styles.cardShell}>
+      <TText
+        style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
+        numberOfLines={1}
+      >
+        {t("scan.recentlyUploaded")}
+      </TText>
+      {jobs.map((job) => (
+        <PendingReviewRow key={job.id} job={job} />
+      ))}
+    </View>
+  );
+}
+
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   cardShell: {
     marginHorizontal: 16,
-    marginBottom: 8,
+    marginBottom: 12,
+    gap: 10,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+    marginBottom: 0,
+    marginLeft: 2,
+  },
+  rowOuter: {
+    // Lets the swipe action shadow render outside the card.
+    overflow: "visible",
   },
   card: {
+    borderRadius: 24,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  row: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 14,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 10,
-    minHeight: 72,
-    maxHeight: 100,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    gap: 14,
+    minHeight: 130,
   },
   thumbnail: {
-    width: 56,
-    height: 56,
-    borderRadius: 10,
+    width: 102,
+    height: 102,
+    borderRadius: 18,
     overflow: "hidden",
     flexShrink: 0,
+    position: "relative",
+  },
+  thumbnailDimmed: {
+    opacity: 0.5,
   },
   thumbnailImg: {
-    width: 56,
-    height: 56,
+    width: 102,
+    height: 102,
+  },
+  thumbnailFallback: {
+    width: 102,
+    height: 102,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  thumbOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  progressRingContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  progressLabel: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
   },
   body: {
     flex: 1,
     gap: 4,
+    justifyContent: "center",
+  },
+  bodyAnalyzing: {
+    flex: 1,
+    gap: 8,
+    justifyContent: "center",
   },
   title: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "600",
+    letterSpacing: -0.2,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 13,
+    lineHeight: 16,
   },
-  dotsRow: {
-    flexDirection: "row",
-    gap: 5,
+  subtitleFaded: {
+    fontSize: 13,
+    lineHeight: 16,
+    opacity: 0.6,
   },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  skeletonLines: {
+    gap: 6,
+    marginTop: 2,
   },
-  completeCard: {
-    maxHeight: 120,
-  },
-  completeBody: {
-    flex: 1,
-    justifyContent: "center",
-    gap: 2,
-  },
-  reviewBtn: {
+  primaryBtn: {
     paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingVertical: 8,
     borderRadius: 20,
     flexShrink: 0,
   },
-  reviewBtnText: {
+  primaryBtnText: {
     color: "#fff",
     fontSize: 13,
     fontWeight: "600",
   },
+  helperRow: {
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+    paddingTop: 4,
+  },
+  helper: {
+    fontSize: 12,
+    lineHeight: 15,
+    textAlign: "center",
+  },
+  // Match MealCard's swipe action exactly.
   deleteActionContainer: {
     justifyContent: "center",
     marginLeft: 8,
@@ -371,7 +684,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: 75,
     height: "100%",
-    borderRadius: 14,
+    borderRadius: 24,
     gap: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },

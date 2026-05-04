@@ -28,7 +28,8 @@
     "like": "LIKE",
     "nope": "NOPE",
     "now": "now",
-    "optionsA11y": "{{label}} options"
+    "optionsA11y": "{{label}} options",
+    "dismiss": "Verwerfen"
   },
   "calories": {
     "label": "Kalorien",

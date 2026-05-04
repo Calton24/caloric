@@ -18,6 +18,7 @@
     "https://deno.land/std@0.168.0/testing/asserts.ts": "51353e79437361d4b02d8e32f3fc83b22231bc8f8d4c841d86fd32b0b0afe940",
     "https://deno.land/std@0.168.0/testing/mock.ts": "e19bf1f42b4b0aa7bc85d1f3aa01ed6d99368347c8df2d38e33d177a3976718b",
     "https://esm.sh/@supabase/supabase-js@2.39.0": "f51aeb2dbf8f67c8fa396628af45793e3513067d45705f1ea158f5c678bb0cea",
+    "https://esm.sh/@supabase/supabase-js@2.46.2": "539c8cec917a5316008a50e04e4c1577aacc5dfb7a4797f74bf50c7845affcab",
     "https://esm.sh/stripe@14.10.0?target=deno": "f1b34b346a881e8e86247fec848cf674d7a4ad6b8ee265130791064bfec43c32"
   }
 }

@@ -75,7 +75,26 @@
     "adjustHint": "Precisas de ajustar? Pergunta!",
     "reportFood": "Reportar comida",
     "deleteFood": "Apagar comida",
-    "noMatchRich": "Não encontrámos <bold>“{{food}}”</bold> na nossa base de dados. Tente novamente ou escreva manualmente."
+    "noMatchRich": "Não encontrámos <bold>“{{food}}”</bold> na nossa base de dados. Tente novamente ou escreva manualmente.",
+    "moreOptionsA11y": "More options for this meal",
+    "fixWithAI": "Corrigir com IA",
+    "fixWithAISubtitle": "Diz à CalCut o que está errado",
+    "fixSheet": {
+      "title": "Corrigir esta refeição",
+      "currentLabel": "Atualmente",
+      "calories": "{{count}} kcal",
+      "placeholder": "Exemplo: Foi meia tigela de esparguete com 2 almôndegas",
+      "submit": "Atualizar refeição",
+      "submitting": "A atualizar…",
+      "cancel": "Cancelar",
+      "successToast": "Refeição atualizada",
+      "errorRecoverable": "Não foi possível atualizar esta refeição. Tenta novamente ou edita manualmente.",
+      "errorRateLimited": "Demasiadas correções. Aguarda um momento.",
+      "errorNoSession": "Inicia sessão para usar correções com IA.",
+      "errorAIUnavailable": "A IA está indisponível agora. Tenta novamente em breve.",
+      "errorValidation": "Não foi possível aplicar a alteração. Reformula ou edita manualmente.",
+      "explanationLabel": "O que mudou"
+    }
   },
   "scanReview": {
     "addToToday": "Adicionar a hoje",
@@ -163,5 +182,25 @@
     "eatAgain": "Eat Again",
     "recent": "Recent",
     "frequent": "Frequent"
+  },
+  "scan": {
+    "identifying": "A analisar refeição…",
+    "holdTight": "Isto costuma demorar um instante",
+    "failedTitle": "Não foi possível analisar esta refeição",
+    "swipeToDismiss": "Desliza para descartar",
+    "kcalDetected": "{{calories}} kcal detetadas",
+    "review": "Rever",
+    "canSwitchApps": "Podes mudar de app ou desligar o telemóvel — nós guardamos.",
+    "notifyWhenDone": "Vamos avisar-te quando estiver pronto!",
+    "recentlyUploaded": "Carregado recentemente",
+    "analyzing": "A analisar refeição…",
+    "stageUploading": "A enviar imagem…",
+    "stageIdentifying": "A identificar ingredientes…",
+    "stageEstimating": "A estimar calorias…",
+    "stagePreparing": "A preparar revisão…",
+    "tryAgain": "Tenta novamente ou descarta",
+    "retry": "Tentar de novo",
+    "reviewFailedTitle": "Não foi possível abrir a refeição",
+    "reviewFailedMessage": "Algo correu mal ao restaurar a refeição. Tenta novamente."
   }
 }

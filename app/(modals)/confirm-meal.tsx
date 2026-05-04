@@ -36,6 +36,9 @@ import {
 } from "../../src/features/feedback/scan-feedback.service";
 
 import { useNutritionDraftStore } from "../../src/features/nutrition/nutrition.draft.store";
+import { useBackgroundScanStore } from "../../src/features/camera/background-scan.store";
+import { FixWithAISheet } from "../../src/features/nutrition/correction/FixWithAISheet";
+import { LogFoodLauncherSheetContent } from "../../src/features/food-logging/LogFoodLauncherSheetContent";
 
 import { useChallengeStore } from "../../src/features/challenge/challenge.store";
 import {
@@ -67,9 +70,11 @@ import { useScanCreditsStore } from "../../src/features/subscription/scanCredits
 import { usePaywallTrigger } from "../../src/features/subscription/usePaywallTrigger";
 import { formatDateHeader } from "../../src/infrastructure/i18n";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
+import { haptics } from "../../src/infrastructure/haptics";
 import { useGoalsStore, useNutritionStore } from "../../src/stores";
 import { useTheme } from "../../src/theme/useTheme";
 import { JourneyPaywall } from "../../src/ui/components/JourneyPaywall";
+import { MealReviewImage } from "../../src/ui/components/MealReviewImage";
 import { PostLogCelebration } from "../../src/ui/components/PostLogCelebration";
 import { RichText } from "../../src/ui/components/RichText";
 import { ReportFoodSheet } from "../../src/ui/feedback/ReportFoodSheet";
@@ -104,6 +109,26 @@ function ConfirmMealScreenInner() {
   const logDate = useNutritionDraftStore((s) => s.logDate);
   const setLogDate = useNutritionDraftStore((s) => s.setLogDate);
   const { open: openSheet } = useBottomSheet();
+
+  /** Same bottom sheet as Home FAB “+” — keyboard / mic / camera + quick picks */
+  const openLogFoodLauncher = useCallback(() => {
+    haptics.impact("light");
+    openSheet(<LogFoodLauncherSheetContent variant="confirm" />, {
+      snapPoints: ["50%", "92%"],
+    });
+  }, [openSheet]);
+
+  /** "Fix with AI" — opens the natural-language correction sheet. */
+  const openFixWithAI = useCallback(() => {
+    const currentDraft =
+      useNutritionDraftStore.getState().draft ?? hookDraft;
+    if (!currentDraft) return;
+    haptics.impact("light");
+    openSheet(<FixWithAISheet draft={currentDraft} />, {
+      snapPoints: ["55%", "85%"],
+      enablePanDownToClose: true,
+    });
+  }, [openSheet, hookDraft]);
 
   // Share milestone system
   const shareMilestone = useShareMilestone();
@@ -436,6 +461,13 @@ function ConfirmMealScreenInner() {
         submitted_correction: Boolean(correction?.wasEdited),
       });
 
+      // Capture the linked pending-review id BEFORE save — `saveDraftWithoutNav`
+      // clears the draft on the way out, and we need this to mark the
+      // server-side row as `saved` once the meal id is known.
+      const linkedPendingReviewId = draft?.pendingReviewId ?? null;
+      const mealsBefore = useNutritionStore.getState().meals;
+      const latestMealIdBefore = mealsBefore[0]?.id;
+
       addFoodLoggingBreadcrumb("food_logging.track_calories_before_local_save");
       if (!saveDraftWithoutNav()) {
         addFoodLoggingBreadcrumb("food_logging.track_calories_save_aborted", {
@@ -445,6 +477,41 @@ function ConfirmMealScreenInner() {
         return;
       }
       addFoodLoggingBreadcrumb("food_logging.track_calories_after_local_save");
+
+      // Resolve the meal id that was just created and link it back to the
+      // pending-review row. We look at meal[0] because addMeal prepends.
+      const mealsAfter = useNutritionStore.getState().meals;
+      const newMealId =
+        mealsAfter[0]?.id !== latestMealIdBefore
+          ? mealsAfter[0]?.id
+          : undefined;
+
+      // Mark the linked pending-review job as `saved` (filtered from UI,
+      // kept server-side as audit trail). Falls back to `resetScan` for
+      // the legacy single-job flow when no link exists.
+      if (linkedPendingReviewId && newMealId) {
+        useBackgroundScanStore
+          .getState()
+          .markScanSaved(linkedPendingReviewId, newMealId);
+        // Best-effort server sync — fire-and-forget. Imported lazily to
+        // avoid pulling the sync module into module initialisation cycles.
+        void import(
+          "../../src/features/food-logging/pending-review.service"
+        ).then((m) => m.markServerReviewSaved(linkedPendingReviewId, newMealId));
+        // Best-effort cleanup of the durable local copy. The remote image
+        // path on `meal_entries` is the long-term home; the local copy was
+        // only insurance for the pending-review thumbnail.
+        void import(
+          "../../src/features/food-logging/meal-image-upload.service"
+        ).then((m) => m.deleteDurableImage(linkedPendingReviewId));
+        addFoodLoggingBreadcrumb("food_logging.pending_review_save_linked", {
+          job_id: linkedPendingReviewId,
+          meal_id: newMealId,
+        });
+      } else {
+        // No link → preserve previous behaviour for non-camera saves.
+        useBackgroundScanStore.getState().resetScan();
+      }
 
       // Record first meal for retention engine
       addFoodLoggingBreadcrumb("food_logging.track_calories_before_retention");
@@ -867,23 +934,23 @@ function ConfirmMealScreenInner() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        {/* Header: Guide pill + X close */}
+        {/* Header: help (meal actions menu) + close */}
         <Animated.View entering={FadeIn.duration(300)} style={styles.header}>
           <Pressable
-            onPress={handleReportFood}
+            onPress={() => setShowMenu(true)}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={t("mealConfirm.moreOptionsA11y")}
             style={[
-              styles.guidePill,
-              { backgroundColor: theme.colors.primary + "22" },
+              styles.headerHelpBtn,
+              { backgroundColor: theme.colors.border + "80" },
             ]}
           >
             <Ionicons
-              name="bulb-outline"
-              size={14}
-              color={theme.colors.primary}
+              name="help"
+              size={16}
+              color={theme.colors.textMuted}
             />
-            <TText style={[styles.guideLabel, { color: theme.colors.primary }]}>
-              {t("tracking.guide")}
-            </TText>
           </Pressable>
           <Pressable
             onPress={() => {
@@ -910,6 +977,17 @@ function ConfirmMealScreenInner() {
               {formatFoodName(draft.title)}
             </TText>
           </Animated.View>
+
+          {/* Captured photo (camera scans only). Renders nothing if absent. */}
+          {(draft.imageUri || draft.imagePath) && (
+            <View style={styles.imageWrapper}>
+              <MealReviewImage
+                imageUri={draft.imageUri}
+                imagePath={draft.imagePath}
+                accessibilityLabel={formatFoodName(draft.title)}
+              />
+            </View>
+          )}
 
           {/* Date chip — shown when logging for a non-today date */}
           {logDate && (
@@ -961,20 +1039,6 @@ function ConfirmMealScreenInner() {
               >
                 {draft.calories} {t("tracking.kcal")}
               </TText>
-              <Pressable
-                onPress={() => setShowMenu(true)}
-                hitSlop={12}
-                style={[
-                  styles.infoBtn,
-                  { backgroundColor: theme.colors.border + "80" },
-                ]}
-              >
-                <Ionicons
-                  name="help"
-                  size={14}
-                  color={theme.colors.textMuted}
-                />
-              </Pressable>
             </View>
 
             {/* More menu (dropdown) */}
@@ -1414,11 +1478,62 @@ function ConfirmMealScreenInner() {
 
           <TSpacer size="lg" />
 
-          {/* Hint text */}
+          {/* "Fix with AI" — interactive CTA. Replaces the old passive
+              "Need to adjust calories? Just ask!" copy with something the
+              user can actually act on. */}
           <Animated.View entering={FadeIn.duration(400).delay(200)}>
-            <TText style={[styles.hintText, { color: theme.colors.text }]}>
-              {t("mealConfirm.adjustHint")}
-            </TText>
+            <Pressable
+              onPress={openFixWithAI}
+              accessibilityRole="button"
+              accessibilityLabel={t("mealConfirm.fixWithAI")}
+              accessibilityHint={t("mealConfirm.fixWithAISubtitle")}
+              style={({ pressed }) => [
+                styles.fixWithAICta,
+                {
+                  backgroundColor: theme.colors.surfaceSecondary,
+                  borderColor: theme.colors.borderSecondary,
+                  opacity: pressed ? 0.85 : 1,
+                  transform: [{ scale: pressed ? 0.99 : 1 }],
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.fixWithAIIcon,
+                  { backgroundColor: theme.colors.primary + "1A" },
+                ]}
+              >
+                <Ionicons
+                  name="sparkles"
+                  size={18}
+                  color={theme.colors.primary}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <TText
+                  style={[
+                    styles.fixWithAITitle,
+                    { color: theme.colors.text },
+                  ]}
+                >
+                  {t("mealConfirm.fixWithAI")}
+                </TText>
+                <TText
+                  style={[
+                    styles.fixWithAISubtitle,
+                    { color: theme.colors.textMuted },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {t("mealConfirm.fixWithAISubtitle")}
+                </TText>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={theme.colors.textMuted}
+              />
+            </Pressable>
           </Animated.View>
 
           <TSpacer size="xxl" />
@@ -1431,13 +1546,7 @@ function ConfirmMealScreenInner() {
         >
           <View style={styles.methodRow}>
             <Pressable
-              onPress={() => {
-                clearDraft();
-                router.dismiss();
-                setTimeout(() => {
-                  router.push("/(modals)/manual-log" as any);
-                }, 100);
-              }}
+              onPress={openLogFoodLauncher}
               style={[
                 styles.methodBtn,
                 { backgroundColor: theme.colors.surfaceSecondary },
@@ -1450,16 +1559,7 @@ function ConfirmMealScreenInner() {
               />
             </Pressable>
 
-            <Pressable
-              onPress={() => {
-                clearDraft();
-                router.dismiss();
-                setTimeout(() => {
-                  router.push("/(modals)/voice-log" as any);
-                }, 100);
-              }}
-              style={styles.micBtn}
-            >
+            <Pressable onPress={openLogFoodLauncher} style={styles.micBtn}>
               <LinearGradient
                 colors={[theme.colors.primary, theme.colors.accent]}
                 start={{ x: 0, y: 0 }}
@@ -1476,11 +1576,7 @@ function ConfirmMealScreenInner() {
 
             <Pressable
               onPress={() => {
-                clearDraft();
-                router.dismiss();
-                setTimeout(() => {
-                  router.push("/tracking/camera" as any);
-                }, 100);
+                router.push("/(modals)/camera-log" as never);
               }}
               style={[
                 styles.methodBtn,
@@ -1558,17 +1654,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
-  guidePill: {
-    flexDirection: "row",
+  headerHelpBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
-    gap: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-  },
-  guideLabel: {
-    fontSize: 14,
-    fontWeight: "600",
+    justifyContent: "center",
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -1578,6 +1669,9 @@ const styles = StyleSheet.create({
   foodTitle: {
     fontSize: 24,
     fontWeight: "700",
+  },
+  imageWrapper: {
+    marginTop: 12,
   },
   dateChip: {
     flexDirection: "row",
@@ -1602,13 +1696,6 @@ const styles = StyleSheet.create({
   heroCalories: {
     fontSize: 36,
     fontWeight: "800",
-  },
-  infoBtn: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
   },
   // ── Progress bar ──
   progressContainer: {
@@ -1734,10 +1821,30 @@ const styles = StyleSheet.create({
     color: "#1C1C1E",
   },
   // ── Hint ──
-  hintText: {
-    fontSize: 14,
+  fixWithAICta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginHorizontal: 20,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  fixWithAIIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fixWithAITitle: {
+    fontSize: 15,
     fontWeight: "600",
-    textAlign: "center",
+  },
+  fixWithAISubtitle: {
+    fontSize: 13,
+    marginTop: 2,
   },
   // ── Bottom input bar ──
   inputMethods: {

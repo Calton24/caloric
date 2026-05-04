@@ -22,8 +22,11 @@ export async function deactivateCameraBeforeDismiss(
   } catch {
     // Camera may already be released — proceed anyway
   }
-  // Allow one frame for the camera to release before navigation
-  await new Promise<void>((resolve) => setTimeout(resolve, 50));
+  // Let the viewfinder unmount (isActive false) before navigation — one frame
+  // is enough on most devices; avoids a long blank hand-off vs. setTimeout(50).
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
   navigate();
 }
 

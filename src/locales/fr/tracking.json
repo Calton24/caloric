@@ -75,7 +75,26 @@
     "adjustHint": "Besoin d'ajuster ? Demande !",
     "reportFood": "Signaler un aliment",
     "deleteFood": "Supprimer l'aliment",
-    "noMatchRich": "Nous n’avons pas trouvé <bold>« {{food}} »</bold> dans notre base de données. Réessayez ou saisissez-le."
+    "noMatchRich": "Nous n’avons pas trouvé <bold>« {{food}} »</bold> dans notre base de données. Réessayez ou saisissez-le.",
+    "moreOptionsA11y": "More options for this meal",
+    "fixWithAI": "Corriger avec l’IA",
+    "fixWithAISubtitle": "Dis à CalCut ce qui ne va pas",
+    "fixSheet": {
+      "title": "Corriger ce repas",
+      "currentLabel": "Actuellement",
+      "calories": "{{count}} kcal",
+      "placeholder": "Exemple : C’était un demi-bol de spaghettis avec 2 boulettes",
+      "submit": "Mettre à jour le repas",
+      "submitting": "Mise à jour…",
+      "cancel": "Annuler",
+      "successToast": "Repas mis à jour",
+      "errorRecoverable": "Impossible de mettre à jour ce repas. Réessaie ou modifie-le manuellement.",
+      "errorRateLimited": "Trop de corrections. Patiente un instant.",
+      "errorNoSession": "Connecte-toi pour utiliser les corrections IA.",
+      "errorAIUnavailable": "L’IA est indisponible pour l’instant. Réessaie sous peu.",
+      "errorValidation": "Cette modification n’a pas pu être appliquée. Reformule ou modifie manuellement.",
+      "explanationLabel": "Ce qui a changé"
+    }
   },
   "scanReview": {
     "addToToday": "Ajouter à aujourd’hui",
@@ -163,5 +182,25 @@
     "eatAgain": "Eat Again",
     "recent": "Recent",
     "frequent": "Frequent"
+  },
+  "scan": {
+    "identifying": "Analyse du repas…",
+    "holdTight": "Cela prend généralement un instant",
+    "failedTitle": "Impossible d'analyser ce repas",
+    "swipeToDismiss": "Glisse pour ignorer",
+    "kcalDetected": "{{calories}} kcal détectées",
+    "review": "Vérifier",
+    "canSwitchApps": "Tu peux changer d'app ou éteindre ton téléphone — on garde tout.",
+    "notifyWhenDone": "On te préviendra quand c'est prêt !",
+    "recentlyUploaded": "Récemment ajouté",
+    "analyzing": "Analyse du repas…",
+    "stageUploading": "Envoi de l'image…",
+    "stageIdentifying": "Identification des ingrédients…",
+    "stageEstimating": "Estimation des calories…",
+    "stagePreparing": "Préparation de l'aperçu…",
+    "tryAgain": "Réessaye ou ignore",
+    "retry": "Réessayer",
+    "reviewFailedTitle": "Impossible d'ouvrir le repas",
+    "reviewFailedMessage": "Une erreur est survenue lors de la restauration du repas. Réessaye."
   }
 }

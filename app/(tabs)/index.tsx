@@ -9,15 +9,24 @@
  * - Floating "+" button to tracking launcher
  */
 
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
-import { usePathname, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { CircleUserRound } from "lucide-react-native";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import {
     Alert,
     Dimensions,
+    InteractionManager,
+    type LayoutChangeEvent,
     Platform,
     Pressable,
     ScrollView,
@@ -53,13 +62,7 @@ import {
     MEALTIME_LABELS,
     mealTimeFromISO,
 } from "../../src/features/nutrition/mealtime";
-import {
-    type FoodMemoryEntry,
-    getFrequentFoods,
-    hasMemory,
-} from "../../src/features/nutrition/memory/food-memory.service";
 import { useNutritionDraftStore } from "../../src/features/nutrition/nutrition.draft.store";
-import type { MealDraft } from "../../src/features/nutrition/nutrition.draft.types";
 import { useNutritionStore } from "../../src/features/nutrition/nutrition.store";
 import { useProfileStore } from "../../src/features/profile/profile.store";
 import { useRetentionEngine } from "../../src/features/retention";
@@ -71,12 +74,13 @@ import { useWaterStore } from "../../src/features/water/water.store";
 import { haptics } from "../../src/infrastructure/haptics";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { toISODate } from "../../src/lib/utils/date";
-import { safeOpenFoodTracking } from "../../src/navigation/safeOpenFoodTracking";
 import { useTheme } from "../../src/theme/useTheme";
 import {
   areLiveActivitiesAvailable,
   endLiveActivity,
 } from "../../src/features/live-activity";
+import { useBackgroundScanStore } from "../../src/features/camera/background-scan.store";
+import { addFoodLoggingBreadcrumb } from "../../src/infrastructure/errorReporting/foodLoggingErrors";
 import { CalCutLogo } from "../../src/ui/brand/CalCutLogo";
 import { AnalyzingCard } from "../../src/ui/components/AnalyzingCard";
 import { DaySelector } from "../../src/ui/components/DaySelector";
@@ -86,14 +90,13 @@ import {
   type MenuSection,
 } from "../../src/ui/components/HamburgerMenu";
 import { MacroCard } from "../../src/ui/components/MacroCard";
-import { ManualLogSheet } from "../../src/ui/components/ManualLogSheet";
+import { LogFoodLauncherSheetContent } from "../../src/features/food-logging/LogFoodLauncherSheetContent";
 import { MealCard } from "../../src/ui/components/MealCard";
 import { MilestoneInsightCard } from "../../src/ui/components/MilestoneInsightCard";
 import { MonthlyView } from "../../src/ui/components/MonthlyView";
 import { PerformanceSheet } from "../../src/ui/components/PerformanceSheet";
 import { ProgressRing } from "../../src/ui/components/ProgressRing";
 import { StreakModal } from "../../src/ui/components/StreakModal";
-import { VoiceLogSheet } from "../../src/ui/components/VoiceLogSheet";
 import { WaterCard } from "../../src/ui/components/WaterCard";
 import { WaterSettingsModal } from "../../src/ui/components/WaterSettingsModal";
 import { WeeklyView } from "../../src/ui/components/WeeklyView";
@@ -193,22 +196,6 @@ const MACRO_COLORS = {
   carbs: "#FBBF24",
   fat: "#F87171",
 };
-
-/** Build a MealDraft from a food memory entry for quick re-logging */
-function memoryToDraft(entry: FoodMemoryEntry): MealDraft {
-  return {
-    title: entry.name,
-    source: "manual",
-    rawInput: entry.name,
-    calories: entry.lastCalories,
-    protein: entry.lastProtein,
-    carbs: entry.lastCarbs,
-    fat: entry.lastFat,
-    emoji: entry.emoji,
-    confidence: 1.0,
-    parseMethod: "quick-log",
-  };
-}
 
 /** D/W/M segment options — keys resolved at render via t() */
 const VIEW_MODE_OPTION_KEYS = [
@@ -500,7 +487,6 @@ export default function HomeScreen() {
   const { theme, toggleMode } = useTheme();
   const { t } = useAppTranslation();
   const router = useRouter();
-  const pathname = usePathname();
   const { signOut, user } = useAuth();
   const units = useUnits();
   const [viewMode, setViewMode] = useState<ViewMode>("D");
@@ -513,6 +499,112 @@ export default function HomeScreen() {
   const [macroPage, setMacroPage] = useState(0);
   const [macroPagerWidth, setMacroPagerWidth] = useState(0);
   const { open: openSheet, close: closeSheet } = useBottomSheet();
+  // Surface a flag when at least one visible pending review exists so we can
+  // tighten the spacing above the queue without subscribing to the full list.
+  const hasPendingReview = useBackgroundScanStore((s) => {
+    for (const j of Object.values(s.jobs)) {
+      if (
+        j.status === "queued" ||
+        j.status === "analyzing" ||
+        j.status === "complete" ||
+        j.status === "error"
+      ) {
+        return true;
+      }
+    }
+    return false;
+  });
+
+  /** Scroll the home feed so "Recently uploaded" is visible after a new job appears. */
+  const PENDING_REVIEW_SCROLL_PADDING = 16;
+  const homeScrollRef = useRef<ScrollView>(null);
+  const pendingReviewSectionYRef = useRef(0);
+  const prevHasPendingReviewRef = useRef<boolean | null>(null);
+  // Becomes true once the background-scan persist layer has finished
+  // pulling jobs out of AsyncStorage. Until then, any false→true flip on
+  // `hasPendingReview` is a hydration artefact (NOT a freshly-captured
+  // scan) and must not trigger the auto-scroll.
+  const scanStoreHydratedRef = useRef(false);
+
+  useEffect(() => {
+    const persist = useBackgroundScanStore.persist;
+    if (persist.hasHydrated()) {
+      scanStoreHydratedRef.current = true;
+      // Sync the ref to the *post*-hydration value so the next render
+      // sees prev=current and the diff in the layout effect is `false`.
+      prevHasPendingReviewRef.current = useBackgroundScanStore
+        .getState()
+        ? Object.values(useBackgroundScanStore.getState().jobs).some(
+            (j) =>
+              j.status === "queued" ||
+              j.status === "analyzing" ||
+              j.status === "complete" ||
+              j.status === "error"
+          )
+        : false;
+      addFoodLoggingBreadcrumb("[OfflineHome] hydrated", {
+        had_pending_review: prevHasPendingReviewRef.current,
+      });
+      return;
+    }
+    const unsub = persist.onFinishHydration((state) => {
+      scanStoreHydratedRef.current = true;
+      const hadPending = state
+        ? Object.values(state.jobs ?? {}).some(
+            (j) =>
+              j.status === "queued" ||
+              j.status === "analyzing" ||
+              j.status === "complete" ||
+              j.status === "error"
+          )
+        : false;
+      // Pretend the previous render *also* had this many pending jobs so
+      // the very next layout effect doesn't see false→true.
+      prevHasPendingReviewRef.current = hadPending;
+      addFoodLoggingBreadcrumb("[OfflineHome] hydrated", {
+        had_pending_review: hadPending,
+      });
+    });
+    return unsub;
+  }, []);
+
+  const onPendingReviewSectionLayout = useCallback(
+    (e: LayoutChangeEvent) => {
+      pendingReviewSectionYRef.current = e.nativeEvent.layout.y;
+    },
+    []
+  );
+
+  // Only auto-scroll on false→true caused by a NEW scan during this active
+  // session. Cold-start hydration / login-restore must not trigger a snap:
+  //   1. We require persist hydration to be confirmed (no in-flight rehydrate).
+  //   2. The previous tracked value must already be a real session sample.
+  useLayoutEffect(() => {
+    if (!scanStoreHydratedRef.current) {
+      // Still waiting for the persist layer. Don't update the ref or scroll.
+      return;
+    }
+    if (prevHasPendingReviewRef.current === null) {
+      prevHasPendingReviewRef.current = hasPendingReview;
+      return;
+    }
+    const shouldSnap =
+      hasPendingReview && !prevHasPendingReviewRef.current;
+    prevHasPendingReviewRef.current = hasPendingReview;
+    if (!shouldSnap) return;
+
+    InteractionManager.runAfterInteractions(() => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const y = pendingReviewSectionYRef.current;
+          homeScrollRef.current?.scrollTo({
+            y: Math.max(0, y - PENDING_REVIEW_SCROLL_PADDING),
+            animated: true,
+          });
+        });
+      });
+    });
+  }, [hasPendingReview]);
 
   // ── Water state from stores ──
   const todayISO = new Date().toISOString().split("T")[0];
@@ -636,25 +728,6 @@ export default function HomeScreen() {
   // ── Milestone insight (unified coaching card) ──
   const coachInsight = useCoachInsight();
   const milestoneInsight = coachInsight.milestoneModel;
-
-  const navigateCoachInsightRoute = useCallback(() => {
-    if (coachInsight.route === COACH_ROUTES.meal) {
-      safeOpenFoodTracking({
-        source: "coach_insight",
-        currentRoute: pathname,
-        userIdPresent: Boolean(user?.id),
-        isSubscriber: hasActiveSubscription,
-      });
-    } else {
-      router.push(coachInsight.route as never);
-    }
-  }, [
-    coachInsight.route,
-    pathname,
-    user?.id,
-    hasActiveSubscription,
-    router,
-  ]);
 
   // Group meals by category in display order
   const MEAL_ORDER: MealTime[] = ["breakfast", "lunch", "dinner", "snack"];
@@ -804,290 +877,34 @@ export default function HomeScreen() {
     [setSelectedDate]
   );
 
-  const setDraft = useNutritionDraftStore((s) => s.setDraft);
   const setLogDate = useNutritionDraftStore((s) => s.setLogDate);
-
-  const openManualLog = useCallback(() => {
-    setLogDate(isToday ? null : selectedDate);
-    openSheet(<ManualLogSheet onClose={closeSheet} />, {
-      snapPoints: ["55%"],
-      enablePanDownToClose: true,
-    });
-  }, [openSheet, closeSheet, isToday, selectedDate, setLogDate]);
-
-  const openVoiceLog = useCallback(() => {
-    setLogDate(isToday ? null : selectedDate);
-    openSheet(<VoiceLogSheet onClose={closeSheet} />, {
-      snapPoints: ["55%"],
-      enablePanDownToClose: true,
-    });
-  }, [openSheet, closeSheet, isToday, selectedDate, setLogDate]);
 
   const openLogSheet = useCallback(() => {
     haptics.impact("light");
-    // Set date override for the whole logging session
     setLogDate(isToday ? null : selectedDate);
-    const frequentFoods = hasMemory() ? getFrequentFoods(15) : [];
-
-    const handleQuickLog = (entry: FoodMemoryEntry) => {
-      closeSheet();
-      const draft = memoryToDraft(entry);
-      // When logging from a past date, stamp the draft
-      if (!isToday) {
-        draft.loggedAt = selectedDate;
-      }
-      setDraft(draft);
-      router.push("/(modals)/confirm-meal" as never);
-    };
-
     openSheet(
-      <View style={{ flex: 1, paddingTop: 8 }}>
-        {/* ── Input method buttons ── */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 28,
-            paddingVertical: 20,
-            paddingHorizontal: 20,
-          }}
-        >
-          {/* Keyboard */}
-          <Pressable
-            onPress={() => {
-              openManualLog();
-            }}
-            style={({ pressed }) => ({
-              width: 56,
-              height: 56,
-              borderRadius: 28,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: theme.colors.primary,
-              opacity: pressed ? 0.85 : 1,
-              transform: [{ scale: pressed ? 0.95 : 1 }],
-            })}
-          >
-            <MaterialCommunityIcons
-              name="keyboard-outline"
-              size={24}
-              color={theme.colors.textInverse}
-            />
-          </Pressable>
-
-          {/* Mic — primary CTA with glow */}
-          <Pressable
-            onPress={() => {
-              openVoiceLog();
-            }}
-            style={({ pressed }) => ({
-              alignItems: "center",
-              justifyContent: "center",
-              transform: [{ scale: pressed ? 0.95 : 1 }],
-            })}
-          >
-            <View
-              style={{
-                width: 80,
-                height: 80,
-                borderRadius: 40,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {/* Glow ring */}
-              <View
-                style={{
-                  position: "absolute",
-                  width: 80,
-                  height: 80,
-                  borderRadius: 40,
-                  backgroundColor: theme.colors.primary + "30",
-                }}
-              />
-              <LinearGradient
-                colors={[theme.colors.primary, theme.colors.accent]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 32,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Ionicons
-                  name="mic"
-                  size={30}
-                  color={theme.colors.textInverse}
-                />
-              </LinearGradient>
-            </View>
-          </Pressable>
-
-          {/* Camera */}
-          <Pressable
-            onPress={() => {
-              closeSheet();
-              router.push("/(modals)/camera-log" as any);
-            }}
-            style={({ pressed }) => ({
-              width: 56,
-              height: 56,
-              borderRadius: 28,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: theme.colors.primary,
-              opacity: pressed ? 0.85 : 1,
-              transform: [{ scale: pressed ? 0.95 : 1 }],
-            })}
-          >
-            <Ionicons
-              name="camera"
-              size={24}
-              color={theme.colors.textInverse}
-            />
-          </Pressable>
-        </View>
-
-        {/* ── Frequently Added header ── */}
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            paddingHorizontal: 20,
-            paddingTop: 16,
-            paddingBottom: 12,
-          }}
-        >
-          <TText
-            style={{
-              fontSize: 15,
-              fontWeight: "500",
-              color: theme.colors.textSecondary,
-            }}
-          >
-            {t("home.frequentlyAdded")}
-          </TText>
-          <Pressable
-            onPress={() => {
-              closeSheet();
-              router.push("/(modals)/manual-log" as any);
-            }}
-            hitSlop={8}
-            style={({ pressed }) => ({
-              width: 36,
-              height: 36,
-              borderRadius: 18,
-              backgroundColor: theme.colors.surfaceSecondary,
-              alignItems: "center",
-              justifyContent: "center",
-              opacity: pressed ? 0.7 : 1,
-            })}
-          >
-            <Ionicons
-              name="search"
-              size={18}
-              color={theme.colors.textSecondary}
-            />
-          </Pressable>
-        </View>
-
-        {/* ── Food items list ── */}
-        {frequentFoods.length > 0 ? (
-          <View style={{ paddingHorizontal: 16, gap: 10, paddingBottom: 40 }}>
-            {frequentFoods.map((entry) => (
-              <Pressable
-                key={entry.name}
-                onPress={() => handleQuickLog(entry)}
-                style={({ pressed }) => ({
-                  flexDirection: "row",
-                  alignItems: "center",
-                  backgroundColor: theme.colors.surfaceSecondary,
-                  borderRadius: 14,
-                  paddingVertical: 14,
-                  paddingHorizontal: 16,
-                  opacity: pressed ? 0.8 : 1,
-                  transform: [{ scale: pressed ? 0.98 : 1 }],
-                })}
-              >
-                <TText style={{ fontSize: 28, marginRight: 14 }}>
-                  {entry.emoji ?? "🍽"}
-                </TText>
-                <View style={{ flex: 1 }}>
-                  <TText
-                    style={{
-                      fontSize: 15,
-                      fontWeight: "600",
-                      color: theme.colors.text,
-                    }}
-                    numberOfLines={2}
-                  >
-                    {entry.name}
-                  </TText>
-                  <TText
-                    style={{
-                      fontSize: 13,
-                      color: theme.colors.textSecondary,
-                      marginTop: 2,
-                    }}
-                  >
-                    {entry.lastCalories} {t("tracking.kcal")}
-                  </TText>
-                </View>
-                <View
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 16,
-                    backgroundColor: theme.colors.surface,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Ionicons name="add" size={18} color={theme.colors.text} />
-                </View>
-              </Pressable>
-            ))}
-          </View>
-        ) : (
-          <View
-            style={{
-              paddingHorizontal: 20,
-              paddingVertical: 40,
-              alignItems: "center",
-            }}
-          >
-            <TText
-              style={{
-                fontSize: 14,
-                color: theme.colors.textMuted,
-                textAlign: "center",
-              }}
-            >
-              {t("home.logFirstMeal")}
-            </TText>
-          </View>
-        )}
-      </View>,
+      <LogFoodLauncherSheetContent
+        variant="home"
+        homeSelectedDate={selectedDate}
+        homeIsToday={isToday}
+      />,
       { snapPoints: ["50%", "92%"] }
     );
   }, [
-    t,
     openSheet,
-    closeSheet,
-    router,
-    theme,
-    setDraft,
     setLogDate,
-    openManualLog,
-    openVoiceLog,
     isToday,
     selectedDate,
   ]);
+
+  /** Match FAB: open the log-options sheet, not the legacy /(modals)/tracking flow */
+  const navigateCoachInsightRoute = useCallback(() => {
+    if (coachInsight.route === COACH_ROUTES.meal) {
+      openLogSheet();
+    } else {
+      router.push(coachInsight.route as never);
+    }
+  }, [coachInsight.route, openLogSheet, router]);
 
   const contentSwipe = Gesture.Pan()
     .activeOffsetX([-15, 15])
@@ -1738,6 +1555,7 @@ export default function HomeScreen() {
         </View>
 
         <ScrollView
+          ref={homeScrollRef}
           testID="home-scroll"
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -2098,10 +1916,21 @@ export default function HomeScreen() {
             </View>
           )}
 
-          <TSpacer size="lg" />
-
-          {/* Scan in progress / complete card */}
-          <AnalyzingCard />
+          {/*
+            "Recently uploaded" lives between the day selector / macro cards
+            and the meals list. The card's own header gives it breathing room
+            when present; we render a spacer only when there's no active job.
+            Wrapped for layout measurement so we can scroll the feed into view
+            when a new pending job appears after dismiss (e.g. camera).
+          */}
+          <View
+            collapsable={false}
+            onLayout={onPendingReviewSectionLayout}
+            testID="pending-review-section"
+          >
+            {hasPendingReview ? null : <TSpacer size="lg" />}
+            <AnalyzingCard />
+          </View>
 
           {/* Meals section */}
           <View testID="meals-section">

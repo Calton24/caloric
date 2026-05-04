@@ -73,9 +73,28 @@
     "trackCalories": "Track Calories",
     "invalidMealDraft": "We couldn't read this meal properly. Please adjust it before saving.",
     "adjustHint": "Need to adjust calories? Just ask!",
+    "moreOptionsA11y": "More options for this meal",
     "reportFood": "Report Food",
     "deleteFood": "Delete Food",
-    "noMatchRich": "We couldn’t find <bold>“{{food}}”</bold> in our database. Try again or type it in."
+    "noMatchRich": "We couldn’t find <bold>“{{food}}”</bold> in our database. Try again or type it in.",
+    "fixWithAI": "Fix with AI",
+    "fixWithAISubtitle": "Tell CalCut what looks wrong",
+    "fixSheet": {
+      "title": "Fix this meal",
+      "currentLabel": "Currently",
+      "calories": "{{count}} kcal",
+      "placeholder": "Example: It was half a bowl of spaghetti with 2 meatballs",
+      "submit": "Update meal",
+      "submitting": "Updating…",
+      "cancel": "Cancel",
+      "successToast": "Meal updated",
+      "errorRecoverable": "Couldn’t update this meal. Try again or edit manually.",
+      "errorRateLimited": "Too many corrections. Please wait a moment.",
+      "errorNoSession": "Sign in to use AI corrections.",
+      "errorAIUnavailable": "AI is unavailable right now. Try again shortly.",
+      "errorValidation": "We couldn’t apply that change. Please rephrase or edit manually.",
+      "explanationLabel": "What changed"
+    }
   },
   "scanReview": {
     "addToToday": "Add to today",
@@ -148,6 +167,26 @@
     "rice": "Rice",
     "yogurt": "Yogurt",
     "logFood": "Log Food"
+  },
+  "scan": {
+    "recentlyUploaded": "Recently uploaded",
+    "analyzing": "Analyzing food…",
+    "identifying": "Analyzing food…",
+    "stageUploading": "Uploading image…",
+    "stageIdentifying": "Identifying ingredients…",
+    "stageEstimating": "Estimating calories…",
+    "stagePreparing": "Preparing review…",
+    "canSwitchApps": "You can switch apps or turn off your phone — we'll save it.",
+    "notifyWhenDone": "We'll notify you when done!",
+    "holdTight": "This usually takes a moment",
+    "failedTitle": "Couldn't analyze this meal",
+    "tryAgain": "Try again or dismiss",
+    "swipeToDismiss": "Swipe to dismiss",
+    "kcalDetected": "{{calories}} kcal detected",
+    "review": "Review",
+    "retry": "Retry",
+    "reviewFailedTitle": "Couldn't open meal",
+    "reviewFailedMessage": "Something went wrong restoring the meal. Try again."
   },
   "report": {
     "whatWentWrong": "What went wrong?",

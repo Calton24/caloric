@@ -30,6 +30,10 @@ export interface MealEntry {
 
   /** Local URI of the meal photo (camera scans only) */
   imageUri?: string;
+
+  /** Storage object path inside `meal-review-images`. Server-authoritative
+   *  reference for the captured photo; preferred over `imageUri` when set. */
+  imagePath?: string;
 }
 
 export interface DailyNutritionSummary {

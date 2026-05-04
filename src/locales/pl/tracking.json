@@ -79,7 +79,26 @@
     "adjustHint": "Chcesz dostosować? Po prostu zapytaj!",
     "reportFood": "Zgłoś jedzenie",
     "deleteFood": "Usuń jedzenie",
-    "noMatchRich": "Nie znaleźliśmy <bold>„{{food}}”</bold> w naszej bazie danych. Spróbuj ponownie lub wpisz ręcznie."
+    "noMatchRich": "Nie znaleźliśmy <bold>„{{food}}”</bold> w naszej bazie danych. Spróbuj ponownie lub wpisz ręcznie.",
+    "moreOptionsA11y": "More options for this meal",
+    "fixWithAI": "Popraw przez AI",
+    "fixWithAISubtitle": "Powiedz CalCut, co jest nie tak",
+    "fixSheet": {
+      "title": "Popraw ten posiłek",
+      "currentLabel": "Obecnie",
+      "calories": "{{count}} kcal",
+      "placeholder": "Przykład: To była połowa miski spaghetti z 2 klopsikami",
+      "submit": "Zaktualizuj posiłek",
+      "submitting": "Aktualizowanie…",
+      "cancel": "Anuluj",
+      "successToast": "Posiłek zaktualizowany",
+      "errorRecoverable": "Nie udało się zaktualizować posiłku. Spróbuj ponownie lub edytuj ręcznie.",
+      "errorRateLimited": "Za dużo poprawek. Poczekaj chwilę.",
+      "errorNoSession": "Zaloguj się, aby korzystać z poprawek AI.",
+      "errorAIUnavailable": "AI jest teraz niedostępne. Spróbuj ponownie za chwilę.",
+      "errorValidation": "Nie udało się zastosować zmiany. Zmień opis lub edytuj ręcznie.",
+      "explanationLabel": "Co się zmieniło"
+    }
   },
   "scanReview": {
     "addToToday": "Dodaj na dziś",
@@ -167,5 +186,25 @@
     "eatAgain": "Eat Again",
     "recent": "Recent",
     "frequent": "Frequent"
+  },
+  "scan": {
+    "identifying": "Analizuję posiłek…",
+    "holdTight": "Zwykle zajmuje to chwilę",
+    "failedTitle": "Nie udało się przeanalizować tego posiłku",
+    "swipeToDismiss": "Przesuń, aby odrzucić",
+    "kcalDetected": "Wykryto {{calories}} kcal",
+    "review": "Sprawdź",
+    "canSwitchApps": "Możesz przełączyć aplikację lub wyłączyć telefon — zapiszemy to.",
+    "notifyWhenDone": "Powiadomimy Cię, gdy będzie gotowe!",
+    "recentlyUploaded": "Ostatnio przesłane",
+    "analyzing": "Analizuję posiłek…",
+    "stageUploading": "Przesyłanie zdjęcia…",
+    "stageIdentifying": "Identyfikacja składników…",
+    "stageEstimating": "Szacowanie kalorii…",
+    "stagePreparing": "Przygotowywanie podglądu…",
+    "tryAgain": "Spróbuj ponownie lub odrzuć",
+    "retry": "Ponów",
+    "reviewFailedTitle": "Nie można otworzyć posiłku",
+    "reviewFailedMessage": "Coś poszło nie tak podczas przywracania posiłku. Spróbuj ponownie."
   }
 }

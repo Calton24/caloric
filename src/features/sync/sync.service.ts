@@ -89,6 +89,7 @@ export async function pushMeal(
         meal_time: meal.mealTime ?? null,
         confidence: meal.confidence ?? null,
         image_uri: meal.imageUri ?? null,
+        image_path: meal.imagePath ?? null,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "id" }
@@ -230,6 +231,7 @@ type PulledMealRow = {
   meal_time?: MealEntry["mealTime"] | null;
   confidence?: number | null;
   image_uri?: string | null;
+  image_path?: string | null;
 };
 
 export async function pullMeals(knownUserId?: string): Promise<MealEntry[]> {
@@ -350,6 +352,7 @@ function mapMealRow(row: {
   meal_time?: MealEntry["mealTime"] | null;
   confidence?: number | null;
   image_uri?: string | null;
+  image_path?: string | null;
 }): MealEntry {
   return {
     id: row.id,
@@ -364,6 +367,7 @@ function mapMealRow(row: {
     mealTime: row.meal_time ?? undefined,
     confidence: row.confidence ?? undefined,
     imageUri: row.image_uri ?? undefined,
+    imagePath: row.image_path ?? undefined,
   };
 }
 
@@ -834,6 +838,12 @@ export async function restoreFromSupabase(
   }
 
   try {
+    // Lazy import to avoid a static cycle between sync.service and the
+    // pending-review service (which depends on the background-scan store).
+    const { restorePendingReviewsFromSupabase } = await import(
+      "../food-logging/pending-review.service"
+    );
+
     const [
       remoteMeals,
       remoteDeletedIds,
@@ -846,6 +856,10 @@ export async function restoreFromSupabase(
       pullWeightLogs(),
       pullGoals(),
       pullProfile(userId),
+      // Don't block restore on this — fire-and-forget.
+      restorePendingReviewsFromSupabase(userId).catch(() => {
+        /* breadcrumbed inside */
+      }),
     ]);
 
     if (__DEV__) {
@@ -1244,6 +1258,7 @@ export async function pushAllToSupabase(options?: {
         meal_time: meal.mealTime ?? null,
         confidence: meal.confidence ?? null,
         image_uri: meal.imageUri ?? null,
+        image_path: meal.imagePath ?? null,
         updated_at: new Date().toISOString(),
       }));
       const { error: mealsErr } = await client

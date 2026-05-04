@@ -404,7 +404,7 @@ export function CaloricProviders({ children, testID }: CaloricProvidersProps) {
                     <BillingGate>
                       <SyncGate>
                         <BottomSheetModalProvider>
-                          <BottomSheetProvider>
+                          <BottomSheetProvider isRoot>
                             <NotificationToastProvider>
                               {children}
                             </NotificationToastProvider>
