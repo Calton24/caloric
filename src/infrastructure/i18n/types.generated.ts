@@ -3,7 +3,7 @@
  * Run: node scripts/generate-i18n-types.js
  *
  * Generated from 11 English locale files.
- * Total keys: 1144 (979 simple, 165 with interpolation)
+ * Total keys: 1146 (981 simple, 165 with interpolation)
  */
 
 /** All valid translation keys (no interpolation params) */
@@ -673,6 +673,8 @@ export type SimpleTranslationKey =
   | "manualLog.rice"
   | "manualLog.yogurt"
   | "manualLog.logFood"
+  | "report.whatWentWrong"
+  | "report.additionalDetailsOptional"
   | "report.submitted"
   | "report.thanksAccuracy"
   | "report.issueQuestion"

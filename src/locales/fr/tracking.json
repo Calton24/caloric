@@ -155,7 +155,9 @@
     "issueQuestion": "Quel est le problème avec ce journal alimentaire ?",
     "savedLocally": "Rapport enregistré localement. Synchronisation une fois en ligne.",
     "reporting": "Reporting...",
-    "submit": "Report"
+    "submit": "Report",
+    "whatWentWrong": "What went wrong?",
+    "additionalDetailsOptional": "Additional details (optional)"
   },
   "quickLog": {
     "eatAgain": "Eat Again",

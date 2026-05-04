@@ -178,7 +178,7 @@ export function ReportFoodSheet({
           ) : null}
         </View>
         <Pressable
-          onPress={close}
+          onPress={() => close()}
           hitSlop={12}
           style={[
             sheetStyles.closeBtn,
@@ -195,7 +195,7 @@ export function ReportFoodSheet({
       <TText
         style={[sheetStyles.sectionLabel, { color: theme.colors.textMuted }]}
       >
-        What went wrong?
+        {t("report.whatWentWrong")}
       </TText>
       <TSpacer size="sm" />
 
@@ -266,7 +266,7 @@ export function ReportFoodSheet({
       <TText
         style={[sheetStyles.sectionLabel, { color: theme.colors.textMuted }]}
       >
-        Additional details (optional)
+        {t("report.additionalDetailsOptional")}
       </TText>
       <TSpacer size="xs" />
       <View
@@ -300,7 +300,7 @@ export function ReportFoodSheet({
       {/* Actions */}
       <View style={sheetStyles.actions}>
         <Pressable
-          onPress={close}
+          onPress={() => close()}
           style={({ pressed }) => [
             sheetStyles.actionBtn,
             sheetStyles.cancelBtn,

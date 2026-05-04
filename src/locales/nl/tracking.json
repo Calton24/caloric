@@ -155,7 +155,9 @@
     "issueQuestion": "Wat is het probleem met dit voedingslogboek?",
     "savedLocally": "Rapport lokaal opgeslagen. Wordt gesynchroniseerd zodra je online bent.",
     "reporting": "Reporting...",
-    "submit": "Report"
+    "submit": "Report",
+    "whatWentWrong": "What went wrong?",
+    "additionalDetailsOptional": "Additional details (optional)"
   },
   "quickLog": {
     "eatAgain": "Eat Again",

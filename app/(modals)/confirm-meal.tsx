@@ -92,7 +92,6 @@ function ConfirmMealScreenInner() {
   const {
     draft: hookDraft,
     updateDraft,
-    saveDraftAsMeal,
     saveDraftWithoutNav,
     navigateAfterSave,
     clearDraft,
@@ -549,6 +548,7 @@ function ConfirmMealScreenInner() {
     t,
     consumedToday,
     calorieBudget,
+    recordFirstMeal,
   ]);
 
   /** Called when the celebration overlay dismisses (auto or tap) */

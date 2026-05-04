@@ -155,7 +155,9 @@
     "issueQuestion": "Qual é o problema com este registro alimentar?",
     "savedLocally": "Relatório salvo localmente. Será sincronizado quando estiver online.",
     "reporting": "Reporting...",
-    "submit": "Report"
+    "submit": "Report",
+    "whatWentWrong": "What went wrong?",
+    "additionalDetailsOptional": "Additional details (optional)"
   },
   "quickLog": {
     "eatAgain": "Eat Again",

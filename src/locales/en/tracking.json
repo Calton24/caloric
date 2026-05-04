@@ -150,6 +150,8 @@
     "logFood": "Log Food"
   },
   "report": {
+    "whatWentWrong": "What went wrong?",
+    "additionalDetailsOptional": "Additional details (optional)",
     "submitted": "Report submitted",
     "thanksAccuracy": "Thanks for helping improve accuracy",
     "issueQuestion": "What's the issue with this food log?",
