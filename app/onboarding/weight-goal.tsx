@@ -13,6 +13,7 @@ import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUnits } from "../../hooks/useUnits";
 import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TButton } from "../../src/ui/primitives/TButton";
@@ -28,14 +29,18 @@ function getBmiCategory(weightLbs: number): {
   const heightM = 1.73; // ~5'8"
   const weightKg = weightLbs * 0.4536;
   const bmi = weightKg / (heightM * heightM);
-  if (bmi < 18.5) return { label: "Underweight", color: "#60A5FA" };
-  if (bmi < 25) return { label: "Normal", color: "#34D399" };
-  if (bmi < 30) return { label: "Overweight", color: "#FBBF24" };
-  return { label: "Obese", color: "#F87171" };
+  if (bmi < 18.5)
+    return { label: "onboarding.weightGoal.underweight", color: "#60A5FA" };
+  if (bmi < 25)
+    return { label: "onboarding.weightGoal.normal", color: "#34D399" };
+  if (bmi < 30)
+    return { label: "onboarding.weightGoal.overweight", color: "#FBBF24" };
+  return { label: "onboarding.weightGoal.obese", color: "#F87171" };
 }
 
 export default function OnboardingWeightGoalScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const units = useUnits();
   const router = useRouter();
   const { profile, saveGoalWeight } = useOnboarding();
@@ -75,7 +80,7 @@ export default function OnboardingWeightGoalScreen() {
               variant="heading"
               style={[styles.heading, { color: theme.colors.text }]}
             >
-              What&apos;s your{"\n"}goal weight?
+              {t("onboarding.weightGoal.heading")}
             </TText>
           </Animated.View>
 
@@ -83,7 +88,7 @@ export default function OnboardingWeightGoalScreen() {
 
           <Animated.View entering={FadeInDown.duration(500).delay(200)}>
             <TText color="secondary" style={styles.description}>
-              Set a target that feels right for you.
+              {t("onboarding.weightGoal.description")}
             </TText>
           </Animated.View>
 
@@ -126,7 +131,9 @@ export default function OnboardingWeightGoalScreen() {
                     style={[styles.bmiDot, { backgroundColor: bmi.color }]}
                   />
                   <TText style={[styles.bmiLabel, { color: bmi.color }]}>
-                    BMI: {bmi.label}
+                    {t("onboarding.weightGoal.bmiDisplay", {
+                      label: t(bmi.label),
+                    })}
                   </TText>
                 </View>
               </View>
@@ -153,7 +160,7 @@ export default function OnboardingWeightGoalScreen() {
                   { color: theme.colors.textSecondary },
                 ]}
               >
-                Weight comparison
+                {t("onboarding.weightGoal.comparison")}
               </TText>
               <TSpacer size="md" />
               <View style={styles.barChart}>
@@ -179,7 +186,7 @@ export default function OnboardingWeightGoalScreen() {
                   <TText
                     style={[styles.barLabel, { color: theme.colors.textMuted }]}
                   >
-                    Current
+                    {t("onboarding.weightGoal.current")}
                   </TText>
                 </View>
 
@@ -205,7 +212,7 @@ export default function OnboardingWeightGoalScreen() {
                   <TText
                     style={[styles.barLabel, { color: theme.colors.textMuted }]}
                   >
-                    Goal
+                    {t("onboarding.weightGoal.goal")}
                   </TText>
                 </View>
               </View>
@@ -227,7 +234,10 @@ export default function OnboardingWeightGoalScreen() {
                     <TText
                       style={[styles.diffText, { color: theme.colors.success }]}
                     >
-                      {diff} {units.label} to lose
+                      {t("onboarding.weightGoal.toLose", {
+                        count: diff,
+                        unit: units.label,
+                      })}
                     </TText>
                   </View>
                 </>
@@ -248,7 +258,7 @@ export default function OnboardingWeightGoalScreen() {
             size="lg"
             testID="onboarding-next-weight"
           >
-            Continue
+            {t("common.continue")}
           </TButton>
         </View>
       </SafeAreaView>

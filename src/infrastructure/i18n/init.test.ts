@@ -31,7 +31,7 @@ jest.mock("react-i18next", () => ({
   },
   useTranslation: jest.fn(() => ({
     t: jest.fn((key: string) => key),
-    i18n: { language: "en", changeLanguage: jest.fn() },
+    i18n: { language: "en-GB", changeLanguage: jest.fn() },
   })),
 }));
 
@@ -131,14 +131,15 @@ describe("getDeviceLocale", () => {
 // ---------- Supported Languages ----------
 
 describe("SUPPORTED_LANGUAGES", () => {
-  it("contains exactly 8 languages", () => {
-    expect(SUPPORTED_LANGUAGES).toHaveLength(8);
+  it("contains exactly 9 languages", () => {
+    expect(SUPPORTED_LANGUAGES).toHaveLength(9);
   });
 
-  it("includes en, de, es, fr, nl, pl, pt, pt-BR", () => {
+  it("includes en-GB, en-US, de, es, fr, nl, pl, pt, pt-BR", () => {
     expect(SUPPORTED_LANGUAGES).toEqual(
       expect.arrayContaining([
-        "en",
+        "en-GB",
+        "en-US",
         "de",
         "es",
         "fr",
@@ -173,9 +174,9 @@ describe("changeLanguage (via i18next)", () => {
 // ---------- Translations ----------
 
 describe("translations", () => {
-  it("returns English translations for en", async () => {
+  it("returns English translations for en-GB", async () => {
     (AsyncStorage.getItem as jest.Mock).mockImplementation(() =>
-      Promise.resolve("en")
+      Promise.resolve("en-GB")
     );
     resetI18n();
     await initI18n();
@@ -190,7 +191,7 @@ describe("translations", () => {
 
   it("handles pluralisation (English)", async () => {
     (AsyncStorage.getItem as jest.Mock).mockImplementation(() =>
-      Promise.resolve("en")
+      Promise.resolve("en-GB")
     );
     resetI18n();
     await initI18n();
@@ -206,7 +207,7 @@ describe("translations", () => {
 describe("formatCurrency", () => {
   it("formats USD by default", async () => {
     (AsyncStorage.getItem as jest.Mock).mockImplementation(() =>
-      Promise.resolve("en")
+      Promise.resolve("en-GB")
     );
     resetI18n();
     await initI18n();
@@ -218,7 +219,7 @@ describe("formatCurrency", () => {
 describe("formatNumber", () => {
   it("formats with locale grouping", async () => {
     (AsyncStorage.getItem as jest.Mock).mockImplementation(() =>
-      Promise.resolve("en")
+      Promise.resolve("en-GB")
     );
     resetI18n();
     await initI18n();

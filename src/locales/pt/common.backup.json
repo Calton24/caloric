@@ -1,0 +1,31 @@
+{
+  "app": {
+    "title": "Caloric"
+  },
+  "common": {
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "loading": "A carregar…",
+    "done": "Concluído",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "back": "Voltar",
+    "next": "Seguinte",
+    "ok": "OK",
+    "error": "Erro",
+    "success": "Sucesso",
+    "retry": "Tentar novamente",
+    "continue": "Continuar",
+    "letsGo": "Vamos!",
+    "weeks": "Semanas",
+    "years": "anos",
+    "recommended": "Recomendado",
+    "email": "E-mail",
+    "processing": "A processar..."
+  },
+  "calories": {
+    "label": "Calorias",
+    "value_one": "{{count}} caloria",
+    "value_other": "{{count}} calorias"
+  }
+}

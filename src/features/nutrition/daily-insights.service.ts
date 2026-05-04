@@ -20,12 +20,22 @@ export type InsightKind =
   | "similar-meal" // "Similar to your chicken salad on Tuesday"
   | "streak"; // "3-day logging streak!"
 
+/**
+ * Insight message — uses i18n keys + params for localization.
+ * Consumers call `t(messageKey, messageParams)` to resolve.
+ */
+export interface InsightMessage {
+  key: string;
+  params?: Record<string, string | number>;
+}
+
 export interface DailyInsight {
   kind: InsightKind;
   icon: string; // Ionicons name
-  message: string;
-  /** Secondary detail (optional) */
-  detail?: string;
+  /** Translation key + params for the main message */
+  message: InsightMessage;
+  /** Translation key + params for secondary detail (optional) */
+  detail?: InsightMessage;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -44,12 +54,6 @@ function caloriesBeforeHour(meals: MealEntry[], hour: number): number {
       return h < hour;
     })
     .reduce((sum, m) => sum + m.calories, 0);
-}
-
-/** Day of week label: "Monday", "Tuesday", etc. */
-function dayLabel(iso: string): string {
-  const d = new Date(iso + "T12:00:00");
-  return d.toLocaleDateString("en-US", { weekday: "long" });
 }
 
 /** Normalize title for comparison */
@@ -88,12 +92,18 @@ function pacingInsight(
 
   if (absDiff < 50) return null; // not worth showing
 
-  const direction = diff > 0 ? "ahead of" : "behind";
+  const isAhead = diff > 0;
   return {
     kind: "pacing",
-    icon: diff > 0 ? "trending-up-outline" : "trending-down-outline",
-    message: `${absDiff} cal ${direction} yesterday at this time`,
-    detail: `Yesterday by ${currentHour}:00 → ${Math.round(yesterdaySameTime)} cal`,
+    icon: isAhead ? "trending-up-outline" : "trending-down-outline",
+    message: {
+      key: isAhead ? "insights.pacingAhead" : "insights.pacingBehind",
+      params: { calories: absDiff },
+    },
+    detail: {
+      key: "insights.pacingDetail",
+      params: { hour: currentHour, calories: Math.round(yesterdaySameTime) },
+    },
   };
 }
 
@@ -109,8 +119,18 @@ function yesterdayInsight(
   return {
     kind: "yesterday",
     icon: "calendar-outline",
-    message: `Yesterday: ${Math.round(totals.calories)} cal`,
-    detail: `${Math.round(totals.protein)}P · ${Math.round(totals.carbs)}C · ${Math.round(totals.fat)}F`,
+    message: {
+      key: "insights.yesterday",
+      params: { calories: Math.round(totals.calories) },
+    },
+    detail: {
+      key: "insights.macroBreakdown",
+      params: {
+        protein: Math.round(totals.protein),
+        carbs: Math.round(totals.carbs),
+        fat: Math.round(totals.fat),
+      },
+    },
   };
 }
 
@@ -123,12 +143,22 @@ function lastWeekInsight(
   if (lastWeekMeals.length === 0) return null;
 
   const totals = getNutritionTotals(lastWeekMeals);
-  const day = dayLabel(lastWeekDate);
+  // Pass ISO date; UI formats with locale-aware weekday
   return {
     kind: "last-week",
     icon: "repeat-outline",
-    message: `Last ${day}: ${Math.round(totals.calories)} cal`,
-    detail: `${Math.round(totals.protein)}P · ${Math.round(totals.carbs)}C · ${Math.round(totals.fat)}F`,
+    message: {
+      key: "insights.lastWeek",
+      params: { date: lastWeekDate, calories: Math.round(totals.calories) },
+    },
+    detail: {
+      key: "insights.macroBreakdown",
+      params: {
+        protein: Math.round(totals.protein),
+        carbs: Math.round(totals.carbs),
+        fat: Math.round(totals.fat),
+      },
+    },
   };
 }
 
@@ -159,20 +189,30 @@ function similarMealInsight(
 
   if (!bestMatch) return null;
 
-  const day = dayLabel(bestMatch.date);
   const calDiff = Math.round(latest.calories - bestMatch.meal.calories);
-  const calNote =
-    Math.abs(calDiff) < 20
-      ? "same calories"
+  const absDiff = Math.abs(calDiff);
+  // Pick detail key based on calorie comparison
+  const detailKey =
+    absDiff < 20
+      ? "insights.similarSameCal"
       : calDiff > 0
-        ? `${calDiff} cal more this time`
-        : `${Math.abs(calDiff)} cal less this time`;
+        ? "insights.similarMoreCal"
+        : "insights.similarLessCal";
 
   return {
     kind: "similar-meal",
     icon: "sparkles-outline",
-    message: `Similar to your "${bestMatch.meal.title}" on ${day}`,
-    detail: `${Math.round(bestMatch.meal.calories)} cal then — ${calNote}`,
+    message: {
+      key: "insights.similarMeal",
+      params: { mealTitle: bestMatch.meal.title, date: bestMatch.date },
+    },
+    detail: {
+      key: detailKey,
+      params: {
+        pastCalories: Math.round(bestMatch.meal.calories),
+        diff: absDiff,
+      },
+    },
   };
 }
 
@@ -196,8 +236,11 @@ function streakInsight(
   return {
     kind: "streak",
     icon: "flame-outline",
-    message: `${streak}-day logging streak!`,
-    detail: streak >= 7 ? "Keep it going!" : undefined,
+    message: {
+      key: "insights.streakMessage",
+      params: { count: streak },
+    },
+    detail: streak >= 7 ? { key: "insights.keepItGoing" } : undefined,
   };
 }
 

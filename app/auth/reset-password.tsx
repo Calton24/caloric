@@ -10,16 +10,18 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../src/features/auth/useAuth";
+import { reportError } from "../../src/infrastructure/errorReporting";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassCard } from "../../src/ui/glass/GlassCard";
 import { TButton } from "../../src/ui/primitives/TButton";
@@ -31,6 +33,7 @@ type ScreenState = "verifying" | "form" | "success" | "invalid-link";
 
 export default function ResetPasswordScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const { updatePassword, verifyRecoveryToken } = useAuth();
   const router = useRouter();
   const { token_hash, type } = useLocalSearchParams<{
@@ -54,13 +57,42 @@ export default function ResetPasswordScreen() {
 
     let cancelled = false;
     (async () => {
-      const { error } = await verifyRecoveryToken(token_hash);
-      if (cancelled) return;
-      if (error) {
-        setErrorMessage(error.message);
+      try {
+        const { error } = await verifyRecoveryToken(token_hash);
+        if (cancelled) return;
+        if (error) {
+          // Expired / already-used links are common — only report unexpected
+          // shapes, not the everyday "Token has expired" path.
+          const lower = error.message.toLowerCase();
+          const expected =
+            lower.includes("expired") ||
+            lower.includes("invalid") ||
+            lower.includes("not found");
+          if (!expected) {
+            reportError(error, {
+              area: "auth",
+              action: "verifyRecoveryToken",
+              screen: "auth/reset-password",
+              provider: "supabase",
+            });
+          }
+          setErrorMessage(error.message);
+          setScreenState("invalid-link");
+        } else {
+          setScreenState("form");
+        }
+      } catch (err) {
+        if (cancelled) return;
+        reportError(err, {
+          area: "auth",
+          action: "verifyRecoveryToken_throw",
+          screen: "auth/reset-password",
+          provider: "supabase",
+        });
+        setErrorMessage(
+          err instanceof Error ? err.message : "Recovery link verification failed."
+        );
         setScreenState("invalid-link");
-      } else {
-        setScreenState("form");
       }
     })();
 
@@ -71,15 +103,15 @@ export default function ResetPasswordScreen() {
 
   const handleUpdatePassword = async () => {
     if (!newPassword) {
-      Alert.alert("Error", "Please enter a new password");
+      Alert.alert(t("common.error"), t("auth.enterEmailPassword"));
       return;
     }
     if (newPassword.length < 6) {
-      Alert.alert("Error", "Password must be at least 6 characters");
+      Alert.alert(t("common.error"), t("auth.passwordTooShort"));
       return;
     }
     if (newPassword !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
+      Alert.alert(t("common.error"), t("auth.passwordsMismatch"));
       return;
     }
 
@@ -87,10 +119,34 @@ export default function ResetPasswordScreen() {
     try {
       const { error } = await updatePassword(newPassword);
       if (error) {
-        Alert.alert("Error", error.message);
+        const lower = error.message.toLowerCase();
+        const expected =
+          lower.includes("password should be") ||
+          lower.includes("same password") ||
+          lower.includes("rate limit");
+        if (!expected) {
+          reportError(error, {
+            area: "auth",
+            action: "updatePassword",
+            screen: "auth/reset-password",
+            provider: "supabase",
+          });
+        }
+        Alert.alert(t("common.error"), error.message);
       } else {
         setScreenState("success");
       }
+    } catch (err) {
+      reportError(err, {
+        area: "auth",
+        action: "updatePassword_throw",
+        screen: "auth/reset-password",
+        provider: "supabase",
+      });
+      Alert.alert(
+        t("common.error"),
+        err instanceof Error ? err.message : "Could not update password."
+      );
     } finally {
       setLoading(false);
     }
@@ -121,7 +177,7 @@ export default function ResetPasswordScreen() {
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <TSpacer size="lg" />
-          <TText color="secondary">Verifying reset link…</TText>
+          <TText color="secondary">{t("auth.checkYourEmail")}</TText>
         </View>
       </SafeAreaView>
     );
@@ -146,20 +202,19 @@ export default function ResetPasswordScreen() {
           <TSpacer size="lg" />
 
           <TText variant="heading" style={styles.stateTitle}>
-            Invalid Link
+            {t("auth.invalidEmail")}
           </TText>
 
           <TSpacer size="sm" />
 
           <TText color="secondary" style={styles.stateDescription}>
-            {errorMessage ||
-              "This reset link is invalid or has expired. Please request a new one."}
+            {errorMessage}
           </TText>
 
           <TSpacer size="xl" />
 
           <TButton testID="back-to-sign-in-button" onPress={handleBackToSignIn}>
-            Back to Sign In
+            {t("auth.backToSignIn")}
           </TButton>
         </View>
       </SafeAreaView>
@@ -189,20 +244,19 @@ export default function ResetPasswordScreen() {
           <TSpacer size="lg" />
 
           <TText variant="heading" style={styles.stateTitle}>
-            Password Updated
+            {t("auth.passwordUpdated")}
           </TText>
 
           <TSpacer size="sm" />
 
           <TText color="secondary" style={styles.stateDescription}>
-            Your password has been successfully changed. You can now sign in
-            with your new password.
+            {t("auth.passwordUpdatedMessage")}
           </TText>
 
           <TSpacer size="xl" />
 
           <TButton testID="continue-button" onPress={handleContinue}>
-            Continue
+            {t("common.continue")}
           </TButton>
         </View>
       </SafeAreaView>
@@ -225,24 +279,22 @@ export default function ResetPasswordScreen() {
         >
           <View style={styles.header}>
             <TText variant="heading" style={styles.title}>
-              Reset Password
+              {t("auth.resetPasswordHeading")}
             </TText>
             <TSpacer size="sm" />
-            <TText color="secondary">
-              Choose a new password for your account
-            </TText>
+            <TText color="secondary">{t("auth.resetPasswordSubtitle")}</TText>
           </View>
 
           <TSpacer size="xl" />
 
           <GlassCard style={styles.card}>
             <TText color="secondary" style={styles.label}>
-              New Password
+              {t("auth.newPassword")}
             </TText>
             <TSpacer size="xs" />
             <TInput
               testID="new-password-input"
-              placeholder="Enter new password"
+              placeholder={t("auth.enterNewPasswordPlaceholder")}
               value={newPassword}
               onChangeText={setNewPassword}
               secureTextEntry
@@ -252,12 +304,12 @@ export default function ResetPasswordScreen() {
             <TSpacer size="md" />
 
             <TText color="secondary" style={styles.label}>
-              Confirm New Password
+              {t("auth.confirmNewPassword")}
             </TText>
             <TSpacer size="xs" />
             <TInput
               testID="confirm-new-password-input"
-              placeholder="Confirm new password"
+              placeholder={t("auth.confirmNewPasswordPlaceholder")}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry
@@ -272,7 +324,7 @@ export default function ResetPasswordScreen() {
               loading={loading}
               disabled={loading}
             >
-              Update Password
+              {t("auth.updatePassword")}
             </TButton>
           </GlassCard>
         </ScrollView>

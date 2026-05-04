@@ -1,6 +1,14 @@
 /**
  * Error Reporting - Sentry Implementation
- * Uses dynamic require to avoid bundler crashes when @sentry/react-native is not installed
+ *
+ * IMPORTANT: This reporter does NOT call `Sentry.init`. The SDK is initialized
+ * exactly once at module-load time in `app/_layout.tsx` (see RootLayout). This
+ * file is a thin wrapper that forwards captureException / setTag / breadcrumbs
+ * to the already-initialized SDK. Having two init paths leads to dropped events,
+ * mismatched DSNs, and double-loaded native crash handlers.
+ *
+ * Uses dynamic require to avoid bundler crashes when @sentry/react-native is
+ * not installed (e.g. local dev without the dependency).
  */
 
 import { Platform } from "react-native";
@@ -14,28 +22,22 @@ import {
     User,
 } from "./types";
 
-/**
- * Dynamically load Sentry SDK
- * Returns null if SDK is not installed (e.g., in forks that don't need Sentry)
- */
 let Sentry: any = null;
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   Sentry = require("@sentry/react-native");
 } catch {
-  // SDK not installed - this is fine, we'll behave like Noop
   Sentry = null;
 }
 
 /**
- * Sentry-based error reporter
- * Gracefully degrades to noop if SDK is not installed
+ * Sentry-based error reporter. Gracefully degrades to noop if SDK is missing
+ * OR if `app/_layout.tsx` decided not to enable Sentry (e.g. no DSN).
  */
 export class SentryErrorReporter implements ErrorReporter {
   private enabled = false;
 
   init(config: ErrorReporterConfig): void {
-    // Check if Sentry SDK is available
     if (!Sentry) {
       logger.warn(
         "[SentryErrorReporter] @sentry/react-native not installed - error reporting disabled"
@@ -50,58 +52,21 @@ export class SentryErrorReporter implements ErrorReporter {
       return;
     }
 
-    // Check if enabled
-    const isDev = __DEV__;
-    const enableInDev = config.enableInDevelopment ?? false;
-
-    if (isDev && !enableInDev) {
-      logger.log(
-        "[SentryErrorReporter] Disabled in development (set EXPO_PUBLIC_ENABLE_SENTRY_IN_DEV=true to enable)"
-      );
-      return;
-    }
-
+    // Sentry.init is owned by app/_layout.tsx. Here we only mark the wrapper
+    // as enabled and attach platform tags. Tags set via Sentry.setTag are
+    // applied to the existing scope, so this is safe even if Sentry.init has
+    // already run.
     try {
-      Sentry.init({
-        dsn: config.dsn,
-        environment:
-          config.environment || (isDev ? "development" : "production"),
-        debug: config.debug ?? isDev,
-        enableAutoSessionTracking: true,
-        enableNative: true,
-        enableNativeCrashHandling: true,
-        enableNativeNagger: false,
-        tracesSampleRate: isDev ? 1.0 : 0.2,
-        attachStacktrace: true,
-        autoInitializeNativeSdk: true,
-        enableAutoPerformanceTracing: true,
-        integrations: [
-          Sentry.mobileReplayIntegration({
-            maskAllText: true,
-            maskAllImages: true,
-            maskAllVectors: true,
-          }),
-        ],
-        beforeSend: config.beforeSend
-          ? (event: any, hint: any) => {
-              // Call custom filter with error object
-              const error = hint.originalException as Error;
-              const shouldSend = config.beforeSend!(error, event.contexts);
-              return shouldSend ? event : null;
-            }
-          : undefined,
-      });
-
-      // Set platform tag
-      Sentry.setTag("platform", Platform.OS);
-      Sentry.setTag("platform.version", Platform.Version.toString());
-
+      Sentry.setTag?.("platform", Platform.OS);
+      const platformVersion =
+        Platform.Version != null ? String(Platform.Version) : "unknown";
+      Sentry.setTag?.("platform.version", platformVersion);
       this.enabled = true;
       logger.log(
-        `[SentryErrorReporter] Initialized (env: ${config.environment || "production"})`
+        `[SentryErrorReporter] Wired up (env: ${config.environment || "production"})`
       );
     } catch (error) {
-      logger.error("[SentryErrorReporter] Initialization failed:", error);
+      logger.error("[SentryErrorReporter] Wire-up failed:", error);
     }
   }
 
@@ -109,9 +74,37 @@ export class SentryErrorReporter implements ErrorReporter {
     if (!this.enabled) return;
 
     try {
-      Sentry.captureException(error, {
-        contexts: context,
-      });
+      // Recognise our richer ReportContext-shaped fields (tags / user / level
+      // / extra / contexts) and hoist them onto the scope. Otherwise fall
+      // back to the legacy `{ contexts: <ctx> }` shape used by the existing
+      // ErrorBoundary call sites so we don't break their payloads.
+      if (context && hasScopeFields(context)) {
+        Sentry.withScope((scope: any) => {
+          if (context.tags) {
+            for (const [k, v] of Object.entries(context.tags)) {
+              if (v == null) continue;
+              scope.setTag?.(k, String(v));
+            }
+          }
+          if (context.user) scope.setUser?.(context.user);
+          if (context.level) scope.setLevel?.(context.level);
+          if (context.extra) {
+            for (const [k, v] of Object.entries(context.extra)) {
+              scope.setExtra?.(k, v);
+            }
+          }
+          if (context.contexts) {
+            for (const [k, v] of Object.entries(context.contexts)) {
+              scope.setContext?.(k, v as any);
+            }
+          }
+          Sentry.captureException(error);
+        });
+      } else {
+        Sentry.captureException(error, {
+          contexts: context,
+        });
+      }
     } catch (err) {
       logger.error("[SentryErrorReporter] Failed to capture exception:", err);
     }
@@ -126,7 +119,7 @@ export class SentryErrorReporter implements ErrorReporter {
 
     try {
       Sentry.captureMessage(message, {
-        level: level as any, // Sentry.SeverityLevel (SDK is dynamically loaded)
+        level: level as any,
         contexts: context,
       });
     } catch (err) {
@@ -161,7 +154,7 @@ export class SentryErrorReporter implements ErrorReporter {
       Sentry.addBreadcrumb({
         message: breadcrumb.message,
         category: breadcrumb.category,
-        level: breadcrumb.level as any, // Sentry.SeverityLevel (SDK is dynamically loaded)
+        level: breadcrumb.level as any,
         data: breadcrumb.data,
         timestamp: breadcrumb.timestamp,
       });
@@ -174,11 +167,17 @@ export class SentryErrorReporter implements ErrorReporter {
     return this.enabled;
   }
 
-  /**
-   * Check if Sentry SDK is available
-   * @returns true if @sentry/react-native is installed
-   */
   static isSdkAvailable(): boolean {
     return Sentry !== null;
   }
+}
+
+function hasScopeFields(context: ErrorContext): boolean {
+  return (
+    context.tags != null ||
+    context.user != null ||
+    context.level != null ||
+    context.extra != null ||
+    context.contexts != null
+  );
 }

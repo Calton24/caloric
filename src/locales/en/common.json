@@ -2,19 +2,6 @@
   "app": {
     "title": "Caloric"
   },
-  "auth": {
-    "signIn": "Sign In",
-    "signUp": "Sign Up",
-    "signOut": "Sign Out",
-    "email": "Email",
-    "password": "Password",
-    "confirmPassword": "Confirm Password",
-    "forgotPassword": "Forgot Password?",
-    "createAccount": "Create Account",
-    "welcome": "Welcome",
-    "signInToContinue": "Sign in to continue",
-    "signUpToGetStarted": "Sign up to get started"
-  },
   "common": {
     "cancel": "Cancel",
     "save": "Save",
@@ -27,11 +14,41 @@
     "ok": "OK",
     "error": "Error",
     "success": "Success",
-    "retry": "Retry"
+    "retry": "Retry",
+    "continue": "Continue",
+    "letsGo": "Let's Go!",
+    "weeks": "Weeks",
+    "years": "years",
+    "recommended": "Recommended",
+    "email": "Email",
+    "processing": "Processing...",
+    "language": "Language",
+    "notNow": "Not now",
+    "search": "Search",
+    "like": "LIKE",
+    "nope": "NOPE",
+    "now": "now",
+    "optionsA11y": "{{label}} options"
   },
   "calories": {
     "label": "Calories",
     "value_one": "{{count}} calorie",
     "value_other": "{{count}} calories"
+  },
+  "tabs": {
+    "home": "Home",
+    "notes": "Notes",
+    "auth": "Auth",
+    "playground": "Playground",
+    "caloric": "Caloric"
+  },
+  "days": {
+    "monShort": "M",
+    "tueShort": "T",
+    "wedShort": "W",
+    "thuShort": "T",
+    "friShort": "F",
+    "satShort": "S",
+    "sunShort": "S"
   }
 }

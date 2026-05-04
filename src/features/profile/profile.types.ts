@@ -22,4 +22,6 @@ export interface UserProfile {
   onboardingCompleted: boolean;
   waterGoalMl: number;
   waterIncrementMl: number;
+  /** Mirrors user_profiles.updated_at for cross-device conflict resolution. */
+  updatedAt: string | null;
 }

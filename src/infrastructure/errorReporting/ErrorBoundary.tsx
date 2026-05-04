@@ -5,7 +5,7 @@
 
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
-import { getErrorReporter } from "./factory";
+import { reportBreadcrumb, reportError } from "./reportError";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -41,26 +41,26 @@ export class ErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Report to error tracking service
-    const reporter = getErrorReporter();
-
-    // Add React-specific context
-    reporter.addBreadcrumb({
-      message: "React Error Boundary caught error",
-      category: "error-boundary",
+    // Drop a crumb so we still see context for the next event even if the
+    // captureException below is rate-limited or filtered.
+    reportBreadcrumb("React Error Boundary caught error", {
+      area: "bootstrap",
+      action: "react_error_boundary",
       level: "error",
-      data: {
-        componentStack: errorInfo.componentStack,
+      extra: {
+        componentStack: errorInfo.componentStack ?? null,
       },
     });
 
-    reporter.captureException(error, {
-      react: {
-        componentStack: errorInfo.componentStack,
+    reportError(error, {
+      area: "bootstrap",
+      action: "react_error_boundary",
+      level: "error",
+      extra: {
+        componentStack: errorInfo.componentStack ?? null,
       },
     });
 
-    // Also log to console in development
     if (__DEV__) {
       console.error("[ErrorBoundary] Caught error:", error);
       console.error(

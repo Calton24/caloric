@@ -1,0 +1,143 @@
+{
+  "coaching": {
+    "todaysFocus": "Today's focus",
+    "thisWeek": "This week",
+    "now": "Now",
+    "personalBest": "Personal best",
+    "dayCount": "Day {{count}}",
+    "dayIdentity": "Day {{count}}, {{tier}}",
+    "milestoneContext": "{{count}} days to your day-{{target}} milestone",
+    "milestoneContext_one": "1 day to your day-{{target}} milestone",
+    "progressTarget": "Day {{target}}",
+    "dayQuality": {
+      "perfect": "Perfect",
+      "optimized": "Optimized",
+      "secured": "Secured"
+    },
+    "tier": {
+      "startingOut": "Starting out",
+      "gettingConsistent": "Getting consistent",
+      "buildingMomentum": "Building momentum",
+      "lockedIn": "Locked in",
+      "disciplined": "Disciplined",
+      "relentless": "Relentless",
+      "elite": "Elite"
+    },
+    "metric": {
+      "calOver": "cal over",
+      "calLeft": "cal left",
+      "remaining": "remaining",
+      "overBudget": "over budget",
+      "proteinOver": "protein over",
+      "proteinToGo": "protein to go",
+      "proteinLeft": "protein left",
+      "status": "status"
+    },
+    "cta": {
+      "logNow": "Log now",
+      "secureToday": "Secure today",
+      "startFresh": "Start fresh",
+      "completeToday": "Complete today",
+      "logProtein": "Log protein",
+      "finishStrong": "Finish strong",
+      "improveToday": "Improve today",
+      "keepGoing": "Keep going",
+      "staySharp": "Stay sharp",
+      "keepItGoing": "Keep it going",
+      "startYourDay": "Start your day",
+      "continue": "Continue"
+    },
+    "daysRemaining_one": "One more day",
+    "daysRemaining_other": "{{count}} more days",
+    "daysCount_one": "1 day",
+    "daysCount_other": "{{count}} days"
+  },
+  "coachingText": {
+    "lateCritical_v1": "You haven't logged anything today and it's getting late. One entry now keeps your streak alive.",
+    "lateCritical_v2": "The day's nearly gone. Log something real, even something small, before it resets.",
+    "lateCritical_v3": "Last chance tonight. Your streak is on the line, one meal saves it.",
+    "lateCritical_v4": "Nothing logged yet and the clock's running out. One entry and you're good.",
+
+    "eveningDriftProtein_v1": "It's evening and you're not secured yet. Something protein-heavy now closes the day well.",
+    "eveningDriftProtein_v2": "You're drifting without a log tonight. A high-protein meal secures the day and saves your streak.",
+    "eveningDriftProtein_v3": "Still unsecured. One protein-focused meal now and today counts.",
+
+    "eveningDrift_v1": "It's evening and nothing's locked in. One meal logged now and your day is done.",
+    "eveningDrift_v2": "Today's slipping away. Log something now before it gets away from you.",
+    "eveningDrift_v3": "You're not secured yet. One log and that changes.",
+
+    "recoveryStart_v1": "Yesterday didn't happen, that's fine. Log your first meal and you're back.",
+    "recoveryStart_v2": "Clean slate today. Yesterday's done. One log and you're building again.",
+    "recoveryStart_v3": "You missed a day. What matters is starting today, log when you eat.",
+    "recoveryStart_v4": "The streak broke but the habit didn't. First meal logged and you're rebuilding.",
+
+    "tightBudgetProtein_v1": "You've got {{cal}} cal left and still need {{pro}}g protein. Go lean and protein-heavy next.",
+    "tightBudgetProtein_v2": "Budget's tight and protein's behind. Think eggs, chicken, or yogurt to close both gaps.",
+    "tightBudgetProtein_v3": "Not much room left, and you still need {{pro}}g protein. Pick something that covers both.",
+
+    "tightBudget_v1": "You've got {{cal}} cal left. Be intentional with your next meal.",
+    "tightBudget_v2": "{{cal}} calories left, not a lot of room. Make your next choice count.",
+    "tightBudget_v3": "Budget's tight. {{cal}} cal to work with, so be deliberate.",
+
+    "proteinMilestone_v1": "You're {{pro}}g short on protein and day {{target}} is close. Focus on that now, it's what makes today count.",
+    "proteinMilestone_v2": "Calories are fine but protein is {{pro}}g behind with a milestone in reach. That's the gap to close.",
+    "proteinMilestone_v3": "{{pro}}g protein still needed and your milestone's right there. That's your priority.",
+
+    "proteinMomentum_v1": "You're {{streak}} days in and protein is {{pro}}g behind. A protein-focused meal keeps the quality up.",
+    "proteinMomentum_v2": "{{streak}} days of building something real. Close the {{pro}}g protein gap to make today solid.",
+    "proteinMomentum_v3": "{{streak}}-day streak going. Protein is {{pro}}g short, focus on that next.",
+
+    "proteinPriority_v1": "Calories are fine but you're {{pro}}g short on protein. Focus there next.",
+    "proteinPriority_v2": "Protein's lagging by {{pro}}g. That's the thing to prioritize in your next meal.",
+    "proteinPriority_v3": "Good on calories, {{pro}}g short on protein. Shift your focus there.",
+
+    "strongProtein_v1": "You've got {{cal}} cal to work with. Use it on protein, that's what turns a good day into a strong one.",
+    "strongProtein_v2": "{{cal}} calories of room and protein still needs attention. Make that next meal count.",
+    "strongProtein_v3": "Plenty of budget left. Protein is where the value is right now.",
+
+    "strongMomentum_v1": "{{cal}} cal left and {{streak}} days of consistency behind you. Make the rest of today count.",
+    "strongMomentum_v2": "Strong position with {{streak}} days running. Make your remaining meals count.",
+    "strongMomentum_v3": "You've got headroom and momentum. {{cal}} cal left, finish today with intention.",
+
+    "strongPosition_v1": "You're in a good spot, {{cal}} cal left with plenty of day ahead. Focus on quality.",
+    "strongPosition_v2": "{{cal}} calories to go and time to use them well. Pick meals that matter.",
+    "strongPosition_v3": "Room to work with today. {{cal}} cal remaining, finish with intention.",
+
+    "highQualityMilestone_v1": "Calories and protein are both on point. {{daysText}} to your milestone, keep this going.",
+    "highQualityMilestone_v2": "Strong day, both targets hit. {{daysText}} from your milestone, just maintain.",
+    "highQualityMilestone_v3": "You're nailing it today. Milestone's close, stay the course.",
+
+    "highQualityDay_v1": "Calories and protein are both where they should be. This is the kind of day that builds results.",
+    "highQualityDay_v2": "Everything's on track. Keep this pattern going.",
+    "highQualityDay_v3": "Quality day. Nothing to correct, just maintain.",
+
+    "daySecuredProtein_v1": "Day's secured but protein is {{pro}}g short. One more good meal makes this a strong day.",
+    "daySecuredProtein_v2": "You've logged in, good. {{pro}}g more protein would make today count for more.",
+    "daySecuredProtein_v3": "Secured but protein needs work. Close that {{pro}}g gap and today's solid.",
+
+    "daySecured_v1": "You've secured today. See if you can improve it with one more quality meal.",
+    "daySecured_v2": "Logged and secured. Can you push it from good to great?",
+    "daySecured_v3": "Day's locked in. One better meal upgrades the whole thing.",
+
+    "milestoneMomentum_v1": "You're close to a milestone and building real consistency. These last days matter most.",
+    "milestoneMomentum_v2": "Momentum and milestone are lining up. Don't let up now.",
+    "milestoneMomentum_v3": "Almost there. Momentum's on your side, keep the focus.",
+
+    "milestonePressure_v1": "You're {{daysText}} from your next milestone. Stay with it, these days count.",
+    "milestonePressure_v2": "Milestone in {{daysText}}. You've earned this, stay locked in.",
+    "milestonePressure_v3": "So close. Just consistency, that's all that's left.",
+
+    "momentumBuilding_v1": "{{streak}} days in. You're building real consistency and today keeps it going.",
+    "momentumBuilding_v2": "{{streak}} days running. This is where habits start to stick.",
+    "momentumBuilding_v3": "You're {{streak}} days in. One more day solidifies the pattern.",
+    "momentumBuilding_v4": "{{streak}}-day streak. You're past the hardest part, keep the rhythm.",
+
+    "onTrackMorning_v1": "New day. Log your first meal when you're ready.",
+    "onTrackMorning_v2": "Morning. Log when you eat, the rest takes care of itself.",
+    "onTrackMorning_v3": "Fresh start today. Log your first meal and build from there.",
+
+    "onTrack_v1": "You're on track. Keep logging and the numbers sort themselves out.",
+    "onTrack_v2": "Everything looks good. Stay consistent.",
+    "onTrack_v3": "On pace. Nothing to correct, just keep going."
+  }
+}

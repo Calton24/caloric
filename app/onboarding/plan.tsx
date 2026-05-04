@@ -19,6 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useUnits } from "../../hooks/useUnits";
 import { useGoalsStore } from "../../src/features/goals/goals.store";
 import { useProfileStore } from "../../src/features/profile/profile.store";
+import { formatMonthDayYear, useAppTranslation } from "../../src/infrastructure/i18n";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
@@ -26,6 +27,7 @@ import { TText } from "../../src/ui/primitives/TText";
 
 export default function OnboardingPlanScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const units = useUnits();
   const router = useRouter();
   const plan = useGoalsStore((s) => s.plan);
@@ -39,11 +41,7 @@ export default function OnboardingPlanScreen() {
     fat: plan?.macros.fat ?? 0,
     goalWeeks: plan?.timeframeWeeks ?? 0,
     goalDate: plan?.targetDate
-      ? new Date(plan.targetDate).toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        })
+      ? formatMonthDayYear(new Date(plan.targetDate))
       : "—",
     currentWeight: profile.currentWeightLbs ?? 0,
     goalWeight: profile.goalWeightLbs ?? 0,
@@ -52,7 +50,7 @@ export default function OnboardingPlanScreen() {
   const totalCals = PLAN.protein * 4 + PLAN.carbs * 4 + PLAN.fat * 9;
   const MACROS = [
     {
-      label: "Protein",
+      label: t("onboarding.plan.protein"),
       grams: PLAN.protein,
       pct:
         totalCals > 0 ? Math.round(((PLAN.protein * 4) / totalCals) * 100) : 0,
@@ -60,14 +58,14 @@ export default function OnboardingPlanScreen() {
       icon: "fish-outline" as const,
     },
     {
-      label: "Carbs",
+      label: t("onboarding.plan.carbs"),
       grams: PLAN.carbs,
       pct: totalCals > 0 ? Math.round(((PLAN.carbs * 4) / totalCals) * 100) : 0,
       color: "#FBBF24",
       icon: "nutrition-outline" as const,
     },
     {
-      label: "Fat",
+      label: t("onboarding.plan.fat"),
       grams: PLAN.fat,
       pct: totalCals > 0 ? Math.round(((PLAN.fat * 9) / totalCals) * 100) : 0,
       color: "#F87171",
@@ -91,7 +89,7 @@ export default function OnboardingPlanScreen() {
               variant="heading"
               style={[styles.heading, { color: theme.colors.text }]}
             >
-              Your plan is{"\n"}ready 🎉
+              {t("onboarding.plan.heading")}
             </TText>
           </Animated.View>
 
@@ -99,7 +97,7 @@ export default function OnboardingPlanScreen() {
 
           <Animated.View entering={FadeIn.duration(600).delay(250)}>
             <TText color="secondary" style={styles.sub}>
-              Here&apos;s what we&apos;ve built just for you
+              {t("onboarding.plan.subtitle")}
             </TText>
           </Animated.View>
 
@@ -114,7 +112,7 @@ export default function OnboardingPlanScreen() {
                   { color: theme.colors.textSecondary },
                 ]}
               >
-                DAILY CALORIE TARGET
+                {t("onboarding.plan.dailyCalorieTarget")}
               </TText>
               <TSpacer size="xs" />
               <View style={styles.calorieRow}>
@@ -129,7 +127,7 @@ export default function OnboardingPlanScreen() {
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  kcal / day
+                  {t("onboarding.plan.kcalPerDay")}
                 </TText>
               </View>
             </GlassSurface>
@@ -146,7 +144,7 @@ export default function OnboardingPlanScreen() {
                   { color: theme.colors.textSecondary },
                 ]}
               >
-                DAILY MACROS
+                {t("onboarding.plan.dailyMacros")}
               </TText>
               <TSpacer size="md" />
 
@@ -229,8 +227,11 @@ export default function OnboardingPlanScreen() {
                   <TText
                     style={[styles.projTitle, { color: theme.colors.text }]}
                   >
-                    Reach {units.display(PLAN.goalWeight)} {units.label} by{" "}
-                    {PLAN.goalDate}
+                    {t("onboarding.plan.reachGoal", {
+                      weight: units.display(PLAN.goalWeight),
+                      unit: units.label,
+                      date: PLAN.goalDate,
+                    })}
                   </TText>
                   <TText
                     style={[
@@ -238,9 +239,13 @@ export default function OnboardingPlanScreen() {
                       { color: theme.colors.textSecondary },
                     ]}
                   >
-                    {PLAN.goalWeeks} weeks ·{" "}
-                    {units.display(PLAN.currentWeight - PLAN.goalWeight)}{" "}
-                    {units.label} to lose
+                    {t("onboarding.plan.weeksToLose", {
+                      weeks: PLAN.goalWeeks,
+                      amount: units.display(
+                        PLAN.currentWeight - PLAN.goalWeight
+                      ),
+                      unit: units.label,
+                    })}
                   </TText>
                 </View>
               </View>
@@ -260,7 +265,7 @@ export default function OnboardingPlanScreen() {
               <TText
                 style={[styles.socialText, { color: theme.colors.textMuted }]}
               >
-                12,847 people started a similar plan this week
+                {t("onboarding.plan.socialProof")}
               </TText>
             </View>
           </Animated.View>
@@ -290,7 +295,7 @@ export default function OnboardingPlanScreen() {
               <TText
                 style={[styles.ctaText, { color: theme.colors.textInverse }]}
               >
-                Continue
+                {t("common.continue")}
               </TText>
               <Ionicons
                 name="arrow-forward"

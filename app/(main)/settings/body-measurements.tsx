@@ -20,18 +20,20 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useProfileStore } from "../../../src/features/profile";
 import type { Gender } from "../../../src/features/profile/profile.types";
+import { useAppTranslation } from "../../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../../src/theme/useTheme";
 import { TSpacer } from "../../../src/ui/primitives/TSpacer";
 import { TText } from "../../../src/ui/primitives/TText";
 
-const GENDER_OPTIONS: { label: string; value: Gender }[] = [
-  { label: "Male", value: "male" },
-  { label: "Female", value: "female" },
-  { label: "Other", value: "other" },
+const GENDER_OPTIONS: { labelKey: string; value: Gender }[] = [
+  { labelKey: "settings.male", value: "male" },
+  { labelKey: "settings.female", value: "female" },
+  { labelKey: "settings.other", value: "other" },
 ];
 
 export default function BodyMeasurementsScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
 
   const profile = useProfileStore((s) => s.profile);
@@ -97,7 +99,7 @@ export default function BodyMeasurementsScreen() {
             variant="heading"
             style={[styles.headerTitle, { color: theme.colors.text }]}
           >
-            Body Measurements
+            {t("settings.bodyMeasurements")}
           </TText>
           <View style={{ width: 24 }} />
         </View>
@@ -114,7 +116,7 @@ export default function BodyMeasurementsScreen() {
             <TText
               style={[styles.sectionTitle, { color: theme.colors.textMuted }]}
             >
-              Gender
+              {t("settings.gender")}
             </TText>
             <View
               style={[
@@ -139,7 +141,7 @@ export default function BodyMeasurementsScreen() {
                     <TText
                       style={[styles.rowLabel, { color: theme.colors.text }]}
                     >
-                      {option.label}
+                      {t(option.labelKey)}
                     </TText>
                     {isSelected && (
                       <Ionicons
@@ -159,7 +161,7 @@ export default function BodyMeasurementsScreen() {
             <TText
               style={[styles.sectionTitle, { color: theme.colors.textMuted }]}
             >
-              Year of Birth
+              {t("settings.yearOfBirth")}
             </TText>
             <View
               style={[
@@ -174,7 +176,7 @@ export default function BodyMeasurementsScreen() {
                   onBlur={commitBirthYear}
                   keyboardType="number-pad"
                   maxLength={4}
-                  placeholder="e.g. 1990"
+                  placeholder={t("settings.egExample", { example: "1990" })}
                   placeholderTextColor={theme.colors.textMuted}
                   style={[styles.input, { color: theme.colors.text }]}
                   returnKeyType="done"
@@ -188,7 +190,7 @@ export default function BodyMeasurementsScreen() {
             <TText
               style={[styles.sectionTitle, { color: theme.colors.textMuted }]}
             >
-              Weight ({weightLabel})
+              {t("settings.weight")} ({weightLabel})
             </TText>
             <View
               style={[
@@ -202,7 +204,9 @@ export default function BodyMeasurementsScreen() {
                   onChangeText={setWeightText}
                   onBlur={commitWeight}
                   keyboardType="decimal-pad"
-                  placeholder={`e.g. ${profile.weightUnit === "kg" ? "75" : "165"}`}
+                  placeholder={t("settings.egExample", {
+                    example: profile.weightUnit === "kg" ? "75" : "165",
+                  })}
                   placeholderTextColor={theme.colors.textMuted}
                   style={[styles.input, { color: theme.colors.text }]}
                   returnKeyType="done"
@@ -224,7 +228,7 @@ export default function BodyMeasurementsScreen() {
             <TText
               style={[styles.sectionTitle, { color: theme.colors.textMuted }]}
             >
-              Height ({heightLabel})
+              {t("settings.height")} ({heightLabel})
             </TText>
             <View
               style={[
@@ -238,7 +242,7 @@ export default function BodyMeasurementsScreen() {
                   onChangeText={setHeightText}
                   onBlur={commitHeight}
                   keyboardType="decimal-pad"
-                  placeholder="e.g. 175"
+                  placeholder={t("settings.egExample", { example: "175" })}
                   placeholderTextColor={theme.colors.textMuted}
                   style={[styles.input, { color: theme.colors.text }]}
                   returnKeyType="done"

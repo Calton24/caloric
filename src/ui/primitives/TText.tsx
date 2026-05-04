@@ -42,7 +42,7 @@ export function TText({
 
   const fontFamily =
     variant === "heading"
-      ? theme.typography.fontFamily.bold
+      ? theme.typography.fontFamily.extrabold
       : variant === "subheading"
         ? theme.typography.fontFamily.semibold
         : theme.typography.fontFamily.regular;

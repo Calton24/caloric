@@ -23,16 +23,19 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  resolveCallbackAction,
-  resolveDestination,
+    resolveCallbackAction,
+    resolveDestination,
 } from "../../src/features/auth/callback-logic";
 import { useAuth } from "../../src/features/auth/useAuth";
+import { reportError } from "../../src/infrastructure/errorReporting";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { TButton } from "../../src/ui/primitives/TButton";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 
 export default function AuthCallbackScreen() {
+  const { t } = useAppTranslation();
   const { theme } = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams<{
@@ -49,41 +52,76 @@ export default function AuthCallbackScreen() {
     let cancelled = false;
 
     (async () => {
-      if (__DEV__) {
-        console.log("[AuthCallback] params:", JSON.stringify(params));
+      try {
+        if (__DEV__) {
+          console.log("[AuthCallback] params:", JSON.stringify(params));
+        }
+
+        const decision = resolveCallbackAction(params);
+
+        if (decision.action === "error") {
+          // Surfaced via Supabase redirect — usually expired link / bad code.
+          reportError(new Error(decision.message), {
+            area: "auth",
+            action: "callback_resolve_error",
+            screen: "auth/callback",
+            provider: "supabase",
+            level: "warning",
+            extra: {
+              error_code: params.error_code ?? null,
+              type: params.type ?? null,
+            },
+          });
+          if (!cancelled) setError(decision.message);
+          return;
+        }
+
+        // Phase 1: Exchange the PKCE code
+        const { error: exchangeError, isRecovery } =
+          await exchangeCodeForSession(decision.code);
+
+        if (cancelled) return;
+
+        if (exchangeError) {
+          reportError(exchangeError, {
+            area: "auth",
+            action: "exchangeCodeForSession",
+            screen: "auth/callback",
+            provider: "supabase",
+          });
+          setError(exchangeError.message);
+          return;
+        }
+
+        // Phase 2: Determine destination from the SDK's recovery detection
+        const destination = resolveDestination(isRecovery === true);
+
+        if (__DEV__) {
+          console.log(
+            "[AuthCallback] exchange OK, isRecovery:",
+            isRecovery,
+            "navigating to:",
+            destination
+          );
+        }
+
+        router.replace(destination);
+      } catch (err) {
+        // Unexpected throw (network / module-load). Don't double-report —
+        // this catch only fires when the awaited handlers themselves threw,
+        // which the named catches above don't see.
+        reportError(err, {
+          area: "auth",
+          action: "callback_unexpected_throw",
+          screen: "auth/callback",
+          provider: "supabase",
+        });
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : "Sign-in could not complete."
+          );
+        }
       }
-
-      const decision = resolveCallbackAction(params);
-
-      if (decision.action === "error") {
-        if (!cancelled) setError(decision.message);
-        return;
-      }
-
-      // Phase 1: Exchange the PKCE code
-      const { error: exchangeError, isRecovery } =
-        await exchangeCodeForSession(decision.code);
-
-      if (cancelled) return;
-
-      if (exchangeError) {
-        setError(exchangeError.message);
-        return;
-      }
-
-      // Phase 2: Determine destination from the SDK's recovery detection
-      const destination = resolveDestination(isRecovery === true);
-
-      if (__DEV__) {
-        console.log(
-          "[AuthCallback] exchange OK, isRecovery:",
-          isRecovery,
-          "navigating to:",
-          destination
-        );
-      }
-
-      router.replace(destination);
     })();
 
     return () => {
@@ -108,7 +146,7 @@ export default function AuthCallbackScreen() {
           </View>
           <TSpacer size="lg" />
           <TText variant="heading" style={styles.title}>
-            Link Expired
+            {t("auth.linkExpired")}
           </TText>
           <TSpacer size="sm" />
           <TText color="secondary" style={styles.description}>
@@ -116,7 +154,7 @@ export default function AuthCallbackScreen() {
           </TText>
           <TSpacer size="xl" />
           <TButton onPress={() => router.replace("/auth/sign-in")}>
-            Back to Sign In
+            {t("auth.backToSignIn")}
           </TButton>
         </View>
       </SafeAreaView>
@@ -130,7 +168,7 @@ export default function AuthCallbackScreen() {
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
         <TSpacer size="lg" />
-        <TText color="secondary">Verifying your link...</TText>
+        <TText color="secondary">{t("auth.verifyingLink")}</TText>
       </View>
     </SafeAreaView>
   );

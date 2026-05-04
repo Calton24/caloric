@@ -2,24 +2,11 @@
   "app": {
     "title": "Caloric"
   },
-  "auth": {
-    "signIn": "Iniciar sesión",
-    "signUp": "Registrarse",
-    "signOut": "Cerrar sesión",
-    "email": "Correo electrónico",
-    "password": "Contraseña",
-    "confirmPassword": "Confirmar contraseña",
-    "forgotPassword": "¿Olvidaste tu contraseña?",
-    "createAccount": "Crear cuenta",
-    "welcome": "Bienvenido",
-    "signInToContinue": "Inicia sesión para continuar",
-    "signUpToGetStarted": "Regístrate para empezar"
-  },
   "common": {
     "cancel": "Cancelar",
     "save": "Guardar",
     "loading": "Cargando…",
-    "done": "Hecho",
+    "done": "Listo",
     "delete": "Eliminar",
     "edit": "Editar",
     "back": "Atrás",
@@ -27,11 +14,41 @@
     "ok": "OK",
     "error": "Error",
     "success": "Éxito",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "continue": "Continuar",
+    "letsGo": "¡Vamos!",
+    "weeks": "Semanas",
+    "years": "años",
+    "recommended": "Recomendado",
+    "email": "Correo",
+    "processing": "Procesando...",
+    "language": "Language",
+    "notNow": "Not now",
+    "search": "Search",
+    "like": "LIKE",
+    "nope": "NOPE",
+    "now": "now",
+    "optionsA11y": "{{label}} options"
   },
   "calories": {
     "label": "Calorías",
     "value_one": "{{count}} caloría",
     "value_other": "{{count}} calorías"
+  },
+  "tabs": {
+    "home": "Inicio",
+    "notes": "Notas",
+    "auth": "Cuenta",
+    "playground": "Pruebas",
+    "caloric": "Caloric"
+  },
+  "days": {
+    "monShort": "L",
+    "tueShort": "M",
+    "wedShort": "X",
+    "thuShort": "J",
+    "friShort": "V",
+    "satShort": "S",
+    "sunShort": "D"
   }
 }

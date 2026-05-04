@@ -1,15 +1,14 @@
 /**
  * Onboarding Step 8 — Personalized Plan / Results
  *
- * THE key conversion screen.  Shows daily calorie target, macro split
- * (protein / carbs / fat), projected result, and a "Continue" CTA
- * to the paywall.
+ * THE key conversion screen. Shows daily calorie target as a hero number,
+ * macro split, projected result, social proof, and a gradient CTA.
  */
 
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import Animated, {
     FadeIn,
     FadeInDown,
@@ -20,28 +19,32 @@ import { useUnits } from "../../hooks/useUnits";
 import { useAuth } from "../../src/features/auth/useAuth";
 import { useGoalsStore } from "../../src/features/goals/goals.store";
 import { useProfileStore } from "../../src/features/profile/profile.store";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
-import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+import { OnboardingBackground } from "./_background";
+import { OnboardingCTA } from "./_cta";
+import { OnboardingHeader } from "./_progress";
 
 export default function OnboardingPlanScreen() {
   const { theme } = useTheme();
+  const { t, language } = useAppTranslation();
   const units = useUnits();
   const router = useRouter();
   const { user } = useAuth();
   const plan = useGoalsStore((s) => s.plan);
   const profile = useProfileStore((s) => s.profile);
 
-  // Derive display values from store
   const PLAN = {
     calories: plan?.calorieBudget ?? 0,
     protein: plan?.macros.protein ?? 0,
     carbs: plan?.macros.carbs ?? 0,
     fat: plan?.macros.fat ?? 0,
     goalWeeks: plan?.timeframeWeeks ?? 0,
+    goalDays: (plan?.timeframeWeeks ?? 0) * 7,
     goalDate: plan?.targetDate
-      ? new Date(plan.targetDate).toLocaleDateString("en-US", {
+      ? new Date(plan.targetDate).toLocaleDateString(language, {
           month: "short",
           day: "numeric",
           year: "numeric",
@@ -54,7 +57,7 @@ export default function OnboardingPlanScreen() {
   const totalCals = PLAN.protein * 4 + PLAN.carbs * 4 + PLAN.fat * 9;
   const MACROS = [
     {
-      label: "Protein",
+      label: t("onboarding.plan.protein"),
       grams: PLAN.protein,
       pct:
         totalCals > 0 ? Math.round(((PLAN.protein * 4) / totalCals) * 100) : 0,
@@ -62,82 +65,105 @@ export default function OnboardingPlanScreen() {
       icon: "fish-outline" as const,
     },
     {
-      label: "Carbs",
+      label: t("onboarding.plan.carbs"),
       grams: PLAN.carbs,
       pct: totalCals > 0 ? Math.round(((PLAN.carbs * 4) / totalCals) * 100) : 0,
       color: "#FBBF24",
-      icon: "nutrition-outline" as const,
+      icon: "pizza-outline" as const,
     },
     {
-      label: "Fat",
+      label: t("onboarding.plan.fat"),
       grams: PLAN.fat,
       pct: totalCals > 0 ? Math.round(((PLAN.fat * 9) / totalCals) * 100) : 0,
       color: "#F87171",
-      icon: "water-outline" as const,
+      icon: "egg-outline" as const,
     },
   ];
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <OnboardingBackground>
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          showsVerticalScrollIndicator={false}
-        >
-          <TSpacer size="lg" />
+        <OnboardingHeader step={6} total={7} theme={theme} />
 
-          <Animated.View entering={FadeInDown.duration(600).delay(100)}>
+        <View style={styles.content}>
+          <Animated.View
+            entering={FadeInDown.springify().damping(18).delay(100)}
+          >
             <TText
               variant="heading"
               style={[styles.heading, { color: theme.colors.text }]}
             >
-              Your plan is{"\n"}ready 🎉
+              {t("onboarding.plan.heading")}
             </TText>
           </Animated.View>
 
-          <TSpacer size="sm" />
+          <View style={{ height: 4 }} />
 
           <Animated.View entering={FadeIn.duration(600).delay(250)}>
-            <TText color="secondary" style={styles.sub}>
-              Here&apos;s what we&apos;ve built just for you
+            <TText style={[styles.sub, { color: theme.colors.textSecondary }]}>
+              {t("onboarding.plan.subtitle")}
             </TText>
           </Animated.View>
 
-          <TSpacer size="xl" />
+          <View style={{ height: 14 }} />
 
-          {/* ── Daily Calorie Target ── */}
-          <Animated.View entering={FadeInDown.duration(500).delay(350)}>
-            <GlassSurface intensity="medium" style={styles.calorieCard}>
-              <TText
-                style={[
-                  styles.calorieLabel,
-                  { color: theme.colors.textSecondary },
+          {/* ── Hero Calorie Card with gradient accent ── */}
+          <Animated.View
+            entering={FadeInDown.springify().damping(16).delay(350)}
+          >
+            <View style={styles.calorieOuter}>
+              <LinearGradient
+                colors={[
+                  theme.colors.primary + "12",
+                  theme.colors.accent + "08",
                 ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.calorieGradientBg}
+              />
+              <GlassSurface
+                intensity="medium"
+                border
+                style={styles.calorieCard}
               >
-                DAILY CALORIE TARGET
-              </TText>
-              <TSpacer size="xs" />
-              <View style={styles.calorieRow}>
                 <TText
-                  style={[styles.calorieNum, { color: theme.colors.primary }]}
+                  style={[
+                    styles.calorieLabel,
+                    { color: theme.colors.textSecondary },
+                  ]}
                 >
-                  {PLAN.calories.toLocaleString()}
+                  {t("onboarding.plan.dailyCalorieTarget")}
                 </TText>
+                <View style={{ height: 4 }} />
+                <View style={styles.calorieRow}>
+                  <TText
+                    style={[styles.calorieNum, { color: theme.colors.primary }]}
+                  >
+                    {PLAN.calories.toLocaleString()}
+                  </TText>
+                </View>
                 <TText
                   style={[
                     styles.calorieUnit,
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  kcal / day
+                  {t("onboarding.plan.kcalPerDay")}
                 </TText>
-              </View>
-            </GlassSurface>
+
+                {/* Inline gradient accent bar */}
+                <View style={{ height: 10 }} />
+                <LinearGradient
+                  colors={[theme.colors.primary, theme.colors.accent]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.accentBar}
+                />
+              </GlassSurface>
+            </View>
           </Animated.View>
 
-          <TSpacer size="md" />
+          <View style={{ height: 10 }} />
 
           {/* ── Macro split ── */}
           <Animated.View entering={FadeInDown.duration(500).delay(500)}>
@@ -148,9 +174,9 @@ export default function OnboardingPlanScreen() {
                   { color: theme.colors.textSecondary },
                 ]}
               >
-                DAILY MACROS
+                {t("onboarding.plan.dailyMacros")}
               </TText>
-              <TSpacer size="md" />
+              <View style={{ height: 10 }} />
 
               {/* Stacked bar */}
               <View style={styles.macroBar}>
@@ -159,18 +185,14 @@ export default function OnboardingPlanScreen() {
                     key={m.label}
                     style={[
                       styles.macroSegment,
-                      {
-                        flex: m.pct,
-                        backgroundColor: m.color,
-                      },
+                      { flex: m.pct, backgroundColor: m.color },
                     ]}
                   />
                 ))}
               </View>
 
-              <TSpacer size="md" />
+              <View style={{ height: 12 }} />
 
-              {/* Macro rows */}
               <View style={styles.macroRows}>
                 {MACROS.map((m) => (
                   <View key={m.label} style={styles.macroRow}>
@@ -209,142 +231,205 @@ export default function OnboardingPlanScreen() {
             </GlassSurface>
           </Animated.View>
 
-          <TSpacer size="md" />
+          <View style={{ height: 10 }} />
 
           {/* ── Projected Result ── */}
           <Animated.View entering={FadeInUp.duration(500).delay(650)}>
             <GlassSurface intensity="light" style={styles.projCard}>
-              <View style={styles.projRow}>
-                <View
+              {/* Icon + heading */}
+              <View style={styles.projHeader}>
+                <LinearGradient
+                  colors={[theme.colors.primary, theme.colors.accent]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.projIcon}
+                >
+                  <Ionicons name="flag" size={20} color="#fff" />
+                </LinearGradient>
+                <TText
                   style={[
-                    styles.projIcon,
-                    { backgroundColor: theme.colors.success + "1A" },
+                    styles.projLabel,
+                    { color: theme.colors.textSecondary },
                   ]}
                 >
-                  <Ionicons
-                    name="trending-down"
-                    size={24}
-                    color={theme.colors.success}
-                  />
-                </View>
-                <View style={styles.projText}>
+                  {t("onboarding.plan.projectedGoal")}
+                </TText>
+              </View>
+
+              {/* Target weight + date */}
+              <View style={styles.projHero}>
+                <TText
+                  style={[styles.projWeight, { color: theme.colors.text }]}
+                >
+                  {units.display(PLAN.goalWeight)}{" "}
                   <TText
-                    style={[styles.projTitle, { color: theme.colors.text }]}
+                    style={[styles.projUnit, { color: theme.colors.textMuted }]}
                   >
-                    Reach {units.display(PLAN.goalWeight)} {units.label} by{" "}
-                    {PLAN.goalDate}
+                    {units.label}
+                  </TText>
+                </TText>
+                <TText
+                  style={[styles.projDate, { color: theme.colors.accent }]}
+                >
+                  {t("onboarding.plan.byDate", { date: PLAN.goalDate })}
+                </TText>
+              </View>
+
+              {/* Stats row */}
+              <View
+                style={[
+                  styles.projStats,
+                  { borderTopColor: theme.colors.border },
+                ]}
+              >
+                <View style={styles.projStat}>
+                  <TText
+                    style={[styles.projStatNum, { color: theme.colors.text }]}
+                  >
+                    {PLAN.goalWeeks}
                   </TText>
                   <TText
                     style={[
-                      styles.projSub,
-                      { color: theme.colors.textSecondary },
+                      styles.projStatLabel,
+                      { color: theme.colors.textMuted },
                     ]}
                   >
-                    {PLAN.goalWeeks} weeks ·{" "}
-                    {units.display(PLAN.currentWeight - PLAN.goalWeight)}{" "}
-                    {units.label} to lose
+                    {t("onboarding.plan.weeks")}
+                  </TText>
+                </View>
+                <View
+                  style={[
+                    styles.projDivider,
+                    { backgroundColor: theme.colors.border },
+                  ]}
+                />
+                <View style={styles.projStat}>
+                  <TText
+                    style={[styles.projStatNum, { color: theme.colors.text }]}
+                  >
+                    {PLAN.goalDays}
+                  </TText>
+                  <TText
+                    style={[
+                      styles.projStatLabel,
+                      { color: theme.colors.textMuted },
+                    ]}
+                  >
+                    {t("onboarding.plan.days")}
+                  </TText>
+                </View>
+                <View
+                  style={[
+                    styles.projDivider,
+                    { backgroundColor: theme.colors.border },
+                  ]}
+                />
+                <View style={styles.projStat}>
+                  <TText
+                    style={[styles.projStatNum, { color: theme.colors.text }]}
+                  >
+                    {units.display(
+                      Math.round((PLAN.currentWeight - PLAN.goalWeight) * 10) /
+                        10
+                    )}
+                  </TText>
+                  <TText
+                    style={[
+                      styles.projStatLabel,
+                      { color: theme.colors.textMuted },
+                    ]}
+                  >
+                    {units.label} {t("onboarding.plan.toLose")}
                   </TText>
                 </View>
               </View>
             </GlassSurface>
           </Animated.View>
 
-          <TSpacer size="md" />
+          <View style={{ height: 10 }} />
 
-          {/* ── Social proof ── */}
+          {/* ── Social proof glass chip ── */}
           <Animated.View entering={FadeInUp.duration(500).delay(800)}>
-            <View style={styles.socialRow}>
+            <GlassSurface
+              intensity="light"
+              variant="pill"
+              style={styles.socialChip}
+            >
               <Ionicons
                 name="people-outline"
                 size={16}
-                color={theme.colors.textMuted}
+                color={theme.colors.primary}
               />
               <TText
-                style={[styles.socialText, { color: theme.colors.textMuted }]}
+                style={[
+                  styles.socialText,
+                  { color: theme.colors.textSecondary },
+                ]}
               >
-                12,847 people started a similar plan this week
+                {t("onboarding.plan.socialProof")}
               </TText>
-            </View>
+            </GlassSurface>
           </Animated.View>
-
-          <TSpacer size="xl" />
-        </ScrollView>
+        </View>
 
         {/* ── CTA ── */}
-        <Animated.View
-          entering={FadeInUp.duration(500).delay(950)}
-          style={styles.ctaArea}
-        >
-          <Pressable
-            testID="onboarding-next-plan"
-            onPress={() =>
-              router.push(
-                user
-                  ? ("/(onboarding)/paywall" as any)
-                  : ("/(onboarding)/save-progress" as any)
-              )
-            }
-            style={({ pressed }) => ({
-              opacity: pressed ? 0.9 : 1,
-              transform: [{ scale: pressed ? 0.97 : 1 }],
-            })}
-          >
-            <LinearGradient
-              colors={[theme.colors.primary, theme.colors.accent]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.ctaGradient}
-            >
-              <TText
-                style={[styles.ctaText, { color: theme.colors.textInverse }]}
-              >
-                Continue
-              </TText>
-              <Ionicons
-                name="arrow-forward"
-                size={20}
-                color={theme.colors.textInverse}
-              />
-            </LinearGradient>
-          </Pressable>
-        </Animated.View>
+        <OnboardingCTA
+          label={t("common.continue")}
+          onPress={() =>
+            router.push(
+              user
+                ? ("/(onboarding)/paywall" as any)
+                : ("/(onboarding)/save-progress" as any)
+            )
+          }
+          theme={theme}
+          testID="onboarding-next-plan"
+          delay={950}
+        />
       </SafeAreaView>
-    </View>
+    </OnboardingBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   safe: { flex: 1 },
-  scroll: {
-    flexGrow: 1,
+  content: {
+    flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 16,
   },
   heading: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "800",
-    lineHeight: 40,
+    lineHeight: 34,
+    letterSpacing: -0.3,
   },
   sub: {
-    fontSize: 17,
-    lineHeight: 24,
+    fontSize: 16,
+    lineHeight: 22,
   },
-  // Calorie card
+  // Hero calorie card
+  calorieOuter: {
+    borderRadius: 20,
+    overflow: "hidden",
+  },
+  calorieGradientBg: {
+    ...StyleSheet.absoluteFillObject,
+  },
   calorieCard: {
-    padding: 24,
+    padding: 20,
     borderRadius: 20,
     alignItems: "center",
   },
   calorieLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
-    letterSpacing: 1,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
   },
   calorieRow: {
     flexDirection: "row",
     alignItems: "baseline",
-    gap: 6,
   },
   calorieNum: {
     fontSize: 48,
@@ -352,18 +437,25 @@ const styles = StyleSheet.create({
     letterSpacing: -2,
   },
   calorieUnit: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "500",
+    marginTop: -2,
+  },
+  accentBar: {
+    width: 60,
+    height: 4,
+    borderRadius: 2,
   },
   // Macro card
   macroCard: {
-    padding: 20,
-    borderRadius: 20,
+    padding: 16,
+    borderRadius: 16,
   },
   macroTitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
-    letterSpacing: 1,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
   },
   macroBar: {
     flexDirection: "row",
@@ -376,7 +468,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   macroRows: {
-    gap: 14,
+    gap: 10,
   },
   macroRow: {
     flexDirection: "row",
@@ -414,54 +506,76 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
   },
-  projRow: {
+  projHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
+    gap: 10,
+    marginBottom: 10,
   },
   projIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
   },
-  projText: {
-    flex: 1,
-  },
-  projTitle: {
-    fontSize: 16,
+  projLabel: {
+    fontSize: 13,
     fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
-  projSub: {
-    fontSize: 14,
+  projHero: {
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  projWeight: {
+    fontSize: 28,
+    fontWeight: "800",
+    letterSpacing: -0.5,
+  },
+  projUnit: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  projDate: {
+    fontSize: 15,
+    fontWeight: "600",
     marginTop: 2,
   },
-  // Social
-  socialRow: {
+  projStats: {
+    flexDirection: "row",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 10,
+    justifyContent: "center",
+    gap: 24,
+  },
+  projStat: {
+    alignItems: "center",
+  },
+  projStatNum: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  projStatLabel: {
+    fontSize: 12,
+    marginTop: 1,
+  },
+  projDivider: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: "stretch",
+  },
+  // Social glass chip
+  socialChip: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
+    alignSelf: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   socialText: {
     fontSize: 13,
-  },
-  // CTA
-  ctaArea: {
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-  },
-  ctaGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 18,
-    borderRadius: 16,
-    gap: 8,
-  },
-  ctaText: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "500",
   },
 });

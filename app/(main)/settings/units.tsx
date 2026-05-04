@@ -7,36 +7,45 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUnits } from "../../../hooks/useUnits";
 import type { WeightUnit } from "../../../src/features/profile/profile.types";
+import { useAppTranslation } from "../../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../../src/theme/useTheme";
 import { TSpacer } from "../../../src/ui/primitives/TSpacer";
 import { TText } from "../../../src/ui/primitives/TText";
 
 const UNIT_OPTIONS: {
-  label: string;
-  description: string;
+  labelKey: string;
+  descKey: string;
   value: WeightUnit;
 }[] = [
   {
-    label: "Metric",
-    description: "Kilograms, centimeters",
+    labelKey: "settings.metric",
+    descKey: "settings.metricDesc",
     value: "kg",
   },
   {
-    label: "Imperial",
-    description: "Pounds, feet & inches",
+    labelKey: "settings.imperial",
+    descKey: "settings.imperialDesc",
     value: "lbs",
   },
 ];
 
 export default function UnitsScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
   const { weightUnit, setWeightUnit } = useUnits();
+
+  useEffect(() => {
+    if (!__DEV__) return;
+    console.log("[UnitsPersistence] screen selected unit value", {
+      selectedUnit: weightUnit,
+    });
+  }, [weightUnit]);
 
   const handleSelect = useCallback(
     (value: WeightUnit) => {
@@ -59,7 +68,7 @@ export default function UnitsScreen() {
             variant="heading"
             style={[styles.headerTitle, { color: theme.colors.text }]}
           >
-            Units
+            {t("settings.units")}
           </TText>
           <View style={{ width: 24 }} />
         </View>
@@ -90,7 +99,7 @@ export default function UnitsScreen() {
                 >
                   <View style={styles.rowContent}>
                     <TText style={[styles.label, { color: theme.colors.text }]}>
-                      {option.label}
+                      {t(option.labelKey)}
                     </TText>
                     <TText
                       style={[
@@ -98,7 +107,7 @@ export default function UnitsScreen() {
                         { color: theme.colors.textSecondary },
                       ]}
                     >
-                      {option.description}
+                      {t(option.descKey)}
                     </TText>
                   </View>
                   {isSelected && (

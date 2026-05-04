@@ -1,4 +1,4 @@
-export type GoalType = "lose" | "maintain" | "gain";
+export type GoalType = "lose" | "maintain" | "gain" | "health";
 
 export interface MacroTargets {
   protein: number;

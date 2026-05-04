@@ -20,15 +20,11 @@ const APP_PROFILES = {
       dev: {
         app: {
           name: "Caloric Dev",
-          bundleIdentifier: "com.calton24.caloric.dev",
-          androidPackage: "com.calton24.caloric.dev",
         },
       },
       staging: {
         app: {
           name: "Caloric Staging",
-          bundleIdentifier: "com.calton24.caloric.staging",
-          androidPackage: "com.calton24.caloric.staging",
         },
       },
       prod: {},
@@ -48,15 +44,11 @@ const APP_PROFILES = {
       dev: {
         app: {
           name: "Caloric",
-          bundleIdentifier: "com.calton24.caloric.dev",
-          androidPackage: "com.calton24.caloric.dev",
         },
       },
       staging: {
         app: {
           name: "Caloric Staging",
-          bundleIdentifier: "com.calton24.caloric.staging",
-          androidPackage: "com.calton24.caloric.staging",
         },
       },
       prod: {},

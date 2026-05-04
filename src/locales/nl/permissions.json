@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "title": "Machtigingen vereist",
+    "description": "Caloric gebruikt je microfoon en spraakherkenning om maaltijden per spraak te registreren.",
+    "microphone": "Microfoon",
+    "microphoneDesc": "Luister naar je stem om maaltijden te registreren",
+    "speechRecognition": "Spraakherkenning",
+    "speechRecognitionDesc": "Zet je spraak om in tekst",
+    "pushNotifications": "Pushmeldingen",
+    "pushNotificationsDesc": "Maaltijdherinneringen en voortgangsupdates",
+    "grantPermissions": "Machtigingen verlenen",
+    "skipForNow": "Voorlopig overslaan"
+  },
+  "permissionsSetup": {
+    "title": "Machtigingen vereist",
+    "subtitle": "Caloric gebruikt je microfoon en spraakherkenning om maaltijden in te spreken, en meldingen om je op koers te houden.",
+    "microphone": "Microfoon",
+    "microphoneDesc": "Luister naar je stem voor maaltijdregistratie",
+    "speechRecognition": "Spraakherkenning",
+    "speechRecognitionDesc": "Zet spraak om in voedselitems",
+    "pushNotifications": "Pushmeldingen",
+    "pushNotificationsDesc": "Herinneringen en dagelijkse voortgang",
+    "continue": "Doorgaan",
+    "grantPermissions": "Machtigingen verlenen",
+    "skipForNow": "Voorlopig overslaan"
+  }
+}

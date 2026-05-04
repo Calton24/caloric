@@ -17,14 +17,14 @@
 import { File } from "expo-file-system";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import {
-    foodLogBreadcrumb,
-    truncateFoodLogText,
-} from "../food-logging/food-logging-telemetry";
+  reportBreadcrumb,
+  reportError,
+} from "../../infrastructure/errorReporting";
 import { getSupabaseClient } from "../../lib/supabase/client";
 import type {
-    AnalyzeMealResponse,
-    MealAnalysisResult,
-    MealDecomposition,
+  AnalyzeMealResponse,
+  MealAnalysisResult,
+  MealDecomposition,
 } from "./meal-analysis.types";
 import { resolveDecomposition } from "./nutrition-resolver.service";
 
@@ -52,16 +52,9 @@ export async function analyzeMealImage(
   userHint?: string,
   accessToken?: string
 ): Promise<MealAnalysisResult> {
-  foodLogBreadcrumb("food_logging.ai_scan_started", {
-    flow: "ai_camera",
-    step: "edge_function",
-    hintTruncated: truncateFoodLogText(userHint),
-  });
+  const pipelineStart = Date.now();
 
-  try {
-    const pipelineStart = Date.now();
-
-    // ── Step 1: Compress and encode image ──
+  // ── Step 1: Compress and encode image ──
   const compressedUri = await compressImage(imageUri);
   const base64 = await readImageAsBase64(compressedUri);
 
@@ -100,8 +93,10 @@ export async function analyzeMealImage(
     );
   }
 
+  // Pass the JWT in a custom header to avoid the Supabase Edge Runtime
+  // relay rejecting ES256-signed tokens when it inspects Authorization.
   const headers: Record<string, string> = {
-    Authorization: `Bearer ${token}`,
+    "X-Auth-Token": token,
   };
 
   const { data, error } = await client.functions.invoke("ai-scan", {
@@ -151,6 +146,14 @@ export async function analyzeMealImage(
 
     // Map ai-scan error codes to user-facing messages
     if (errorCode === "LIMIT_REACHED") {
+      // Expected user-facing limit; log a crumb only.
+      reportBreadcrumb("ai-scan limit reached", {
+        area: "scan",
+        action: "ai-scan_limit_reached",
+        provider: "supabase",
+        level: "info",
+        extra: { errorCode },
+      });
       throw new MealAnalysisError(
         detail ||
           "You've used all your free scans. Upgrade for unlimited scans.",
@@ -158,6 +161,13 @@ export async function analyzeMealImage(
       );
     }
     if (errorCode === "BLOCKED") {
+      reportBreadcrumb("ai-scan user blocked", {
+        area: "scan",
+        action: "ai-scan_blocked",
+        provider: "supabase",
+        level: "warning",
+        extra: { errorCode },
+      });
       throw new MealAnalysisError(
         "Your account has been restricted. Please contact support.",
         "edge_function_error"
@@ -166,6 +176,18 @@ export async function analyzeMealImage(
 
     const msg = detail || error.message || "Analysis failed. Please try again.";
     console.error("[MealAnalysis] Edge Function error:", msg);
+    // Unexpected backend failure — full report. We deliberately don't include
+    // the image base64 or auth headers; just the error shape and code.
+    reportError(error, {
+      area: "scan",
+      action: "ai-scan_edge_function_error",
+      provider: "supabase",
+      extra: {
+        detail,
+        errorCode,
+        errorName: error.name,
+      },
+    });
     throw new MealAnalysisError(msg, "edge_function_error");
   }
 
@@ -215,23 +237,7 @@ export async function analyzeMealImage(
     `[MealAnalysis] vendor=${response.vendor ?? "unknown"} model=${response.model ?? "unknown"} latency=${response.modelLatencyMs}ms`
   );
 
-    foodLogBreadcrumb("food_logging.ai_scan_success", {
-      flow: "ai_camera",
-      step: "edge_function",
-      itemCount: result.items.length,
-      totalLatencyMs: result.totalLatencyMs,
-    });
-
-    return result;
-  } catch (e) {
-    foodLogBreadcrumb("food_logging.ai_scan_failed", {
-      flow: "ai_camera",
-      step: "edge_function",
-      code: e instanceof MealAnalysisError ? e.code : "unknown",
-      error: e instanceof Error ? e.message : String(e),
-    });
-    throw e;
-  }
+  return result;
 }
 
 // ─── Image Processing ───────────────────────────────────────────────────────

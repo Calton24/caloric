@@ -1,8 +1,10 @@
 import { router } from "expo-router";
+import { reportError } from "../../infrastructure/errorReporting";
 import {
-    foodLogBreadcrumb,
-    truncateFoodLogText,
-} from "../food-logging/food-logging-telemetry";
+  addFoodLoggingBreadcrumb,
+  captureFoodLoggingError,
+} from "../../infrastructure/errorReporting/foodLoggingErrors";
+import { useAuth } from "../auth/useAuth";
 import { getHealthService } from "../health";
 import { labelFoodImage } from "../image-analysis/ocr/image-labeling.service";
 import { extractTextFromImage } from "../image-analysis/ocr/text-recognition.service";
@@ -25,17 +27,15 @@ import {
     mealEstimateToDraft,
     runNutritionPipeline,
 } from "./nutrition-pipeline";
-import { usePendingMealReviewStore } from "./pending-meal-review.store";
 import { useNutritionDraftStore } from "./nutrition.draft.store";
 import { buildMealEntryFromDraft } from "./nutrition.helpers";
 import { useNutritionStore } from "./nutrition.store";
-import type { MealDraft } from "./nutrition.draft.types";
-import type { MealEntry } from "./nutrition.types";
 import { MealSource } from "./nutrition.types";
 import { getFoodEmoji } from "./ontology/food-emoji";
 import type { InputSource } from "./parsing/food-candidate.schema";
 import { isLocalLlmReady } from "./parsing/local-llm.service";
 import { validateFoodResult } from "./validation/food-validator.service";
+import { validateMealDraft } from "./meal-draft.validation";
 
 /**
  * Map old MealSource to new InputSource for the pipeline.
@@ -53,6 +53,7 @@ function toInputSource(source: MealSource): InputSource {
 }
 
 export function useLoggingFlow() {
+  const { user } = useAuth();
   const draft = useNutritionDraftStore((state) => state.draft);
   const setDraft = useNutritionDraftStore((state) => state.setDraft);
   const updateDraft = useNutritionDraftStore((state) => state.updateDraft);
@@ -61,6 +62,12 @@ export function useLoggingFlow() {
   const addMeal = useNutritionStore((state) => state.addMeal);
 
   const meals = useNutritionStore((state) => state.meals);
+
+  function foodLoggingFlowForSource(source: MealSource) {
+    if (source === "voice") return "voice" as const;
+    if (source === "camera" || source === "image") return "ai_camera" as const;
+    return "manual" as const;
+  }
 
   /**
    * Start the logging flow using the new nutrition pipeline.
@@ -73,6 +80,18 @@ export function useLoggingFlow() {
     input: string,
     source: MealSource
   ): Promise<boolean> {
+    const flow = foodLoggingFlowForSource(source);
+    const uid = user?.id ?? null;
+    const parseStartCrumb =
+      source === "voice"
+        ? "food_logging.voice_parse_started"
+        : "food_logging.manual_parse_started";
+    addFoodLoggingBreadcrumb(parseStartCrumb, {
+      flow,
+      source,
+      input_length: input.trim().length,
+      user_present: Boolean(uid),
+    });
     try {
       // New pipeline: parse → match (USDA/OFF) → estimate
       const inputSource = toInputSource(source);
@@ -80,20 +99,72 @@ export function useLoggingFlow() {
 
       // No food detected — signal caller to prompt retry
       if (estimate.items.length === 0) {
+        addFoodLoggingBreadcrumb(
+          source === "voice"
+            ? "food_logging.voice_parse_failed"
+            : "food_logging.manual_parse_failed",
+          { flow, reason: "no_items" }
+        );
         return false;
       }
 
       const pipelineDraft = mealEstimateToDraft(estimate);
       setDraft(pipelineDraft);
-    } catch {
+      addFoodLoggingBreadcrumb(
+        source === "voice"
+          ? "food_logging.voice_parse_success"
+          : "food_logging.manual_parse_success",
+        { flow, calories: pipelineDraft.calories }
+      );
+    } catch (pipelineErr) {
       // Fallback: old regex parser (always works, no network)
       console.warn("Pipeline failed, using legacy parser");
-      const parsed = parseMealInput(input, source);
-      setDraft(parsed);
+      addFoodLoggingBreadcrumb(
+        source === "voice"
+          ? "food_logging.voice_parse_failed"
+          : "food_logging.manual_parse_failed",
+        { flow, reason: "pipeline_threw_using_legacy" }
+      );
+      captureFoodLoggingError(pipelineErr, {
+        flow,
+        step: "nutrition_pipeline",
+        userId: uid,
+        provider: "local",
+      });
+      try {
+        const parsed = parseMealInput(input, source);
+        setDraft(parsed);
+        addFoodLoggingBreadcrumb(
+          source === "voice"
+            ? "food_logging.voice_parse_success"
+            : "food_logging.manual_parse_success",
+          { flow, via: "legacy_parser" }
+        );
+      } catch (legacyErr) {
+        captureFoodLoggingError(legacyErr, {
+          flow,
+          step: "legacy_parse_meal_input",
+          userId: uid,
+          provider: "local",
+        });
+        return false;
+      }
     }
 
-    usePendingMealReviewStore.getState().commitPendingMealReviewFromStores();
-    router.push("/(modals)/confirm-meal" as never);
+    try {
+      router.push("/(modals)/confirm-meal" as never);
+      addFoodLoggingBreadcrumb("food_logging.confirm_meal_navigate", {
+        flow,
+      });
+    } catch (navErr) {
+      captureFoodLoggingError(navErr, {
+        flow,
+        step: "router_push_confirm_meal",
+        route: "/(modals)/confirm-meal",
+        userId: uid,
+      });
+      return false;
+    }
     return true;
   }
 
@@ -101,37 +172,81 @@ export function useLoggingFlow() {
    * Save the draft as a meal entry without navigating.
    * Useful when caller needs to show a modal (e.g. milestone) before leaving.
    */
-  function saveDraftWithoutNav() {
-    if (!draft) {
-      throw new Error("No meal draft available");
+  function saveDraftWithoutNav(): boolean {
+    const currentDraft = useNutritionDraftStore.getState().draft;
+    const uid = user?.id ?? null;
+    addFoodLoggingBreadcrumb("food_logging.save_started", {
+      flow: "confirm_meal",
+      user_present: Boolean(uid),
+      draft_present: Boolean(currentDraft),
+    });
+
+    if (!currentDraft) {
+      console.warn(
+        "[LoggingFlow] saveDraftWithoutNav called with no draft — skipping"
+      );
+      addFoodLoggingBreadcrumb("food_logging.local_save_failed", {
+        reason: "no_draft",
+      });
+      return false;
+    }
+
+    const validated = validateMealDraft(currentDraft);
+    if (!validated.ok) {
+      captureFoodLoggingError(
+        new Error(validated.reason),
+        {
+          flow: "confirm_meal",
+          step: "validate_draft",
+          route: "/(modals)/confirm-meal",
+          userId: uid,
+          foodTitle: currentDraft.title,
+          calories: currentDraft.calories,
+        },
+        { level: "warning" }
+      );
+      addFoodLoggingBreadcrumb("food_logging.local_save_failed", {
+        reason: "validation",
+        issues: validated.issues.join(","),
+      });
+      return false;
     }
 
     const logDate = useNutritionDraftStore.getState().logDate;
-    let meal: MealEntry;
+    let meal;
     try {
       meal = buildMealEntryFromDraft({
-        draft,
+        draft: validated.value,
         loggedAt: logDate ?? undefined,
       });
+      addFoodLoggingBreadcrumb("food_logging.persist_add_meal_started", {
+        meal_id: meal.id,
+        calories: meal.calories,
+      });
       addMeal(meal);
-      usePendingMealReviewStore.getState().clearPendingMealReview("saved");
-      foodLogBreadcrumb("food_logging.local_save_success", {
-        flow: "confirm_meal",
-        step: "local_store",
-        mealId: meal.id,
-        source: draft.source,
-        titleTruncated: truncateFoodLogText(draft.title),
-        hasImageUri: !!meal.imageUri,
-      });
+      addFoodLoggingBreadcrumb("food_logging.persist_add_meal_finished");
     } catch (e) {
-      foodLogBreadcrumb("food_logging.local_save_failed", {
+      captureFoodLoggingError(e, {
         flow: "confirm_meal",
-        step: "local_store",
-        source: draft.source,
-        error: e instanceof Error ? e.message : String(e),
+        step: "build_or_add_meal",
+        route: "/(modals)/confirm-meal",
+        userId: uid,
+        foodTitle: currentDraft.title,
+        calories: currentDraft.calories,
       });
-      throw e;
+      addFoodLoggingBreadcrumb("food_logging.local_save_failed", {
+        reason: "add_meal_throw",
+      });
+      return false;
     }
+
+    addFoodLoggingBreadcrumb("food_logging.local_save_success", {
+      meal_id: meal.id,
+      calories: meal.calories,
+      protein: meal.protein,
+      carbs: meal.carbs,
+      fat: meal.fat,
+    });
 
     // Auto-export to Apple Health if write sync is enabled
     const { appleHealthSyncEnabled } = useSettingsStore.getState().settings;
@@ -154,29 +269,54 @@ export function useLoggingFlow() {
     }
 
     // Rebuild food memory with updated meal history
-    rebuildFoodMemory([meal, ...meals]);
+    try {
+      rebuildFoodMemory([meal, ...meals]);
+    } catch (e) {
+      captureFoodLoggingError(e, {
+        flow: "confirm_meal",
+        step: "rebuild_food_memory",
+        mealId: meal.id,
+        userId: uid,
+      });
+    }
 
     // Prompt for App Store review after enough meals (fire-and-forget)
     trackMealAndMaybePromptReview().catch(() => {});
+    return true;
   }
 
   /** Navigate back to home after a save (or deferred milestone modal). */
-  function navigateAfterSave() {
-    // Dismiss all modals and navigate to home
-    while (router.canDismiss()) {
-      router.dismiss();
+  function navigateAfterSave(): boolean {
+    addFoodLoggingBreadcrumb("food_logging.navigation_after_save_started");
+    try {
+      // Dismiss all modals — returns to the (tabs) screen that was in the background.
+      // Do NOT call router.replace() immediately after; dispatching two navigation
+      // operations in the same tick causes a navigation invariant crash in Expo Router.
+      if (router.canDismiss()) {
+        router.dismissAll();
+      }
+      addFoodLoggingBreadcrumb("food_logging.navigation_after_save_success");
+    } catch (e) {
+      captureFoodLoggingError(e, {
+        flow: "confirm_meal",
+        step: "navigation_after_save",
+        route: "dismiss_all",
+        userId: user?.id ?? null,
+      });
+      addFoodLoggingBreadcrumb("food_logging.navigation_after_save_failed");
+      return false;
     }
-    // Navigate to home tab to show the logged food
-    router.push("/(tabs)" as never);
-    // Clear draft after navigation settles
+    // Clear draft after navigation animation settles
     setTimeout(() => {
       clearDraft();
-    }, 100);
+    }, 300);
+    return true;
   }
 
-  function saveDraftAsMeal() {
-    saveDraftWithoutNav();
+  function saveDraftAsMeal(): boolean {
+    if (!saveDraftWithoutNav()) return false;
     navigateAfterSave();
+    return true;
   }
 
   /**
@@ -197,22 +337,12 @@ export function useLoggingFlow() {
     imagePath: string,
     description?: string
   ): Promise<boolean> {
-    const attachCameraPhoto = (d: MealDraft): MealDraft => ({
-      ...d,
-      imageUri: imagePath,
+    const uid = user?.id ?? null;
+    addFoodLoggingBreadcrumb("food_logging.ai_scan_started", {
+      user_present: Boolean(uid),
+      has_description: Boolean(description?.trim()),
     });
-
-    const finishImageSuccess = (): true => {
-      usePendingMealReviewStore.getState().commitPendingMealReviewFromStores();
-      return true;
-    };
-
     try {
-      foodLogBreadcrumb("food_logging.image_pipeline_started", {
-        flow: "ai_camera",
-        step: "start",
-      });
-
       // ── Stage 0: Run on-device OCR to extract text from image ──
       // This is the bridge between "camera sees pixels" and
       // "pipeline gets searchable text" (brand names, weights, etc.)
@@ -249,17 +379,12 @@ export function useLoggingFlow() {
           confidence: imageResult.confidence.overall,
           parseMethod: `image-analysis (${imageResult.evidence.route})`,
           imageAnalysis: imageResult,
-          imageUri: imagePath,
         });
 
-        foodLogBreadcrumb("food_logging.image_pipeline_success", {
-          flow: "ai_camera",
-          step: "product_match",
-          titleTruncated: truncateFoodLogText(
-            productTitle || imageResult.product.name
-          ),
+        addFoodLoggingBreadcrumb("food_logging.ai_scan_success", {
+          stage: "image_analysis_product",
         });
-        return finishImageSuccess();
+        return true;
       }
 
       // ── Stage B: Local vision model → LLM captioning ───────
@@ -283,13 +408,8 @@ export function useLoggingFlow() {
           });
           const pipelineDraft = mealEstimateToDraft(estimate);
           pipelineDraft.source = "camera";
-          setDraft(attachCameraPhoto(pipelineDraft));
-          foodLogBreadcrumb("food_logging.image_pipeline_success", {
-            flow: "ai_camera",
-            step: "local_caption",
-            titleTruncated: truncateFoodLogText(pipelineDraft.title),
-          });
-          return finishImageSuccess();
+          setDraft(pipelineDraft);
+          return true;
         }
       }
 
@@ -326,19 +446,11 @@ export function useLoggingFlow() {
               fat: cloudResult.totals.fat,
               confidence: cloudResult.overallConfidence,
               parseMethod: "cloud-vision (gpt-4o-mini)",
-              imageUri: imagePath,
             });
             console.log(
               "[startFromImage] Stage B.5: draft set, returning true"
             );
-            foodLogBreadcrumb("food_logging.image_pipeline_success", {
-              flow: "ai_camera",
-              step: "cloud_vision",
-              titleTruncated: truncateFoodLogText(
-                cloudResult.items.map((i) => i.resolvedName).join(", ")
-              ),
-            });
-            return finishImageSuccess();
+            return true;
           }
         } catch (e) {
           // Cloud vision failed — fall through to ML Kit labels
@@ -388,13 +500,8 @@ export function useLoggingFlow() {
               Math.min(pipelineDraft.confidence, 0.65)
             );
           }
-          setDraft(attachCameraPhoto(pipelineDraft));
-          foodLogBreadcrumb("food_logging.image_pipeline_success", {
-            flow: "ai_camera",
-            step: "ml_kit_combined",
-            titleTruncated: truncateFoodLogText(pipelineDraft.title),
-          });
-          return finishImageSuccess();
+          setDraft(pipelineDraft);
+          return true;
         }
 
         // Validation failed — try just the ML Kit labels alone
@@ -428,13 +535,8 @@ export function useLoggingFlow() {
               0.15,
               Math.min(labelOnlyDraft.confidence, 0.6)
             );
-            setDraft(attachCameraPhoto(labelOnlyDraft));
-            foodLogBreadcrumb("food_logging.image_pipeline_success", {
-              flow: "ai_camera",
-              step: "ml_kit_labels_only",
-              titleTruncated: truncateFoodLogText(labelOnlyDraft.title),
-            });
-            return finishImageSuccess();
+            setDraft(labelOnlyDraft);
+            return true;
           }
         }
         // Both attempts failed — fall through to next stage
@@ -464,13 +566,8 @@ export function useLoggingFlow() {
                 validation.confidenceMultiplier *
                 100
             ) / 100;
-          setDraft(attachCameraPhoto(pipelineDraft));
-          foodLogBreadcrumb("food_logging.image_pipeline_success", {
-            flow: "ai_camera",
-            step: "ocr_text_pipeline",
-            titleTruncated: truncateFoodLogText(pipelineDraft.title),
-          });
-          return finishImageSuccess();
+          setDraft(pipelineDraft);
+          return true;
         }
         // Validation failed — return false instead of showing garbage
       }
@@ -479,17 +576,21 @@ export function useLoggingFlow() {
       console.log(
         "[startFromImage] Stage D: all stages exhausted, returning false"
       );
-      foodLogBreadcrumb("food_logging.image_pipeline_failed", {
-        flow: "ai_camera",
-        step: "exhausted",
-      });
       return false;
     } catch (e) {
       console.warn("Image pipeline failed:", e);
-      foodLogBreadcrumb("food_logging.image_pipeline_failed", {
+      addFoodLoggingBreadcrumb("food_logging.ai_scan_failed", {
+        reason: "outer_catch",
+      });
+      captureFoodLoggingError(e, {
         flow: "ai_camera",
-        step: "exception",
-        error: e instanceof Error ? e.message : String(e),
+        step: "start_from_image",
+        userId: uid,
+        provider: "local",
+      });
+      reportError(e, {
+        area: "scan",
+        action: "useLoggingFlow_startFromImage_outer",
       });
       return false;
     }
@@ -501,6 +602,11 @@ export function useLoggingFlow() {
    * Returns true if a product was found.
    */
   async function startFromBarcode(barcode: string): Promise<boolean> {
+    const uid = user?.id ?? null;
+    addFoodLoggingBreadcrumb("food_logging.barcode_lookup_started", {
+      barcode_length: barcode?.length ?? 0,
+      user_present: Boolean(uid),
+    });
     try {
       // Try local dataset first (1.84M branded foods), fall back to OpenFoodFacts
       let match =
@@ -514,7 +620,12 @@ export function useLoggingFlow() {
           (await lookupBarcodeDataset(upcA)) ?? (await lookupBarcodeOFF(upcA));
       }
 
-      if (!match) return false;
+      if (!match) {
+        addFoodLoggingBreadcrumb("food_logging.barcode_lookup_failed", {
+          reason: "not_found",
+        });
+        return false;
+      }
 
       const matchSource =
         match.source === "dataset" ? "dataset" : "openfoodfacts";
@@ -551,16 +662,32 @@ export function useLoggingFlow() {
         ],
       });
 
-      usePendingMealReviewStore.getState().commitPendingMealReviewFromStores();
+      addFoodLoggingBreadcrumb("food_logging.barcode_lookup_success", {
+        calories: match.nutrients.calories,
+      });
       return true;
     } catch (e) {
       console.warn("Barcode lookup failed:", e);
+      addFoodLoggingBreadcrumb("food_logging.barcode_lookup_failed", {
+        reason: "exception",
+      });
+      captureFoodLoggingError(e, {
+        flow: "barcode",
+        step: "barcode_lookup",
+        barcode,
+        userId: uid,
+        provider: "barcode_api",
+      });
+      reportError(e, {
+        area: "scan",
+        action: "useLoggingFlow_startFromBarcode_outer",
+        extra: { barcodeLength: barcode?.length },
+      });
       return false;
     }
   }
 
   function cancelLogging() {
-    usePendingMealReviewStore.getState().clearPendingMealReview("cancel_logging");
     clearDraft();
     router.dismiss();
   }

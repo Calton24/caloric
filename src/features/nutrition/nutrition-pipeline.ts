@@ -28,6 +28,7 @@ import { findBestMemoryMatch } from "./memory/food-memory.service";
 import type { MealDraft } from "./nutrition.draft.types";
 import { translateFoodAlias } from "./ontology/food-aliases";
 import { getMealEmoji } from "./ontology/food-emoji";
+import { formatFoodName } from "../../utils/formatFoodName";
 import { deduplicateItems } from "./parsing/dedup-items";
 import type { InputSource } from "./parsing/food-candidate.schema";
 import { parseNutritionInput } from "./parsing/nutrition-parser.service";
@@ -226,10 +227,10 @@ export function displayName(item: EstimatedFoodItem): string {
 
   // Use matched name if it's a real food name (not empty, not a generic fallback)
   if (matched && matched.length > 0 && matched.toLowerCase() !== "unknown") {
-    return matched;
+    return formatFoodName(matched);
   }
 
-  return parsed || "food";
+  return formatFoodName(parsed || "food");
 }
 
 // ─── Draft Conversion ────────────────────────────────────────────────────────

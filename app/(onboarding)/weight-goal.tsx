@@ -6,52 +6,192 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+import {
+    LayoutChangeEvent,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    View,
+} from "react-native";
+import Animated, {
+    FadeInDown,
+    FadeInUp,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUnits } from "../../hooks/useUnits";
 import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
 import { haptics } from "../../src/infrastructure/haptics";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
+import { convertWeight } from "../../src/lib/utils/units";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
-import { TButton } from "../../src/ui/primitives/TButton";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+import { OnboardingBackground } from "./_background";
+import { OnboardingCTA } from "./_cta";
 import { OnboardingHeader } from "./_progress";
 
-// Simple BMI helper (for demo — uses hardcoded 5'8" height)
-function getBmiCategory(weightLbs: number): {
+// ── Unit toggle (same as body.tsx) ──────────────────────────────
+
+type MeasurementSystem = "imperial" | "metric";
+
+function UnitToggle({
+  system,
+  onToggle,
+  theme,
+}: {
+  system: MeasurementSystem;
+  onToggle: (target: MeasurementSystem) => void;
+  theme: ReturnType<typeof useTheme>["theme"];
+}) {
+  const { t } = useAppTranslation();
+  const [containerWidth, setContainerWidth] = useState(0);
+  const padding = 4;
+  const halfWidth = containerWidth > 0 ? (containerWidth - padding * 2) / 2 : 0;
+  const slideX = useSharedValue(system === "imperial" ? 0 : halfWidth);
+
+  const indicatorStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: slideX.value }],
+    width: halfWidth > 0 ? halfWidth : "50%",
+  }));
+
+  const handleLayout = (e: LayoutChangeEvent) => {
+    const w = e.nativeEvent.layout.width;
+    setContainerWidth(w);
+    const half = (w - padding * 2) / 2;
+    slideX.value = system === "imperial" ? 0 : half;
+  };
+
+  const handlePress = (target: MeasurementSystem) => {
+    if (target === system) return;
+    const half = (containerWidth - padding * 2) / 2;
+    slideX.value = withTiming(target === "imperial" ? 0 : half, {
+      duration: 250,
+    });
+    onToggle(target);
+  };
+
+  return (
+    <GlassSurface intensity="light" style={styles.toggleRow}>
+      <View onLayout={handleLayout} style={styles.toggleInner}>
+        <Animated.View style={[styles.toggleIndicator, indicatorStyle]}>
+          <LinearGradient
+            colors={[theme.colors.primary, theme.colors.accent]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.toggleGradient}
+          />
+        </Animated.View>
+        <Pressable
+          onPress={() => handlePress("imperial")}
+          style={styles.toggleBtn}
+        >
+          <TText
+            style={[
+              styles.toggleText,
+              {
+                color:
+                  system === "imperial" ? "#fff" : theme.colors.textSecondary,
+              },
+            ]}
+          >
+            {t("onboarding.body.imperial")}
+          </TText>
+        </Pressable>
+        <Pressable
+          onPress={() => handlePress("metric")}
+          style={styles.toggleBtn}
+        >
+          <TText
+            style={[
+              styles.toggleText,
+              {
+                color:
+                  system === "metric" ? "#fff" : theme.colors.textSecondary,
+              },
+            ]}
+          >
+            {t("onboarding.body.metric")}
+          </TText>
+        </Pressable>
+      </View>
+    </GlassSurface>
+  );
+}
+
+// BMI helper using actual user height
+function getBmiCategory(
+  weightLbs: number,
+  heightCm: number | null
+): {
   label: string;
   color: string;
 } {
-  const heightM = 1.73; // ~5'8"
+  const heightM = heightCm ? heightCm / 100 : 1.73; // fallback ~5'8"
   const weightKg = weightLbs * 0.4536;
   const bmi = weightKg / (heightM * heightM);
-  if (bmi < 18.5) return { label: "Underweight", color: "#60A5FA" };
-  if (bmi < 25) return { label: "Normal", color: "#34D399" };
-  if (bmi < 30) return { label: "Overweight", color: "#FBBF24" };
-  return { label: "Obese", color: "#F87171" };
+  if (bmi < 18.5)
+    return { label: "onboarding.weightGoal.underweight", color: "#60A5FA" };
+  if (bmi < 25)
+    return { label: "onboarding.weightGoal.normal", color: "#34D399" };
+  if (bmi < 30)
+    return { label: "onboarding.weightGoal.overweight", color: "#FBBF24" };
+  return { label: "onboarding.weightGoal.obese", color: "#F87171" };
 }
 
 export default function OnboardingWeightGoalScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const units = useUnits();
   const router = useRouter();
-  const { profile, saveGoalWeight } = useOnboarding();
+  const { profile, goalType, saveGoalWeight } = useOnboarding();
   const currentWeight = Number(units.display(profile.currentWeightLbs ?? 160));
-  const [goalWeight, setGoalWeight] = useState(
-    Number(
-      units.display(
-        profile.goalWeightLbs ??
-          Math.round((profile.currentWeightLbs ?? 160) * 0.9)
-      )
-    )
-  );
 
-  const diff = currentWeight - goalWeight;
-  const bmi = getBmiCategory(units.toLbs(goalWeight));
+  // Sensible absolute bounds (in display units)
+  const MIN_WEIGHT = units.isMetric ? 30 : 66;
+  const MAX_WEIGHT = units.isMetric ? 250 : 550;
+  const step = units.step; // 0.1 kg or 1 lb
+
+  // Smart default based on goal direction
+  const defaultGoal = (() => {
+    if (profile.goalWeightLbs) {
+      return Number(units.display(profile.goalWeightLbs));
+    }
+    const cw = profile.currentWeightLbs ?? 160;
+    switch (goalType) {
+      case "gain":
+        return Number(units.display(Math.round(cw * 1.1)));
+      case "maintain":
+        return Number(units.display(cw));
+      case "lose":
+      default:
+        return Number(units.display(Math.round(cw * 0.9)));
+    }
+  })();
+
+  const [goalWeight, setGoalWeight] = useState(defaultGoal);
+
+  const system: MeasurementSystem = units.isMetric ? "metric" : "imperial";
+
+  const handleUnitToggle = (target: MeasurementSystem) => {
+    // Convert current goalWeight to lbs first, then to the new display unit
+    const inLbs = units.toLbs(goalWeight);
+    const newUnit = target === "metric" ? "kg" : "lbs";
+    units.setWeightUnit(newUnit);
+    // Convert manually since hooks won't re-derive synchronously within this handler
+    const converted = Number(convertWeight(inLbs, newUnit).toFixed(1));
+    setGoalWeight(converted);
+  };
+
+  const diff = Math.round((currentWeight - goalWeight) * 10) / 10;
+  const absDiff = Math.abs(diff);
+  const bmi = getBmiCategory(units.toLbs(goalWeight), profile.heightCm);
 
   // Bar heights (relative to max)
   const maxBar = Math.max(currentWeight, goalWeight);
@@ -59,24 +199,20 @@ export default function OnboardingWeightGoalScreen() {
   const goalPct = (goalWeight / maxBar) * 100;
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <OnboardingBackground>
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <OnboardingHeader step={4} total={7} theme={theme} />
+
         <ScrollView
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
         >
-          <OnboardingHeader step={4} total={6} theme={theme} />
-
-          <TSpacer size="xl" />
-
           <Animated.View entering={FadeInDown.duration(500).delay(100)}>
             <TText
               variant="heading"
               style={[styles.heading, { color: theme.colors.text }]}
             >
-              What&apos;s your{"\n"}goal weight?
+              {t("onboarding.weightGoal.heading")}
             </TText>
           </Animated.View>
 
@@ -84,19 +220,33 @@ export default function OnboardingWeightGoalScreen() {
 
           <Animated.View entering={FadeInDown.duration(500).delay(200)}>
             <TText color="secondary" style={styles.description}>
-              Set a target that feels right for you.
+              {t("onboarding.weightGoal.description")}
             </TText>
           </Animated.View>
 
           <TSpacer size="xl" />
 
+          {/* ── Unit toggle ── */}
+          <Animated.View entering={FadeInDown.duration(400).delay(250)}>
+            <UnitToggle
+              system={system}
+              onToggle={handleUnitToggle}
+              theme={theme}
+            />
+          </Animated.View>
+
+          <TSpacer size="xl" />
+
           {/* ── Weight stepper ── */}
-          <Animated.View entering={FadeInDown.duration(400).delay(300)}>
+          <Animated.View entering={FadeInDown.duration(400).delay(350)}>
             <GlassSurface intensity="light" style={styles.stepperCard}>
               <Pressable
                 onPress={() => {
                   haptics.impact("light");
-                  setGoalWeight(Math.max(80, goalWeight - 1));
+                  setGoalWeight(
+                    Math.round(Math.max(MIN_WEIGHT, goalWeight - step) * 10) /
+                      10
+                  );
                 }}
                 style={[
                   styles.stepperBtn,
@@ -130,14 +280,19 @@ export default function OnboardingWeightGoalScreen() {
                     style={[styles.bmiDot, { backgroundColor: bmi.color }]}
                   />
                   <TText style={[styles.bmiLabel, { color: bmi.color }]}>
-                    BMI: {bmi.label}
+                    {t("onboarding.weightGoal.bmiDisplay", {
+                      label: t(bmi.label),
+                    })}
                   </TText>
                 </View>
               </View>
               <Pressable
                 onPress={() => {
                   haptics.impact("light");
-                  setGoalWeight(Math.min(400, goalWeight + 1));
+                  setGoalWeight(
+                    Math.round(Math.min(MAX_WEIGHT, goalWeight + step) * 10) /
+                      10
+                  );
                 }}
                 style={[
                   styles.stepperBtn,
@@ -152,7 +307,7 @@ export default function OnboardingWeightGoalScreen() {
           <TSpacer size="xl" />
 
           {/* ── Visual comparison bars ── */}
-          <Animated.View entering={FadeInUp.duration(500).delay(450)}>
+          <Animated.View entering={FadeInUp.duration(500).delay(500)}>
             <GlassSurface intensity="light" style={styles.chartCard}>
               <TText
                 style={[
@@ -160,14 +315,17 @@ export default function OnboardingWeightGoalScreen() {
                   { color: theme.colors.textSecondary },
                 ]}
               >
-                Weight comparison
+                {t("onboarding.weightGoal.comparison")}
               </TText>
               <TSpacer size="md" />
               <View style={styles.barChart}>
                 {/* Current */}
                 <View style={styles.barCol}>
                   <TText
-                    style={[styles.barValue, { color: theme.colors.primary }]}
+                    style={[
+                      styles.barValue,
+                      { color: theme.colors.textSecondary },
+                    ]}
                   >
                     {currentWeight}
                   </TText>
@@ -177,7 +335,7 @@ export default function OnboardingWeightGoalScreen() {
                         styles.bar,
                         {
                           height: `${currentPct}%`,
-                          backgroundColor: theme.colors.primary,
+                          backgroundColor: theme.colors.textMuted + "44",
                           borderRadius: 8,
                         },
                       ]}
@@ -186,14 +344,14 @@ export default function OnboardingWeightGoalScreen() {
                   <TText
                     style={[styles.barLabel, { color: theme.colors.textMuted }]}
                   >
-                    Current
+                    {t("onboarding.weightGoal.current")}
                   </TText>
                 </View>
 
                 {/* Goal */}
                 <View style={styles.barCol}>
                   <TText
-                    style={[styles.barValue, { color: theme.colors.success }]}
+                    style={[styles.barValue, { color: theme.colors.accent }]}
                   >
                     {goalWeight}
                   </TText>
@@ -203,16 +361,19 @@ export default function OnboardingWeightGoalScreen() {
                         styles.bar,
                         {
                           height: `${goalPct}%`,
-                          backgroundColor: theme.colors.success,
+                          backgroundColor: theme.colors.accent,
                           borderRadius: 8,
                         },
                       ]}
                     />
                   </View>
                   <TText
-                    style={[styles.barLabel, { color: theme.colors.textMuted }]}
+                    style={[
+                      styles.barLabel,
+                      { color: theme.colors.textMuted, fontWeight: "700" },
+                    ]}
                   >
-                    Goal
+                    {t("onboarding.weightGoal.goal")}
                   </TText>
                 </View>
               </View>
@@ -223,18 +384,71 @@ export default function OnboardingWeightGoalScreen() {
                   <View
                     style={[
                       styles.diffPill,
-                      { backgroundColor: theme.colors.success + "1A" },
+                      { backgroundColor: theme.colors.accent + "1A" },
                     ]}
                   >
                     <Ionicons
                       name="arrow-down"
                       size={16}
-                      color={theme.colors.success}
+                      color={theme.colors.accent}
                     />
                     <TText
-                      style={[styles.diffText, { color: theme.colors.success }]}
+                      style={[styles.diffText, { color: theme.colors.accent }]}
                     >
-                      {diff} {units.label} to lose
+                      {t("onboarding.weightGoal.toLose", {
+                        count: absDiff,
+                        unit: units.label,
+                      })}
+                    </TText>
+                  </View>
+                </>
+              )}
+              {diff < 0 && (
+                <>
+                  <TSpacer size="md" />
+                  <View
+                    style={[
+                      styles.diffPill,
+                      { backgroundColor: theme.colors.primary + "1A" },
+                    ]}
+                  >
+                    <Ionicons
+                      name="arrow-up"
+                      size={16}
+                      color={theme.colors.primary}
+                    />
+                    <TText
+                      style={[styles.diffText, { color: theme.colors.primary }]}
+                    >
+                      {t("onboarding.weightGoal.toGain", {
+                        count: absDiff,
+                        unit: units.label,
+                      })}
+                    </TText>
+                  </View>
+                </>
+              )}
+              {diff === 0 && (
+                <>
+                  <TSpacer size="md" />
+                  <View
+                    style={[
+                      styles.diffPill,
+                      { backgroundColor: theme.colors.textMuted + "1A" },
+                    ]}
+                  >
+                    <Ionicons
+                      name="checkmark"
+                      size={16}
+                      color={theme.colors.textSecondary}
+                    />
+                    <TText
+                      style={[
+                        styles.diffText,
+                        { color: theme.colors.textSecondary },
+                      ]}
+                    >
+                      {t("onboarding.weightGoal.atTarget")}
                     </TText>
                   </View>
                 </>
@@ -246,20 +460,17 @@ export default function OnboardingWeightGoalScreen() {
         </ScrollView>
 
         {/* Bottom CTA */}
-        <View style={styles.footer}>
-          <TButton
-            onPress={() => {
-              saveGoalWeight(units.toLbs(goalWeight));
-              router.push("/(onboarding)/timeframe" as any);
-            }}
-            size="lg"
-            testID="onboarding-next-weight"
-          >
-            Continue
-          </TButton>
-        </View>
+        <OnboardingCTA
+          label={t("common.continue")}
+          onPress={() => {
+            saveGoalWeight(units.toLbs(goalWeight));
+            router.push("/(onboarding)/timeframe" as any);
+          }}
+          theme={theme}
+          testID="onboarding-next-weight"
+        />
       </SafeAreaView>
-    </View>
+    </OnboardingBackground>
   );
 }
 
@@ -269,16 +480,16 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 16,
   },
   heading: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "800",
-    lineHeight: 40,
+    lineHeight: 34,
+    letterSpacing: -0.3,
   },
   description: {
-    fontSize: 17,
-    lineHeight: 24,
+    fontSize: 16,
+    lineHeight: 22,
   },
   stepperCard: {
     flexDirection: "row",
@@ -375,8 +586,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  footer: {
-    paddingHorizontal: 24,
-    paddingBottom: 8,
+  toggleRow: {
+    borderRadius: 14,
+    padding: 4,
+  },
+  toggleInner: {
+    flexDirection: "row",
+    position: "relative",
+  },
+  toggleIndicator: {
+    position: "absolute",
+    top: 4,
+    left: 4,
+    bottom: 4,
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  toggleGradient: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 10,
+  },
+  toggleBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: "center",
+    borderRadius: 10,
+    zIndex: 1,
+  },
+  toggleText: {
+    fontSize: 15,
+    fontWeight: "600",
   },
 });

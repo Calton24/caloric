@@ -18,7 +18,7 @@ import i18next from "i18next";
 
 /** Map i18n language codes to BCP 47 locale tags for Intl */
 function getIntlLocale(): string {
-  const lang = i18next.language ?? "en";
+  const lang = i18next.language ?? "en-GB";
   // Intl expects BCP 47 tags — our codes are already valid
   return lang;
 }
@@ -64,5 +64,103 @@ export function formatDate(date: Date): string {
     }).format(date);
   } catch {
     return date.toLocaleDateString();
+  }
+}
+
+/**
+ * Format a Date with weekday name, e.g. "Friday", "viernes", "Freitag".
+ */
+export function formatWeekdayLong(date: Date): string {
+  try {
+    return new Intl.DateTimeFormat(getIntlLocale(), {
+      weekday: "long",
+    }).format(date);
+  } catch {
+    return date.toLocaleDateString(undefined, { weekday: "long" });
+  }
+}
+
+/**
+ * Format a Date with short weekday, e.g. "Fri", "vie", "Fr".
+ */
+export function formatWeekdayShort(date: Date): string {
+  try {
+    return new Intl.DateTimeFormat(getIntlLocale(), {
+      weekday: "short",
+    }).format(date);
+  } catch {
+    return date.toLocaleDateString(undefined, { weekday: "short" });
+  }
+}
+
+/**
+ * Format a Date as "month day" e.g. "Mar 7", "7 mars", "7. März".
+ */
+export function formatMonthDay(date: Date): string {
+  try {
+    return new Intl.DateTimeFormat(getIntlLocale(), {
+      month: "short",
+      day: "numeric",
+    }).format(date);
+  } catch {
+    return date.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+    });
+  }
+}
+
+/**
+ * Format a Date as "month day, year" e.g. "Mar 7, 2026".
+ */
+export function formatMonthDayYear(date: Date): string {
+  try {
+    return new Intl.DateTimeFormat(getIntlLocale(), {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(date);
+  } catch {
+    return date.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+}
+
+/**
+ * Format a Date with full month and year, e.g. "June 2025".
+ */
+export function formatMonthYear(date: Date): string {
+  try {
+    return new Intl.DateTimeFormat(getIntlLocale(), {
+      month: "long",
+      year: "numeric",
+    }).format(date);
+  } catch {
+    return date.toLocaleDateString(undefined, {
+      month: "long",
+      year: "numeric",
+    });
+  }
+}
+
+/**
+ * Format a Date as "weekday, month day" e.g. "Friday, Mar 7".
+ */
+export function formatDateHeader(date: Date): string {
+  try {
+    return new Intl.DateTimeFormat(getIntlLocale(), {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+    }).format(date);
+  } catch {
+    return date.toLocaleDateString(undefined, {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+    });
   }
 }

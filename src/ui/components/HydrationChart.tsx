@@ -8,12 +8,13 @@
 import React, { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withTiming,
+    Easing,
+    useAnimatedStyle,
+    useSharedValue,
+    withDelay,
+    withTiming,
 } from "react-native-reanimated";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -111,6 +112,7 @@ export function HydrationChart({
   barHeight = 100,
 }: HydrationChartProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const maxAmount = Math.max(goal * 1.2, ...data.map((d) => d.amount));
   const totalWeek = data.reduce((sum, d) => sum + d.amount, 0);
   const daysLogged = data.filter((d) => d.amount > 0).length;
@@ -130,19 +132,19 @@ export function HydrationChart({
       <View style={styles.header}>
         <View>
           <TText style={[styles.title, { color: theme.colors.textMuted }]}>
-            Hydration Stats
+            {t("analytics.hydrationStats")}
           </TText>
           <TText style={[styles.avg, { color: theme.colors.text }]}>
             {avgDaily.toFixed(1)}
             <TText style={[styles.avgUnit, { color: theme.colors.textMuted }]}>
               {" "}
-              {unit} avg
+              {unit} {t("analytics.avgLabel")}
             </TText>
           </TText>
         </View>
         <View style={[styles.badge, { backgroundColor: `${WATER_COLOR}20` }]}>
           <TText style={[styles.badgeText, { color: WATER_COLOR }]}>
-            This week
+            {t("analytics.thisWeek")}
           </TText>
         </View>
       </View>
@@ -167,13 +169,13 @@ export function HydrationChart({
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: WATER_COLOR }]} />
           <TText style={[styles.legendText, { color: theme.colors.textMuted }]}>
-            Met goal
+            {t("analytics.metGoal")}
           </TText>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: WATER_LIGHT }]} />
           <TText style={[styles.legendText, { color: theme.colors.textMuted }]}>
-            Below goal
+            {t("analytics.belowGoal")}
           </TText>
         </View>
       </View>

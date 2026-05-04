@@ -23,6 +23,7 @@ import Animated, {
     withDelay,
     withTiming,
 } from "react-native-reanimated";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -145,6 +146,7 @@ export function SleepChart({
   style,
 }: SleepChartProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const colors = { ...DEFAULT_COLORS, ...stageColors };
   const maxHours = Math.max(
     goalHours,
@@ -167,14 +169,14 @@ export function SleepChart({
       <View style={styles.headerRow}>
         <View>
           <TText color="secondary" style={styles.title}>
-            Sleep
+            {t("analytics.sleep")}
           </TText>
           {averageHours !== undefined && (
             <TText style={[styles.bigValue, { color: theme.colors.text }]}>
               {averageHours.toFixed(1)}
               <TText style={[styles.unit, { color: theme.colors.textMuted }]}>
                 {" "}
-                hrs avg
+                {t("analytics.hrsAvg")}
               </TText>
             </TText>
           )}
@@ -211,7 +213,7 @@ export function SleepChart({
             <TText
               style={[styles.qualityLabel, { color: theme.colors.textMuted }]}
             >
-              quality
+              {t("analytics.quality")}
             </TText>
           </View>
         )}

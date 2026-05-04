@@ -84,7 +84,7 @@ export function TButton({
               : backgroundColor,
           borderColor,
           borderWidth: variant === "outline" ? 1 : 0,
-          borderRadius: theme.radius.md,
+          borderRadius: theme.radius.full,
           paddingVertical,
           paddingHorizontal,
           opacity: isDisabled ? 0.5 : 1,

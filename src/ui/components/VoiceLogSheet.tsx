@@ -13,20 +13,21 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import type { SharedValue } from "react-native-reanimated";
 import Animated, {
-  Easing,
-  FadeIn,
-  FadeInDown,
-  FadeOut,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
-  withTiming,
+    Easing,
+    FadeIn,
+    FadeInDown,
+    FadeOut,
+    interpolate,
+    useAnimatedStyle,
+    useSharedValue,
+    withDelay,
+    withRepeat,
+    withSequence,
+    withTiming,
 } from "react-native-reanimated";
 import { useLoggingFlow } from "../../features/nutrition/use-logging-flow";
 import { useVoiceCapture } from "../../features/voice";
+import { useAppTranslation } from "../../infrastructure/i18n";
 import { useTheme } from "../../theme/useTheme";
 import { GlassSurface } from "../glass/GlassSurface";
 import { TSpacer } from "../primitives/TSpacer";
@@ -42,6 +43,7 @@ interface VoiceLogSheetProps {
 
 export function VoiceLogSheet({ onClose }: VoiceLogSheetProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const { startFromInput } = useLoggingFlow();
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingError, setProcessingError] = useState<string | null>(null);
@@ -100,14 +102,12 @@ export function VoiceLogSheet({ onClose }: VoiceLogSheetProps) {
           onClose();
         } else {
           setIsProcessing(false);
-          setProcessingError(
-            'No food detected. Try saying just the food, e.g. "chicken and rice".'
-          );
+          setProcessingError(t("voiceLog.noFoodDetected"));
           hasProcessed.current = false;
         }
       } catch {
         setIsProcessing(false);
-        setProcessingError("Couldn't look up nutrition. Tap retry.");
+        setProcessingError(t("voiceLog.lookupFailed"));
         hasProcessed.current = false;
       }
     })();
@@ -345,7 +345,7 @@ export function VoiceLogSheet({ onClose }: VoiceLogSheetProps) {
               ]}
             />
             <TText style={[styles.statusLabel, { color: theme.colors.error }]}>
-              Listening
+              {t("voiceLog.listening")}
             </TText>
           </View>
 
@@ -375,7 +375,7 @@ export function VoiceLogSheet({ onClose }: VoiceLogSheetProps) {
                   { color: theme.colors.textMuted },
                 ]}
               >
-                Describe what you ate…
+                {t("voiceLog.describeFood")}
               </TText>
             )}
           </GlassSurface>
@@ -383,7 +383,7 @@ export function VoiceLogSheet({ onClose }: VoiceLogSheetProps) {
           <TSpacer size="sm" />
 
           <TText style={[styles.hint, { color: theme.colors.textMuted }]}>
-            Tap mic to finish early
+            {t("voiceLog.tapMicFinish")}
           </TText>
 
           {/* Retry CTA — appears after 6s */}
@@ -414,7 +414,7 @@ export function VoiceLogSheet({ onClose }: VoiceLogSheetProps) {
                         { color: theme.colors.primary },
                       ]}
                     >
-                      Try Again
+                      {t("voiceLog.tryAgain")}
                     </TText>
                   </GlassSurface>
                 )}
@@ -449,7 +449,7 @@ export function VoiceLogSheet({ onClose }: VoiceLogSheetProps) {
                 { color: theme.colors.textSecondary },
               ]}
             >
-              Looking up nutrition…
+              {t("voiceLog.lookingUpNutrition")}
             </TText>
           </View>
         </Animated.View>
@@ -481,14 +481,14 @@ export function VoiceLogSheet({ onClose }: VoiceLogSheetProps) {
             <TSpacer size="sm" />
 
             <TText style={[styles.errorTitle, { color: theme.colors.text }]}>
-              {error || processingError || "Something went wrong"}
+              {error || processingError || t("common.error")}
             </TText>
 
             {retryCount > 0 && (
               <TText
                 style={[styles.errorHint, { color: theme.colors.textMuted }]}
               >
-                Try speaking more clearly or use simpler descriptions
+                {t("voiceLog.errorHint")}
               </TText>
             )}
 
@@ -516,7 +516,7 @@ export function VoiceLogSheet({ onClose }: VoiceLogSheetProps) {
                   <TText
                     style={[styles.retryText, { color: theme.colors.primary }]}
                   >
-                    Try Again
+                    {t("voiceLog.tryAgain")}
                   </TText>
                 </GlassSurface>
               )}

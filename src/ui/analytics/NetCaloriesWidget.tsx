@@ -22,6 +22,7 @@ import Animated, {
     withTiming,
 } from "react-native-reanimated";
 import Svg, { Circle } from "react-native-svg";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { TBadge } from "../primitives/TBadge";
 import { TText } from "../primitives/TText";
@@ -63,6 +64,7 @@ export function NetCaloriesWidget({
   style,
 }: NetCaloriesWidgetProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
 
   // ── Derived values ──
   const effectiveBonus = capBonus
@@ -124,7 +126,9 @@ export function NetCaloriesWidget({
             </TText>
           )}
         </View>
-        {isOverBudget && <TBadge label="Over" tone="error" size="sm" />}
+        {isOverBudget && (
+          <TBadge label={t("analytics.over")} tone="error" size="sm" />
+        )}
       </View>
 
       {/* ── Body: left info + right ring ── */}
@@ -153,19 +157,19 @@ export function NetCaloriesWidget({
           {/* Detail rows */}
           <View style={styles.detailRows}>
             <DetailRow
-              label="Budget"
+              label={t("analytics.budget")}
               value={`${baseGoal.toLocaleString()} + ${effectiveBonus.toLocaleString()}`}
               valueColor={theme.colors.text}
               labelColor={theme.colors.textMuted}
             />
             <DetailRow
-              label="Consumed"
+              label={t("analytics.consumed")}
               value={consumed.toLocaleString()}
               valueColor={isOverBudget ? theme.colors.error : theme.colors.text}
               labelColor={theme.colors.textMuted}
             />
             <DetailRow
-              label="Earned"
+              label={t("analytics.earned")}
               value={`+${effectiveBonus.toLocaleString()}`}
               valueColor={theme.colors.success}
               labelColor={theme.colors.textMuted}
@@ -219,8 +223,11 @@ export function NetCaloriesWidget({
         ]}
       >
         <TText style={[styles.equationText, { color: theme.colors.textMuted }]}>
-          {baseGoal.toLocaleString()} base + {effectiveBonus.toLocaleString()}{" "}
-          earned = {budget.toLocaleString()} total
+          {t("analytics.budgetEquation", {
+            base: baseGoal.toLocaleString(),
+            earned: effectiveBonus.toLocaleString(),
+            total: budget.toLocaleString(),
+          })}
         </TText>
       </View>
     </View>

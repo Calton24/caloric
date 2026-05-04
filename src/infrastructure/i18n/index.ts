@@ -3,11 +3,14 @@
  */
 
 // ── Bootstrap (called once in CaloricProviders) ──
-export { getDeviceLocale, initI18n, resetI18n } from "./init";
+export { bootstrapI18nSync, getDeviceLocale, initI18n, resetI18n } from "./init";
 
 // ── Constants ──
 export {
-    LANGUAGE_LABELS, SUPPORTED_LANGUAGES, clearPersistedLanguage, persistLanguage
+    LANGUAGE_LABELS,
+    SUPPORTED_LANGUAGES,
+    clearPersistedLanguage,
+    persistLanguage
 } from "./init";
 export type { SupportedLanguage } from "./init";
 
@@ -15,5 +18,23 @@ export type { SupportedLanguage } from "./init";
 export { useAppTranslation } from "./useAppTranslation";
 
 // ── Formatting utilities ──
-export { formatCurrency, formatDate, formatNumber } from "./format";
+export {
+    formatCurrency,
+    formatDate,
+    formatDateHeader,
+    formatMonthDay,
+    formatMonthDayYear,
+    formatMonthYear,
+    formatNumber,
+    formatWeekdayLong,
+    formatWeekdayShort
+} from "./format";
+
+// ── Generated types (for advanced usage — most code just uses useAppTranslation) ──
+export type {
+    ParamTranslationKey,
+    SimpleTranslationKey,
+    TranslationKey,
+    TranslationParams
+} from "./types.generated";
 

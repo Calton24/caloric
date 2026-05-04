@@ -2,19 +2,6 @@
   "app": {
     "title": "Caloric"
   },
-  "auth": {
-    "signIn": "Zaloguj się",
-    "signUp": "Zarejestruj się",
-    "signOut": "Wyloguj się",
-    "email": "E-mail",
-    "password": "Hasło",
-    "confirmPassword": "Potwierdź hasło",
-    "forgotPassword": "Zapomniałeś hasła?",
-    "createAccount": "Utwórz konto",
-    "welcome": "Witaj",
-    "signInToContinue": "Zaloguj się, aby kontynuować",
-    "signUpToGetStarted": "Zarejestruj się, aby rozpocząć"
-  },
   "common": {
     "cancel": "Anuluj",
     "save": "Zapisz",
@@ -27,13 +14,43 @@
     "ok": "OK",
     "error": "Błąd",
     "success": "Sukces",
-    "retry": "Ponów"
+    "retry": "Spróbuj ponownie",
+    "continue": "Kontynuuj",
+    "letsGo": "Zaczynajmy!",
+    "weeks": "Tygodnie",
+    "years": "lat",
+    "recommended": "Rekomendowane",
+    "email": "E-mail",
+    "processing": "Przetwarzanie...",
+    "language": "Language",
+    "notNow": "Not now",
+    "search": "Search",
+    "like": "LIKE",
+    "nope": "NOPE",
+    "now": "now",
+    "optionsA11y": "{{label}} options"
   },
   "calories": {
     "label": "Kalorie",
     "value_one": "{{count}} kaloria",
+    "value_other": "{{count}} kalorii",
     "value_few": "{{count}} kalorie",
-    "value_many": "{{count}} kalorii",
-    "value_other": "{{count}} kalorii"
+    "value_many": "{{count}} kalorii"
+  },
+  "tabs": {
+    "home": "Strona główna",
+    "notes": "Notatki",
+    "auth": "Konto",
+    "playground": "Plac zabaw",
+    "caloric": "Caloric"
+  },
+  "days": {
+    "monShort": "P",
+    "tueShort": "W",
+    "wedShort": "Ś",
+    "thuShort": "C",
+    "friShort": "P",
+    "satShort": "S",
+    "sunShort": "N"
   }
 }

@@ -17,6 +17,7 @@ import {
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
 import { AuthCapabilities } from "../../src/features/auth/authCapabilities";
 import { useAuth } from "../../src/features/auth/useAuth";
+import { useAppTranslation } from "../../src/infrastructure/i18n";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassCard } from "../../src/ui/glass/GlassCard";
 import { TButton } from "../../src/ui/primitives/TButton";
@@ -26,6 +27,7 @@ import { TText } from "../../src/ui/primitives/TText";
 
 export default function AuthScreen() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const {
     signIn,
     signUp,
@@ -51,7 +53,7 @@ export default function AuthScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Please enter email and password");
+      Alert.alert(t("common.error"), t("auth.enterEmailPassword"));
       return;
     }
 
@@ -59,7 +61,7 @@ export default function AuthScreen() {
     try {
       const { error } = await signIn(email, password);
       if (error) {
-        Alert.alert("Sign In Failed", error.message);
+        Alert.alert(t("auth.signInFailed"), error.message);
       } else {
         // Route through index so auth + onboarding state is evaluated once.
         router.replace("/");
@@ -71,17 +73,17 @@ export default function AuthScreen() {
 
   const handleSignUpSubmit = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Please enter email and password");
+      Alert.alert(t("common.error"), t("auth.enterEmailPassword"));
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
+      Alert.alert(t("common.error"), t("auth.passwordsMismatch"));
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert("Error", "Password must be at least 6 characters");
+      Alert.alert(t("common.error"), t("auth.passwordTooShort"));
       return;
     }
 
@@ -89,7 +91,7 @@ export default function AuthScreen() {
     try {
       const { error } = await signUp(email, password);
       if (error) {
-        Alert.alert("Sign Up Failed", error.message);
+        Alert.alert(t("auth.signUpFailed"), error.message);
       } else {
         setSignUpSuccess(true);
       }
@@ -120,7 +122,7 @@ export default function AuthScreen() {
 
   const handleGoogleSignIn = async () => {
     if (!AuthCapabilities.google) {
-      Alert.alert("Unavailable", "Google sign-in is disabled for this app.");
+      Alert.alert(t("auth.unavailable"), t("auth.googleUnavailable"));
       return;
     }
     setLoading(true);
@@ -128,7 +130,7 @@ export default function AuthScreen() {
       const { error } = await signInWithGoogleNative();
       if (error) {
         if (error.message !== "User cancelled") {
-          Alert.alert("Error", error.message);
+          Alert.alert(t("common.error"), error.message);
         }
         return;
       }
@@ -140,7 +142,7 @@ export default function AuthScreen() {
 
   const handleAppleSignIn = async () => {
     if (!AuthCapabilities.apple) {
-      Alert.alert("Unavailable", "Apple sign-in is disabled for this app.");
+      Alert.alert(t("auth.unavailable"), t("auth.appleUnavailable"));
       return;
     }
     setLoading(true);
@@ -148,7 +150,7 @@ export default function AuthScreen() {
       const { error } = await signInWithAppleNative();
       if (error) {
         if (error.message !== "User cancelled") {
-          Alert.alert("Error", error.message);
+          Alert.alert(t("common.error"), error.message);
         }
         return;
       }
@@ -176,7 +178,7 @@ export default function AuthScreen() {
         edges={["top"]}
       >
         <View style={styles.signedInContainer}>
-          <TText variant="heading">Signed In</TText>
+          <TText variant="heading">{t("auth.signedIn")}</TText>
           <TSpacer size="md" />
           <TText color="secondary">{user.email}</TText>
           <TSpacer size="xl" />
@@ -186,7 +188,7 @@ export default function AuthScreen() {
             loading={loading}
             disabled={loading}
           >
-            Sign Out
+            {t("auth.signOut")}
           </TButton>
         </View>
       </SafeAreaView>
@@ -255,22 +257,20 @@ export default function AuthScreen() {
           <TSpacer size="xl" />
 
           <TText variant="heading" style={styles.successTitle}>
-            Account Created!
+            {t("auth.accountCreated")}
           </TText>
 
           <TSpacer size="md" />
 
           <TText color="secondary" style={styles.successMessage}>
-            We've sent a verification link to{"\n"}
-            <TText style={{ fontWeight: "600" }}>{email}</TText>
-            {"\n\n"}Check your inbox and verify your email, then sign in below.
+            {t("auth.verificationSent", { email })}
           </TText>
 
           <TSpacer size="xl" />
 
           <View style={styles.successActions}>
             <TButton testID="go-to-sign-in-button" onPress={handleGoToSignIn}>
-              Go to Sign In
+              {t("auth.goToSignIn")}
             </TButton>
           </View>
         </View>
@@ -333,11 +333,13 @@ export default function AuthScreen() {
             {/* Header */}
             <View style={styles.header}>
               <TText variant="heading" style={styles.title}>
-                {isSignUp ? "Create Account" : "Welcome"}
+                {isSignUp ? t("auth.createAccount") : t("auth.welcome")}
               </TText>
               <TSpacer size="sm" />
               <TText color="secondary">
-                {isSignUp ? "Sign up to get started" : "Sign in to continue"}
+                {isSignUp
+                  ? t("auth.signUpToGetStarted")
+                  : t("auth.signInToContinue")}
               </TText>
             </View>
 
@@ -346,18 +348,18 @@ export default function AuthScreen() {
             {/* Auth Form */}
             <GlassCard style={styles.formCard}>
               <TText variant="heading">
-                {isSignUp ? "Sign Up" : "Sign In"}
+                {isSignUp ? t("auth.signUp") : t("auth.signIn")}
               </TText>
               <TSpacer size="lg" />
 
               {/* Email Input */}
               <TText color="secondary" style={styles.label}>
-                Email
+                {t("auth.email")}
               </TText>
               <TSpacer size="xs" />
               <TInput
                 testID="email-input"
-                placeholder="Enter your email"
+                placeholder={t("auth.enterEmailPlaceholder")}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -369,12 +371,12 @@ export default function AuthScreen() {
 
               {/* Password Input */}
               <TText color="secondary" style={styles.label}>
-                Password
+                {t("auth.password")}
               </TText>
               <TSpacer size="xs" />
               <TInput
                 testID="password-input"
-                placeholder="Enter your password"
+                placeholder={t("auth.enterPasswordPlaceholder")}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
@@ -387,12 +389,12 @@ export default function AuthScreen() {
               {isSignUp && (
                 <>
                   <TText color="secondary" style={styles.label}>
-                    Confirm Password
+                    {t("auth.confirmPassword")}
                   </TText>
                   <TSpacer size="xs" />
                   <TInput
                     testID="confirm-password-input"
-                    placeholder="Confirm your password"
+                    placeholder={t("auth.confirmPasswordPlaceholder")}
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     secureTextEntry
@@ -410,7 +412,7 @@ export default function AuthScreen() {
                     size="sm"
                   >
                     <TText color="primary" style={styles.forgotText}>
-                      Forgot Password?
+                      {t("auth.forgotPassword")}
                     </TText>
                   </TButton>
                 </View>
@@ -425,7 +427,7 @@ export default function AuthScreen() {
                 loading={loading}
                 disabled={loading}
               >
-                {isSignUp ? "Create Account" : "Sign In"}
+                {isSignUp ? t("auth.createAccount") : t("auth.signIn")}
               </TButton>
 
               <TSpacer size="md" />
@@ -434,8 +436,8 @@ export default function AuthScreen() {
               <View style={styles.signUpContainer}>
                 <TText color="secondary">
                   {isSignUp
-                    ? "Already have an account? "
-                    : "Don't have an account? "}
+                    ? t("auth.alreadyHaveAccountShort")
+                    : t("auth.dontHaveAccount")}{" "}
                 </TText>
                 <TButton
                   testID="toggle-auth-mode"
@@ -443,7 +445,7 @@ export default function AuthScreen() {
                   variant="ghost"
                 >
                   <TText color="primary" style={styles.signUpText}>
-                    {isSignUp ? "Sign In" : "Sign Up"}
+                    {isSignUp ? t("auth.signIn") : t("auth.signUp")}
                   </TText>
                 </TButton>
               </View>
@@ -456,7 +458,7 @@ export default function AuthScreen() {
 
                 <GlassCard style={styles.socialCard}>
                   <TText variant="heading" style={styles.orText}>
-                    Or continue with
+                    {t("auth.orContinueWith")}
                   </TText>
                   <TSpacer size="md" />
 
@@ -473,7 +475,7 @@ export default function AuthScreen() {
                           color={theme.colors.text}
                         />
                         <View style={{ width: 12 }} />
-                        <TText>Continue with Google</TText>
+                        <TText>{t("auth.continueWithGoogle")}</TText>
                       </View>
                     </TButton>
                   )}
@@ -493,7 +495,7 @@ export default function AuthScreen() {
                           color={theme.colors.text}
                         />
                         <View style={{ width: 12 }} />
-                        <TText>Continue with Apple</TText>
+                        <TText>{t("auth.continueWithApple")}</TText>
                       </View>
                     </TButton>
                   )}

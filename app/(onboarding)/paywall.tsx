@@ -32,6 +32,13 @@ import Animated, {
     withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import {
+    getPaywallCtaCopy,
+    trackExperimentClick,
+    trackExperimentConversion,
+    trackExperimentExposure,
+    useExperiment,
+} from "../../src/experiments";
 import { useAuth } from "../../src/features/auth/useAuth";
 import { buildNewChallenge } from "../../src/features/challenge/challenge.service";
 import { useChallengeStore } from "../../src/features/challenge/challenge.store";
@@ -39,11 +46,14 @@ import { createChallenge } from "../../src/features/challenge/challenge.sync";
 import type { UserChallenge } from "../../src/features/challenge/challenge.types";
 import { useSubscriptionStore } from "../../src/features/subscription/subscription.store";
 import { useRevenueCat } from "../../src/features/subscription/useRevenueCat";
+import { reportError } from "../../src/infrastructure/errorReporting";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { logger } from "../../src/logging/logger";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+import { OnboardingBackground } from "./_background";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -61,14 +71,14 @@ function getTierKey(pkg: any): TierKey {
 
 const TIER_ORDER: TierKey[] = ["monthly", "yearly"];
 
-function getTierLabel(tier: TierKey): string {
+function getTierLabel(tier: TierKey, t: (key: string) => string): string {
   switch (tier) {
     case "monthly":
-      return "Monthly";
+      return t("settings.monthly");
     case "yearly":
-      return "Yearly";
+      return t("settings.yearly");
     default:
-      return "Plan";
+      return t("settings.plan");
   }
 }
 
@@ -77,21 +87,21 @@ function getTierLabel(tier: TierKey): string {
 const FEATURES = [
   {
     emoji: "📸",
-    title: "Snap & Log",
-    subtitle: "AI-assisted calorie tracking",
+    titleKey: "paywall.featureSnapLog",
+    subtitleKey: "paywall.featureSnapLogSub",
     accent: "#34D399",
   },
   {
     emoji: "",
     icon: "trending-up" as const,
-    title: "Smart Trends",
-    subtitle: "Weekly macros, streaks & personalized insights",
+    titleKey: "paywall.featureSmartTrends",
+    subtitleKey: "paywall.featureSmartTrendsSub",
     accent: "#60A5FA",
   },
   {
     emoji: "🏆",
-    title: "21-Day Challenge",
-    subtitle: "Daily goals that build real, lasting habits",
+    titleKey: "paywall.feature21Day",
+    subtitleKey: "paywall.feature21DaySub",
     accent: "#FBBF24",
   },
 ];
@@ -100,33 +110,33 @@ const FEATURES = [
 
 const TESTIMONIALS = [
   {
-    name: "Alex R.",
-    text: "I didn't realise how much I was eating until this app broke it down. The AI scans are insane.",
+    nameKey: "paywall.testimonial1Author",
+    textKey: "paywall.testimonial1",
     rating: 5,
   },
   {
-    name: "Jennifer L.",
-    text: "The daily challenges kept me motivated. Best investment I made.",
+    nameKey: "paywall.testimonial2Author",
+    textKey: "paywall.testimonial2",
     rating: 5,
   },
   {
-    name: "Mike T.",
-    text: "Honestly just started to see what I was eating. Now I'm 3 months in and don't want to stop.",
+    nameKey: "paywall.testimonial3Author",
+    textKey: "paywall.testimonial3",
     rating: 5,
   },
   {
-    name: "Priya S.",
-    text: "I've tried every tracker. This is the first one that didn't feel like homework. The camera is magic.",
+    nameKey: "paywall.testimonial4Author",
+    textKey: "paywall.testimonial4",
     rating: 5,
   },
   {
-    name: "Carlos R.",
-    text: "The 21-day structure actually worked. I built a real habit without even thinking about it.",
+    nameKey: "paywall.testimonial5Author",
+    textKey: "paywall.testimonial5",
     rating: 5,
   },
   {
-    name: "Emily K.",
-    text: "My relationship with food completely changed. I finally understand what I'm eating.",
+    nameKey: "paywall.testimonial6Author",
+    textKey: "paywall.testimonial6",
     rating: 5,
   },
 ];
@@ -140,6 +150,7 @@ function TestimonialCarousel({
   secondaryColor: string;
   primaryColor: string;
 }) {
+  const { t } = useAppTranslation();
   const [activeIdx, setActiveIdx] = useState(0);
   const opacity = useSharedValue(1);
 
@@ -188,7 +199,7 @@ function TestimonialCarousel({
             fontStyle: "italic",
           }}
         >
-          {`"${testimonial.text}"`}
+          {`"${t(testimonial.textKey)}"`}
         </TText>
         <TText
           style={{
@@ -197,7 +208,7 @@ function TestimonialCarousel({
             color: secondaryColor,
           }}
         >
-          — {testimonial.name}
+          — {t(testimonial.nameKey)}
         </TText>
       </Animated.View>
     </GlassSurface>
@@ -213,6 +224,7 @@ const MILESTONE_SIZE = 20;
 const MILESTONE_WRAP_WIDTH = 48;
 
 function DayProgressTrack({ primaryColor }: { primaryColor: string }) {
+  const { t } = useAppTranslation();
   const trackWidth = SCREEN_WIDTH - TRACK_PADDING * 2;
   const fillProgress = useSharedValue(0);
   const [reachedDay, setReachedDay] = useState(0);
@@ -356,7 +368,7 @@ function DayProgressTrack({ primaryColor }: { primaryColor: string }) {
                     },
                   ]}
                 >
-                  Day {day}
+                  {t("dayJourney.dayBadge", { day })}
                 </TText>
               </View>
             );
@@ -409,6 +421,7 @@ function FeatureShowcase({
   secondaryColor: string;
   borderColor: string;
 }) {
+  const { t } = useAppTranslation();
   const [activeIdx, setActiveIdx] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const emojiScale = useSharedValue(1);
@@ -467,10 +480,10 @@ function FeatureShowcase({
 
       <Animated.View style={fadeStyle}>
         <TText style={[showcaseStyles.title, { color: textColor }]}>
-          {feature.title}
+          {t(feature.titleKey)}
         </TText>
         <TText style={[showcaseStyles.subtitle, { color: secondaryColor }]}>
-          {feature.subtitle}
+          {t(feature.subtitleKey)}
         </TText>
       </Animated.View>
     </View>
@@ -616,17 +629,54 @@ function SimplePricingButton({
 
 export default function OnboardingChallengeScreen() {
   const { theme } = useTheme();
+  const { t, language } = useAppTranslation();
   const router = useRouter();
   const { user } = useAuth();
   const setChallenge = useChallengeStore((s) => s.setChallenge);
   const existingChallenge = useChallengeStore((s) => s.challenge);
   const [isStarting, setIsStarting] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
-  const { restorePurchases, packages, purchasePackage, isLoadingOfferings } =
-    useRevenueCat();
+  const {
+    restorePurchases,
+    packages,
+    purchasePackage,
+    isLoadingOfferings,
+    offerings,
+    activeOffering,
+  } = useRevenueCat();
   const markPaywallSeen = useSubscriptionStore((s) => s.markPaywallSeen);
 
   const [selectedPkg, setSelectedPkg] = useState<string | null>(null);
+
+  // A/B experiment: paywall CTA copy (ctaDefault only, not ctaYearly)
+  const ctaVariant = useExperiment("paywall_cta_default_v1");
+  const locale = language;
+  const paywallExposureTracked = useRef(false);
+
+  // Track exposure once per component mount (i.e., once per screen visit).
+  // useRef survives rerenders but resets on remount — this is intentional:
+  // navigating away and back counts as a new exposure (standard behavior).
+  useEffect(() => {
+    if (ctaVariant && !paywallExposureTracked.current) {
+      paywallExposureTracked.current = true;
+      trackExperimentExposure({
+        experiment: "paywall_cta_default_v1",
+        variant: ctaVariant,
+        locale,
+        screen: "paywall",
+      });
+    }
+  }, [ctaVariant, locale]);
+
+  // Get CTA copy: experiment variant for ctaDefault, translation for ctaYearly
+  const getCtaCopy = (tier: TierKey) => {
+    if (tier === "yearly") {
+      return t("paywall.ctaYearly");
+    }
+    return ctaVariant
+      ? getPaywallCtaCopy(locale, ctaVariant)
+      : t("paywall.ctaDefault");
+  };
 
   // Sort packages by tier order
   const sorted = [...(packages ?? [])].sort((a, b) => {
@@ -650,14 +700,86 @@ export default function OnboardingChallengeScreen() {
       "")
     : "";
   const selectedTier = selectedProduct ? getTierKey(selectedProduct) : "yearly";
+  const hasProducts = (offerings?.current?.availablePackages?.length ?? 0) > 0;
+  const trialUsed = !!existingChallenge;
+  const allowProdFallback =
+    process.env.EXPO_PUBLIC_ALLOW_PAYWALL_FALLBACK === "true";
+  const isDevBypass = __DEV__;
+  const isFallbackMode = isDevBypass || (!hasProducts && allowProdFallback);
+  const fallbackTitle = "Finalizing subscriptions";
+  const fallbackSubtitle = "You're early - full access unlocked";
+  const fallbackCta = "Continue";
+
+  useEffect(() => {
+    if (!__DEV__) return;
+    console.log("[Paywall] state", {
+      hasProducts,
+      trialUsed,
+      allowProdFallback,
+      activeOfferingKey:
+        activeOffering?.identifier ?? offerings?.current?.identifier ?? null,
+    });
+    if (isDevBypass) {
+      console.log("[Paywall] DEV bypass activated");
+    }
+  }, [
+    activeOffering?.identifier,
+    allowProdFallback,
+    hasProducts,
+    isDevBypass,
+    offerings?.current?.identifier,
+    offerings,
+    trialUsed,
+  ]);
 
   // ── Subscribe: purchase selected plan via RevenueCat ──
   const handleSubscribe = async () => {
     if (isPurchasing || !selectedProduct) return;
+
+    // Track experiment click (only for ctaDefault tier, not yearly)
+    if (ctaVariant && selectedTier !== "yearly") {
+      trackExperimentClick({
+        experiment: "paywall_cta_default_v1",
+        variant: ctaVariant,
+        locale,
+        screen: "paywall",
+      });
+    }
+
     setIsPurchasing(true);
+
+    // Track checkout_started BEFORE calling RevenueCat (fires once per attempt)
+    if (ctaVariant && selectedTier !== "yearly") {
+      trackExperimentConversion({
+        experiment: "paywall_cta_default_v1",
+        variant: ctaVariant,
+        locale,
+        screen: "paywall",
+        conversion: "checkout_started",
+      });
+    }
+
     try {
       const result = await purchasePackage(selectedProduct);
       if (result) {
+        // Track experiment conversion (only for ctaDefault tier)
+        if (ctaVariant && selectedTier !== "yearly") {
+          // Extract revenue data from the product (catalog price, not transaction)
+          const product =
+            selectedProduct.product ?? selectedProduct.storeProduct;
+          const revenue = product?.price;
+          const currency = product?.currencyCode;
+
+          trackExperimentConversion({
+            experiment: "paywall_cta_default_v1",
+            variant: ctaVariant,
+            locale,
+            screen: "paywall",
+            conversion: "purchase_completed",
+            revenue,
+            currency,
+          });
+        }
         // Purchase succeeded → advance to complete
         markPaywallSeen();
         router.push("/(onboarding)/complete" as any);
@@ -670,6 +792,18 @@ export default function OnboardingChallengeScreen() {
   // ── Free 21-day challenge (no purchase) ──
   const handleStartChallenge = async () => {
     if (isStarting) return;
+
+    // Track as paywall_skipped — user chose free path over subscription
+    if (ctaVariant) {
+      trackExperimentConversion({
+        experiment: "paywall_cta_default_v1",
+        variant: ctaVariant,
+        locale,
+        screen: "paywall",
+        conversion: "paywall_skipped",
+      });
+    }
+
     setIsStarting(true);
 
     try {
@@ -698,9 +832,17 @@ export default function OnboardingChallengeScreen() {
       setChallenge(challenge);
       markPaywallSeen();
 
-      createChallenge(challenge).catch((e) =>
-        logger.warn("[Challenge] Supabase insert failed:", e)
-      );
+      createChallenge(challenge).catch((e) => {
+        logger.warn("[Challenge] Supabase insert failed:", e);
+        reportError(e, {
+          area: "billing",
+          action: "handleStartChallenge_createChallenge",
+          screen: "paywall",
+          provider: "supabase",
+          userId: userId ?? undefined,
+          extra: { challengeId: challenge.id },
+        });
+      });
 
       router.push("/(onboarding)/complete" as any);
     } finally {
@@ -708,15 +850,8 @@ export default function OnboardingChallengeScreen() {
     }
   };
 
-  const handleSkip = () => {
-    markPaywallSeen();
-    router.push("/(onboarding)/complete" as any);
-  };
-
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <OnboardingBackground>
       {/* ══ HERO IMAGE ══ */}
       <View style={styles.heroContainer}>
         <Image
@@ -753,7 +888,7 @@ export default function OnboardingChallengeScreen() {
               variant="heading"
               style={[styles.headline, { color: theme.colors.text }]}
             >
-              Your 21-Day Challenge
+              {t("paywall.challengeHeading")}
             </TText>
             <TText
               style={[
@@ -761,7 +896,7 @@ export default function OnboardingChallengeScreen() {
                 { color: theme.colors.textSecondary },
               ]}
             >
-              Build healthy habits — upgrade anytime
+              {t("paywall.challengeSubheading")}
             </TText>
           </Animated.View>
 
@@ -815,7 +950,7 @@ export default function OnboardingChallengeScreen() {
                     { color: theme.colors.text },
                   ]}
                 >
-                  Join the 21-Day Movement
+                  {t("paywall.challengeJoin")}
                 </TText>
                 <TText
                   style={[
@@ -823,7 +958,7 @@ export default function OnboardingChallengeScreen() {
                     { color: theme.colors.textSecondary },
                   ]}
                 >
-                  1,200+ users started this week
+                  {t("paywall.challengeSocialProof")}
                 </TText>
               </View>
             </View>
@@ -833,7 +968,7 @@ export default function OnboardingChallengeScreen() {
                 { color: theme.colors.textMuted },
               ]}
             >
-              Share your progress with{" "}
+              {t("paywall.shareProgressWith")}{" "}
               <TText
                 style={[
                   styles.movementHashtagAccent,
@@ -842,7 +977,7 @@ export default function OnboardingChallengeScreen() {
               >
                 #21DayCaloric
               </TText>{" "}
-              — stay accountable, inspire others.
+              {t("paywall.stayAccountable")}
             </TText>
           </GlassSurface>
         </Animated.View>
@@ -853,6 +988,44 @@ export default function OnboardingChallengeScreen() {
         entering={FadeInUp.duration(500).delay(600)}
         style={styles.bottomArea}
       >
+        {isFallbackMode ? (
+          <>
+            <TText
+              variant="heading"
+              style={[styles.fallbackTitle, { color: theme.colors.text }]}
+            >
+              {fallbackTitle}
+            </TText>
+            <TText
+              style={[
+                styles.fallbackSubtitle,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
+              {fallbackSubtitle}
+            </TText>
+            <Pressable
+              testID="fallback-continue-cta"
+              onPress={() => router.replace("/(tabs)")}
+              style={({ pressed }) => ({
+                opacity: pressed ? 0.92 : 1,
+                transform: [{ scale: pressed ? 0.98 : 1 }],
+                width: "100%",
+                marginTop: 10,
+              })}
+            >
+              <LinearGradient
+                colors={[theme.colors.primary, theme.colors.accent]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.ctaButton}
+              >
+                <TText style={styles.ctaText}>{fallbackCta}</TText>
+              </LinearGradient>
+            </Pressable>
+          </>
+        ) : (
+          <>
         {/* Pricing row */}
         {isLoadingOfferings ? (
           <ActivityIndicator size="small" color={theme.colors.primary} />
@@ -876,7 +1049,7 @@ export default function OnboardingChallengeScreen() {
                   key={pkg.identifier}
                   isSelected={pkg.identifier === effectiveSelection}
                   onSelect={() => setSelectedPkg(pkg.identifier)}
-                  label={getTierLabel(tier)}
+                  label={getTierLabel(tier, t)}
                   priceStr={priceStr}
                   badgeText={
                     tier === "yearly" ? "Best Value ✦ Save 30%" : undefined
@@ -893,34 +1066,32 @@ export default function OnboardingChallengeScreen() {
         ) : null}
 
         {/* Subscribe CTA */}
-        <Pressable
-          testID="subscribe-cta"
-          onPress={handleSubscribe}
-          disabled={isPurchasing || !selectedProduct}
-          style={({ pressed }) => ({
-            opacity: pressed || isPurchasing ? 0.9 : 1,
-            transform: [{ scale: pressed ? 0.97 : 1 }],
-            width: "100%",
-            marginTop: 6,
-          })}
-        >
-          <LinearGradient
-            colors={[theme.colors.primary, theme.colors.accent]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.ctaButton}
+        {selectedProduct ? (
+          <Pressable
+            testID="subscribe-cta"
+            onPress={handleSubscribe}
+            disabled={isPurchasing}
+            style={({ pressed }) => ({
+              opacity: pressed || isPurchasing ? 0.9 : 1,
+              transform: [{ scale: pressed ? 0.97 : 1 }],
+              width: "100%",
+              marginTop: 6,
+            })}
           >
-            {isPurchasing ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <TText style={styles.ctaText}>
-                {selectedTier === "yearly"
-                  ? "Start Your Year — Best Value"
-                  : "Unlock Full Experience"}
-              </TText>
-            )}
-          </LinearGradient>
-        </Pressable>
+            <LinearGradient
+              colors={[theme.colors.primary, theme.colors.accent]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.ctaButton}
+            >
+              {isPurchasing ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <TText style={styles.ctaText}>{getCtaCopy(selectedTier)}</TText>
+              )}
+            </LinearGradient>
+          </Pressable>
+        ) : null}
 
         {/* Billing context */}
         {effectiveSelection && (
@@ -984,8 +1155,8 @@ export default function OnboardingChallengeScreen() {
                 ]}
               >
                 {existingChallenge
-                  ? "21-day challenge claimed"
-                  : "Start free 21-day challenge"}
+                  ? t("paywall.challengeClaimed")
+                  : t("paywall.challengeStartFree")}
               </TText>
             )}
           </View>
@@ -997,22 +1168,14 @@ export default function OnboardingChallengeScreen() {
             <TText
               style={[styles.footerLink, { color: theme.colors.textMuted }]}
             >
-              Restore Purchases
-            </TText>
-          </Pressable>
-          <TText style={[styles.footerDot, { color: theme.colors.textMuted }]}>
-            ·
-          </TText>
-          <Pressable onPress={handleSkip} hitSlop={12}>
-            <TText
-              style={[styles.footerLink, { color: theme.colors.textMuted }]}
-            >
-              Skip
+              {t("settings.restorePurchases")}
             </TText>
           </Pressable>
         </View>
+          </>
+        )}
       </Animated.View>
-    </View>
+    </OnboardingBackground>
   );
 }
 
@@ -1215,7 +1378,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "500",
   },
-  footerDot: {
-    fontSize: 13,
+  fallbackTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  fallbackSubtitle: {
+    fontSize: 14,
+    fontWeight: "500",
+    textAlign: "center",
+    marginTop: 6,
   },
 });

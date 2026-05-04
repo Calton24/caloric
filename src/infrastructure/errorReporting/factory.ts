@@ -68,6 +68,8 @@ export function initErrorReporting(): ErrorReporter {
     debug: isDev,
   };
 
+  // Sentry.init is owned by app/_layout.tsx; this just wires the wrapper up
+  // to the already-initialized SDK so reportError / breadcrumbs flow through.
   reporterInstance = new SentryErrorReporter();
   reporterInstance.init(sentryConfig);
   logger.log("[ErrorReporting] mode=sentry_initialized");

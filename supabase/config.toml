@@ -1,0 +1,7 @@
+project_id = "uygibfitqadnoycjeuvz"
+
+[functions.ai-scan]
+verify_jwt = false
+
+[functions.sync-entitlement]
+verify_jwt = false

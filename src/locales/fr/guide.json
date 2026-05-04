@@ -1,0 +1,34 @@
+{
+  "guide": {
+    "title": "Guide",
+    "takePhoto": "Prends une photo de ton repas",
+    "takePhotoDesc": "Appuie sur l'icône caméra en bas à droite et prends une photo.",
+    "scanBarcodes": "Scanner les codes-barres",
+    "scanBarcodesDesc": "Appuie sur l'icône caméra et photographie le code-barres de l'emballage.",
+    "speechRecognition": "Reconnaissance vocale",
+    "speechRecognitionDesc": "Appuie sur le micro pour commencer, puis à nouveau quand tu as fini.",
+    "textMode": "Mode texte",
+    "textModeDesc": "Appuie sur le clavier pour ajouter ce que tu as mangé par texte.",
+    "editingDetails": "Modifier les détails",
+    "editingDetailsDesc": "Tu peux modifier la quantité en appuyant sur l'option correspondante.",
+    "trackingCalories": "Suivre les calories",
+    "trackingCaloriesDesc": "Appuie sur le bouton Suivre les calories pour enregistrer."
+  },
+  "liveActivity": {
+    "title": "Activités en direct",
+    "description": "Suivez vos calories en temps réel depuis l'écran de verrouillage et la Dynamic Island",
+    "remaining": "restantes",
+    "consumed": "consommé",
+    "goal": "objectif",
+    "activate": "Activer",
+    "skip": "Passer",
+    "iosOnly": "iOS uniquement",
+    "iosOnlyDesc": "Les activites en direct ne sont disponibles que sur les appareils iOS.",
+    "unavailable": "Activites en direct indisponibles",
+    "unavailableDesc": "Veuillez activer les activites en direct dans Reglages iOS > Caloric > Activites en direct, et assurez-vous d'utiliser iOS 16.2 ou ulterieur.",
+    "continueWithout": "Continuer sans",
+    "subtitle": "Suivez vos calories en temps reel directement depuis votre ecran de verrouillage et Dynamic Island.",
+    "notNow": "Pas maintenant",
+    "dynamicIsland": "Dynamic Island"
+  }
+}
