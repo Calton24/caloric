@@ -48,6 +48,10 @@ import {
     computeFocusPoint,
     deactivateCameraBeforeDismiss,
 } from "../../src/features/camera/camera-log.helpers";
+import {
+    foodLogBreadcrumb,
+    truncateFoodLogText,
+} from "../../src/features/food-logging/food-logging-telemetry";
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
 import { useFeatureAccess } from "../../src/features/subscription/useFeatureAccess";
 import { useTheme } from "../../src/theme/useTheme";
@@ -64,6 +68,12 @@ const STAGE_LABELS = [
   "Matching product…",
   "Estimating nutrition…",
 ];
+
+/** Canonical confirm destination (paired with `CAMERA_LOG_ROUTE` for camera flow). */
+const CONFIRM_MEAL_ROUTE = "/(modals)/confirm-meal" as const;
+
+const DESCRIBE_RETRY_FAILURE_MESSAGE =
+  "We couldn't identify the food from that description. Try adding more detail or log it manually.";
 
 /* ── Pulsing image component for analyzing state ── */
 function PulsingImage({ uri }: { uri: string }) {
@@ -113,35 +123,81 @@ export default function CameraLoggingScreen() {
   const [torch, setTorch] = useState<"off" | "on">("off");
   const [stageIndex, setStageIndex] = useState(0);
   const [description, setDescription] = useState("");
-  const barcodeLockRef = useRef(false);
+  /** Prevents duplicate capture / pipeline / barcode while work is in flight */
+  const pipelineBusyRef = useRef(false);
+  const cameraScreenLoggedRef = useRef(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [cameraLayout, setCameraLayout] = useState({ width: 0, height: 0 });
   const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(
     null
   );
 
+  const releasePipelineLock = useCallback(() => {
+    pipelineBusyRef.current = false;
+    setIsProcessing(false);
+  }, []);
+
+  const tryAcquirePipelineLock = useCallback((): boolean => {
+    if (pipelineBusyRef.current) return false;
+    pipelineBusyRef.current = true;
+    setIsProcessing(true);
+    return true;
+  }, []);
+
   // ── Barcode scanner ──────────────────────────────────────────────────
 
   const handleBarcodeScanned = useCallback(
-    async (barcode: string) => {
-      if (barcodeLockRef.current || state !== "viewfinder") return;
-      barcodeLockRef.current = true;
+    async (payload: { value: string; symbology: string }) => {
+      const { value, symbology } = payload;
+      if (state !== "viewfinder") return;
+      if (!tryAcquirePipelineLock()) return;
       setTorch("off");
       setState("analyzing");
+      foodLogBreadcrumb("food_logging.barcode_detected", {
+        flow: "barcode",
+        step: "scan",
+        symbology,
+        codeLength: value.length,
+      });
+      foodLogBreadcrumb("food_logging.barcode_pipeline_started", {
+        flow: "barcode",
+        step: "lookup",
+      });
       try {
-        const success = await startFromBarcode(barcode);
+        const success = await startFromBarcode(value);
         if (success) {
-          router.push("/(modals)/confirm-meal" as never);
+          foodLogBreadcrumb("food_logging.barcode_pipeline_success", {
+            flow: "barcode",
+            step: "lookup",
+          });
+          releasePipelineLock();
+          router.push(CONFIRM_MEAL_ROUTE as never);
         } else {
-          // Barcode not found — fall back to error state
+          foodLogBreadcrumb("food_logging.barcode_pipeline_failed", {
+            flow: "barcode",
+            step: "lookup",
+            reason: "not_found",
+          });
           setState("error");
+          releasePipelineLock();
         }
       } catch {
+        foodLogBreadcrumb("food_logging.barcode_pipeline_failed", {
+          flow: "barcode",
+          step: "lookup",
+          reason: "exception",
+        });
         setState("error");
-      } finally {
-        barcodeLockRef.current = false;
+        releasePipelineLock();
       }
     },
-    [startFromBarcode, router, state]
+    [
+      startFromBarcode,
+      router,
+      state,
+      tryAcquirePipelineLock,
+      releasePipelineLock,
+    ]
   );
 
   const codeScanner = useCodeScanner({
@@ -155,18 +211,15 @@ export default function CameraLoggingScreen() {
       "qr",
     ],
     onCodeScanned: (codes) => {
-      if (codes.length > 0 && codes[0].value) {
-        handleBarcodeScanned(codes[0].value);
+      const first = codes[0];
+      if (first?.value) {
+        handleBarcodeScanned({
+          value: first.value,
+          symbology: String((first as { type?: string }).type ?? "unknown"),
+        });
       }
     },
   });
-
-  // Reset barcode lock when returning to viewfinder
-  useEffect(() => {
-    if (state === "viewfinder") {
-      barcodeLockRef.current = false;
-    }
-  }, [state]);
 
   // ── Cycle stage labels while analyzing ───────────────────────────────
 
@@ -179,11 +232,38 @@ export default function CameraLoggingScreen() {
     return () => clearInterval(interval);
   }, [state]);
 
+  // ── Telemetry: mount + permission snapshot ───────────────────────────
+
+  useEffect(() => {
+    if (!cameraScreenLoggedRef.current) {
+      cameraScreenLoggedRef.current = true;
+      foodLogBreadcrumb("food_logging.camera_opened", {
+        flow: "ai_camera",
+        step: "screen_mount",
+        route: "camera-log",
+      });
+    }
+    foodLogBreadcrumb("food_logging.camera_permission_status", {
+      flow: "ai_camera",
+      step: "permission",
+      granted: hasPermission,
+    });
+  }, [hasPermission]);
+
   // ── Permission handling ──────────────────────────────────────────────
 
   const handleRequestPermission = useCallback(async () => {
     const granted = await requestPermission();
+    foodLogBreadcrumb("food_logging.camera_permission_status", {
+      flow: "ai_camera",
+      step: "after_request",
+      granted,
+    });
     if (!granted) {
+      foodLogBreadcrumb("food_logging.camera_permission_denied", {
+        flow: "ai_camera",
+        step: "permission",
+      });
       Alert.alert(
         "Camera Access Required",
         "Please allow camera access in Settings to scan food.",
@@ -201,12 +281,23 @@ export default function CameraLoggingScreen() {
   // ── Run pipeline (called automatically after capture/pick) ───────────
 
   const runPipeline = useCallback(
-    async (uri: string, desc?: string) => {
+    async (
+      uri: string,
+      desc?: string,
+      options?: { alreadyLocked?: boolean }
+    ) => {
+      if (!options?.alreadyLocked) {
+        if (!tryAcquirePipelineLock()) return;
+      }
       // Gate: require account + scan credits for AI scans
-      if (!requireAccount("scan")) return;
+      if (!requireAccount("scan")) {
+        releasePipelineLock();
+        return;
+      }
       const access = canScan();
       if (!access.allowed) {
         setShowScanGate(true);
+        releasePipelineLock();
         return;
       }
 
@@ -221,35 +312,65 @@ export default function CameraLoggingScreen() {
           success
         );
         if (success) {
-          // Consume a scan credit after successful analysis
           await consumeScan();
+          releasePipelineLock();
           console.log("[CameraLog] runPipeline — navigating to confirm-meal");
-          // Draft is populated with real data — navigate to confirm
-          router.push("/(modals)/confirm-meal" as never);
+          router.push(CONFIRM_MEAL_ROUTE as never);
         } else {
-          // Pipeline returned no usable result
           setState("error");
+          releasePipelineLock();
         }
       } catch {
         setState("error");
+        releasePipelineLock();
       }
     },
-    [startFromImage, router, requireAccount, canScan, consumeScan]
+    [
+      startFromImage,
+      router,
+      requireAccount,
+      canScan,
+      consumeScan,
+      tryAcquirePipelineLock,
+      releasePipelineLock,
+    ]
   );
 
   // ── Describe & retry (user types what the food is) ───────────────────
 
   const handleDescribeAndRetry = useCallback(async () => {
     if (!description.trim()) return;
+    if (!tryAcquirePipelineLock()) return;
     setState("analyzing");
     try {
-      // Use text pipeline with the description
-      // NOTE: startFromInput already pushes to /(modals)/confirm-meal internally
-      await startFromInput(description.trim(), "camera");
+      const ok = await startFromInput(description.trim(), "camera");
+      if (!ok) {
+        foodLogBreadcrumb("food_logging.describe_retry_failed", {
+          flow: "ai_camera",
+          step: "describe_retry",
+          textTruncated: truncateFoodLogText(description),
+        });
+        setState("error");
+        releasePipelineLock();
+        Alert.alert("No match", DESCRIBE_RETRY_FAILURE_MESSAGE);
+        return;
+      }
+      releasePipelineLock();
     } catch {
       setState("error");
+      releasePipelineLock();
+      foodLogBreadcrumb("food_logging.describe_retry_failed", {
+        flow: "ai_camera",
+        step: "describe_retry",
+        reason: "exception",
+      });
     }
-  }, [description, startFromInput]);
+  }, [
+    description,
+    startFromInput,
+    tryAcquirePipelineLock,
+    releasePipelineLock,
+  ]);
 
   // ── Close / dismiss ──────────────────────────────────────────────────
 
@@ -293,23 +414,43 @@ export default function CameraLoggingScreen() {
 
   const handleCapture = useCallback(async () => {
     if (!cameraRef.current) return;
+    if (!tryAcquirePipelineLock()) return;
+    foodLogBreadcrumb("food_logging.photo_capture_started", {
+      flow: "ai_camera",
+      step: "shutter",
+    });
     try {
       const photo = await cameraRef.current.takePhoto({});
       const uri =
         Platform.OS === "android" ? `file://${photo.path}` : photo.path;
-      runPipeline(uri);
+      foodLogBreadcrumb("food_logging.photo_captured", {
+        flow: "ai_camera",
+        step: "shutter",
+      });
+      await runPipeline(uri, undefined, { alreadyLocked: true });
     } catch {
+      foodLogBreadcrumb("food_logging.photo_capture_failed", {
+        flow: "ai_camera",
+        step: "shutter",
+      });
+      releasePipelineLock();
       Alert.alert("Error", "Failed to capture photo. Please try again.");
     }
-  }, [runPipeline]);
+  }, [runPipeline, tryAcquirePipelineLock, releasePipelineLock]);
 
   // ── Pick from gallery ────────────────────────────────────────────────
 
   const pickFromGallery = useCallback(async () => {
+    if (!tryAcquirePipelineLock()) return;
+    foodLogBreadcrumb("food_logging.gallery_opened", {
+      flow: "ai_camera",
+      step: "picker",
+    });
     try {
       const { status } =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
+        releasePipelineLock();
         Alert.alert(
           "Photo Library Access Required",
           "Please allow photo library access in Settings to select food photos.",
@@ -325,13 +466,35 @@ export default function CameraLoggingScreen() {
         quality: 0.8,
       });
 
-      if (result.canceled || !result.assets?.[0]?.uri) return;
+      if (result.canceled) {
+        foodLogBreadcrumb("food_logging.gallery_cancelled", {
+          flow: "ai_camera",
+          step: "picker",
+        });
+        releasePipelineLock();
+        return;
+      }
 
-      runPipeline(result.assets[0].uri);
+      const uri = result.assets?.[0]?.uri;
+      if (!uri) {
+        releasePipelineLock();
+        return;
+      }
+
+      foodLogBreadcrumb("food_logging.gallery_selected", {
+        flow: "ai_camera",
+        step: "picker",
+      });
+      await runPipeline(uri, undefined, { alreadyLocked: true });
     } catch {
+      foodLogBreadcrumb("food_logging.gallery_failed", {
+        flow: "ai_camera",
+        step: "picker",
+      });
+      releasePipelineLock();
       Alert.alert("Error", "Failed to pick image. Please try again.");
     }
-  }, [runPipeline]);
+  }, [runPipeline, tryAcquirePipelineLock, releasePipelineLock]);
 
   // ── No permission state ─────────────────────────────────────────────
 
@@ -542,6 +705,7 @@ export default function CameraLoggingScreen() {
               {/* Gallery */}
               <Pressable
                 onPress={pickFromGallery}
+                disabled={isProcessing}
                 style={styles.vfSecondaryBtn}
               >
                 <Ionicons name="images-outline" size={24} color="#fff" />
@@ -550,6 +714,7 @@ export default function CameraLoggingScreen() {
               {/* Shutter */}
               <Pressable
                 onPress={handleCapture}
+                disabled={isProcessing}
                 style={({ pressed }) => [
                   styles.shutterOuter,
                   { transform: [{ scale: pressed ? 0.92 : 1 }] },
@@ -593,6 +758,7 @@ export default function CameraLoggingScreen() {
                 onPress={() => {
                   setImageUri(null);
                   setState("viewfinder");
+                  releasePipelineLock();
                 }}
                 hitSlop={12}
               >
@@ -674,6 +840,7 @@ export default function CameraLoggingScreen() {
                   setImageUri(null);
                   setDescription("");
                   setState("viewfinder");
+                  releasePipelineLock();
                 }}
                 hitSlop={12}
               >
@@ -753,12 +920,17 @@ export default function CameraLoggingScreen() {
               {/* Action buttons */}
               <Pressable
                 onPress={handleDescribeAndRetry}
-                disabled={!description.trim()}
+                disabled={!description.trim() || isProcessing}
                 style={({ pressed }) => [
                   styles.errorPrimaryBtn,
                   {
                     backgroundColor: theme.colors.primary,
-                    opacity: !description.trim() ? 0.4 : pressed ? 0.9 : 1,
+                    opacity:
+                      !description.trim() || isProcessing
+                        ? 0.4
+                        : pressed
+                          ? 0.9
+                          : 1,
                   },
                 ]}
               >
@@ -798,6 +970,7 @@ export default function CameraLoggingScreen() {
                     setImageUri(null);
                     setDescription("");
                     setState("viewfinder");
+                    releasePipelineLock();
                   }}
                   style={[
                     styles.errorSecondaryBtn,

@@ -1,5 +1,7 @@
 /**
- * Tracking Launcher Hub
+ * Tracking Launcher Hub (modal stack)
+ *
+ * Also see `app/tracking/index.tsx` (stack route). For Scan, prefer `CAMERA_LOG_ROUTE`.
  *
  * Central screen for food logging. Shows:
  * - "Guide" pill with example prompts (food terms highlighted in orange)
@@ -17,6 +19,7 @@ import Animated, {
     FadeInUp,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { CAMERA_LOG_ROUTE } from "../../src/features/food-logging/food-logging-routes";
 import { useTheme } from "../../src/theme/useTheme";
 import { TrackingPromptCard } from "../../src/ui/components/TrackingPromptCard";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
@@ -187,7 +190,7 @@ export default function TrackingLauncherScreen() {
 
             {/* Camera */}
             <Pressable
-              onPress={() => router.push("/(modals)/camera-log" as any)}
+              onPress={() => router.push(CAMERA_LOG_ROUTE as any)}
               style={({ pressed }) => [
                 styles.methodBtn,
                 {

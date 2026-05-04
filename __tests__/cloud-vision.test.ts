@@ -82,6 +82,15 @@ jest.mock("../src/features/nutrition/nutrition.draft.store", () => ({
   useNutritionDraftStore: jest.fn(),
 }));
 
+jest.mock("../src/features/nutrition/pending-meal-review.store", () => ({
+  usePendingMealReviewStore: Object.assign(jest.fn(), {
+    getState: () => ({
+      commitPendingMealReviewFromStores: jest.fn(),
+      clearPendingMealReview: jest.fn(),
+    }),
+  }),
+}));
+
 jest.mock("../src/features/nutrition/nutrition.store", () => ({
   useNutritionStore: jest.fn(),
 }));

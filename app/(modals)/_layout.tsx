@@ -36,6 +36,7 @@ export default function ModalsLayout() {
               options={{ presentation: "fullScreenModal" }}
             />
             <Stack.Screen name="confirm-meal" />
+            {/* meal-analysis: registered for deep linking / future UX; camera pipeline uses confirm-meal */}
             <Stack.Screen name="meal-analysis" />
             <Stack.Screen name="edit-meal" />
             <Stack.Screen name="log-weight" />

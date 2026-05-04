@@ -6,12 +6,13 @@
 import React, { createContext, useCallback, useEffect, useState } from "react";
 import { analytics } from "../../infrastructure/analytics";
 import { growth } from "../../infrastructure/growth";
+import { usePendingMealReviewStore } from "../nutrition/pending-meal-review.store";
 import {
-    authClient,
-    OAuthProvider,
-    OAuthResponse,
-    Session,
-    User,
+  authClient,
+  OAuthProvider,
+  OAuthResponse,
+  Session,
+  User,
 } from "./authClient";
 
 /**
@@ -61,6 +62,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Scope pending meal review persistence to the signed-in user (or anonymous).
+  useEffect(() => {
+    usePendingMealReviewStore.getState().setSessionUserId(
+      session?.user?.id ?? null
+    );
+  }, [session?.user?.id]);
 
   // Initialize session on mount
   useEffect(() => {

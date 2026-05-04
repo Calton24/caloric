@@ -1,4 +1,8 @@
 import { router } from "expo-router";
+import {
+    foodLogBreadcrumb,
+    truncateFoodLogText,
+} from "../food-logging/food-logging-telemetry";
 import { getHealthService } from "../health";
 import { labelFoodImage } from "../image-analysis/ocr/image-labeling.service";
 import { extractTextFromImage } from "../image-analysis/ocr/text-recognition.service";
@@ -21,9 +25,12 @@ import {
     mealEstimateToDraft,
     runNutritionPipeline,
 } from "./nutrition-pipeline";
+import { usePendingMealReviewStore } from "./pending-meal-review.store";
 import { useNutritionDraftStore } from "./nutrition.draft.store";
 import { buildMealEntryFromDraft } from "./nutrition.helpers";
 import { useNutritionStore } from "./nutrition.store";
+import type { MealDraft } from "./nutrition.draft.types";
+import type { MealEntry } from "./nutrition.types";
 import { MealSource } from "./nutrition.types";
 import { getFoodEmoji } from "./ontology/food-emoji";
 import type { InputSource } from "./parsing/food-candidate.schema";
@@ -85,6 +92,7 @@ export function useLoggingFlow() {
       setDraft(parsed);
     }
 
+    usePendingMealReviewStore.getState().commitPendingMealReviewFromStores();
     router.push("/(modals)/confirm-meal" as never);
     return true;
   }
@@ -99,11 +107,31 @@ export function useLoggingFlow() {
     }
 
     const logDate = useNutritionDraftStore.getState().logDate;
-    const meal = buildMealEntryFromDraft({
-      draft,
-      loggedAt: logDate ?? undefined,
-    });
-    addMeal(meal);
+    let meal: MealEntry;
+    try {
+      meal = buildMealEntryFromDraft({
+        draft,
+        loggedAt: logDate ?? undefined,
+      });
+      addMeal(meal);
+      usePendingMealReviewStore.getState().clearPendingMealReview("saved");
+      foodLogBreadcrumb("food_logging.local_save_success", {
+        flow: "confirm_meal",
+        step: "local_store",
+        mealId: meal.id,
+        source: draft.source,
+        titleTruncated: truncateFoodLogText(draft.title),
+        hasImageUri: !!meal.imageUri,
+      });
+    } catch (e) {
+      foodLogBreadcrumb("food_logging.local_save_failed", {
+        flow: "confirm_meal",
+        step: "local_store",
+        source: draft.source,
+        error: e instanceof Error ? e.message : String(e),
+      });
+      throw e;
+    }
 
     // Auto-export to Apple Health if write sync is enabled
     const { appleHealthSyncEnabled } = useSettingsStore.getState().settings;
@@ -169,7 +197,22 @@ export function useLoggingFlow() {
     imagePath: string,
     description?: string
   ): Promise<boolean> {
+    const attachCameraPhoto = (d: MealDraft): MealDraft => ({
+      ...d,
+      imageUri: imagePath,
+    });
+
+    const finishImageSuccess = (): true => {
+      usePendingMealReviewStore.getState().commitPendingMealReviewFromStores();
+      return true;
+    };
+
     try {
+      foodLogBreadcrumb("food_logging.image_pipeline_started", {
+        flow: "ai_camera",
+        step: "start",
+      });
+
       // ── Stage 0: Run on-device OCR to extract text from image ──
       // This is the bridge between "camera sees pixels" and
       // "pipeline gets searchable text" (brand names, weights, etc.)
@@ -206,9 +249,17 @@ export function useLoggingFlow() {
           confidence: imageResult.confidence.overall,
           parseMethod: `image-analysis (${imageResult.evidence.route})`,
           imageAnalysis: imageResult,
+          imageUri: imagePath,
         });
 
-        return true;
+        foodLogBreadcrumb("food_logging.image_pipeline_success", {
+          flow: "ai_camera",
+          step: "product_match",
+          titleTruncated: truncateFoodLogText(
+            productTitle || imageResult.product.name
+          ),
+        });
+        return finishImageSuccess();
       }
 
       // ── Stage B: Local vision model → LLM captioning ───────
@@ -232,8 +283,13 @@ export function useLoggingFlow() {
           });
           const pipelineDraft = mealEstimateToDraft(estimate);
           pipelineDraft.source = "camera";
-          setDraft(pipelineDraft);
-          return true;
+          setDraft(attachCameraPhoto(pipelineDraft));
+          foodLogBreadcrumb("food_logging.image_pipeline_success", {
+            flow: "ai_camera",
+            step: "local_caption",
+            titleTruncated: truncateFoodLogText(pipelineDraft.title),
+          });
+          return finishImageSuccess();
         }
       }
 
@@ -270,11 +326,19 @@ export function useLoggingFlow() {
               fat: cloudResult.totals.fat,
               confidence: cloudResult.overallConfidence,
               parseMethod: "cloud-vision (gpt-4o-mini)",
+              imageUri: imagePath,
             });
             console.log(
               "[startFromImage] Stage B.5: draft set, returning true"
             );
-            return true;
+            foodLogBreadcrumb("food_logging.image_pipeline_success", {
+              flow: "ai_camera",
+              step: "cloud_vision",
+              titleTruncated: truncateFoodLogText(
+                cloudResult.items.map((i) => i.resolvedName).join(", ")
+              ),
+            });
+            return finishImageSuccess();
           }
         } catch (e) {
           // Cloud vision failed — fall through to ML Kit labels
@@ -324,8 +388,13 @@ export function useLoggingFlow() {
               Math.min(pipelineDraft.confidence, 0.65)
             );
           }
-          setDraft(pipelineDraft);
-          return true;
+          setDraft(attachCameraPhoto(pipelineDraft));
+          foodLogBreadcrumb("food_logging.image_pipeline_success", {
+            flow: "ai_camera",
+            step: "ml_kit_combined",
+            titleTruncated: truncateFoodLogText(pipelineDraft.title),
+          });
+          return finishImageSuccess();
         }
 
         // Validation failed — try just the ML Kit labels alone
@@ -359,8 +428,13 @@ export function useLoggingFlow() {
               0.15,
               Math.min(labelOnlyDraft.confidence, 0.6)
             );
-            setDraft(labelOnlyDraft);
-            return true;
+            setDraft(attachCameraPhoto(labelOnlyDraft));
+            foodLogBreadcrumb("food_logging.image_pipeline_success", {
+              flow: "ai_camera",
+              step: "ml_kit_labels_only",
+              titleTruncated: truncateFoodLogText(labelOnlyDraft.title),
+            });
+            return finishImageSuccess();
           }
         }
         // Both attempts failed — fall through to next stage
@@ -390,8 +464,13 @@ export function useLoggingFlow() {
                 validation.confidenceMultiplier *
                 100
             ) / 100;
-          setDraft(pipelineDraft);
-          return true;
+          setDraft(attachCameraPhoto(pipelineDraft));
+          foodLogBreadcrumb("food_logging.image_pipeline_success", {
+            flow: "ai_camera",
+            step: "ocr_text_pipeline",
+            titleTruncated: truncateFoodLogText(pipelineDraft.title),
+          });
+          return finishImageSuccess();
         }
         // Validation failed — return false instead of showing garbage
       }
@@ -400,9 +479,18 @@ export function useLoggingFlow() {
       console.log(
         "[startFromImage] Stage D: all stages exhausted, returning false"
       );
+      foodLogBreadcrumb("food_logging.image_pipeline_failed", {
+        flow: "ai_camera",
+        step: "exhausted",
+      });
       return false;
     } catch (e) {
       console.warn("Image pipeline failed:", e);
+      foodLogBreadcrumb("food_logging.image_pipeline_failed", {
+        flow: "ai_camera",
+        step: "exception",
+        error: e instanceof Error ? e.message : String(e),
+      });
       return false;
     }
   }
@@ -463,6 +551,7 @@ export function useLoggingFlow() {
         ],
       });
 
+      usePendingMealReviewStore.getState().commitPendingMealReviewFromStores();
       return true;
     } catch (e) {
       console.warn("Barcode lookup failed:", e);
@@ -471,6 +560,7 @@ export function useLoggingFlow() {
   }
 
   function cancelLogging() {
+    usePendingMealReviewStore.getState().clearPendingMealReview("cancel_logging");
     clearDraft();
     router.dismiss();
   }

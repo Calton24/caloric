@@ -146,7 +146,7 @@ export function ReportFoodSheet({
         <TText style={[sheetStyles.title, { color: theme.colors.text }]}>
           Report Food
         </TText>
-        <Pressable onPress={close} hitSlop={12}>
+        <Pressable onPress={() => close()} hitSlop={12}>
           <Ionicons name="close" size={22} color={theme.colors.textMuted} />
         </Pressable>
       </View>
@@ -242,7 +242,7 @@ export function ReportFoodSheet({
       {/* Actions */}
       <View style={sheetStyles.actions}>
         <Pressable
-          onPress={close}
+          onPress={() => close()}
           style={[
             sheetStyles.actionBtn,
             sheetStyles.cancelBtn,

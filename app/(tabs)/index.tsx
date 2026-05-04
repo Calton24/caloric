@@ -15,6 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+    Alert,
     Dimensions,
     Pressable,
     ScrollView,
@@ -47,7 +48,9 @@ import {
     getFrequentFoods,
     hasMemory,
 } from "../../src/features/nutrition/memory/food-memory.service";
+import { CAMERA_LOG_ROUTE } from "../../src/features/food-logging/food-logging-routes";
 import { useNutritionDraftStore } from "../../src/features/nutrition/nutrition.draft.store";
+import { usePendingMealReviewStore } from "../../src/features/nutrition/pending-meal-review.store";
 import type { MealDraft } from "../../src/features/nutrition/nutrition.draft.types";
 import { useNutritionStore } from "../../src/features/nutrition/nutrition.store";
 import { useProfileStore } from "../../src/features/profile/profile.store";
@@ -65,6 +68,7 @@ import { EditMealSheet } from "../../src/ui/components/EditMealSheet";
 import { MacroCard } from "../../src/ui/components/MacroCard";
 import { ManualLogSheet } from "../../src/ui/components/ManualLogSheet";
 import { MealCard } from "../../src/ui/components/MealCard";
+import { PendingMealReviewCard } from "../../src/ui/components/PendingMealReviewCard";
 import { MonthlyView } from "../../src/ui/components/MonthlyView";
 import { ProgressRing } from "../../src/ui/components/ProgressRing";
 import { StreakAtRiskBanner } from "../../src/ui/components/StreakAtRiskBanner";
@@ -354,6 +358,7 @@ function SwipeTutorialOverlay({
 export default function HomeScreen() {
   const { theme } = useTheme();
   const router = useRouter();
+  const pendingReview = usePendingMealReviewStore((s) => s.getPendingForHome());
   const units = useUnits();
   const [viewMode, setViewMode] = useState<ViewMode>("D");
   const [showSwipeTutorial, setShowSwipeTutorial] = useState(false);
@@ -425,13 +430,47 @@ export default function HomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    usePendingMealReviewStore.getState().expireIfStale();
+  }, []);
+
+  const onPendingReview = useCallback(() => {
+    const ok =
+      usePendingMealReviewStore
+        .getState()
+        .restorePendingToDraftAndNavigate(router);
+    if (!ok) {
+      Alert.alert(
+        "Couldn’t open review",
+        "The saved scan couldn’t be restored. You can dismiss this reminder and scan again.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Dismiss",
+            style: "destructive",
+            onPress: () =>
+              usePendingMealReviewStore
+                .getState()
+                .clearPendingMealReview("restore_failed_ack"),
+          },
+        ]
+      );
+    }
+  }, [router]);
+
+  const onDismissPendingReview = useCallback(() => {
+    usePendingMealReviewStore
+      .getState()
+      .clearPendingMealReview("home_card_dismiss");
+  }, []);
+
   // Day 0 auto-camera: redirect to camera on first launch with no meals
   useEffect(() => {
     if (retention.shouldShowCamera) {
       retention.markCameraShown();
       // Small delay to let the home screen render first
       const timer = setTimeout(() => {
-        router.push("/tracking/camera" as any);
+        router.push(CAMERA_LOG_ROUTE as any);
       }, 600);
       return () => clearTimeout(timer);
     }
@@ -616,14 +655,15 @@ export default function HomeScreen() {
     const frequentFoods = hasMemory() ? getFrequentFoods(15) : [];
 
     const handleQuickLog = (entry: FoodMemoryEntry) => {
-      closeSheet();
       const draft = memoryToDraft(entry);
       // When logging from a past date, stamp the draft
       if (!isToday) {
         draft.loggedAt = selectedDate;
       }
-      setDraft(draft);
-      router.push("/(modals)/confirm-meal" as never);
+      closeSheet(() => {
+        setDraft(draft);
+        router.push("/(modals)/confirm-meal" as never);
+      });
     };
 
     openSheet(
@@ -716,8 +756,9 @@ export default function HomeScreen() {
           {/* Camera */}
           <Pressable
             onPress={() => {
-              closeSheet();
-              router.push("/(modals)/camera-log" as any);
+              closeSheet(() => {
+                router.push(CAMERA_LOG_ROUTE as any);
+              });
             }}
             style={({ pressed }) => ({
               width: 56,
@@ -760,8 +801,9 @@ export default function HomeScreen() {
           </TText>
           <Pressable
             onPress={() => {
-              closeSheet();
-              router.push("/(modals)/manual-log" as any);
+              closeSheet(() => {
+                router.push("/(modals)/manual-log" as any);
+              });
             }}
             hitSlop={8}
             style={({ pressed }) => ({
@@ -1453,6 +1495,17 @@ export default function HomeScreen() {
           )}
 
           <TSpacer size="lg" />
+
+          {viewMode === "D" && pendingReview ? (
+            <>
+              <PendingMealReviewCard
+                pending={pendingReview}
+                onReview={onPendingReview}
+                onDismiss={onDismissPendingReview}
+              />
+              <TSpacer size="md" />
+            </>
+          ) : null}
 
           {/* Meals section */}
           <View testID="meals-section">

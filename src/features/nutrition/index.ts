@@ -49,6 +49,11 @@ export type { ImageCaptionResult } from "./image";
 // ── Draft / Confirmation ──
 export { useNutritionDraftStore } from "./nutrition.draft.store";
 export type { MealDraft } from "./nutrition.draft.types";
+export { usePendingMealReviewStore } from "./pending-meal-review.store";
+export type {
+    PendingMealReview,
+    PendingMealReviewSource
+} from "./pending-meal-review.types";
 export { buildMealEntryFromDraft } from "./nutrition.helpers";
 export { useLoggingFlow } from "./use-logging-flow";
 

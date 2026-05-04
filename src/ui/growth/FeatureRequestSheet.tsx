@@ -138,7 +138,7 @@ export function FeatureRequestSheet() {
           Send another
         </TButton>
         <TSpacer size="sm" />
-        <TButton onPress={close} variant="outline">
+        <TButton onPress={() => close()} variant="outline">
           Close
         </TButton>
       </View>

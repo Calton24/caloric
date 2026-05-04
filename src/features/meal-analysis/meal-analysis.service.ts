@@ -16,6 +16,10 @@
 
 import { File } from "expo-file-system";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
+import {
+    foodLogBreadcrumb,
+    truncateFoodLogText,
+} from "../food-logging/food-logging-telemetry";
 import { getSupabaseClient } from "../../lib/supabase/client";
 import type {
     AnalyzeMealResponse,
@@ -48,9 +52,16 @@ export async function analyzeMealImage(
   userHint?: string,
   accessToken?: string
 ): Promise<MealAnalysisResult> {
-  const pipelineStart = Date.now();
+  foodLogBreadcrumb("food_logging.ai_scan_started", {
+    flow: "ai_camera",
+    step: "edge_function",
+    hintTruncated: truncateFoodLogText(userHint),
+  });
 
-  // ── Step 1: Compress and encode image ──
+  try {
+    const pipelineStart = Date.now();
+
+    // ── Step 1: Compress and encode image ──
   const compressedUri = await compressImage(imageUri);
   const base64 = await readImageAsBase64(compressedUri);
 
@@ -204,7 +215,23 @@ export async function analyzeMealImage(
     `[MealAnalysis] vendor=${response.vendor ?? "unknown"} model=${response.model ?? "unknown"} latency=${response.modelLatencyMs}ms`
   );
 
-  return result;
+    foodLogBreadcrumb("food_logging.ai_scan_success", {
+      flow: "ai_camera",
+      step: "edge_function",
+      itemCount: result.items.length,
+      totalLatencyMs: result.totalLatencyMs,
+    });
+
+    return result;
+  } catch (e) {
+    foodLogBreadcrumb("food_logging.ai_scan_failed", {
+      flow: "ai_camera",
+      step: "edge_function",
+      code: e instanceof MealAnalysisError ? e.code : "unknown",
+      error: e instanceof Error ? e.message : String(e),
+    });
+    throw e;
+  }
 }
 
 // ─── Image Processing ───────────────────────────────────────────────────────

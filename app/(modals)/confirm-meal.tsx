@@ -9,10 +9,18 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+  Alert,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -26,8 +34,14 @@ import {
   submitScanCorrection,
   type ScanSource,
 } from "../../src/features/feedback/scan-feedback.service";
+import { CAMERA_LOG_ROUTE } from "../../src/features/food-logging/food-logging-routes";
+import {
+  foodLogBreadcrumb,
+  truncateFoodLogText,
+} from "../../src/features/food-logging/food-logging-telemetry";
 
 import { useNutritionDraftStore } from "../../src/features/nutrition/nutrition.draft.store";
+import { usePendingMealReviewStore } from "../../src/features/nutrition/pending-meal-review.store";
 
 import { useChallengeStore } from "../../src/features/challenge/challenge.store";
 import {
@@ -128,6 +142,11 @@ export default function ConfirmMealScreen() {
   // Track scan event ID for linking reports/corrections
   const scanEventIdRef = useRef<string | null>(null);
 
+  /** Prevents double-submit from rapid taps on Track Calories */
+  const isSavingRef = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const confirmScreenLoggedRef = useRef(false);
+
   // Initialize mealtime from draft or auto-detect
   const [mealTime] = useState<MealTime>(
     () => draft?.mealTime ?? detectMealTime()
@@ -176,7 +195,31 @@ export default function ConfirmMealScreen() {
     };
   }, [draft]);
 
+  useEffect(() => {
+    if (!draft || confirmScreenLoggedRef.current) return;
+    confirmScreenLoggedRef.current = true;
+    foodLogBreadcrumb("food_logging.confirm_meal_opened", {
+      flow: "confirm_meal",
+      step: "screen_mount",
+      source: draft.source,
+      titleTruncated: truncateFoodLogText(draft.title),
+      hasImageUri: !!draft.imageUri,
+    });
+  }, [draft]);
+
   const handleConfirm = useCallback(() => {
+    if (isSavingRef.current) return;
+    if (!draft) {
+      return;
+    }
+    isSavingRef.current = true;
+    setIsSaving(true);
+    foodLogBreadcrumb("food_logging.save_started", {
+      flow: "confirm_meal",
+      step: "persist",
+      source: draft.source,
+      titleTruncated: truncateFoodLogText(draft.title),
+    });
     try {
       // Track any corrections before saving
       const correction = draft ? trackCorrection(draft) : null;
@@ -266,13 +309,13 @@ export default function ConfirmMealScreen() {
       });
     } catch (err) {
       console.error("[ConfirmMeal] handleConfirm error:", err);
-      // Fallback: save and navigate directly if celebration breaks
-      try {
-        saveDraftWithoutNav();
-      } catch {
-        /* already saved or draft missing */
-      }
-      navigateAfterSave();
+      isSavingRef.current = false;
+      setIsSaving(false);
+      Alert.alert(
+        "Something went wrong",
+        "Your meal may not have been saved. Please try again.",
+        [{ text: "OK" }]
+      );
     }
   }, [saveDraftWithoutNav, navigateAfterSave, draft, retention]);
 
@@ -326,6 +369,9 @@ export default function ConfirmMealScreen() {
   /** Delete food and dismiss */
   const handleDeleteFood = useCallback(() => {
     setShowMenu(false);
+    usePendingMealReviewStore.getState().clearPendingMealReview(
+      "deleted_from_confirm"
+    );
     clearDraft();
     router.dismiss();
   }, [clearDraft, router]);
@@ -423,6 +469,9 @@ export default function ConfirmMealScreen() {
             <TSpacer size="md" />
             <Pressable
               onPress={() => {
+                usePendingMealReviewStore.getState().clearPendingMealReview(
+                  "aborted_incomplete_analysis"
+                );
                 clearDraft();
                 router.dismiss();
               }}
@@ -461,6 +510,9 @@ export default function ConfirmMealScreen() {
           <View style={styles.header}>
             <Pressable
               onPress={() => {
+                usePendingMealReviewStore.getState().clearPendingMealReview(
+                  "aborted_no_match"
+                );
                 clearDraft();
                 router.dismiss();
               }}
@@ -527,6 +579,9 @@ export default function ConfirmMealScreen() {
             {/* Retry (voice) */}
             <Pressable
               onPress={() => {
+                usePendingMealReviewStore.getState().clearPendingMealReview(
+                  "aborted_no_match_voice_retry"
+                );
                 clearDraft();
                 router.dismiss();
                 setTimeout(() => {
@@ -555,6 +610,9 @@ export default function ConfirmMealScreen() {
             {/* Type it in */}
             <Pressable
               onPress={() => {
+                usePendingMealReviewStore.getState().clearPendingMealReview(
+                  "aborted_no_match_manual_retry"
+                );
                 clearDraft();
                 router.dismiss();
                 setTimeout(() => {
@@ -631,6 +689,24 @@ export default function ConfirmMealScreen() {
               {draft.title}
             </TText>
           </Animated.View>
+
+          {draft.imageUri ? (
+            <Animated.View entering={FadeIn.duration(300).delay(40)}>
+              <Image
+                source={{ uri: draft.imageUri }}
+                style={{
+                  width: "100%",
+                  maxWidth: 280,
+                  height: 160,
+                  alignSelf: "center",
+                  borderRadius: 16,
+                  marginTop: 12,
+                }}
+                contentFit="cover"
+                accessibilityLabel="Meal photo preview"
+              />
+            </Animated.View>
+          ) : null}
 
           {/* Date chip — shown when logging for a non-today date */}
           {logDate && (
@@ -946,15 +1022,18 @@ export default function ConfirmMealScreen() {
             {/* Track Calories button */}
             <Pressable
               onPress={handleConfirm}
+              disabled={isSaving}
               style={({ pressed }) => [
                 styles.trackBtn,
                 {
-                  opacity: pressed ? 0.9 : 1,
+                  opacity: isSaving ? 0.6 : pressed ? 0.9 : 1,
                   transform: [{ scale: pressed ? 0.98 : 1 }],
                 },
               ]}
             >
-              <TText style={styles.trackBtnText}>Track Calories</TText>
+              <TText style={styles.trackBtnText}>
+                {isSaving ? "Saving…" : "Track Calories"}
+              </TText>
             </Pressable>
           </Animated.View>
 
@@ -1025,7 +1104,7 @@ export default function ConfirmMealScreen() {
                 clearDraft();
                 router.dismiss();
                 setTimeout(() => {
-                  router.push("/tracking/camera" as any);
+                  router.push(CAMERA_LOG_ROUTE as any);
                 }, 100);
               }}
               style={[

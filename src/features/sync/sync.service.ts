@@ -9,6 +9,10 @@
  *   - On local write: pushes to Supabase in background
  */
 
+import {
+    foodLogBreadcrumb,
+    truncateFoodLogText,
+} from "../food-logging/food-logging-telemetry";
 import { getCurrentUser, getSupabaseClient } from "../../lib/supabase/client";
 import { useGoalsStore } from "../goals/goals.store";
 import type { GoalPlan } from "../goals/goals.types";
@@ -42,6 +46,15 @@ export async function pushMeal(meal: MealEntry): Promise<void> {
   const userId = await getUserId();
   if (!userId) return;
 
+  foodLogBreadcrumb("food_logging.remote_sync_started", {
+    flow: "sync",
+    step: "push_meal",
+    mealId: meal.id,
+    source: meal.source,
+    titleTruncated: truncateFoodLogText(meal.title),
+    hasImageUri: !!meal.imageUri,
+  });
+
   try {
     const client = getSupabaseClient();
     await client.from("meal_entries").upsert(
@@ -63,7 +76,18 @@ export async function pushMeal(meal: MealEntry): Promise<void> {
       },
       { onConflict: "id" }
     );
+    foodLogBreadcrumb("food_logging.remote_sync_success", {
+      flow: "sync",
+      step: "push_meal",
+      mealId: meal.id,
+    });
   } catch (e) {
+    foodLogBreadcrumb("food_logging.remote_sync_failed", {
+      flow: "sync",
+      step: "push_meal",
+      mealId: meal.id,
+      error: e instanceof Error ? e.message : String(e),
+    });
     logSyncError("pushMeal", e);
   }
 }

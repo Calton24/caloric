@@ -28,7 +28,12 @@ export interface BottomSheetOptions {
 
 export interface BottomSheetContextValue {
   open: (content: React.ReactNode, options?: BottomSheetOptions) => void;
-  close: () => void;
+  /**
+   * Dismiss the sheet. If `onDismissed` is provided, it runs once the dismiss
+   * animation completes and the sheet is fully closed (use to navigate after
+   * close so a second modal layer does not show a blank/loading state).
+   */
+  close: (onDismissed?: () => void) => void;
 }
 
 export const BottomSheetContext = createContext<
@@ -50,9 +55,19 @@ export function BottomSheetProvider({ children }: BottomSheetProviderProps) {
     content: React.ReactNode;
     points: string[] | number[];
   } | null>(null);
+  const onDismissedRef = useRef<(() => void) | null>(null);
+  /**
+   * Don't mount BottomSheetModal until first open(). The modal stack under
+   * app/(modals) wraps all logging screens; an always-mounted sheet was an
+   * extra native layer that could flash a blank/dark "loading" state on top
+   * of full-screen flows (e.g. camera capture) even when the sheet was
+   * never opened from that stack.
+   */
+  const [sheetMounted, setSheetMounted] = useState(false);
 
   const open = useCallback(
     (newContent: React.ReactNode, options?: BottomSheetOptions) => {
+      setSheetMounted(true);
       const points = options?.snapPoints || ["50%"];
 
       if (isShowingRef.current) {
@@ -73,14 +88,14 @@ export function BottomSheetProvider({ children }: BottomSheetProviderProps) {
   // Present the sheet after state updates have flushed and the
   // BottomSheetModal has re-rendered with the new content/snapPoints.
   useEffect(() => {
-    if (!pendingPresent) return;
+    if (!pendingPresent || !sheetMounted) return;
     // Use rAF to wait for the next frame after React commit
     const id = requestAnimationFrame(() => {
       bottomSheetRef.current?.present();
       setPendingPresent(false);
     });
     return () => cancelAnimationFrame(id);
-  }, [pendingPresent]);
+  }, [pendingPresent, sheetMounted]);
 
   const handleDismiss = useCallback(() => {
     isShowingRef.current = false;
@@ -90,6 +105,10 @@ export function BottomSheetProvider({ children }: BottomSheetProviderProps) {
       setContent(c);
       setSnapPoints(p);
       setPendingPresent(true);
+    } else {
+      const cb = onDismissedRef.current;
+      onDismissedRef.current = null;
+      cb?.();
     }
   }, []);
 
@@ -97,7 +116,12 @@ export function BottomSheetProvider({ children }: BottomSheetProviderProps) {
     isShowingRef.current = index >= 0;
   }, []);
 
-  const close = useCallback(() => {
+  const close = useCallback((onDismissed?: () => void) => {
+    if (!isShowingRef.current) {
+      onDismissed?.();
+      return;
+    }
+    onDismissedRef.current = onDismissed ?? null;
     bottomSheetRef.current?.dismiss();
   }, []);
 
@@ -108,7 +132,7 @@ export function BottomSheetProvider({ children }: BottomSheetProviderProps) {
         disappearsOnIndex={-1}
         appearsOnIndex={0}
         opacity={0.5}
-        onPress={close}
+        onPress={() => close()}
       />
     ),
     [close]
@@ -142,27 +166,29 @@ export function BottomSheetProvider({ children }: BottomSheetProviderProps) {
   return (
     <BottomSheetContext.Provider value={value}>
       {children}
-      <BottomSheetModal
-        ref={bottomSheetRef}
-        snapPoints={snapPoints}
-        index={0}
-        enableDynamicSizing={false}
-        enablePanDownToClose
-        backdropComponent={renderBackdrop}
-        backgroundComponent={renderBackground}
-        backgroundStyle={{ backgroundColor: "transparent" }}
-        handleIndicatorStyle={{
-          backgroundColor: theme.colors.textSecondary,
-        }}
-        onDismiss={handleDismiss}
-        onChange={handleChange}
-      >
-        <BottomSheetScrollView style={styles.contentContainer}>
-          <BottomSheetContext.Provider value={value}>
-            {content}
-          </BottomSheetContext.Provider>
-        </BottomSheetScrollView>
-      </BottomSheetModal>
+      {sheetMounted ? (
+        <BottomSheetModal
+          ref={bottomSheetRef}
+          snapPoints={snapPoints}
+          index={0}
+          enableDynamicSizing={false}
+          enablePanDownToClose
+          backdropComponent={renderBackdrop}
+          backgroundComponent={renderBackground}
+          backgroundStyle={{ backgroundColor: "transparent" }}
+          handleIndicatorStyle={{
+            backgroundColor: theme.colors.textSecondary,
+          }}
+          onDismiss={handleDismiss}
+          onChange={handleChange}
+        >
+          <BottomSheetScrollView style={styles.contentContainer}>
+            <BottomSheetContext.Provider value={value}>
+              {content}
+            </BottomSheetContext.Provider>
+          </BottomSheetScrollView>
+        </BottomSheetModal>
+      ) : null}
     </BottomSheetContext.Provider>
   );
 }
