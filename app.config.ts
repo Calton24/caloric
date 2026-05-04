@@ -1,6 +1,10 @@
 /**
  * Expo App Configuration
  * Dynamically generated from active app profile
+ *
+ * iOS bundleIdentifier and Android package come from `src/config/app-profiles.js`
+ * base `app` for each profile. Environment (EXPO_PUBLIC_APP_ENV) must not override
+ * bundle IDs — all builds use `com.calton.caloric` for the Caloric profile.
  */
 
 import { ConfigContext, ExpoConfig } from "expo/config";

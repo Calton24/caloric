@@ -113,8 +113,9 @@ export function useVoiceCapture() {
     storeRef.current.reset();
     storeRef.current.setStatus("listening");
 
-    // Use the user's configured input language
-    const lang = useSettingsStore.getState().settings.inputLanguage;
+    // Use configured voice language, or fall back to app language in Auto mode.
+    const { voiceLanguage, appLanguage } = useSettingsStore.getState().settings;
+    const lang = voiceLanguage === "auto" ? appLanguage : voiceLanguage;
 
     ExpoSpeechRecognitionModule.start({
       lang,

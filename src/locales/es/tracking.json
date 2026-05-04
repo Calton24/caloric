@@ -71,10 +71,18 @@
     "tryAgainVoice": "Intentar con voz",
     "typeItIn": "Escribirlo",
     "trackCalories": "Registrar calorías",
+    "invalidMealDraft": "No pudimos leer esta comida correctamente. Ajusta los datos antes de guardar.",
     "adjustHint": "¿Necesitas ajustar? ¡Solo pregunta!",
     "reportFood": "Reportar comida",
     "deleteFood": "Eliminar comida",
     "noMatchRich": "No pudimos encontrar <bold>«{{food}}»</bold> en nuestra base de datos. Inténtalo de nuevo o escríbelo."
+  },
+  "scanReview": {
+    "addToToday": "Añadir a hoy",
+    "adding": "Añadiendo…",
+    "aiEstimate": "Estimación por IA",
+    "aiEstimatedAdjust": "Estimado por IA • ajústalo cuando quieras",
+    "looksGoodHint": "¿Te encaja? Añádelo a tu día"
   },
   "editMeal": {
     "mealNotFound": "Comida no encontrada",

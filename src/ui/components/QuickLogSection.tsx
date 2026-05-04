@@ -20,7 +20,10 @@ import {
 } from "../../features/nutrition/memory/food-memory.service";
 import { useNutritionDraftStore } from "../../features/nutrition/nutrition.draft.store";
 import type { MealDraft } from "../../features/nutrition/nutrition.draft.types";
+import { validateMealDraft } from "../../features/nutrition/meal-draft.validation";
 import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
+import { addFoodLoggingBreadcrumb } from "../../infrastructure/errorReporting/foodLoggingErrors";
+import { useToast } from "./Toast";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -48,6 +51,7 @@ function memoryToDraft(entry: FoodMemoryEntry): MealDraft {
 export function QuickLogSection({ isPro = false }: { isPro?: boolean }) {
   const { theme } = useTheme();
   const { t } = useAppTranslation();
+  const toast = useToast();
   const router = useRouter();
   const setDraft = useNutritionDraftStore((s) => s.setDraft);
   const [activeTab, setActiveTab] = useState<Tab>("recent");
@@ -66,7 +70,18 @@ export function QuickLogSection({ isPro = false }: { isPro?: boolean }) {
 
   function handleQuickLog(entry: FoodMemoryEntry) {
     const draft = memoryToDraft(entry);
-    setDraft(draft);
+    const validated = validateMealDraft(draft);
+    if (!validated.ok) {
+      addFoodLoggingBreadcrumb("food_logging.quick_add_validation_failed", {
+        issues: validated.issues.join(","),
+      });
+      toast.show(t("mealConfirm.invalidMealDraft"), "error");
+      return;
+    }
+    addFoodLoggingBreadcrumb("food_logging.quick_add_opened", {
+      calories: validated.value.calories,
+    });
+    setDraft(validated.value);
     router.push("/(modals)/confirm-meal" as never);
   }
 

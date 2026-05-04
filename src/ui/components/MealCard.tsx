@@ -12,6 +12,7 @@ import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import Animated, { SlideInRight, SlideOutRight } from "react-native-reanimated";
 import { useAppTranslation } from "../../infrastructure/i18n";
+import { formatFoodName } from "../../utils/formatFoodName";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
@@ -43,13 +44,14 @@ export function MealCard({
   const { theme } = useTheme();
   const { t } = useAppTranslation();
   const swipeRef = useRef<Swipeable>(null);
+  const displayTitle = formatFoodName(title);
 
   const handleDelete = () => {
     swipeRef.current?.close();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
       t("editMeal.deleteMeal"),
-      t("editMeal.deleteMealConfirm", { title }),
+      t("editMeal.deleteMealConfirm", { title: displayTitle }),
       [
         { text: t("common.cancel"), style: "cancel" },
         {
@@ -90,7 +92,7 @@ export function MealCard({
     );
   };
 
-  const accessibilityLabel = `${title}, ${calories} calories, protein ${Math.round(protein)}g, carbs ${Math.round(carbs)}g, fat ${Math.round(fat)}g`;
+  const accessibilityLabel = `${displayTitle}, ${calories} calories, protein ${Math.round(protein)}g, carbs ${Math.round(carbs)}g, fat ${Math.round(fat)}g`;
 
   const cardContent = (
     <View
@@ -117,7 +119,7 @@ export function MealCard({
           style={[styles.title, { color: theme.colors.text }]}
           numberOfLines={1}
         >
-          {title}
+          {displayTitle}
         </TText>
         <TText style={[styles.time, { color: theme.colors.textMuted }]}>
           {time}

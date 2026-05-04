@@ -19,6 +19,8 @@
     "logFirstMeal": "Log your first meal to see frequently added foods here",
     "noMealsYet": "No meals logged yet",
     "tapToLog": "Tap + to snap, speak, or type your first meal",
+    "dismissPendingScanTitle": "Remove this scan?",
+    "dismissPendingScanMessage": "The preview will leave your home screen. You can capture again anytime from +.",
     "steps": "Steps",
     "activeCal": "Active cal",
     "calTarget": "of {{target}} cal",
@@ -26,7 +28,8 @@
     "currentWeightA11y": "Current weight {{weight}}",
     "dayShort": "D",
     "weekShort": "W",
-    "monthShort": "M"
+    "monthShort": "M",
+    "brandName": "CalCut"
   },
   "streak": {
     "dayStreak_one": "{{count}} Day streak",

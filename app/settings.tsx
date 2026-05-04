@@ -32,7 +32,9 @@ import {
     exportWeightCSV,
 } from "../src/features/export/data-export.service";
 import { deleteUserAccount } from "../src/features/settings/account-deletion.service";
+import { openManageSubscriptions } from "../src/features/subscription/manage-subscription";
 import { useRevenueCat } from "../src/features/subscription/useRevenueCat";
+import { haptics } from "../src/infrastructure/haptics";
 import { useAppTranslation } from "../src/infrastructure/i18n/useAppTranslation";
 import {
     useGoalsStore,
@@ -207,10 +209,42 @@ export default function SettingsScreen() {
   const {
     isPro,
     presentPaywall,
-    presentCustomerCenter,
     restorePurchases,
     isRestoring,
   } = useRevenueCat();
+  const [isOpeningManageSubscription, setIsOpeningManageSubscription] =
+    React.useState(false);
+
+  const handleManageSubscription = React.useCallback(async () => {
+    if (isOpeningManageSubscription) return;
+
+    haptics.impact("light");
+    setIsOpeningManageSubscription(true);
+
+    try {
+      if (!isPro) {
+        Alert.alert(
+          "No active subscription found",
+          "You can still check subscriptions in your App Store account settings."
+        );
+      }
+
+      const result = await openManageSubscriptions();
+      if (result === "failed") {
+        Alert.alert(
+          "Couldn't open subscriptions",
+          "You can manage subscriptions from your App Store account settings."
+        );
+      }
+    } catch {
+      Alert.alert(
+        "Couldn't open subscriptions",
+        "You can manage subscriptions from your App Store account settings."
+      );
+    } finally {
+      setIsOpeningManageSubscription(false);
+    }
+  }, [isOpeningManageSubscription, isPro]);
 
   const handleExport = async (type: "meals" | "weight" | "all") => {
     try {
@@ -499,7 +533,8 @@ export default function SettingsScreen() {
                 icon="settings-outline"
                 iconColor={theme.colors.textSecondary}
                 label={t("settings.manageSubscription")}
-                onPress={presentCustomerCenter}
+                value={isOpeningManageSubscription ? t("common.loading") : undefined}
+                onPress={isOpeningManageSubscription ? undefined : handleManageSubscription}
               />
             </View>
           </Animated.View>

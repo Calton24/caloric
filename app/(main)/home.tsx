@@ -11,7 +11,7 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Animated, {
@@ -33,6 +33,7 @@ import { useNutritionStore } from "../../src/features/nutrition/nutrition.store"
 import { useSubscriptionStore } from "../../src/features/subscription/subscription.store";
 import { useRevenueCat } from "../../src/features/subscription/useRevenueCat";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
+import { safeOpenFoodTracking } from "../../src/navigation/safeOpenFoodTracking";
 import { useTheme } from "../../src/theme/useTheme";
 import { ChallengeCompletionCard } from "../../src/ui/components/ChallengeCompletionCard";
 import { DailyInsightsCard } from "../../src/ui/components/DailyInsightsCard";
@@ -58,6 +59,7 @@ export default function HomeScreen() {
   const { theme } = useTheme();
   const { t } = useAppTranslation();
   const router = useRouter();
+  const pathname = usePathname();
 
   // ── Derived data from stores ──
   const {
@@ -438,7 +440,12 @@ export default function HomeScreen() {
         style={styles.fabContainer}
       >
         <Pressable
-          onPress={() => router.push("/(modals)/tracking" as any)}
+          onPress={() =>
+            safeOpenFoodTracking({
+              source: "home_fab",
+              currentRoute: pathname,
+            })
+          }
           style={({ pressed }) => [
             styles.fab,
             {

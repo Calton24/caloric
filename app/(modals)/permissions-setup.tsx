@@ -26,6 +26,7 @@ import { scheduleMealReminders } from "../../src/features/reminders/meal-reminde
 import { useSettingsStore } from "../../src/features/settings/settings.store";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { notifications } from "../../src/infrastructure/notifications/notifications";
+import { safeRouterBack } from "../../src/navigation/safeBack";
 import { useTheme } from "../../src/theme/useTheme";
 import { PermissionRow } from "../../src/ui/components/PermissionRow";
 import { ScreenContainer } from "../../src/ui/components/ScreenContainer";
@@ -55,7 +56,7 @@ export default function PermissionsScreen() {
   useEffect(() => {
     if (isFromVoiceLog && allGranted && !hasAutoNavigated.current) {
       hasAutoNavigated.current = true;
-      router.back();
+      safeRouterBack(router, "/", "permissions_setup_voice_log_back");
     }
   }, [isFromVoiceLog, allGranted, router]);
 
@@ -94,7 +95,7 @@ export default function PermissionsScreen() {
     useSettingsStore.getState().setHasSeenPermissions(true);
     // All granted now — navigate
     if (isFromVoiceLog) {
-      router.back();
+      safeRouterBack(router, "/", "permissions_setup_voice_log_back");
     } else if (Platform.OS === "ios") {
       router.replace("/(modals)/live-activity-intro" as any);
     } else {
@@ -106,7 +107,7 @@ export default function PermissionsScreen() {
     // Mark permissions as seen so we don't redirect here again
     useSettingsStore.getState().setHasSeenPermissions(true);
     if (isFromVoiceLog) {
-      router.back();
+      safeRouterBack(router, "/", "permissions_setup_voice_log_back");
     } else if (Platform.OS === "ios") {
       router.replace("/(modals)/live-activity-intro" as any);
     } else {

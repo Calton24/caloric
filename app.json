@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.calton24.caloric.dev",
+      "bundleIdentifier": "com.calton.caloric",
       "infoPlist": {
         "NSMotionUsageDescription": "This app uses the pedometer to track your steps, distance, and floors climbed for the Live Activity.",
         "NSMicrophoneUsageDescription": "Allow Caloric to use the microphone for voice meal logging.",
@@ -36,7 +36,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.calton24.caloric.dev",
+      "package": "com.calton.caloric",
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.CAMERA"

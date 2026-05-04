@@ -16,6 +16,7 @@ export const mockProfile: UserProfile = {
   onboardingCompleted: true,
   waterGoalMl: 2000,
   waterIncrementMl: 250,
+  updatedAt: null,
 };
 
 export const mockPlan: GoalPlan = {

@@ -18,6 +18,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
+import { safeRouterBack } from "../../src/navigation/safeBack";
 import { useTheme } from "../../src/theme/useTheme";
 import { TText } from "../../src/ui/primitives/TText";
 
@@ -54,7 +55,7 @@ export default function WebViewerModal() {
             if (canGoBack) {
               webViewRef.current?.goBack();
             } else {
-              router.back();
+              safeRouterBack(router, "/", "web_viewer_close");
             }
           }}
           style={styles.headerButton}

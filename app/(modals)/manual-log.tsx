@@ -7,8 +7,8 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import { usePathname, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import {
     ActivityIndicator,
     KeyboardAvoidingView,
@@ -21,10 +21,12 @@ import {
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
+import { addFoodLoggingBreadcrumb } from "../../src/infrastructure/errorReporting/foodLoggingErrors";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+import { FoodLoggingErrorBoundary } from "../../src/ui/errors/FoodLoggingErrorBoundary";
 
 const QUICK_FOODS = [
   { icon: "🥚", labelKey: "manualLog.eggs", cal: 155 },
@@ -35,16 +37,41 @@ const QUICK_FOODS = [
   { icon: "🥛", labelKey: "manualLog.yogurt", cal: 100 },
 ];
 
-export default function ManualLoggingScreen() {
+function ManualLoggingScreenInner() {
   const { theme } = useTheme();
   const { t } = useAppTranslation();
   const router = useRouter();
+  const pathname = usePathname();
   const [query, setQuery] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const { startFromInput } = useLoggingFlow();
 
+  useEffect(() => {
+    addFoodLoggingBreadcrumb("food_logging.manual_opened", {
+      route: pathname,
+    });
+  }, [pathname]);
+
+  const handleClose = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      if (__DEV__) {
+        console.log("[RouteRecovery]", {
+          currentPath: "/(modals)/manual-log",
+          reason: "no_back_stack",
+          targetRoute: "/(tabs)",
+        });
+      }
+      router.replace("/(tabs)");
+    }
+  };
+
   const handleLog = useCallback(async () => {
     if (!query.trim() || isProcessing) return;
+    addFoodLoggingBreadcrumb("food_logging.manual_text_submitted", {
+      length: query.trim().length,
+    });
     setIsProcessing(true);
     try {
       await startFromInput(query, "manual");
@@ -65,7 +92,7 @@ export default function ManualLoggingScreen() {
         <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
           {/* Header */}
           <View style={styles.header}>
-            <Pressable onPress={() => router.back()} hitSlop={12}>
+            <Pressable onPress={handleClose} hitSlop={12}>
               <Ionicons name="close" size={24} color={theme.colors.text} />
             </Pressable>
             <TText
@@ -202,6 +229,14 @@ export default function ManualLoggingScreen() {
         </SafeAreaView>
       </KeyboardAvoidingView>
     </View>
+  );
+}
+
+export default function ManualLoggingScreen() {
+  return (
+    <FoodLoggingErrorBoundary routeLabel="/(modals)/manual-log">
+      <ManualLoggingScreenInner />
+    </FoodLoggingErrorBoundary>
   );
 }
 

@@ -12,10 +12,13 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
+import { CircleUserRound } from "lucide-react-native";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+    Alert,
     Dimensions,
+    Platform,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -38,7 +41,12 @@ import {
 import { useUnits } from "../../hooks/useUnits";
 import { useHealthAutoSync } from "../../src/features/health";
 import { useHomeData } from "../../src/features/home/use-home-data";
-import { getMilestoneInsight } from "../../src/features/milestone/milestone-insight.service";
+import { useAuth } from "../../src/features/auth/useAuth";
+import { usePermissionsStore } from "../../src/features/permissions";
+import {
+  COACH_ROUTES,
+  useCoachInsight,
+} from "../../src/features/retention/useCoachInsight";
 import type { MealTime } from "../../src/features/nutrition/mealtime";
 import {
     MEALTIME_ICONS,
@@ -57,15 +65,26 @@ import { useProfileStore } from "../../src/features/profile/profile.store";
 import { useRetentionEngine } from "../../src/features/retention";
 import { useStreakStore } from "../../src/features/streak/streak.store";
 import { useSubscriptionStore } from "../../src/features/subscription/subscription.store";
+import { useRevenueCat } from "../../src/features/subscription/useRevenueCat";
+import { openManageSubscriptions } from "../../src/features/subscription/manage-subscription";
 import { useWaterStore } from "../../src/features/water/water.store";
 import { haptics } from "../../src/infrastructure/haptics";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { toISODate } from "../../src/lib/utils/date";
+import { safeOpenFoodTracking } from "../../src/navigation/safeOpenFoodTracking";
 import { useTheme } from "../../src/theme/useTheme";
+import {
+  areLiveActivitiesAvailable,
+  endLiveActivity,
+} from "../../src/features/live-activity";
 import { CalCutLogo } from "../../src/ui/brand/CalCutLogo";
 import { AnalyzingCard } from "../../src/ui/components/AnalyzingCard";
 import { DaySelector } from "../../src/ui/components/DaySelector";
 import { EditMealSheet } from "../../src/ui/components/EditMealSheet";
+import {
+  HamburgerMenu,
+  type MenuSection,
+} from "../../src/ui/components/HamburgerMenu";
 import { MacroCard } from "../../src/ui/components/MacroCard";
 import { ManualLogSheet } from "../../src/ui/components/ManualLogSheet";
 import { MealCard } from "../../src/ui/components/MealCard";
@@ -204,6 +223,9 @@ const VIEW_MODES: ViewMode[] = ["D", "W", "M"];
 const SEGMENT_W = 40;
 const SEGMENT_H = 30;
 const TOGGLE_PAD = 2;
+const getHeaderTitleFontSize = (title: string) => {
+  return title.length >= 9 ? 22 : 24;
+};
 const SLIDE_TIMING = {
   duration: 250,
   easing: Easing.bezier(0.25, 0.1, 0.25, 1),
@@ -216,6 +238,7 @@ function ViewModeToggle({
   value: ViewMode;
   onChange: (v: ViewMode) => void;
 }) {
+  const { t } = useAppTranslation();
   const { theme } = useTheme();
   const isDark = theme.mode === "dark";
   const idx = VIEW_MODES.indexOf(value);
@@ -268,32 +291,37 @@ function ViewModeToggle({
         ]}
         pointerEvents="none"
       />
-      {VIEW_MODES.map((mode) => (
-        <Pressable
-          key={mode}
-          onPress={() => {
-            haptics.selection();
-            onChange(mode);
-          }}
-          style={{
-            width: SEGMENT_W,
-            height: SEGMENT_H,
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: 14,
-          }}
-        >
-          <Text
+      {VIEW_MODES.map((mode) => {
+        const labelKey = VIEW_MODE_OPTION_KEYS.find((o) => o.key === mode)
+          ?.labelKey;
+        const label = labelKey ? t(labelKey) : mode;
+        return (
+          <Pressable
+            key={mode}
+            onPress={() => {
+              haptics.selection();
+              onChange(mode);
+            }}
             style={{
-              color: value === mode ? activeText : inactiveText,
-              fontSize: 13,
-              fontWeight: "700",
+              width: SEGMENT_W,
+              height: SEGMENT_H,
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: 14,
             }}
           >
-            {mode}
-          </Text>
-        </Pressable>
-      ))}
+            <Text
+              style={{
+                color: value === mode ? activeText : inactiveText,
+                fontSize: 13,
+                fontWeight: "700",
+              }}
+            >
+              {label}
+            </Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -366,6 +394,8 @@ function SwipeTutorialOverlay({
       isMounted.current = false;
       if (timerRef.current) clearTimeout(timerRef.current);
     };
+    // Reanimated shared values are stable; animation runs once on mount only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- opacity & translateX are SharedValues
   }, []);
 
   const cardStyle = useAnimatedStyle(() => ({
@@ -467,14 +497,19 @@ function SwipeTutorialOverlay({
 }
 
 export default function HomeScreen() {
-  const { theme } = useTheme();
+  const { theme, toggleMode } = useTheme();
   const { t } = useAppTranslation();
   const router = useRouter();
+  const pathname = usePathname();
+  const { signOut, user } = useAuth();
   const units = useUnits();
   const [viewMode, setViewMode] = useState<ViewMode>("D");
   const [showSwipeTutorial, setShowSwipeTutorial] = useState(false);
   const [showStreakModal, setShowStreakModal] = useState(false);
   const [showWaterSettings, setShowWaterSettings] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [isOpeningManageSubscription, setIsOpeningManageSubscription] =
+    useState(false);
   const [macroPage, setMacroPage] = useState(0);
   const [macroPagerWidth, setMacroPagerWidth] = useState(0);
   const { open: openSheet, close: closeSheet } = useBottomSheet();
@@ -495,7 +530,6 @@ export default function HomeScreen() {
     weekDays,
     weekPages,
     weekPagesProgress,
-    activeDays,
     dayProgress,
     dayProgressRaw,
     dateHeader,
@@ -528,6 +562,40 @@ export default function HomeScreen() {
 
   const hasActiveSubscription = useSubscriptionStore(
     (s) => s.subscription.hasActiveSubscription
+  );
+  const {
+    isPro,
+    presentPaywall,
+    restorePurchases,
+    isRestoring,
+  } = useRevenueCat();
+  const liveActivitiesEnabled = usePermissionsStore(
+    (s) => s.permissions.liveActivitiesEnabled
+  );
+  const setLiveActivitiesEnabled = usePermissionsStore(
+    (s) => s.setLiveActivitiesEnabled
+  );
+
+  const handleToggleLiveActivities = useCallback(
+    (value: boolean) => {
+      if (value) {
+        if (Platform.OS !== "ios") {
+          Alert.alert(t("settings.iosOnly"), t("settings.iosOnlyDesc"));
+          return;
+        }
+        const available = areLiveActivitiesAvailable();
+        if (!available) {
+          Alert.alert(
+            t("settings.liveActivityUnavailable"),
+            t("settings.liveActivityUnavailableDesc")
+          );
+          return;
+        }
+      }
+      setLiveActivitiesEnabled(value);
+      if (!value) endLiveActivity();
+    },
+    [setLiveActivitiesEnabled, t]
   );
 
   const todayMeals = dailySummary.meals;
@@ -566,36 +634,27 @@ export default function HomeScreen() {
   const targetCalories = calorieBudget;
 
   // ── Milestone insight (unified coaching card) ──
-  const today = toISODate(new Date());
-  const hasLoggedToday = lastLogDate === today;
-  const milestoneInsight = useMemo(
-    () =>
-      getMilestoneInsight({
-        currentStreak,
-        lastLogDate: lastLogDate ?? null,
-        hasLoggedToday,
-        streakRecoveryActive: !!retention.streakRecovery,
-        lostStreak: retention.streakRecovery?.lostStreak,
-        dailySummary: {
-          targetCalories,
-          consumedCalories: totals.calories,
-          consumedProtein: totals.protein,
-          targetProtein: proteinTarget,
-          loggedMeals: todayMeals.length,
-        },
-      }),
-    [
-      currentStreak,
-      lastLogDate,
-      hasLoggedToday,
-      retention.streakRecovery,
-      targetCalories,
-      totals.calories,
-      totals.protein,
-      proteinTarget,
-      todayMeals.length,
-    ]
-  );
+  const coachInsight = useCoachInsight();
+  const milestoneInsight = coachInsight.milestoneModel;
+
+  const navigateCoachInsightRoute = useCallback(() => {
+    if (coachInsight.route === COACH_ROUTES.meal) {
+      safeOpenFoodTracking({
+        source: "coach_insight",
+        currentRoute: pathname,
+        userIdPresent: Boolean(user?.id),
+        isSubscriber: hasActiveSubscription,
+      });
+    } else {
+      router.push(coachInsight.route as never);
+    }
+  }, [
+    coachInsight.route,
+    pathname,
+    user?.id,
+    hasActiveSubscription,
+    router,
+  ]);
 
   // Group meals by category in display order
   const MEAL_ORDER: MealTime[] = ["breakfast", "lunch", "dinner", "snack"];
@@ -615,6 +674,9 @@ export default function HomeScreen() {
 
   const displayWeight = latestWeight ?? 0;
   const weightTrending = (latestWeight ?? 0) <= (goalWeightLbs ?? Infinity);
+  const dayTitle = isToday
+    ? t("home.today")
+    : dateHeader.replace(/[\s,]*\d+.*$/, "");
 
   // Check if user has seen swipe-to-delete tutorial
   useEffect(() => {
@@ -1014,6 +1076,7 @@ export default function HomeScreen() {
       { snapPoints: ["50%", "92%"] }
     );
   }, [
+    t,
     openSheet,
     closeSheet,
     router,
@@ -1087,6 +1150,343 @@ export default function HomeScreen() {
     transform: [{ translateX: contentOffsetX.value }],
     opacity: contentOpacity.value,
   }));
+
+  const glassToggleTrack = useMemo(
+    () => ({
+      width: 44,
+      height: 26,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor:
+        theme.mode === "dark"
+          ? "rgba(255,255,255,0.10)"
+          : "rgba(255,255,255,0.55)",
+      padding: 2,
+      justifyContent: "center" as const,
+    }),
+    [theme]
+  );
+
+  const renderGlassSwitch = useCallback(
+    (value: boolean, onToggle: () => void) => (
+      <Pressable
+        onPress={onToggle}
+        hitSlop={8}
+        accessibilityRole="switch"
+        accessibilityState={{ checked: value }}
+        style={glassToggleTrack}
+      >
+        <View
+          style={[
+            {
+              width: 20,
+              height: 20,
+              borderRadius: 10,
+              backgroundColor: value ? theme.colors.primary : theme.colors.textMuted,
+              transform: [{ translateX: value ? 18 : 0 }],
+            },
+          ]}
+        />
+      </Pressable>
+    ),
+    [glassToggleTrack, theme.colors.primary, theme.colors.textMuted]
+  );
+
+  const unitsAccessory = useMemo(() => {
+    const isMetric = units.weightUnit === "kg";
+    return (
+      <View
+        style={{
+          flexDirection: "row",
+          borderRadius: 9,
+          overflow: "hidden",
+          borderWidth: 1,
+          borderColor: theme.colors.primary,
+          backgroundColor:
+            theme.mode === "dark"
+              ? "rgba(255,255,255,0.07)"
+              : "rgba(255,255,255,0.55)",
+        }}
+      >
+        <Pressable
+          onPress={() => units.setWeightUnit("kg")}
+          style={{
+            paddingHorizontal: 9,
+            paddingVertical: 4,
+            backgroundColor: isMetric ? theme.colors.primary : "transparent",
+          }}
+        >
+          <TText
+            style={{
+              fontSize: 11,
+              fontWeight: "700",
+              color: isMetric ? "#fff" : theme.colors.primary,
+            }}
+          >
+            {t("settings.metric")}
+          </TText>
+        </Pressable>
+        <Pressable
+          onPress={() => units.setWeightUnit("lbs")}
+          style={{
+            paddingHorizontal: 9,
+            paddingVertical: 4,
+            backgroundColor: !isMetric ? theme.colors.primary : "transparent",
+          }}
+        >
+          <TText
+            style={{
+              fontSize: 11,
+              fontWeight: "700",
+              color: !isMetric ? "#fff" : theme.colors.primary,
+            }}
+          >
+            {t("settings.imperial")}
+          </TText>
+        </Pressable>
+      </View>
+    );
+  }, [theme, units, t]);
+
+  const handleManageSubscription = useCallback(async () => {
+    if (isOpeningManageSubscription) return;
+    haptics.impact("light");
+    setIsOpeningManageSubscription(true);
+    try {
+      if (!isPro) {
+        Alert.alert(
+          "No active subscription found",
+          "You can still check subscriptions in your App Store account settings."
+        );
+      }
+      const result = await openManageSubscriptions();
+      if (result === "failed") {
+        Alert.alert(
+          "Couldn't open subscriptions",
+          "You can manage subscriptions from your App Store account settings."
+        );
+      }
+    } catch {
+      Alert.alert(
+        "Couldn't open subscriptions",
+        "You can manage subscriptions from your App Store account settings."
+      );
+    } finally {
+      setIsOpeningManageSubscription(false);
+    }
+  }, [isOpeningManageSubscription, isPro]);
+
+  const profileMenuSections = useMemo<MenuSection[]>(() => {
+    const sections: MenuSection[] = [
+      {
+        items: [
+          {
+            key: "upgrade",
+            label: isPro ? t("settings.youArePro") : t("settings.upgradeToPro"),
+            icon: "star",
+            onPress: presentPaywall,
+          },
+        ],
+      },
+      {
+        title: t("settings.appearance"),
+        items: [
+          {
+            key: "dark-mode",
+            label: t("settings.darkMode"),
+            icon: theme.mode === "dark" ? "moon" : "sunny",
+            keepOpenOnPress: true,
+            onPress: () => toggleMode(),
+            rightAccessory: renderGlassSwitch(theme.mode === "dark", () =>
+              toggleMode()
+            ),
+          },
+        ],
+      },
+      {
+        title: t("settings.general"),
+        items: [
+          {
+            key: "voice-text",
+            label: t("settings.voiceTextInput"),
+            icon: "globe-outline",
+            onPress: () =>
+              router.push("/(main)/settings/voice-text-input" as any),
+          },
+          {
+            key: "units",
+            label: t("settings.units"),
+            icon: "resize-outline",
+            keepOpenOnPress: true,
+            onPress: () => units.toggleWeightUnit(),
+            rightAccessory: unitsAccessory,
+          },
+          {
+            key: "body-measurements",
+            label: t("settings.bodyMeasurements"),
+            icon: "accessibility-outline",
+            onPress: () =>
+              router.push("/(main)/settings/body-measurements" as any),
+          },
+          {
+            key: "notifications",
+            label: t("settings.notifications"),
+            icon: "notifications-outline",
+            onPress: () =>
+              router.push("/(main)/settings/notifications" as any),
+          },
+        ],
+      },
+    ];
+
+    if (Platform.OS === "ios") {
+      sections.push({
+        title: t("settings.appleHealth"),
+        items: [
+          {
+            key: "apple-health",
+            label: t("settings.appleHealth"),
+            icon: "heart",
+            onPress: () => router.push("/(main)/settings/apple-health" as any),
+          },
+        ],
+      });
+
+      sections.push({
+        title: t("settings.extensions"),
+        items: [
+          {
+            key: "live-activities",
+            label: t("settings.liveActivities"),
+            icon: "phone-portrait-outline",
+            keepOpenOnPress: true,
+            onPress: () =>
+              handleToggleLiveActivities(!liveActivitiesEnabled),
+            rightAccessory: renderGlassSwitch(liveActivitiesEnabled, () =>
+              handleToggleLiveActivities(!liveActivitiesEnabled)
+            ),
+          },
+        ],
+      });
+    }
+
+    sections.push(
+      {
+        title: t("settings.legal"),
+        items: [
+          {
+            key: "privacy",
+            label: t("settings.privacyPolicy"),
+            icon: "document-text-outline",
+            onPress: () =>
+              router.push({
+                pathname: "/(modals)/web-viewer",
+                params: {
+                  url: encodeURIComponent("https://caloric-sage.vercel.app/privacy"),
+                  title: encodeURIComponent("Privacy Policy"),
+                },
+              }),
+          },
+          {
+            key: "terms",
+            label: t("settings.termsOfService"),
+            icon: "document-outline",
+            onPress: () =>
+              router.push({
+                pathname: "/(modals)/web-viewer",
+                params: {
+                  url: encodeURIComponent("https://caloric-sage.vercel.app/terms"),
+                  title: encodeURIComponent("Terms of Service"),
+                },
+              }),
+          },
+        ],
+      },
+      {
+        title: t("settings.subscription"),
+        items: [
+          {
+            key: "restore",
+            label: isRestoring
+              ? t("settings.restoring")
+              : t("settings.restorePurchases"),
+            icon: "arrow-undo-outline",
+            onPress: isRestoring ? undefined : restorePurchases,
+            disabled: isRestoring,
+          },
+          {
+            key: "manage-subscription",
+            label: isOpeningManageSubscription
+              ? `${t("settings.manageSubscription")} (${t("common.loading")})`
+              : t("settings.manageSubscription"),
+            icon: "settings-outline",
+            onPress: isOpeningManageSubscription
+              ? undefined
+              : handleManageSubscription,
+            disabled: isOpeningManageSubscription,
+          },
+        ],
+      },
+      {
+        title: t("settings.account"),
+        items: [
+          {
+            key: "email",
+            label: user?.email ? `${t("common.email")}: ${user.email}` : t("common.email"),
+            icon: "mail-outline",
+            disabled: true,
+          },
+          {
+            key: "sign-out",
+            label: t("settings.signOut"),
+            icon: "log-out-outline",
+            destructive: true,
+            onPress: () => {
+              Alert.alert(t("settings.signOut"), t("settings.signOutConfirm"), [
+                { text: t("common.cancel"), style: "cancel" },
+                {
+                  text: t("settings.signOut"),
+                  style: "destructive",
+                  onPress: async () => {
+                    await signOut();
+                    router.replace("/(onboarding)/landing");
+                  },
+                },
+              ]);
+            },
+          },
+          {
+            key: "delete-account",
+            label: t("settings.deleteAccount"),
+            icon: "trash-outline",
+            destructive: true,
+            onPress: () => router.push("/(main)/settings" as any),
+          },
+        ],
+      }
+    );
+
+    return sections;
+  }, [
+    isPro,
+    t,
+    presentPaywall,
+    theme.mode,
+    toggleMode,
+    router,
+    isRestoring,
+    restorePurchases,
+    isOpeningManageSubscription,
+    handleManageSubscription,
+    user?.email,
+    signOut,
+    renderGlassSwitch,
+    units,
+    unitsAccessory,
+    handleToggleLiveActivities,
+    liveActivitiesEnabled,
+  ]);
 
   return (
     <View style={styles.container}>
@@ -1253,9 +1653,9 @@ export default function HomeScreen() {
         <View testID="home-header" style={styles.header}>
           <View style={styles.headerTopRow}>
             <View style={styles.brandPill}>
-              <CalCutLogo size={18} color={theme.colors.text} />
+              <CalCutLogo size={30} color={theme.colors.text} />
               <TText style={[styles.brandText, { color: theme.colors.text }]}>
-                CalCut
+                {t("home.brandName")}
               </TText>
             </View>
             <View style={styles.headerRight}>
@@ -1315,18 +1715,24 @@ export default function HomeScreen() {
                   style={[styles.weightText, { color: theme.colors.text }]}
                 />
               </Pressable>
-              <Pressable
-                onPress={() => router.push("/settings" as any)}
-                hitSlop={12}
-                accessibilityLabel="Settings"
-                accessibilityRole="button"
-              >
-                <Ionicons
-                  name="settings-outline"
-                  size={22}
-                  color={theme.colors.textMuted}
-                />
-              </Pressable>
+              <HamburgerMenu
+                open={profileMenuOpen}
+                onToggle={setProfileMenuOpen}
+                side="right"
+                sections={profileMenuSections}
+                drawerWidth={300}
+                accessibilityLabel="Profile menu"
+                renderTrigger={({ onToggle }) => (
+                  <Pressable
+                    onPress={onToggle}
+                    hitSlop={12}
+                    accessibilityLabel="Profile menu"
+                    accessibilityRole="button"
+                  >
+                    <CircleUserRound size={22} color={theme.colors.textMuted} />
+                  </Pressable>
+                )}
+              />
             </View>
           </View>
         </View>
@@ -1343,11 +1749,17 @@ export default function HomeScreen() {
             <TText
               variant="heading"
               numberOfLines={1}
-              style={[styles.dayLabel, { color: theme.colors.text }]}
+              adjustsFontSizeToFit
+              minimumFontScale={0.72}
+              style={[
+                styles.dayLabel,
+                {
+                  color: theme.colors.text,
+                  fontSize: getHeaderTitleFontSize(dayTitle),
+                },
+              ]}
             >
-              {isToday
-                ? t("home.today")
-                : dateHeader.replace(/[\s,]*\d+.*$/, "")}
+              {dayTitle}
             </TText>
             <View style={styles.segmentToggle}>
               <ViewModeToggle value={viewMode} onChange={setViewMode} />
@@ -1479,7 +1891,12 @@ export default function HomeScreen() {
               {milestoneInsight && (
                 <>
                   <MilestoneInsightCard
-                    model={milestoneInsight}
+                    model={{
+                      ...milestoneInsight,
+                      title: coachInsight.title,
+                      subtitle: coachInsight.subtitle,
+                      ctaLabel: coachInsight.ctaLabel,
+                    }}
                     onPress={() => {
                       haptics.impact("medium");
                       switch (milestoneInsight.state) {
@@ -1502,7 +1919,7 @@ export default function HomeScreen() {
                               onClose={closeSheet}
                               onTrack={() => {
                                 closeSheet();
-                                setTimeout(() => openLogSheet(), 300);
+                                setTimeout(() => navigateCoachInsightRoute(), 300);
                               }}
                             />,
                             { snapPoints: ["70%"] }
@@ -1510,11 +1927,10 @@ export default function HomeScreen() {
                           break;
                       }
                     }}
-                    onCTA={
-                      milestoneInsight.action === "track_meal"
-                        ? () => openLogSheet()
-                        : undefined
-                    }
+                    onCTA={() => {
+                      haptics.impact("light");
+                      navigateCoachInsightRoute();
+                    }}
                   />
                   <TSpacer size="sm" />
                 </>
@@ -1902,13 +2318,13 @@ const styles = StyleSheet.create({
   brandPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
+    gap: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
   brandText: {
-    fontSize: 14,
+    fontSize: 17,
     fontFamily: "PlusJakartaSans_800ExtraBold",
     letterSpacing: 0.15,
   },
@@ -1927,7 +2343,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "700",
     letterSpacing: -0.3,
-    zIndex: 1,
+    flexShrink: 1,
   },
   date: {
     fontSize: 14,

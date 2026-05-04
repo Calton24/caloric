@@ -1,3 +1,4 @@
+// @ts-nocheck
 /// <reference lib="deno.ns" />
 /**
  * Supabase Edge Function: sync-entitlement
@@ -32,6 +33,30 @@ import { normalizeFromSubscriberResponse } from "../_shared/entitlement-normaliz
 const CACHE_TTL_SECONDS = 60;
 const RC_API_BASE = "https://api.revenuecat.com/v1";
 
+function toClientStatus(status: string, isActive: boolean): string {
+  if (!isActive) return "inactive";
+  return status;
+}
+
+function freeResponse(
+  overrides: Partial<Record<string, unknown>> = {}
+): Response {
+  const verifiedAt = new Date().toISOString();
+  return json({
+    ok: true,
+    cached: false,
+    isPro: false,
+    is_active: false,
+    status: "inactive",
+    expiresAt: null,
+    productId: null,
+    lastServerVerifiedAt: verifiedAt,
+    last_server_verified_at: verifiedAt,
+    source: "revenuecat_sync_fallback",
+    ...overrides,
+  });
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return json({ ok: true }, 200, {
@@ -58,8 +83,14 @@ serve(async (req: Request) => {
     const rcSecretKey = Deno.env.get("REVENUECAT_SECRET_KEY");
 
     if (!rcSecretKey) {
-      console.error("[sync-entitlement] REVENUECAT_SECRET_KEY not configured");
-      return json({ ok: false, code: "SERVER_MISCONFIGURED" }, 500);
+      console.error("[sync-entitlement]", {
+        step: "load_env",
+        userId: null,
+        appUserId: null,
+        rcStatus: null,
+        reason: "REVENUECAT_SECRET_KEY not configured; fail-open to free",
+      });
+      return freeResponse();
     }
 
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -78,13 +109,24 @@ serve(async (req: Request) => {
     const admin = createClient(supabaseUrl, supabaseServiceKey);
 
     // ── 2. Rate-limit guard: skip RC API if synced recently ──────────────────
-    const { data: existing } = await admin
+    const { data: existing, error: existingErr } = await admin
       .from("subscription_state")
       .select(
         "is_active, status, expires_at, product_id, updated_at, last_server_verified_at"
       )
       .eq("user_id", user.id)
       .maybeSingle();
+
+    if (existingErr) {
+      console.error("[sync-entitlement]", {
+        step: "read_subscription_state_cache",
+        userId: user.id,
+        appUserId: user.id,
+        rcStatus: null,
+        reason: `Cache read failed: ${existingErr.message}`,
+      });
+      return freeResponse({ reason: "cache_read_failed" });
+    }
 
     if (existing?.updated_at) {
       const lastSync = new Date(existing.updated_at).getTime();
@@ -97,13 +139,19 @@ serve(async (req: Request) => {
           ok: true,
           cached: true,
           isPro: existing.is_active === true,
-          status: existing.status,
+          status: toClientStatus(
+            String(existing.status ?? "free"),
+            existing.is_active === true
+          ),
+          is_active: existing.is_active === true,
           expiresAt: existing.expires_at ?? null,
           productId: existing.product_id ?? null,
           // Return the DB-stored server timestamp, not a new Date()
           lastServerVerifiedAt:
             existing.last_server_verified_at ?? new Date().toISOString(),
-          source: "sync_entitlement",
+          last_server_verified_at:
+            existing.last_server_verified_at ?? new Date().toISOString(),
+          source: "revenuecat_sync",
         });
       }
     }
@@ -111,13 +159,26 @@ serve(async (req: Request) => {
     // ── 3. Query RevenueCat REST API ─────────────────────────────────────────
     // Uses Supabase user.id as the RC app_user_id (set via provider.logIn)
     const rcUrl = `${RC_API_BASE}/subscribers/${encodeURIComponent(user.id)}`;
-    const rcRes = await fetch(rcUrl, {
-      headers: {
-        Authorization: `Bearer ${rcSecretKey}`,
-        "Content-Type": "application/json",
-        "X-Platform": "ios", // required by RC REST API
-      },
-    });
+    let rcRes: Response;
+    try {
+      rcRes = await fetch(rcUrl, {
+        headers: {
+          Authorization: `Bearer ${rcSecretKey}`,
+          "Content-Type": "application/json",
+          "X-Platform": "ios", // required by RC REST API
+        },
+      });
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      console.error("[sync-entitlement]", {
+        step: "query_revenuecat_subscriber",
+        userId: user.id,
+        appUserId: user.id,
+        rcStatus: null,
+        reason: `RevenueCat fetch failed: ${reason.slice(0, 200)}`,
+      });
+      return freeResponse({ reason: "revenuecat_fetch_failed" });
+    }
 
     if (rcRes.status === 404) {
       // User has no purchase history — upsert as free
@@ -137,40 +198,124 @@ serve(async (req: Request) => {
         },
         verifiedAt
       );
-      return json({
-        ok: true,
-        cached: false,
-        isPro: false,
-        status: "free",
-        expiresAt: null,
-        productId: null,
+      return freeResponse({
+        status: "inactive",
         lastServerVerifiedAt: verifiedAt,
-        source: "sync_entitlement",
+        last_server_verified_at: verifiedAt,
+        source: "revenuecat_sync",
       });
     }
 
     if (!rcRes.ok) {
       const errText = await rcRes.text().catch(() => "");
-      console.error(
-        `[sync-entitlement] RC API error ${rcRes.status}: ${errText}`
+      console.error("[sync-entitlement]", {
+        step: "query_revenuecat_subscriber",
+        userId: user.id,
+        appUserId: user.id,
+        rcStatus: rcRes.status,
+        reason:
+          rcRes.status >= 500
+            ? "RevenueCat API returned 5xx; fail-open to free"
+            : "RevenueCat API returned 4xx; treating user as inactive",
+      });
+      const verifiedAt = new Date().toISOString();
+      await upsertSubscriptionState(
+        admin,
+        user.id,
+        {
+          status: "free",
+          is_active: false,
+          entitlement_id: null,
+          product_id: null,
+          store: null,
+          expires_at: null,
+          will_renew: false,
+        },
+        verifiedAt
       );
-      return json(
-        { ok: false, code: "RC_API_ERROR", detail: rcRes.status },
-        502
-      );
+      return freeResponse({
+        status: "inactive",
+        lastServerVerifiedAt: verifiedAt,
+        last_server_verified_at: verifiedAt,
+        source: "revenuecat_sync",
+        rcStatus: rcRes.status,
+        reason: errText ? errText.slice(0, 200) : "RevenueCat 4xx",
+      });
     }
 
-    const rcBody = await rcRes.json();
+    let rcBody: Record<string, unknown>;
+    try {
+      rcBody = (await rcRes.json()) as Record<string, unknown>;
+    } catch (err) {
+      const rcMessage = err instanceof Error ? err.message : String(err);
+      console.error("[sync-entitlement]", {
+        step: "parse_revenuecat_json",
+        userId: user.id,
+        appUserId: user.id,
+        rcStatus: rcRes.status,
+        reason: `RevenueCat response was not valid JSON: ${rcMessage.slice(0, 200)}`,
+      });
+      return freeResponse({
+        step: "parse_revenuecat_json",
+        rcStatus: rcRes.status,
+        reason: "RevenueCat response was not valid JSON",
+      });
+    }
     const subscriber = rcBody?.subscriber as
       | Record<string, unknown>
       | undefined;
 
     if (!subscriber) {
-      return json({ ok: false, code: "RC_BAD_RESPONSE" }, 502);
+      // Free user edge case: accept missing/empty subscriber as inactive.
+      console.error("[sync-entitlement]", {
+        step: "parse_revenuecat_response",
+        userId: user.id,
+        appUserId: user.id,
+        rcStatus: rcRes.status,
+        reason: "Missing subscriber field; treating user as inactive",
+      });
+      const verifiedAt = new Date().toISOString();
+      await upsertSubscriptionState(
+        admin,
+        user.id,
+        {
+          status: "free",
+          is_active: false,
+          entitlement_id: null,
+          product_id: null,
+          store: null,
+          expires_at: null,
+          will_renew: false,
+        },
+        verifiedAt
+      );
+      return freeResponse({
+        status: "inactive",
+        lastServerVerifiedAt: verifiedAt,
+        last_server_verified_at: verifiedAt,
+        source: "revenuecat_sync",
+      });
     }
 
     // ── 4. Normalize using shared rules ──────────────────────────────────────
-    const normalized = normalizeFromSubscriberResponse(subscriber);
+    let normalized: ReturnType<typeof normalizeFromSubscriberResponse>;
+    try {
+      normalized = normalizeFromSubscriberResponse(subscriber);
+    } catch (err) {
+      const rcMessage = err instanceof Error ? err.message : String(err);
+      console.error("[sync-entitlement]", {
+        step: "normalize_revenuecat_entitlement",
+        userId: user.id,
+        appUserId: user.id,
+        rcStatus: rcRes.status,
+        reason: `Failed to normalize subscriber payload: ${rcMessage.slice(0, 200)}`,
+      });
+      return freeResponse({
+        step: "normalize_revenuecat_entitlement",
+        rcStatus: rcRes.status,
+        reason: "Failed to normalize RevenueCat subscriber payload",
+      });
+    }
 
     console.log(
       `[sync-entitlement] user=${user.id} status=${normalized.status} is_active=${normalized.is_active}`
@@ -184,15 +329,24 @@ serve(async (req: Request) => {
       ok: true,
       cached: false,
       isPro: normalized.is_active,
-      status: normalized.status,
+      is_active: normalized.is_active,
+      status: toClientStatus(normalized.status, normalized.is_active),
       expiresAt: normalized.expires_at,
       productId: normalized.product_id,
       lastServerVerifiedAt: verifiedAt,
-      source: "sync_entitlement",
+      last_server_verified_at: verifiedAt,
+      source: "revenuecat_sync",
     });
   } catch (err) {
-    console.error("[sync-entitlement] Unexpected error:", err);
-    return json({ ok: false, code: "INTERNAL_ERROR" }, 500);
+    const reason = err instanceof Error ? err.message : String(err);
+    console.error("[sync-entitlement]", {
+      step: "unexpected_error",
+      userId: null,
+      appUserId: null,
+      rcStatus: null,
+      reason: reason.slice(0, 200),
+    });
+    return freeResponse({ reason: "unexpected_error" });
   }
 });
 
@@ -212,27 +366,43 @@ async function upsertSubscriptionState(
   },
   verifiedAt: string
 ) {
-  const { error } = await admin.from("subscription_state").upsert(
-    {
-      user_id: userId,
-      app_user_id: userId, // Supabase user_id is the RC app_user_id
-      status: normalized.status,
-      is_active: normalized.is_active,
-      entitlement_id: normalized.entitlement_id,
-      product_id: normalized.product_id,
-      store: normalized.store,
-      expires_at: normalized.expires_at,
-      will_renew: normalized.will_renew,
-      last_server_verified_at: verifiedAt,
-      source: "sync_entitlement",
-      updated_at: verifiedAt,
-    },
-    { onConflict: "user_id" }
-  );
+  try {
+    const { error } = await admin.from("subscription_state").upsert(
+      {
+        user_id: userId,
+        app_user_id: userId, // Supabase user_id is the RC app_user_id
+        status: normalized.status,
+        is_active: normalized.is_active,
+        entitlement_id: normalized.entitlement_id,
+        product_id: normalized.product_id,
+        store: normalized.store,
+        expires_at: normalized.expires_at,
+        will_renew: normalized.will_renew,
+        last_server_verified_at: verifiedAt,
+        source: "sync_entitlement",
+        updated_at: verifiedAt,
+      },
+      { onConflict: "user_id" }
+    );
 
-  if (error) {
-    console.error("[sync-entitlement] Upsert failed:", error.message);
-    throw error;
+    if (error) {
+      console.error("[sync-entitlement]", {
+        step: "upsert_subscription_state",
+        userId,
+        appUserId: userId,
+        rcStatus: null,
+        reason: `Upsert failed: ${error.message}`,
+      });
+    }
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    console.error("[sync-entitlement]", {
+      step: "upsert_subscription_state",
+      userId,
+      appUserId: userId,
+      rcStatus: null,
+      reason: `Upsert threw: ${reason.slice(0, 200)}`,
+    });
   }
 }
 

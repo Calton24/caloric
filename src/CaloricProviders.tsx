@@ -36,7 +36,8 @@ import {
 } from "./infrastructure/errorReporting";
 import { growth, initGrowth } from "./infrastructure/growth";
 import { initHaptics } from "./infrastructure/haptics";
-import { initI18n } from "./infrastructure/i18n";
+import { initI18n, bootstrapI18nSync } from "./infrastructure/i18n";
+import { mealDataSafety } from "./features/sync/meal-data-safety";
 import { initLiveActivity } from "./infrastructure/liveActivity";
 import { initMaintenance, MaintenanceGate } from "./infrastructure/maintenance";
 import { initNotifications } from "./infrastructure/notifications";
@@ -49,9 +50,19 @@ import { NotificationToastProvider } from "./ui/components/NotificationToast";
 import { ToastProvider } from "./ui/components/Toast";
 import { BottomSheetProvider } from "./ui/sheets/BottomSheetProvider";
 
+// Synchronously seed i18next with English so any screen that renders before
+// the async initI18n() finishes (e.g. a modal restored by Expo Router on hot
+// reload) shows real copy instead of raw translation keys.
+bootstrapI18nSync();
+
 /** Invisible component that syncs stores ↔ Supabase once auth is available */
 function SyncGate({ children }: { children: React.ReactNode }) {
   useProgressSync();
+  // NOTE: useOnboardingAuthority() is intentionally NOT called here.
+  // It lives inside <OnboardingAuthorityGate /> (mounted in app/_layout.tsx)
+  // so that the resolver and the gate share the same lifecycle. Mounting
+  // it both here and in the gate would issue duplicate Supabase queries
+  // on every cold start.
   return <>{children}</>;
 }
 
@@ -59,27 +70,90 @@ function SyncGate({ children }: { children: React.ReactNode }) {
  * Resets all persisted Zustand stores when the signed-in user changes.
  * Prevents a new user from seeing the previous user's cached meals,
  * weight logs, streaks, etc.
+ *
+ * Triggers on BOTH transitions:
+ *   null → user  (onboarding guest signs into existing account)
+ *   userA → userB (direct account switch)
+ *
+ * Does NOT trigger on first mount (undefined → null/user) when stores are
+ * already owned by the correct user from a prior session.
  */
 function useResetStoresOnUserChange() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const prevUserId = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
+    // Wait until auth bootstrap is resolved. Without this guard, cold start
+    // often goes undefined -> null (loading) -> user, which looked like a real
+    // account switch and incorrectly reset persisted profile preferences
+    // (including units) back to defaults before cloud/local hydration settled.
+    if (isLoading) return;
+
     const currentId = user?.id ?? null;
 
-    // Skip first mount (stores are fresh or belong to the current user)
+    // Skip very first mount — stores are either fresh or already belong to
+    // the current user from a previous session on this device.
     if (prevUserId.current === undefined) {
       prevUserId.current = currentId;
+      if (__DEV__) {
+        console.log("[AccountHydration] initial mount", {
+          userId: currentId ?? "anonymous",
+        });
+      }
       return;
     }
 
-    // Only reset when user changes (sign-out → new sign-in, or direct switch)
-    if (prevUserId.current !== currentId && prevUserId.current !== null) {
-      logger.log("[Auth] User changed, resetting local stores");
+    // Reset on ANY identity change: null → user, userA → userB, user → null.
+    // Previously this only ran on userA → userB (prevUserId !== null guard),
+    // which meant onboarding guests signing into an existing account kept
+    // all their stale local challenge/subscription/streak state.
+    if (prevUserId.current !== currentId) {
+      const previousUserId = prevUserId.current;
+      const nutritionBefore = useNutritionStore.getState();
+      const localMealsBeforeReset = nutritionBefore.meals.length;
+      const deletedMealIdsBeforeReset = nutritionBefore.deletedMealIds.length;
+
+      // null → user (guest signs into account mid-onboarding) is a
+      // *promotion*, not a real account switch. The onboarding inputs the
+      // user just entered (gender, height, weight, etc.) live in the
+      // local profile store and goals store. Wiping them here would force
+      // the user to re-enter everything OR end up with an empty server row.
+      //
+      // For this transition we preserve onboarding-relevant state and let
+      // the post-login sync push it to the new user's row. Other stores
+      // (challenge, subscription, scan credits, streak, meals/weight logs)
+      // are still reset because those represent real user-scoped data
+      // that should not leak from the previous anonymous session.
+      const isAnonymousToUser =
+        previousUserId === null && currentId !== null;
+
+      // FAIL CLOSED: enter `account_switch` phase BEFORE clearing local state,
+      // so the meal store subscription cannot interpret the upcoming
+      // `resetMeals()` as a wave of user-intent deletes and push them as
+      // soft-deletes to Supabase. This was the root cause of the 2026-04-29
+      // incident where 75 valid remote rows were deleted on account switch.
+      mealDataSafety.beginAccountSwitch(
+        previousUserId ?? null,
+        currentId ?? null
+      );
+
+      if (__DEV__) {
+        console.log("[AccountHydration] user changed — resetting stores", {
+          previousUserId: previousUserId ?? "anonymous",
+          currentUserId: currentId ?? "anonymous",
+          preserveOnboardingInputs: isAnonymousToUser,
+        });
+      }
+
       useNutritionStore.getState().resetMeals();
-      useGoalsStore.getState().clearPlan();
       useProgressStore.getState().resetWeightLogs();
-      useProfileStore.getState().resetProfile();
+      // Goals + profile carry the user's onboarding inputs. Only wipe them
+      // for genuine account switches (userA → userB) so an anonymous-onboarding
+      // → social-signin handoff doesn't lose data the user just entered.
+      if (!isAnonymousToUser) {
+        useGoalsStore.getState().clearPlan();
+        useProfileStore.getState().resetProfile();
+      }
       useRetentionStore.getState().resetRetention();
       useChallengeStore.getState().clearChallenge();
       useShareStore.getState().reset();
@@ -93,10 +167,37 @@ function useResetStoresOnUserChange() {
       useWaterStore.setState({ intakeByDate: {} });
       useSubscriptionStore.getState().resetSubscription();
       useScanCreditsStore.getState().resetCredits();
+      const nutritionAfter = useNutritionStore.getState();
+
+      if (__DEV__) {
+        console.log("[AccountHydration] stores reset complete", {
+          stores: [
+            "nutrition",
+            "goals",
+            "progress",
+            "profile",
+            "retention",
+            "challenge",
+            "share",
+            "streak",
+            "water",
+            "subscription",
+            "scanCredits",
+          ],
+        });
+        console.log("[DataLossAudit] reset-on-user-change", {
+          previousUserId: previousUserId ?? "anonymous",
+          userId: currentId ?? "anonymous",
+          localMealCountBeforeReset: localMealsBeforeReset,
+          localMealCountAfterReset: nutritionAfter.meals.length,
+          deletedMealIdsCountBeforeReset: deletedMealIdsBeforeReset,
+          deletedMealIdsCountAfterReset: nutritionAfter.deletedMealIds.length,
+        });
+      }
     }
 
     prevUserId.current = currentId;
-  }, [user?.id]);
+  }, [user?.id, isLoading]);
 }
 
 /**
@@ -186,6 +287,18 @@ function BillingGate({ children }: { children: React.ReactNode }) {
                 expiresAt: (data.expiresAt as string | null) ?? null,
                 lastServerVerifiedAt: data.lastServerVerifiedAt as string,
               });
+              if (__DEV__) {
+                console.log("[AccountHydration] sync-entitlement response", {
+                  userId: user.id,
+                  isPro: data.isPro,
+                  status: data.status,
+                  hasActiveSubscription:
+                    useSubscriptionStore.getState().subscription
+                      .hasActiveSubscription,
+                  challengeStatus:
+                    useChallengeStore.getState().challenge?.status ?? "none",
+                });
+              }
             } else if (attempt === 1) {
               // Non-authoritative response — retry once; keep current store state
               setTimeout(() => invokeSync(2), 5_000);
@@ -216,6 +329,13 @@ function BillingGate({ children }: { children: React.ReactNode }) {
 
       provider
         .logIn?.(user.id)
+        ?.then(() => {
+          if (__DEV__) {
+            console.log("[AccountHydration] RC logIn complete", {
+              rcAppUserId: user.id,
+            });
+          }
+        })
         ?.catch((err: unknown) => {
           reportError(err, {
             area: "billing",

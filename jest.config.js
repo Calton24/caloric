@@ -30,9 +30,14 @@ module.exports = {
     "react-native-url-polyfill/auto": "<rootDir>/__mocks__/react-native-url-polyfill.ts",
     "@react-native-async-storage/async-storage":
       "<rootDir>/__mocks__/@react-native-async-storage/async-storage.ts",
+    "^@react-native-google-signin/google-signin$":
+      "<rootDir>/__mocks__/@react-native-google-signin/google-signin.ts",
     "expo-constants": "<rootDir>/__mocks__/expo-constants.ts",
     "expo-secure-store": "<rootDir>/__mocks__/expo-secure-store.ts",
     "expo-speech-recognition": "<rootDir>/__mocks__/expo-speech-recognition.ts",
+    "^@expo/vector-icons$": "<rootDir>/__mocks__/expo-vector-icons.ts",
+    "^react-native-safe-area-context$":
+      "<rootDir>/__mocks__/react-native-safe-area-context.tsx",
   },
   setupFilesAfterEnv: ["<rootDir>/__tests__/setup.ts"],
   collectCoverageFrom: [

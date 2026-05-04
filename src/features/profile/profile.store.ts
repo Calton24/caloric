@@ -31,6 +31,7 @@ export const initialProfile: UserProfile = {
   onboardingCompleted: false,
   waterGoalMl: 2000,
   waterIncrementMl: 250,
+  updatedAt: null,
 };
 
 export const useProfileStore = create<ProfileStore>()(
@@ -70,7 +71,14 @@ export const useProfileStore = create<ProfileStore>()(
 
       setOnboardingCompleted: (onboardingCompleted) =>
         set((state) => ({
-          profile: { ...state.profile, onboardingCompleted },
+          profile: {
+            ...state.profile,
+            onboardingCompleted,
+            // Bump updatedAt so subsequent last-write-wins reconciliation
+            // recognises this as the canonical, most-recent state and can't
+            // be silently reverted by a stale remote row with a newer ts.
+            updatedAt: new Date().toISOString(),
+          },
         })),
 
       setWaterSettings: (waterGoalMl, waterIncrementMl) =>
@@ -103,6 +111,19 @@ export const useProfileStore = create<ProfileStore>()(
     }
   )
 );
+
+let unitsHydrationLogBound = false;
+if (__DEV__ && !unitsHydrationLogBound) {
+  unitsHydrationLogBound = true;
+  useProfileStore.persist.onFinishHydration((state) => {
+    const hydratedUnit = state?.profile?.weightUnit ?? initialProfile.weightUnit;
+    console.log("[UnitsPersistence] hydrated", {
+      previousUnit: "unknown",
+      nextUnit: hydratedUnit,
+      source: "local",
+    });
+  });
+}
 
 /**
  * React hook — returns true once the profile store has rehydrated from

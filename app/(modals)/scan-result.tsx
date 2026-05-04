@@ -8,20 +8,22 @@
  * Happy path principle:
  *   capture → background analyze → glance → one-tap confirm.
  *
- * Confidence thresholds:
- *   > 0.85  → no label; CTA = framing.cta
- *   0.65–0.85 → subtle "AI estimate" label near title
- *   < 0.65  → "Check before logging" label; CTA = "Review first" → Adjust
+ * Confidence thresholds (copy + hierarchy; styling matches confirm-meal / barcode):
+ *   > 0.85  → neutral subtitle; CTA = white pill + add to today
+ *   0.65–0.85 → softer subtitle
+ *   < 0.65  → review-suggested subtitle; CTA = same white pill → confirm-meal to review
  */
 
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import React, { useMemo, useRef, useState } from "react";
 import { Animated, Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { haptics } from "../../src/infrastructure/haptics";
 import { useBackgroundScanStore } from "../../src/features/camera/background-scan.store";
 import { useGoalsStore } from "../../src/features/goals/goals.store";
+import { formatFoodName } from "@/src/utils/formatFoodName";
 import { useNutritionDraftStore } from "../../src/features/nutrition/nutrition.draft.store";
 import {
     getMealsForDate,
@@ -33,21 +35,42 @@ import { useRetentionStore } from "../../src/features/retention/retention.store"
 import { resolveScanFraming } from "../../src/features/scan-framing/scan-framing.service";
 import { useStreakStore } from "../../src/features/streak/streak.store";
 import { toISODate } from "../../src/lib/utils/date";
+import {
+  addFoodLoggingBreadcrumb,
+  captureFoodLoggingError,
+} from "../../src/infrastructure/errorReporting/foodLoggingErrors";
+import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { useToast } from "../../src/ui/components/Toast";
 import { TText } from "../../src/ui/primitives/TText";
+import { FoodLoggingErrorBoundary } from "../../src/ui/errors/FoodLoggingErrorBoundary";
 
 // ─── Confidence label (inline, no pill box) ───────────────────────────────────
 
 function ConfidenceLabel({ confidence }: { confidence: number }) {
   const { theme } = useTheme();
-  if (confidence > 0.85) return null;
-  const isLow = confidence < 0.65;
-  const label = isLow ? "Check before logging" : "AI estimate";
-  const color = isLow
-    ? theme.colors.warning
-    : (theme.colors.info ?? theme.colors.primary);
-  return <TText style={[styles.confidenceLabel, { color }]}>{label}</TText>;
+  const { t } = useAppTranslation();
+  if (confidence < 0.65) {
+    return (
+      <TText style={[styles.confidenceLabel, { color: theme.colors.textMuted }]}>
+        {t("mealAnalysis.reviewSuggested")}
+      </TText>
+    );
+  }
+  if (confidence <= 0.85) {
+    return (
+      <TText
+        style={[styles.confidenceLabel, { color: theme.colors.textSecondary }]}
+      >
+        {t("scanReview.aiEstimate")}
+      </TText>
+    );
+  }
+  return (
+    <TText style={[styles.confidenceLabel, { color: theme.colors.textMuted }]}>
+      {t("scanReview.aiEstimatedAdjust")}
+    </TText>
+  );
 }
 
 // ─── Tint color resolver ──────────────────────────────────────────────────────
@@ -72,9 +95,11 @@ function useTintColor(
 
 // ─── Main screen ─────────────────────────────────────────────────────────────
 
-export default function ScanResultScreen() {
+function ScanResultScreenInner() {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const router = useRouter();
+  const pathname = usePathname();
   const toast = useToast();
 
   // Confirm button feedback
@@ -169,7 +194,12 @@ export default function ScanResultScreen() {
 
   function handleConfirm() {
     if (confirming || !isMounted.current) return;
+    addFoodLoggingBreadcrumb("food_logging.scan_result_track_pressed", {
+      route: pathname,
+      calories: mealCalories,
+    });
     setConfirming(true);
+    haptics.impact("medium");
 
     // Button micro-bounce — fire-and-forget, safe with useNativeDriver
     Animated.sequence([
@@ -186,20 +216,57 @@ export default function ScanResultScreen() {
     ]).start(() => {
       // Callback fires after animation; guard against unmount during bounce
       if (!isMounted.current) return;
-      saveDraftWithoutNav();
-      recordFirstMeal();
-      resetScan();
-      toast.show(`${mealCalories} kcal logged`, "success");
-      navigateAfterSave();
+      try {
+        addFoodLoggingBreadcrumb("food_logging.scan_result_before_local_save", {
+          route: pathname,
+        });
+        const saved = saveDraftWithoutNav();
+        addFoodLoggingBreadcrumb("food_logging.scan_result_after_local_save", {
+          saved,
+        });
+        if (!saved) {
+          captureFoodLoggingError(
+            new Error("scan_result_save_draft_failed"),
+            {
+              flow: "scan_result",
+              step: "save_draft_without_nav",
+              route: pathname,
+              calories: mealCalories,
+            },
+            { level: "warning" }
+          );
+          toast.show(t("mealConfirm.invalidMealDraft"), "error");
+          setConfirming(false);
+          return;
+        }
+        recordFirstMeal();
+        resetScan();
+        toast.show(`${mealCalories} kcal logged`, "success");
+        addFoodLoggingBreadcrumb("food_logging.scan_result_before_navigate");
+        navigateAfterSave();
+      } catch (e) {
+        captureFoodLoggingError(e, {
+          flow: "scan_result",
+          step: "handle_confirm_after_animation",
+          route: pathname,
+          calories: mealCalories,
+        });
+        setConfirming(false);
+      }
     });
   }
 
   const isLowConfidence = confidence < 0.65;
-  const primaryLabel = isLowConfidence ? "Review first" : framing.cta;
-  const primaryColor = isLowConfidence ? theme.colors.warning : tintColor;
+  const primaryLabel = isLowConfidence
+    ? t("mealConfirm.trackCalories")
+    : t("scanReview.addToToday");
+  const savingLabel = isLowConfidence
+    ? t("mealConfirm.trackCalories")
+    : t("scanReview.adding");
 
   function handlePrimary() {
     if (isLowConfidence) {
+      haptics.impact("light");
       router.push("/(modals)/confirm-meal" as never);
     } else {
       handleConfirm();
@@ -237,7 +304,7 @@ export default function ScanResultScreen() {
             <TText
               style={[styles.adjustLinkText, { color: theme.colors.primary }]}
             >
-              Adjust
+              Edit
             </TText>
           </Pressable>
         </View>
@@ -275,7 +342,7 @@ export default function ScanResultScreen() {
             style={[styles.mealTitle, { color: theme.colors.text }]}
             numberOfLines={2}
           >
-            {draft.title}
+            {formatFoodName(draft.title)}
           </TText>
           <ConfidenceLabel confidence={confidence} />
         </View>
@@ -331,7 +398,7 @@ export default function ScanResultScreen() {
               style={[styles.foodName, { color: theme.colors.text }]}
               numberOfLines={2}
             >
-              {draft.title}
+              {formatFoodName(draft.title)}
             </TText>
           </View>
 
@@ -346,7 +413,7 @@ export default function ScanResultScreen() {
             <MacroPill
               label="C"
               value={draft.carbs}
-              color="#FBBF24"
+              color="#A78BFA"
               bg={theme.colors.border}
             />
             <MacroPill
@@ -357,32 +424,29 @@ export default function ScanResultScreen() {
             />
           </View>
 
-          {/* Primary CTA */}
+          {/* Confirmation hint + primary CTA */}
+          {!isLowConfidence && (
+            <TText
+              style={[styles.ctaHint, { color: theme.colors.textSecondary }]}
+            >
+              {t("scanReview.looksGoodHint")}
+            </TText>
+          )}
           <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
             <Pressable
               onPress={handlePrimary}
               disabled={confirming}
               style={[
                 styles.trackBtn,
-                { backgroundColor: isLowConfidence ? primaryColor : "#FFFFFF" },
+                {
+                  backgroundColor: "#FFFFFF",
+                  opacity: confirming ? 0.85 : 1,
+                },
               ]}
             >
-              {confirming ? (
-                <Ionicons
-                  name="checkmark"
-                  size={22}
-                  color={isLowConfidence ? "#fff" : "#1C1C1E"}
-                />
-              ) : (
-                <TText
-                  style={[
-                    styles.trackBtnText,
-                    { color: isLowConfidence ? "#fff" : "#1C1C1E" },
-                  ]}
-                >
-                  {primaryLabel}
-                </TText>
-              )}
+              <TText style={styles.trackBtnText}>
+                {confirming ? savingLabel : primaryLabel}
+              </TText>
             </Pressable>
           </Animated.View>
         </View>
@@ -403,6 +467,14 @@ export default function ScanResultScreen() {
         <View style={styles.bottomSpacer} />
       </SafeAreaView>
     </View>
+  );
+}
+
+export default function ScanResultScreen() {
+  return (
+    <FoodLoggingErrorBoundary routeLabel="/(modals)/scan-result">
+      <ScanResultScreenInner />
+    </FoodLoggingErrorBoundary>
   );
 }
 
@@ -565,6 +637,14 @@ const styles = StyleSheet.create({
   trackBtnText: {
     fontSize: 17,
     fontWeight: "700",
+    color: "#1C1C1E",
+  },
+  // Confirmation hint above CTA
+  ctaHint: {
+    fontSize: 13,
+    fontWeight: "400",
+    textAlign: "center",
+    marginBottom: 2,
   },
   // Framing hint
   framingSubtitle: {

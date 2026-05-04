@@ -3,7 +3,7 @@
  */
 
 // ── Bootstrap (called once in CaloricProviders) ──
-export { getDeviceLocale, initI18n, resetI18n } from "./init";
+export { bootstrapI18nSync, getDeviceLocale, initI18n, resetI18n } from "./init";
 
 // ── Constants ──
 export {

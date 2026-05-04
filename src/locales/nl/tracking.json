@@ -71,10 +71,18 @@
     "tryAgainVoice": "Opnieuw met spraak",
     "typeItIn": "Typ het in",
     "trackCalories": "Calorieën bijhouden",
+    "invalidMealDraft": "We konden deze maaltijd niet goed lezen. Pas het aan voordat je opslaat.",
     "adjustHint": "Calorieën aanpassen? Vraag het gewoon!",
     "reportFood": "Eten melden",
     "deleteFood": "Eten verwijderen",
     "noMatchRich": "We konden <bold>“{{food}}”</bold> niet vinden in onze database. Probeer het opnieuw of typ het in."
+  },
+  "scanReview": {
+    "addToToday": "Toevoegen aan vandaag",
+    "adding": "Bezig met toevoegen…",
+    "aiEstimate": "AI-schatting",
+    "aiEstimatedAdjust": "Geschat door AI • altijd aanpasbaar",
+    "looksGoodHint": "Ziet er goed uit? Voeg het toe aan je dag"
   },
   "editMeal": {
     "mealNotFound": "Maaltijd niet gevonden",

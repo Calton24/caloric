@@ -18,6 +18,7 @@ type FlagName =
   | "SHOW_AUTH"
   | "SHOW_PLAYGROUND"
   | "SHOW_CALORIC"
+  | "SINGLE_SCREEN_LAUNCH"
   | "CHALLENGE_INTRO_PRICING"
   | "CHALLENGE_ANNUAL_DISCOUNT";
 
@@ -38,6 +39,9 @@ export const FeatureFlags: Flags = {
 
   /** Caloric dev tools — dev only */
   SHOW_CALORIC: __DEV__,
+
+  /** Launch mode: disable native + custom tab bars (re-enable in v2). */
+  SINGLE_SCREEN_LAUNCH: true,
 
   /** Enable £0.99 intro pricing during challenge */
   CHALLENGE_INTRO_PRICING: true,

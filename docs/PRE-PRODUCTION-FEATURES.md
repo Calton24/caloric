@@ -341,10 +341,10 @@ Before production build, update bundle identifiers to remove `.dev` suffix:
 {
   "expo": {
     "ios": {
-      "bundleIdentifier": "com.calton24.caloric"
+      "bundleIdentifier": "com.calton.caloric"
     },
     "android": {
-      "package": "com.calton24.caloric"
+      "package": "com.calton.caloric"
     }
   }
 }

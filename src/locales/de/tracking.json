@@ -71,10 +71,18 @@
     "tryAgainVoice": "Mit Stimme erneut versuchen",
     "typeItIn": "Manuell eingeben",
     "trackCalories": "Kalorien tracken",
+    "invalidMealDraft": "Wir konnten diese Mahlzeit nicht korrekt lesen. Bitte passe sie an, bevor du speicherst.",
     "adjustHint": "Kalorien anpassen? Einfach fragen!",
     "reportFood": "Essen melden",
     "deleteFood": "Essen löschen",
     "noMatchRich": "Wir konnten <bold>„{{food}}“</bold> nicht in unserer Datenbank finden. Versuche es erneut oder tippe es ein."
+  },
+  "scanReview": {
+    "addToToday": "Heute hinzufügen",
+    "adding": "Wird hinzugefügt…",
+    "aiEstimate": "KI-Schätzung",
+    "aiEstimatedAdjust": "KI-geschätzt • jederzeit anpassbar",
+    "looksGoodHint": "Sieht gut aus? Zu deinem Tag hinzufügen"
   },
   "editMeal": {
     "mealNotFound": "Mahlzeit nicht gefunden",

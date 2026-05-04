@@ -3,7 +3,7 @@
  * Run: node scripts/generate-i18n-types.js
  *
  * Generated from 11 English locale files.
- * Total keys: 923 (798 simple, 125 with interpolation)
+ * Total keys: 1144 (979 simple, 165 with interpolation)
  */
 
 /** All valid translation keys (no interpolation params) */
@@ -198,38 +198,6 @@ export type SimpleTranslationKey =
   | "onboarding.complete.heading"
   | "onboarding.complete.subtitle"
   | "onboarding.complete.letsGo"
-  | "paywall.daysLogged"
-  | "paywall.completion"
-  | "paywall.dayStreak"
-  | "paywall.socialProof"
-  | "paywall.getFullAccess"
-  | "paywall.unlockEverything"
-  | "paywall.skip"
-  | "paywall.leaveStreak"
-  | "paywall.stayOnTrack"
-  | "paywall.continueWithout"
-  | "paywall.includedWithPlan"
-  | "paywall.maybeLater"
-  | "paywall.bestValue"
-  | "paywall.bestValueStar"
-  | "paywall.choosePlan"
-  | "paywall.loadingPlans"
-  | "paywall.challengeOnly"
-  | "paywall.challengePrice"
-  | "paywall.benefitUnlimitedScans"
-  | "paywall.benefitMacroTrends"
-  | "paywall.benefitRecommendations"
-  | "paywall.benefitScanTitle"
-  | "paywall.benefitScanSub"
-  | "paywall.benefitTrendsTitle"
-  | "paywall.benefitTrendsSub"
-  | "paywall.benefitRecsTitle"
-  | "paywall.benefitRecsSub"
-  | "paywall.benefitExportTitle"
-  | "paywall.benefitExportSub"
-  | "paywall.tierMonthly"
-  | "paywall.tierYearly"
-  | "paywall.tierPlan"
   | "welcome.heading"
   | "welcome.subheading"
   | "welcome.feature1Title"
@@ -264,12 +232,15 @@ export type SimpleTranslationKey =
   | "home.logFirstMeal"
   | "home.noMealsYet"
   | "home.tapToLog"
+  | "home.dismissPendingScanTitle"
+  | "home.dismissPendingScanMessage"
   | "home.steps"
   | "home.activeCal"
   | "home.noMoreCards"
   | "home.dayShort"
   | "home.weekShort"
   | "home.monthShort"
+  | "home.brandName"
   | "streak.startPrompt"
   | "streak.freezeAvailable"
   | "streak.protectStreak"
@@ -498,6 +469,81 @@ export type SimpleTranslationKey =
   | "colorPicker.themeColor"
   | "colorPicker.primaryColor"
   | "colorPicker.hue"
+  | "paywall.daysLogged"
+  | "paywall.completion"
+  | "paywall.dayStreak"
+  | "paywall.socialProof"
+  | "paywall.getFullAccess"
+  | "paywall.unlockEverything"
+  | "paywall.skip"
+  | "paywall.leaveStreak"
+  | "paywall.stayOnTrack"
+  | "paywall.continueWithout"
+  | "paywall.includedWithPlan"
+  | "paywall.maybeLater"
+  | "paywall.bestValue"
+  | "paywall.bestValueStar"
+  | "paywall.choosePlan"
+  | "paywall.loadingPlans"
+  | "paywall.challengeOnly"
+  | "paywall.challengePrice"
+  | "paywall.benefitUnlimitedScans"
+  | "paywall.benefitMacroTrends"
+  | "paywall.benefitRecommendations"
+  | "paywall.benefitScanTitle"
+  | "paywall.benefitScanSub"
+  | "paywall.benefitTrendsTitle"
+  | "paywall.benefitTrendsSub"
+  | "paywall.benefitRecsTitle"
+  | "paywall.benefitRecsSub"
+  | "paywall.benefitExportTitle"
+  | "paywall.benefitExportSub"
+  | "paywall.tierMonthly"
+  | "paywall.tierYearly"
+  | "paywall.tierPlan"
+  | "paywall.heading"
+  | "paywall.trialBadge"
+  | "paywall.trialDescription"
+  | "paywall.everythingIncluded"
+  | "paywall.featurePlan"
+  | "paywall.featureBarcode"
+  | "paywall.featurePhotos"
+  | "paywall.featureAnalytics"
+  | "paywall.featureLogging"
+  | "paywall.subscribed"
+  | "paywall.skipText"
+  | "paywall.legalText"
+  | "paywall.restorePurchases"
+  | "paywall.challengeHeading"
+  | "paywall.challengeSubheading"
+  | "paywall.challengeJoin"
+  | "paywall.challengeSocialProof"
+  | "paywall.challengeStartFree"
+  | "paywall.challengeClaimed"
+  | "paywall.ctaYearly"
+  | "paywall.ctaDefault"
+  | "paywall.shareProgressWith"
+  | "paywall.stayAccountable"
+  | "paywall.testimonialQuote"
+  | "paywall.testimonialAuthor"
+  | "paywall.featureSnapLog"
+  | "paywall.featureSnapLogSub"
+  | "paywall.featureSmartTrends"
+  | "paywall.featureSmartTrendsSub"
+  | "paywall.feature21Day"
+  | "paywall.feature21DaySub"
+  | "paywall.testimonial1"
+  | "paywall.testimonial1Author"
+  | "paywall.testimonial2"
+  | "paywall.testimonial2Author"
+  | "paywall.testimonial3"
+  | "paywall.testimonial3Author"
+  | "paywall.testimonial4"
+  | "paywall.testimonial4Author"
+  | "paywall.testimonial5"
+  | "paywall.testimonial5Author"
+  | "paywall.testimonial6"
+  | "paywall.testimonial6Author"
   | "recalibration.heading"
   | "recalibration.estimated"
   | "recalibration.actual"
@@ -567,9 +613,15 @@ export type SimpleTranslationKey =
   | "mealConfirm.tryAgainVoice"
   | "mealConfirm.typeItIn"
   | "mealConfirm.trackCalories"
+  | "mealConfirm.invalidMealDraft"
   | "mealConfirm.adjustHint"
   | "mealConfirm.reportFood"
   | "mealConfirm.deleteFood"
+  | "scanReview.addToToday"
+  | "scanReview.adding"
+  | "scanReview.aiEstimate"
+  | "scanReview.aiEstimatedAdjust"
+  | "scanReview.looksGoodHint"
   | "editMeal.mealNotFound"
   | "editMeal.editMeal"
   | "editMeal.deleteMeal"
@@ -652,6 +704,135 @@ export type SimpleTranslationKey =
   | "progress.cannotRecalculate"
   | "progress.cannotRecalculateDesc"
   | "progress.planUpdated"
+  | "progress.ranges.7d"
+  | "progress.ranges.30d"
+  | "progress.ranges.90d"
+  | "progress.ranges.all"
+  | "progress.weight"
+  | "progress.current_label"
+  | "progress.goal_label"
+  | "progress.nextWeighIn"
+  | "progress.logToday"
+  | "progress.soon"
+  | "progress.tomorrow"
+  | "progress.streak"
+  | "progress.thisWeek"
+  | "progress.weightTrend"
+  | "progress.trendUp"
+  | "progress.trendDown"
+  | "progress.trendFlat"
+  | "progress.insights.cta.logMeal"
+  | "progress.insights.cta.logFirstMeal"
+  | "progress.insights.cta.logWeight"
+  | "progress.insights.cta.openMacros"
+  | "progress.insights.cta.viewProgress"
+  | "progress.insights.cta.recalculatePlan"
+  | "progress.insights.cta.openPaywall"
+  | "progress.insights.cta.dismiss"
+  | "progress.insights.streak_about_to_break.message"
+  | "progress.insights.streak_about_to_break.message_soft"
+  | "progress.insights.streak_about_to_break.message_bold"
+  | "progress.insights.streak_personal_best_chance.title"
+  | "progress.insights.streak_personal_best_chance.title_bold"
+  | "progress.insights.streak_restart_opportunity.title"
+  | "progress.insights.streak_restart_opportunity.title_soft"
+  | "progress.insights.streak_restart_opportunity.title_bold"
+  | "progress.insights.calorie_surplus_3d.title"
+  | "progress.insights.calorie_surplus_3d.title_bold"
+  | "progress.insights.calorie_deficit_too_aggressive.title"
+  | "progress.insights.calorie_deficit_too_aggressive.title_soft"
+  | "progress.insights.calorie_deficit_too_aggressive.title_bold"
+  | "progress.insights.calorie_deficit_too_aggressive.message"
+  | "progress.insights.calorie_deficit_too_aggressive.message_soft"
+  | "progress.insights.consistency_dropped.title"
+  | "progress.insights.consistency_dropped.message"
+  | "progress.insights.consistency_dropped.message_soft"
+  | "progress.insights.protein_chronic_low.title"
+  | "progress.insights.protein_chronic_low.title_bold"
+  | "progress.insights.weight_log_stale.title"
+  | "progress.insights.weight_log_stale.title_soft"
+  | "progress.insights.near_goal.message"
+  | "progress.insights.near_goal.message_soft"
+  | "progress.insights.best_week_ever.title"
+  | "progress.insights.best_week_ever.message_soft"
+  | "progress.insights.on_pace_for_goal.title"
+  | "progress.insights.on_pace_for_goal.message"
+  | "progress.insights.on_pace_for_goal.message_soft"
+  | "progress.insights.protein_optimization.message_soft"
+  | "progress.insights.weekend_drift.title"
+  | "progress.insights.weekend_drift.message_soft"
+  | "progress.insights.late_log_pattern.title"
+  | "progress.insights.late_log_pattern.title_bold"
+  | "progress.insights.late_log_pattern.message"
+  | "progress.insights.late_log_pattern.message_soft"
+  | "progress.insights.no_data.title"
+  | "progress.insights.no_data.title_soft"
+  | "progress.insights.no_data.message"
+  | "progress.insights.no_data.message_soft"
+  | "progress.insights.neutral_steady.title"
+  | "progress.insights.neutral_steady.title_soft"
+  | "progress.insights.neutral_steady.title_bold"
+  | "progress.insights.neutral_steady.message"
+  | "progress.insights.neutral_steady.message_soft"
+  | "progress.insights.neutral_steady.message_bold"
+  | "progress.macros"
+  | "progress.avgCarbs"
+  | "progress.avgFat"
+  | "progress.daysOnTarget"
+  | "progress.bmiTitle"
+  | "progress.bmiUnderweight"
+  | "progress.bmiHealthy"
+  | "progress.bmiOverweight"
+  | "progress.bmiObese"
+  | "progress.bmiNeedsHeight"
+  | "progress.emptyWeightTitle"
+  | "progress.emptyWeightSubtitle"
+  | "progress.emptyMealsTitle"
+  | "progress.emptyMealsSubtitle"
+  | "progress.weightCard.delta_flat"
+  | "progress.weightCard.confidence_on_track"
+  | "progress.weightCard.confidence_too_fast"
+  | "progress.weightCard.confidence_stalling"
+  | "progress.weightCard.confidence_off_pace"
+  | "progress.weightCard.ctaLog"
+  | "progress.weightCard.ctaTrend"
+  | "progress.streakCard.risk_safe"
+  | "progress.streakCard.risk_at_risk"
+  | "progress.streakCard.risk_critical"
+  | "progress.streakCard.urgency_log_today"
+  | "progress.streakCard.urgency_log_tonight"
+  | "progress.streakCard.urgency_before_midnight"
+  | "progress.streakCard.ctaLogNow"
+  | "progress.weightTrendCard.trend_perfect_pace"
+  | "progress.weightTrendCard.trend_losing_too_fast"
+  | "progress.weightTrendCard.trend_gaining_too_fast"
+  | "progress.weightTrendCard.trend_plateau"
+  | "progress.weightTrendCard.trend_drifting_up"
+  | "progress.weightTrendCard.trend_drifting_down"
+  | "progress.weightTrendCard.trend_holding_steady"
+  | "progress.weightTrendCard.ctaAdjustPlan"
+  | "progress.macroCard.balance_balanced"
+  | "progress.macroCard.balance_protein_low"
+  | "progress.macroCard.balance_protein_high"
+  | "progress.macroCard.balance_fat_high"
+  | "progress.macroCard.balance_fat_low"
+  | "progress.macroCard.balance_carbs_high"
+  | "progress.macroCard.balance_carbs_low"
+  | "progress.macroCard.balance_protein_low_with_fat"
+  | "progress.macroCard.balance_protein_low_with_carbs"
+  | "progress.macroCard.best_day"
+  | "progress.macroCard.worst_day"
+  | "progress.macroCard.ctaImprove"
+  | "progress.weeklyScore.title"
+  | "progress.weeklyScore.label_excellent"
+  | "progress.weeklyScore.label_good"
+  | "progress.weeklyScore.label_fair"
+  | "progress.weeklyScore.label_needs_work"
+  | "progress.weeklyScore.label_no_data"
+  | "progress.weeklyScore.breakdownCalories"
+  | "progress.weeklyScore.breakdownProtein"
+  | "progress.weeklyScore.breakdownConsistency"
+  | "progress.weeklyScore.ctaImprove"
   | "logWeight.title"
   | "logWeight.today"
   | "logWeight.save"
@@ -831,8 +1012,6 @@ export type ParamTranslationKey =
   | "onboarding.complete.kcalDay"
   | "onboarding.complete.goalWeight"
   | "onboarding.complete.weeksLeft"
-  | "paywall.builtConsistency"
-  | "paywall.dayStreakBadge"
   | "home.logged"
   | "home.calTarget"
   | "home.currentWeightA11y"
@@ -877,6 +1056,8 @@ export type ParamTranslationKey =
   | "settings.egExample"
   | "featureRequest.cooldown"
   | "featureRequest.cooldownRetry"
+  | "paywall.builtConsistency"
+  | "paywall.dayStreakBadge"
   | "recalibration.applyBudgetA11y"
   | "tracking.macroSummary"
   | "camera.freeScansRemaining"
@@ -894,6 +1075,46 @@ export type ParamTranslationKey =
   | "progress.toGoal"
   | "progress.budgetLabel"
   | "progress.planUpdatedDesc"
+  | "progress.in_n_days"
+  | "progress.dayStreak"
+  | "progress.progressBadge"
+  | "progress.weeklyRate"
+  | "progress.insights.streak_about_to_break.title"
+  | "progress.insights.streak_about_to_break.title_soft"
+  | "progress.insights.streak_about_to_break.title_bold"
+  | "progress.insights.streak_personal_best_chance.message"
+  | "progress.insights.streak_personal_best_chance.message_soft"
+  | "progress.insights.streak_restart_opportunity.message"
+  | "progress.insights.streak_restart_opportunity.message_soft"
+  | "progress.insights.calorie_surplus_3d.message"
+  | "progress.insights.calorie_surplus_3d.message_soft"
+  | "progress.insights.consistency_dropped.title_bold"
+  | "progress.insights.protein_chronic_low.message"
+  | "progress.insights.protein_chronic_low.message_soft"
+  | "progress.insights.weight_log_stale.title_bold"
+  | "progress.insights.weight_log_stale.message"
+  | "progress.insights.weight_log_stale.message_soft"
+  | "progress.insights.near_goal.title"
+  | "progress.insights.near_goal.title_bold"
+  | "progress.insights.streak_milestone.title"
+  | "progress.insights.streak_milestone.title_bold"
+  | "progress.insights.streak_milestone.message"
+  | "progress.insights.streak_milestone.message_soft"
+  | "progress.insights.best_week_ever.title_bold"
+  | "progress.insights.best_week_ever.message"
+  | "progress.insights.on_pace_for_goal.title_bold"
+  | "progress.insights.protein_optimization.title"
+  | "progress.insights.protein_optimization.title_bold"
+  | "progress.insights.protein_optimization.message"
+  | "progress.insights.weekend_drift.title_bold"
+  | "progress.insights.weekend_drift.message"
+  | "progress.weightCard.delta_loss"
+  | "progress.weightCard.delta_gain"
+  | "progress.streakCard.milestone_to_best"
+  | "progress.streakCard.milestone_to_target"
+  | "progress.macroCard.kcal_vs_target"
+  | "progress.macroCard.kcal_vs_target_no_target"
+  | "progress.macroCard.calories_kcal"
   | "logWeight.goalLabel"
   | "coaching.dayCount"
   | "coaching.dayIdentity"
@@ -963,8 +1184,6 @@ export interface TranslationParams {
   "onboarding.complete.kcalDay": { count: string | number };
   "onboarding.complete.goalWeight": { weight: string | number };
   "onboarding.complete.weeksLeft": { count: string | number };
-  "paywall.builtConsistency": { count: string | number };
-  "paywall.dayStreakBadge": { count: string | number };
   "home.logged": { count: string | number };
   "home.calTarget": { target: string | number };
   "home.currentWeightA11y": { weight: string | number };
@@ -1009,6 +1228,8 @@ export interface TranslationParams {
   "settings.egExample": { example: string | number };
   "featureRequest.cooldown": { seconds: string | number };
   "featureRequest.cooldownRetry": { seconds: string | number };
+  "paywall.builtConsistency": { count: string | number };
+  "paywall.dayStreakBadge": { count: string | number };
   "recalibration.applyBudgetA11y": { calories: string | number };
   "tracking.macroSummary": { protein: string | number; unit: string | number; carbs: string | number; fat: string | number };
   "camera.freeScansRemaining": { count: string | number };
@@ -1026,6 +1247,46 @@ export interface TranslationParams {
   "progress.toGoal": { unit: string | number };
   "progress.budgetLabel": { budget: string | number };
   "progress.planUpdatedDesc": { weight: string | number };
+  "progress.in_n_days": { count: string | number };
+  "progress.dayStreak": { count: string | number };
+  "progress.progressBadge": { percent: string | number };
+  "progress.weeklyRate": { rate: string | number; unit: string | number };
+  "progress.insights.streak_about_to_break.title": { n: string | number };
+  "progress.insights.streak_about_to_break.title_soft": { n: string | number };
+  "progress.insights.streak_about_to_break.title_bold": { n: string | number };
+  "progress.insights.streak_personal_best_chance.message": { best: string | number; today: string | number };
+  "progress.insights.streak_personal_best_chance.message_soft": { best: string | number };
+  "progress.insights.streak_restart_opportunity.message": { prior: string | number };
+  "progress.insights.streak_restart_opportunity.message_soft": { prior: string | number };
+  "progress.insights.calorie_surplus_3d.message": { over: string | number };
+  "progress.insights.calorie_surplus_3d.message_soft": { over: string | number };
+  "progress.insights.consistency_dropped.title_bold": { drop: string | number };
+  "progress.insights.protein_chronic_low.message": { gap: string | number; target: string | number };
+  "progress.insights.protein_chronic_low.message_soft": { gap: string | number; target: string | number };
+  "progress.insights.weight_log_stale.title_bold": { days: string | number };
+  "progress.insights.weight_log_stale.message": { days: string | number };
+  "progress.insights.weight_log_stale.message_soft": { days: string | number };
+  "progress.insights.near_goal.title": { remaining: string | number };
+  "progress.insights.near_goal.title_bold": { remaining: string | number };
+  "progress.insights.streak_milestone.title": { n: string | number };
+  "progress.insights.streak_milestone.title_bold": { n: string | number };
+  "progress.insights.streak_milestone.message": { n: string | number };
+  "progress.insights.streak_milestone.message_soft": { n: string | number };
+  "progress.insights.best_week_ever.title_bold": { pct: string | number };
+  "progress.insights.best_week_ever.message": { pct: string | number };
+  "progress.insights.on_pace_for_goal.title_bold": { rate: string | number };
+  "progress.insights.protein_optimization.title": { gap: string | number };
+  "progress.insights.protein_optimization.title_bold": { gap: string | number };
+  "progress.insights.protein_optimization.message": { target: string | number };
+  "progress.insights.weekend_drift.title_bold": { pct: string | number };
+  "progress.insights.weekend_drift.message": { pct: string | number };
+  "progress.weightCard.delta_loss": { value: string | number; unit: string | number };
+  "progress.weightCard.delta_gain": { value: string | number; unit: string | number };
+  "progress.streakCard.milestone_to_best": { count: string | number };
+  "progress.streakCard.milestone_to_target": { count: string | number; value: string | number };
+  "progress.macroCard.kcal_vs_target": { avg: string | number; target: string | number };
+  "progress.macroCard.kcal_vs_target_no_target": { avg: string | number };
+  "progress.macroCard.calories_kcal": { calories: string | number };
   "logWeight.goalLabel": { weight: string | number; unit: string | number; difference: string | number };
   "coaching.dayCount": { count: string | number };
   "coaching.dayIdentity": { count: string | number; tier: string | number };
@@ -1039,7 +1300,7 @@ export interface TranslationParams {
   "coachingText.tightBudget_v1": { cal: string | number };
   "coachingText.tightBudget_v2": { cal: string | number };
   "coachingText.tightBudget_v3": { cal: string | number };
-  "coachingText.proteinMilestone_v1": { pro: string | number };
+  "coachingText.proteinMilestone_v1": { pro: string | number; target: string | number };
   "coachingText.proteinMilestone_v2": { pro: string | number };
   "coachingText.proteinMilestone_v3": { pro: string | number };
   "coachingText.proteinMomentum_v1": { streak: string | number; pro: string | number };

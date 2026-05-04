@@ -11,6 +11,14 @@
 
 // ── Module-level mock factories ─────────────────────────────────────────────
 
+/** Avoid loading auth providers (Supabase → ESM native deps) during this suite. */
+jest.mock("../src/features/auth/useAuth", () => ({
+  useAuth: () => ({
+    user: { id: "jest-cloud-vision-user" },
+    loading: false,
+  }),
+}));
+
 // ── Imports ─────────────────────────────────────────────────────────────────
 
 import { renderHook } from "@testing-library/react-native";

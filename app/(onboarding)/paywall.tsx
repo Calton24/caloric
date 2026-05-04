@@ -636,8 +636,14 @@ export default function OnboardingChallengeScreen() {
   const existingChallenge = useChallengeStore((s) => s.challenge);
   const [isStarting, setIsStarting] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
-  const { restorePurchases, packages, purchasePackage, isLoadingOfferings } =
-    useRevenueCat();
+  const {
+    restorePurchases,
+    packages,
+    purchasePackage,
+    isLoadingOfferings,
+    offerings,
+    activeOffering,
+  } = useRevenueCat();
   const markPaywallSeen = useSubscriptionStore((s) => s.markPaywallSeen);
 
   const [selectedPkg, setSelectedPkg] = useState<string | null>(null);
@@ -694,6 +700,37 @@ export default function OnboardingChallengeScreen() {
       "")
     : "";
   const selectedTier = selectedProduct ? getTierKey(selectedProduct) : "yearly";
+  const hasProducts = (offerings?.current?.availablePackages?.length ?? 0) > 0;
+  const trialUsed = !!existingChallenge;
+  const allowProdFallback =
+    process.env.EXPO_PUBLIC_ALLOW_PAYWALL_FALLBACK === "true";
+  const isDevBypass = __DEV__;
+  const isFallbackMode = isDevBypass || (!hasProducts && allowProdFallback);
+  const fallbackTitle = "Finalizing subscriptions";
+  const fallbackSubtitle = "You're early - full access unlocked";
+  const fallbackCta = "Continue";
+
+  useEffect(() => {
+    if (!__DEV__) return;
+    console.log("[Paywall] state", {
+      hasProducts,
+      trialUsed,
+      allowProdFallback,
+      activeOfferingKey:
+        activeOffering?.identifier ?? offerings?.current?.identifier ?? null,
+    });
+    if (isDevBypass) {
+      console.log("[Paywall] DEV bypass activated");
+    }
+  }, [
+    activeOffering?.identifier,
+    allowProdFallback,
+    hasProducts,
+    isDevBypass,
+    offerings?.current?.identifier,
+    offerings,
+    trialUsed,
+  ]);
 
   // ── Subscribe: purchase selected plan via RevenueCat ──
   const handleSubscribe = async () => {
@@ -951,6 +988,44 @@ export default function OnboardingChallengeScreen() {
         entering={FadeInUp.duration(500).delay(600)}
         style={styles.bottomArea}
       >
+        {isFallbackMode ? (
+          <>
+            <TText
+              variant="heading"
+              style={[styles.fallbackTitle, { color: theme.colors.text }]}
+            >
+              {fallbackTitle}
+            </TText>
+            <TText
+              style={[
+                styles.fallbackSubtitle,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
+              {fallbackSubtitle}
+            </TText>
+            <Pressable
+              testID="fallback-continue-cta"
+              onPress={() => router.replace("/(tabs)")}
+              style={({ pressed }) => ({
+                opacity: pressed ? 0.92 : 1,
+                transform: [{ scale: pressed ? 0.98 : 1 }],
+                width: "100%",
+                marginTop: 10,
+              })}
+            >
+              <LinearGradient
+                colors={[theme.colors.primary, theme.colors.accent]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.ctaButton}
+              >
+                <TText style={styles.ctaText}>{fallbackCta}</TText>
+              </LinearGradient>
+            </Pressable>
+          </>
+        ) : (
+          <>
         {/* Pricing row */}
         {isLoadingOfferings ? (
           <ActivityIndicator size="small" color={theme.colors.primary} />
@@ -991,30 +1066,32 @@ export default function OnboardingChallengeScreen() {
         ) : null}
 
         {/* Subscribe CTA */}
-        <Pressable
-          testID="subscribe-cta"
-          onPress={handleSubscribe}
-          disabled={isPurchasing || !selectedProduct}
-          style={({ pressed }) => ({
-            opacity: pressed || isPurchasing ? 0.9 : 1,
-            transform: [{ scale: pressed ? 0.97 : 1 }],
-            width: "100%",
-            marginTop: 6,
-          })}
-        >
-          <LinearGradient
-            colors={[theme.colors.primary, theme.colors.accent]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.ctaButton}
+        {selectedProduct ? (
+          <Pressable
+            testID="subscribe-cta"
+            onPress={handleSubscribe}
+            disabled={isPurchasing}
+            style={({ pressed }) => ({
+              opacity: pressed || isPurchasing ? 0.9 : 1,
+              transform: [{ scale: pressed ? 0.97 : 1 }],
+              width: "100%",
+              marginTop: 6,
+            })}
           >
-            {isPurchasing ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <TText style={styles.ctaText}>{getCtaCopy(selectedTier)}</TText>
-            )}
-          </LinearGradient>
-        </Pressable>
+            <LinearGradient
+              colors={[theme.colors.primary, theme.colors.accent]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.ctaButton}
+            >
+              {isPurchasing ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <TText style={styles.ctaText}>{getCtaCopy(selectedTier)}</TText>
+              )}
+            </LinearGradient>
+          </Pressable>
+        ) : null}
 
         {/* Billing context */}
         {effectiveSelection && (
@@ -1095,6 +1172,8 @@ export default function OnboardingChallengeScreen() {
             </TText>
           </Pressable>
         </View>
+          </>
+        )}
       </Animated.View>
     </OnboardingBackground>
   );
@@ -1298,5 +1377,16 @@ const styles = StyleSheet.create({
   footerLink: {
     fontSize: 13,
     fontWeight: "500",
+  },
+  fallbackTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  fallbackSubtitle: {
+    fontSize: 14,
+    fontWeight: "500",
+    textAlign: "center",
+    marginTop: 6,
   },
 });

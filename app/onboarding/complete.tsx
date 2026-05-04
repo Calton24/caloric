@@ -8,8 +8,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useEffect } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Alert, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
     Easing,
     FadeIn,
@@ -23,7 +23,10 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUnits } from "../../hooks/useUnits";
+import { useAuth } from "../../src/features/auth/useAuth";
 import { useGoalsStore } from "../../src/features/goals/goals.store";
+import { markOnboardingCompleteRemote } from "../../src/features/onboarding/onboarding-authority";
+import { useOnboardingAuthorityStore } from "../../src/features/onboarding/onboarding-authority.store";
 import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
@@ -94,6 +97,43 @@ export default function OnboardingCompleteScreen() {
   const router = useRouter();
   const { completeOnboarding, profile } = useOnboarding();
   const plan = useGoalsStore((s) => s.plan);
+  const { user } = useAuth();
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleLetsGo = async () => {
+    if (submitting) return;
+    if (!user?.id) {
+      Alert.alert(
+        t("common.error"),
+        "You must be signed in to finish onboarding."
+      );
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const result = await markOnboardingCompleteRemote(user.id);
+      if (!result.ok) {
+        Alert.alert(
+          t("common.error"),
+          "We couldn't save your setup. Please try again."
+        );
+        return;
+      }
+      useOnboardingAuthorityStore
+        .getState()
+        .setResolved(
+          user.id,
+          "complete",
+          true,
+          null,
+          result.updatedAt ?? null
+        );
+      completeOnboarding();
+      router.replace("/permissions" as any);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   // Checkmark scale-in
   const checkScale = useSharedValue(0);
@@ -216,12 +256,10 @@ export default function OnboardingCompleteScreen() {
         >
           <Pressable
             testID="onboarding-done"
-            onPress={() => {
-              completeOnboarding();
-              router.replace("/permissions" as any);
-            }}
+            onPress={handleLetsGo}
+            disabled={submitting}
             style={({ pressed }) => ({
-              opacity: pressed ? 0.9 : 1,
+              opacity: submitting ? 0.6 : pressed ? 0.9 : 1,
               transform: [{ scale: pressed ? 0.97 : 1 }],
             })}
           >

@@ -5,7 +5,7 @@ import { haptics } from "@/src/infrastructure/haptics";
 import { useAppTranslation } from "@/src/infrastructure/i18n";
 import { useTheme } from "@/src/theme/useTheme";
 import { GlassTabBar } from "@/src/ui/tabs/GlassTabBar";
-import { Icon, Label, Redirect, Tabs, usePathname } from "expo-router";
+import { Icon, Label, Redirect, Slot, Tabs, usePathname } from "expo-router";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { useEffect, useRef } from "react";
 import { Platform, View } from "react-native";
@@ -26,34 +26,6 @@ const TABS = [
     labelKey: "tabs.home",
     sf: "house.fill",
     ionicon: "home",
-  },
-  {
-    name: "notes",
-    flag: FeatureFlags.SHOW_NOTES,
-    labelKey: "tabs.notes",
-    sf: "note.text",
-    ionicon: "document-text",
-  },
-  {
-    name: "auth",
-    flag: FeatureFlags.SHOW_AUTH,
-    labelKey: "tabs.auth",
-    sf: "person.circle.fill",
-    ionicon: "person-circle",
-  },
-  {
-    name: "playground",
-    flag: FeatureFlags.SHOW_PLAYGROUND,
-    labelKey: "tabs.playground",
-    sf: "sparkles",
-    ionicon: "sparkles",
-  },
-  {
-    name: "caloric",
-    flag: FeatureFlags.SHOW_CALORIC,
-    labelKey: "tabs.caloric",
-    sf: "hammer.fill",
-    ionicon: "hammer",
   },
 ] as const;
 
@@ -132,12 +104,26 @@ function GlassTabLayout() {
 
 export default function TabLayout() {
   const { user, isLoading } = useAuth();
+  const { theme } = useTheme();
   useLiveActivitySync();
 
   // Auth guard — redirect unauthenticated users back to the entry point.
   // This handles sign-out, session expiry, and any accidental direct navigation.
   if (isLoading) return null;
   if (!user) return <Redirect href="/(onboarding)/landing" />;
+
+  // Launch mode: single-screen app with no bottom tabs.
+  // Keep this flag true for v1; set false in v2 to re-enable tabs.
+  if (FeatureFlags.SINGLE_SCREEN_LAUNCH) {
+    return (
+      <View
+        testID="tabs-root"
+        style={{ flex: 1, backgroundColor: theme.colors.background }}
+      >
+        <Slot />
+      </View>
+    );
+  }
 
   return USE_NATIVE_TABS ? <NativeTabLayout /> : <GlassTabLayout />;
 }

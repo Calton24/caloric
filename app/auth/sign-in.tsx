@@ -37,6 +37,7 @@ import { AuthCapabilities } from "../../src/features/auth/authCapabilities";
 import { useAuth } from "../../src/features/auth/useAuth";
 import { reportError } from "../../src/infrastructure/errorReporting";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
+import { safeRouterBack } from "../../src/navigation/safeBack";
 import { useTheme } from "../../src/theme/useTheme";
 import { CalCutLogo } from "../../src/ui/brand/CalCutLogo";
 import { TButton } from "../../src/ui/primitives/TButton";
@@ -223,7 +224,7 @@ export default function SignInScreen() {
   };
 
   const handleBack = () => {
-    router.back();
+    safeRouterBack(router, "/(onboarding)/landing", "auth_sign_in_back");
   };
 
   return (

@@ -71,10 +71,18 @@
     "tryAgainVoice": "Try Again with Voice",
     "typeItIn": "Type It In",
     "trackCalories": "Track Calories",
+    "invalidMealDraft": "We couldn't read this meal properly. Please adjust it before saving.",
     "adjustHint": "Need to adjust calories? Just ask!",
     "reportFood": "Report Food",
     "deleteFood": "Delete Food",
     "noMatchRich": "We couldn’t find <bold>“{{food}}”</bold> in our database. Try again or type it in."
+  },
+  "scanReview": {
+    "addToToday": "Add to today",
+    "adding": "Adding...",
+    "aiEstimate": "AI estimate",
+    "aiEstimatedAdjust": "AI-estimated • adjust anytime",
+    "looksGoodHint": "Looks good? Add it to your day"
   },
   "editMeal": {
     "mealNotFound": "Meal not found",

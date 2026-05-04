@@ -31,6 +31,19 @@ export type {
     User,
 } from "./types";
 
+// Food logging funnel (Sentry breadcrumbs + tagged errors)
+export {
+    addFoodLoggingBreadcrumb,
+    captureFoodLoggingError,
+    triggerFoodLoggingTestError,
+    withFoodLoggingSpan,
+} from "./foodLoggingErrors";
+export type {
+    CaptureFoodLoggingOptions,
+    FoodLoggingContext,
+    FoodLoggingFlow,
+} from "./foodLoggingErrors";
+
 // Noop implementation (safe for testing/mocking)
 export { NoopErrorReporter } from "./NoopErrorReporter";
 

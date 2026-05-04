@@ -9,7 +9,7 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
@@ -23,15 +23,18 @@ import Animated, {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
 import { useVoiceCapture } from "../../src/features/voice";
+import { addFoodLoggingBreadcrumb } from "../../src/infrastructure/errorReporting/foodLoggingErrors";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+import { FoodLoggingErrorBoundary } from "../../src/ui/errors/FoodLoggingErrorBoundary";
 
-export default function VoiceLoggingScreen() {
+function VoiceLoggingScreenInner() {
   const { theme } = useTheme();
   const { t } = useAppTranslation();
   const router = useRouter();
+  const pathname = usePathname();
   const { startFromInput } = useLoggingFlow();
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingError, setProcessingError] = useState<string | null>(null);
@@ -52,13 +55,22 @@ export default function VoiceLoggingScreen() {
     retry(); // calls store.reset() — clears transcript, status, error
   }, [retry]);
 
+  useEffect(() => {
+    addFoodLoggingBreadcrumb("food_logging.voice_opened", {
+      route: pathname,
+    });
+  }, [pathname]);
+
   // ── Auto-start listening on mount ─────────────────────────────────────
   const hasStarted = useRef(false);
   useEffect(() => {
     if (hasStarted.current) return;
     hasStarted.current = true;
     // Small delay so the screen animates in and reset completes
-    const t = setTimeout(() => startListening(), 400);
+    const t = setTimeout(() => {
+      addFoodLoggingBreadcrumb("food_logging.voice_recording_started");
+      startListening();
+    }, 400);
     return () => clearTimeout(t);
   }, [startListening]);
 
@@ -81,14 +93,25 @@ export default function VoiceLoggingScreen() {
     (async () => {
       setIsProcessing(true);
       setProcessingError(null);
+      addFoodLoggingBreadcrumb("food_logging.voice_transcription_started", {
+        transcript_length: transcript.trim().length,
+      });
       try {
         const foundFood = await startFromInput(transcript, "voice");
         if (!foundFood) {
+          addFoodLoggingBreadcrumb("food_logging.voice_transcription_failed", {
+            reason: "no_food",
+          });
           setIsProcessing(false);
           setProcessingError(t("voiceLog.noFoodDetected"));
           hasProcessed.current = false;
+        } else {
+          addFoodLoggingBreadcrumb("food_logging.voice_transcription_success");
         }
       } catch {
+        addFoodLoggingBreadcrumb("food_logging.voice_transcription_failed", {
+          reason: "exception",
+        });
         setIsProcessing(false);
         setProcessingError(t("voiceLog.lookupFailed"));
         hasProcessed.current = false;
@@ -332,6 +355,14 @@ export default function VoiceLoggingScreen() {
         </View>
       </SafeAreaView>
     </View>
+  );
+}
+
+export default function VoiceLoggingScreen() {
+  return (
+    <FoodLoggingErrorBoundary routeLabel="/(modals)/voice-log">
+      <VoiceLoggingScreenInner />
+    </FoodLoggingErrorBoundary>
   );
 }
 

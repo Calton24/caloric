@@ -7,6 +7,8 @@ import React, { createContext, useCallback, useEffect, useState } from "react";
 import { analytics } from "../../infrastructure/analytics";
 import { reportError } from "../../infrastructure/errorReporting";
 import { growth } from "../../infrastructure/growth";
+import { logColdStartStep } from "../../infrastructure/tracing/coldStartTrace";
+import { getSupabaseClient } from "../../lib/supabase/client";
 import {
     authClient,
     OAuthProvider,
@@ -67,7 +69,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     authClient
       .getSession()
-      .then(({ session: initialSession, error: sessionError }) => {
+      .then(async ({ session: initialSession, error: sessionError }) => {
         if (sessionError) {
           // Don't surface to the user — they'll just see the sign-in screen.
           // But we want to know about it: a session error here is often a
@@ -78,6 +80,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
             provider: "supabase",
           });
         }
+        // Resolve auth provider from the raw Supabase user metadata for the
+        // cold-start trace. Our local `User` type doesn't carry this, so
+        // read it directly from the underlying client.
+        let provider: string | null = null;
+        if (initialSession) {
+          try {
+            const { data } = await getSupabaseClient().auth.getUser();
+            const meta = data.user?.app_metadata as
+              | { provider?: string; providers?: string[] }
+              | undefined;
+            provider = meta?.provider ?? meta?.providers?.[0] ?? null;
+          } catch {
+            provider = null;
+          }
+        }
+        logColdStartStep("auth_session_loaded", {
+          userId: initialSession?.user.id ?? null,
+          provider,
+          sessionExists: Boolean(initialSession),
+          sessionError: sessionError ? sessionError.message : null,
+        });
         if (initialSession) {
           setSession(initialSession);
           setUser(initialSession.user);
@@ -89,6 +112,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setIsLoading(false);
       })
       .catch((err) => {
+        logColdStartStep("auth_session_loaded", {
+          userId: null,
+          provider: null,
+          sessionExists: false,
+          sessionError: err instanceof Error ? err.message : String(err),
+          threw: true,
+        });
         reportError(err, {
           area: "auth",
           action: "getSession_initial_throw",
@@ -169,11 +199,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const deleteAccount = useCallback(async () => {
-    analytics.track("account_deleted");
     const { error } = await authClient.deleteAccount();
     if (!error) {
-      setUser(null);
-      setSession(null);
+      analytics.track("account_deleted");
     }
     return { error };
   }, []);

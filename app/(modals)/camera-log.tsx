@@ -14,7 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
@@ -46,19 +46,22 @@ import { runImagePipeline } from "../../src/features/camera/image-pipeline.servi
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
 import { useFeatureAccess } from "../../src/features/subscription/useFeatureAccess";
 import { reportError } from "../../src/infrastructure/errorReporting";
+import { addFoodLoggingBreadcrumb } from "../../src/infrastructure/errorReporting/foodLoggingErrors";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { AuthGateModal } from "../../src/ui/components/AuthGateModal";
 import { FeatureGatePaywall } from "../../src/ui/components/FeatureGatePaywall";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+import { FoodLoggingErrorBoundary } from "../../src/ui/errors/FoodLoggingErrorBoundary";
 
 type CameraState = "viewfinder" | "error" | "dismissing";
 
-export default function CameraLoggingScreen() {
+function CameraLoggingScreenInner() {
   const { theme } = useTheme();
   const { t } = useAppTranslation();
   const router = useRouter();
+  const pathname = usePathname();
   const { startFromInput, startFromBarcode } = useLoggingFlow();
   const { requireAccount, gateVisible, gateReason, dismissGate } =
     useAccountGate();
@@ -77,6 +80,19 @@ export default function CameraLoggingScreen() {
   const device = useCameraDevice("back");
   const { hasPermission, requestPermission } = useCameraPermission();
 
+  useEffect(() => {
+    addFoodLoggingBreadcrumb("food_logging.camera_opened", {
+      route: pathname,
+    });
+  }, [pathname]);
+
+  useEffect(() => {
+    addFoodLoggingBreadcrumb("food_logging.camera_permission_status", {
+      granted: hasPermission,
+      source: "hook",
+    });
+  }, [hasPermission]);
+
   const [state, setState] = useState<CameraState>("viewfinder");
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [torch, setTorch] = useState<"off" | "on">("off");
@@ -91,9 +107,13 @@ export default function CameraLoggingScreen() {
   // ── Barcode scanner ──────────────────────────────────────────────────
 
   const handleBarcodeScanned = useCallback(
-    async (barcode: string) => {
+    async (barcode: string, symbology?: string) => {
       if (barcodeLockRef.current || state !== "viewfinder") return;
       barcodeLockRef.current = true;
+      addFoodLoggingBreadcrumb("food_logging.barcode_detected", {
+        symbology: symbology ?? "unknown",
+        code_length: barcode.length,
+      });
       setTorch("off");
       setBarcodeProcessing(true);
       try {
@@ -136,9 +156,9 @@ export default function CameraLoggingScreen() {
       "qr",
     ],
     onCodeScanned: (codes) => {
-      if (codes.length > 0 && codes[0].value) {
-        handleBarcodeScanned(codes[0].value);
-      }
+      const raw = codes[0];
+      if (!raw?.value) return;
+      handleBarcodeScanned(raw.value, raw.type);
     },
   });
 
@@ -152,7 +172,16 @@ export default function CameraLoggingScreen() {
   // ── Permission handling ──────────────────────────────────────────────
 
   const handleRequestPermission = useCallback(async () => {
+    addFoodLoggingBreadcrumb("food_logging.camera_permission_status", {
+      source: "user_prompt",
+      action: "request_started",
+    });
     const granted = await requestPermission();
+    addFoodLoggingBreadcrumb("food_logging.camera_permission_status", {
+      source: "user_prompt",
+      granted,
+      action: "request_completed",
+    });
     if (!granted) {
       Alert.alert(
         t("camera.cameraAccessRequired"),
@@ -488,7 +517,19 @@ export default function CameraLoggingScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: "#000" }]}>
+    <View
+      style={[
+        styles.container,
+        {
+          // During camera teardown + navigation, the viewfinder unmounts
+          // first — if the root stays pure black, users see a "black sheet"
+          // until the next modal paints. Use the themed surface instead and
+          // paint an explicit transition overlay below.
+          backgroundColor:
+            state === "dismissing" ? theme.colors.background : "#000",
+        },
+      ]}
+    >
       {/* ── Viewfinder ─────────────────────────────────────────────── */}
       {state === "viewfinder" && (
         <Pressable
@@ -755,17 +796,41 @@ export default function CameraLoggingScreen() {
         </View>
       )}
 
+      {/* ── Camera teardown / navigation hand-off (barcode + photo pipeline) ── */}
+      {state === "dismissing" && (
+        <View
+          style={[
+            StyleSheet.absoluteFillObject,
+            styles.transitionOverlay,
+            { backgroundColor: theme.colors.background },
+          ]}
+          pointerEvents="none"
+        >
+          <ActivityIndicator size="large" color={theme.colors.textSecondary} />
+          <TSpacer size="md" />
+          <TText
+            style={{
+              fontSize: 15,
+              fontWeight: "500",
+              color: theme.colors.textSecondary,
+            }}
+          >
+            {t("common.loading")}
+          </TText>
+        </View>
+      )}
+
       {/* ── Barcode lookup overlay ── */}
       {barcodeProcessing && (
         <View
           style={[
             StyleSheet.absoluteFillObject,
             styles.barcodeOverlay,
-            { backgroundColor: "rgba(0,0,0,0.55)" },
+            { backgroundColor: theme.colors.overlay },
           ]}
           pointerEvents="none"
         >
-          <ActivityIndicator size="large" color="#fff" />
+          <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
       )}
 
@@ -783,6 +848,14 @@ export default function CameraLoggingScreen() {
         reason={gateReason}
       />
     </View>
+  );
+}
+
+export default function CameraLoggingScreen() {
+  return (
+    <FoodLoggingErrorBoundary routeLabel="/(modals)/camera-log">
+      <CameraLoggingScreenInner />
+    </FoodLoggingErrorBoundary>
   );
 }
 
@@ -857,6 +930,11 @@ const styles = StyleSheet.create({
   },
   barcodeOverlay: {
     zIndex: 50,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  transitionOverlay: {
+    zIndex: 100,
     alignItems: "center",
     justifyContent: "center",
   },

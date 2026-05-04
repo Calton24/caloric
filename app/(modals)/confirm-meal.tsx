@@ -11,7 +11,7 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import RNSlider from "@react-native-community/slider";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
     Modal,
@@ -46,6 +46,7 @@ import {
     detectMealTime,
     type MealTime,
 } from "../../src/features/nutrition/mealtime";
+import { formatFoodName } from "@/src/utils/formatFoodName";
 import {
     captureOriginalEstimate,
     clearOriginalEstimate,
@@ -75,11 +76,19 @@ import { ReportFoodSheet } from "../../src/ui/feedback/ReportFoodSheet";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 import { useBottomSheet } from "../../src/ui/sheets/useBottomSheet";
+import { useToast } from "../../src/ui/components/Toast";
+import {
+  addFoodLoggingBreadcrumb,
+  captureFoodLoggingError,
+} from "../../src/infrastructure/errorReporting/foodLoggingErrors";
+import { FoodLoggingErrorBoundary } from "../../src/ui/errors/FoodLoggingErrorBoundary";
 
-export default function ConfirmMealScreen() {
+function ConfirmMealScreenInner() {
   const { theme } = useTheme();
   const { t } = useAppTranslation();
   const router = useRouter();
+  const pathname = usePathname();
+  const toast = useToast();
   const {
     draft: hookDraft,
     updateDraft,
@@ -92,14 +101,6 @@ export default function ConfirmMealScreen() {
   // Defensive: read store snapshot imperatively in case Zustand subscription
   // hasn't fired yet on first render (potential React batching edge case)
   const draft = hookDraft ?? useNutritionDraftStore.getState().draft;
-
-  // Debug: trace draft availability on mount
-  console.log(
-    "[ConfirmMeal] render — hookDraft:",
-    hookDraft?.title ?? "NULL",
-    "| imperativeDraft:",
-    useNutritionDraftStore.getState().draft?.title ?? "NULL"
-  );
 
   const logDate = useNutritionDraftStore((s) => s.logDate);
   const setLogDate = useNutritionDraftStore((s) => s.setLogDate);
@@ -378,10 +379,26 @@ export default function ConfirmMealScreen() {
     };
   }, [draft]);
 
+  useEffect(() => {
+    addFoodLoggingBreadcrumb("food_logging.confirm_meal_opened", {
+      route: pathname,
+      draft_present: Boolean(draft),
+    });
+  }, [pathname, draft]);
+
   const handleConfirm = useCallback(() => {
+    addFoodLoggingBreadcrumb("food_logging.track_calories_pressed", {
+      route: pathname,
+      source: draft?.source,
+      calories: draft?.calories,
+      has_estimated_items: Boolean(draft?.estimatedItems?.length),
+    });
     try {
       // Track any corrections before saving
       const correction = draft ? trackCorrection(draft) : null;
+      addFoodLoggingBreadcrumb("food_logging.track_calories_corrections_done", {
+        was_edited: correction?.wasEdited ?? false,
+      });
 
       // Persist confirmation + corrections to Supabase (fire-and-forget)
       const eventId = scanEventIdRef.current ?? getLastScanEventId();
@@ -415,11 +432,25 @@ export default function ConfirmMealScreen() {
           });
         }
       }
+      addFoodLoggingBreadcrumb("food_logging.track_calories_scan_feedback_done", {
+        had_scan_event: Boolean(eventId),
+        submitted_correction: Boolean(correction?.wasEdited),
+      });
 
-      saveDraftWithoutNav();
+      addFoodLoggingBreadcrumb("food_logging.track_calories_before_local_save");
+      if (!saveDraftWithoutNav()) {
+        addFoodLoggingBreadcrumb("food_logging.track_calories_save_aborted", {
+          reason: "validation_or_add_meal_failed",
+        });
+        toast.show(t("mealConfirm.invalidMealDraft"), "error");
+        return;
+      }
+      addFoodLoggingBreadcrumb("food_logging.track_calories_after_local_save");
 
       // Record first meal for retention engine
+      addFoodLoggingBreadcrumb("food_logging.track_calories_before_retention");
       recordFirstMeal();
+      addFoodLoggingBreadcrumb("food_logging.track_calories_after_retention");
 
       // ── Insight detection for challenge monetisation ──
       // Check if this meal creates a behaviour-based insight moment
@@ -443,6 +474,7 @@ export default function ConfirmMealScreen() {
         timeOfDay,
       };
 
+      addFoodLoggingBreadcrumb("food_logging.track_calories_before_insight");
       if (isInsightMoment(insightInput)) {
         // Only update if the message is materially different — avoids
         // noisy rewrites that make the evidence feel unstable.
@@ -456,8 +488,10 @@ export default function ConfirmMealScreen() {
             .markInsightTriggered(message ?? undefined);
         }
       }
+      addFoodLoggingBreadcrumb("food_logging.track_calories_after_insight");
 
       // Get after-log celebration content from the day journey
+      addFoodLoggingBreadcrumb("food_logging.track_calories_before_celebration");
       const afterLog = retention.getAfterLogContent();
       const dayPaywall = retention.dayPaywall;
       setCelebration({
@@ -466,23 +500,56 @@ export default function ConfirmMealScreen() {
         emoji: afterLog.emoji,
         microTrigger: dayPaywall?.microTrigger,
       });
+      addFoodLoggingBreadcrumb("food_logging.track_calories_celebration_set");
     } catch (err) {
       console.error("[ConfirmMeal] handleConfirm error:", err);
+      captureFoodLoggingError(err, {
+        flow: "confirm_meal",
+        step: "handle_track_calories",
+        route: pathname,
+        foodTitle: draft?.title,
+        calories: draft?.calories,
+      });
       // Fallback: save and navigate directly if celebration breaks
       try {
-        saveDraftWithoutNav();
-      } catch {
+        addFoodLoggingBreadcrumb("food_logging.track_calories_fallback_save");
+        if (!saveDraftWithoutNav()) {
+          toast.show(t("mealConfirm.invalidMealDraft"), "error");
+        }
+      } catch (fallbackErr) {
+        captureFoodLoggingError(fallbackErr, {
+          flow: "confirm_meal",
+          step: "handle_track_calories_fallback_save",
+          route: pathname,
+        });
         /* already saved or draft missing */
       }
       try {
+        addFoodLoggingBreadcrumb("food_logging.track_calories_fallback_nav");
         navigateAfterSave();
       } catch (navErr) {
         console.error("[ConfirmMeal] navigation fallback error:", navErr);
+        captureFoodLoggingError(navErr, {
+          flow: "confirm_meal",
+          step: "handle_track_calories_fallback_navigate",
+          route: pathname,
+        });
         // Last resort: just dismiss the modal
         if (router.canDismiss()) router.dismiss();
       }
     }
-  }, [saveDraftWithoutNav, navigateAfterSave, draft, retention, router]);
+  }, [
+    pathname,
+    saveDraftWithoutNav,
+    navigateAfterSave,
+    draft,
+    retention,
+    router,
+    toast,
+    t,
+    consumedToday,
+    calorieBudget,
+  ]);
 
   /** Called when the celebration overlay dismisses (auto or tap) */
   const handleCelebrationDismiss = useCallback(() => {
@@ -715,7 +782,9 @@ export default function ConfirmMealScreen() {
 
             <RichText
               i18nKey="mealConfirm.noMatchRich"
-              values={{ food: draft.rawInput || draft.title }}
+              values={{
+                food: formatFoodName(draft.rawInput || draft.title),
+              }}
               components={{
                 bold: (
                   <TText
@@ -838,7 +907,7 @@ export default function ConfirmMealScreen() {
               style={[styles.foodTitle, { color: theme.colors.text }]}
               numberOfLines={2}
             >
-              {draft.title}
+              {formatFoodName(draft.title)}
             </TText>
           </Animated.View>
 
@@ -1013,7 +1082,7 @@ export default function ConfirmMealScreen() {
                         ]}
                         numberOfLines={1}
                       >
-                        {item.matchedName ?? displayName(item)}
+                        {formatFoodName(item.matchedName ?? displayName(item))}
                       </TText>
                     </View>
                     {draft.estimatedItems!.length > 1 && (
@@ -1255,7 +1324,7 @@ export default function ConfirmMealScreen() {
                       ]}
                       numberOfLines={1}
                     >
-                      {draft.title}
+                      {formatFoodName(draft.title)}
                     </TText>
                   </View>
                   <Pressable onPress={handleDeleteFood} hitSlop={8}>
@@ -1466,6 +1535,15 @@ export default function ConfirmMealScreen() {
     </View>
   );
 }
+
+export default function ConfirmMealScreen() {
+  return (
+    <FoodLoggingErrorBoundary routeLabel="/(modals)/confirm-meal">
+      <ConfirmMealScreenInner />
+    </FoodLoggingErrorBoundary>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,

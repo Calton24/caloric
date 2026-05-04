@@ -52,6 +52,7 @@ import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslati
 import { useTheme } from "../../src/theme/useTheme";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+import { formatFoodName } from "../../src/utils/formatFoodName";
 
 // ─── Stage Labels (translation keys resolved at render time) ────────────────
 
@@ -207,7 +208,7 @@ function FoodItemCard({
                 style={[styles.itemName, { color: theme.colors.text }]}
                 numberOfLines={2}
               >
-                {item.resolvedName}
+                {formatFoodName(item.resolvedName)}
               </TText>
             </Pressable>
           )}
@@ -671,7 +672,7 @@ export default function MealAnalysisScreen() {
               style={[styles.mealTitle, { color: theme.colors.text }]}
               numberOfLines={2}
             >
-              {result.decomposition.mealSummary}
+              {formatFoodName(result.decomposition.mealSummary)}
             </TText>
             <TSpacer size="xs" />
             <ConfidenceBadge band={result.confidenceBand} />

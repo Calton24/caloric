@@ -17,24 +17,22 @@
  *  10. paywall       — Subscription gate
  *  11. complete      — Celebration
  *
- * Guard: fully authenticated + onboarded users are redirected to (tabs)
- * so they cannot re-enter this funnel accidentally.
+ * Routing guard: enforced by the global `OnboardingAuthorityGate` mounted
+ * in `app/_layout.tsx`. We intentionally do NOT read local
+ * `profile.onboardingCompleted` here — that's the bug class we already
+ * eliminated; the server is the only source of truth for routing.
+ *
+ * Side effect: the checkpoint hook persists the user's current step to
+ * `user_profiles.onboarding_step` so a force-quit + reopen resumes them
+ * at the same screen.
  */
 
-import { useAuth } from "@/src/features/auth/useAuth";
-import { useProfileStore } from "@/src/features/profile/profile.store";
-import { Redirect, Stack } from "expo-router";
+import { useOnboardingCheckpoint } from "@/src/features/onboarding/use-onboarding-checkpoint";
+import { Stack } from "expo-router";
 
 export default function OnboardingLayout() {
-  const { user, isLoading } = useAuth();
-  const onboardingCompleted = useProfileStore(
-    (s) => s.profile.onboardingCompleted
-  );
-
-  // Don't redirect while auth is still initialising — avoids flash.
-  if (!isLoading && user && onboardingCompleted) {
-    return <Redirect href="/(tabs)" />;
-  }
+  // Persists the user's current step to the server on every advance.
+  useOnboardingCheckpoint();
 
   return (
     <Stack

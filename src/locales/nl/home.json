@@ -19,6 +19,8 @@
     "logFirstMeal": "Log je eerste maaltijd om vaak toegevoegd voedsel hier te zien",
     "noMealsYet": "Nog geen maaltijden gelogd",
     "tapToLog": "Tik op + om te fotograferen, spreken of typen",
+    "dismissPendingScanTitle": "Deze scan verwijderen?",
+    "dismissPendingScanMessage": "Het voorbeeld verlaat je startscherm. Je kunt altijd opnieuw vastleggen via +.",
     "steps": "Stappen",
     "activeCal": "Actieve cal",
     "calTarget": "van {{target}} cal",
@@ -26,7 +28,8 @@
     "currentWeightA11y": "Huidig gewicht {{weight}}",
     "dayShort": "D",
     "weekShort": "W",
-    "monthShort": "M"
+    "monthShort": "M",
+    "brandName": "CalCut"
   },
   "streak": {
     "dayStreak_one": "{{count}} dag streak",

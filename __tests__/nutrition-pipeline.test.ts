@@ -461,7 +461,7 @@ describe("mealEstimateToDraft", () => {
     };
 
     const draft = mealEstimateToDraft(estimate);
-    expect(draft.title).toBe("banana");
+    expect(draft.title).toBe("Banana");
     expect(draft.calories).toBe(126);
     expect(draft.protein).toBe(1.2);
     expect(draft.source).toBe("manual"); // text → manual mapping
@@ -517,7 +517,7 @@ describe("mealEstimateToDraft", () => {
     };
 
     const draft = mealEstimateToDraft(estimate);
-    expect(draft.title).toBe("2 egg, toast");
+    expect(draft.title).toBe("2 Egg, Toast");
     expect(draft.source).toBe("voice");
     expect(draft.estimatedItems).toHaveLength(2);
   });

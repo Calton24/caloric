@@ -34,6 +34,7 @@ import { useAuth } from "../../src/features/auth/useAuth";
 import { analytics } from "../../src/infrastructure/analytics";
 import { reportError } from "../../src/infrastructure/errorReporting";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
+import { safeRouterBack } from "../../src/navigation/safeBack";
 import { useTheme } from "../../src/theme/useTheme";
 import { TButton } from "../../src/ui/primitives/TButton";
 import { TInput } from "../../src/ui/primitives/TInput";
@@ -184,7 +185,7 @@ export default function ForgotPasswordScreen() {
   const insets = useSafeAreaInsets();
 
   const handleBack = () => {
-    router.back();
+    safeRouterBack(router, "/auth/sign-in", "auth_forgot_password_back");
   };
 
   // ── Confirmation state ──────────────────────────────────────────────────────

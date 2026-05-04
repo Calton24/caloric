@@ -7,7 +7,7 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUnits } from "../../../hooks/useUnits";
@@ -39,6 +39,13 @@ export default function UnitsScreen() {
   const { t } = useAppTranslation();
   const router = useRouter();
   const { weightUnit, setWeightUnit } = useUnits();
+
+  useEffect(() => {
+    if (!__DEV__) return;
+    console.log("[UnitsPersistence] screen selected unit value", {
+      selectedUnit: weightUnit,
+    });
+  }, [weightUnit]);
 
   const handleSelect = useCallback(
     (value: WeightUnit) => {

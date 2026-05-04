@@ -13,6 +13,11 @@ import {
     reportBreadcrumb,
     reportError,
 } from "../../infrastructure/errorReporting";
+import {
+    addFoodLoggingBreadcrumb,
+    captureFoodLoggingError,
+} from "../../infrastructure/errorReporting/foodLoggingErrors";
+import { logColdStartStep } from "../../infrastructure/tracing/coldStartTrace";
 import { getCurrentUser, getSupabaseClient } from "../../lib/supabase/client";
 import { useGoalsStore } from "../goals/goals.store";
 import type { GoalPlan } from "../goals/goals.types";
@@ -22,6 +27,7 @@ import { useProfileStore } from "../profile/profile.store";
 import type { UserProfile } from "../profile/profile.types";
 import { useProgressStore } from "../progress/progress.store";
 import type { WeightLog } from "../progress/progress.types";
+import { mealDataSafety } from "./meal-data-safety";
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -59,8 +65,11 @@ function logSyncError(context: string, error: unknown): void {
 
 // ── Meal Sync ────────────────────────────────────────────────
 
-export async function pushMeal(meal: MealEntry): Promise<void> {
-  const userId = await getUserId();
+export async function pushMeal(
+  meal: MealEntry,
+  knownUserId?: string
+): Promise<void> {
+  const userId = knownUserId ?? (await getUserId());
   if (!userId) return;
 
   try {
@@ -88,16 +97,37 @@ export async function pushMeal(meal: MealEntry): Promise<void> {
     // Confirmed on the server. Future reconciles can safely treat a missing
     // server-side row as "deleted on another device" rather than "pending push".
     useNutritionStore.getState().markMealSynced(meal.id);
+    addFoodLoggingBreadcrumb("food_logging.remote_sync_success", {
+      meal_id: meal.id,
+    });
   } catch (e) {
     logSyncError("pushMeal", e);
+    addFoodLoggingBreadcrumb("food_logging.remote_sync_failed", {
+      meal_id: meal.id,
+      provider: "supabase",
+    });
+    captureFoodLoggingError(
+      e,
+      {
+        flow: "sync",
+        step: "remote_sync_failed",
+        mealId: meal.id,
+        foodTitle: meal.title,
+        calories: meal.calories,
+        provider: "supabase",
+        userId: userId,
+      },
+      { level: "warning" }
+    );
   }
 }
 
 export async function pushMealUpdate(
   mealId: string,
-  updates: Partial<MealEntry>
+  updates: Partial<MealEntry>,
+  knownUserId?: string
 ): Promise<void> {
-  const userId = await getUserId();
+  const userId = knownUserId ?? (await getUserId());
   if (!userId) return;
 
   try {
@@ -123,9 +153,26 @@ export async function pushMealUpdate(
   }
 }
 
-export async function pushMealDelete(mealId: string): Promise<void> {
-  const userId = await getUserId();
+export async function pushMealDelete(
+  mealId: string,
+  knownUserId?: string,
+  context: string = "explicit-user-delete"
+): Promise<void> {
+  const userId = knownUserId ?? (await getUserId());
   if (!userId) return;
+
+  // Hard safety gate. NOTHING gets to set `deleted_at` unless the safety
+  // module says we are in `ready` phase for THIS user. Prevents account
+  // switch / hydration from soft-deleting valid remote meals.
+  if (!mealDataSafety.canDelete(userId, context)) {
+    if (__DEV__) {
+      console.warn(
+        "[MealDataSafety] pushMealDelete BLOCKED — not safe to delete now",
+        { mealId, userId, context }
+      );
+    }
+    return;
+  }
 
   try {
     const client = getSupabaseClient();
@@ -161,22 +208,52 @@ export async function pushMealDelete(mealId: string): Promise<void> {
 }
 
 /**
- * How far back (in days) to pull meal history from Supabase. Anything older
- * than this is considered cold storage and is irrelevant to the home screen,
- * weekly view, or streak window. Bounding the pull is what stops a deleted
- * "black coffee" from being re-merged into local state on every login.
+ * How far back (in days) to pull meal history from Supabase.
+ *
+ * NOTE: keep this very large in production safety mode. A tight window can
+ * make valid historical data appear "lost" after account reset/login (UI will
+ * render empty because the server pull excludes older rows).
  */
-const PULL_WINDOW_DAYS = 90;
+const PULL_WINDOW_DAYS = 3650;
 
-export async function pullMeals(): Promise<MealEntry[]> {
-  const userId = await getUserId();
-  if (!userId) return [];
+type PulledMealRow = {
+  id: string;
+  user_id: string;
+  title: string;
+  source: MealEntry["source"];
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  logged_at: string;
+  emoji?: string | null;
+  meal_time?: MealEntry["mealTime"] | null;
+  confidence?: number | null;
+  image_uri?: string | null;
+};
+
+export async function pullMeals(knownUserId?: string): Promise<MealEntry[]> {
+  const userId = knownUserId ?? (await getUserId());
+  if (!userId) {
+    if (__DEV__) {
+      console.warn("[CloudHydration] pullMeals: no userId — returning empty");
+    }
+    return [];
+  }
 
   try {
     const client = getSupabaseClient();
     const sinceDate = new Date();
     sinceDate.setDate(sinceDate.getDate() - PULL_WINDOW_DAYS);
     const sinceIso = sinceDate.toISOString();
+
+    if (__DEV__) {
+      console.log("[CloudHydration] pullMeals: querying", {
+        userId,
+        since: sinceIso.split("T")[0],
+        windowDays: PULL_WINDOW_DAYS,
+      });
+    }
 
     // Filter out soft-deleted rows when the schema supports it (column added
     // in `add_meal_entries_deleted_at` migration). On older schemas Postgres
@@ -199,6 +276,11 @@ export async function pullMeals(): Promise<MealEntry[]> {
         typeof error.message === "string" &&
         error.message.toLowerCase().includes("deleted_at")
       ) {
+        if (__DEV__) {
+          console.log(
+            "[CloudHydration] pullMeals: deleted_at column missing, retrying without filter"
+          );
+        }
         const { data: dataNoDeleteCol, error: error2 } = await client
           .from("meal_entries")
           .select("*")
@@ -206,14 +288,50 @@ export async function pullMeals(): Promise<MealEntry[]> {
           .gte("logged_at", sinceIso)
           .order("logged_at", { ascending: false });
         if (error2) throw error2;
-        return (dataNoDeleteCol ?? []).map(mapMealRow);
+        const rows = (dataNoDeleteCol ?? []) as PulledMealRow[];
+        const meals = rows.map(mapMealRow);
+        if (__DEV__) {
+          console.log("[CloudHydration] pullMeals: fetched (no-delete-col)", {
+            userIdFromQuery: userId,
+            count: meals.length,
+            first3: rows.slice(0, 3).map((r) => ({
+              id: r.id,
+              title: r.title,
+              logged_at: r.logged_at,
+              user_id: r.user_id,
+            })),
+          });
+        }
+        return meals;
       }
       throw error;
     }
     if (!data) return [];
 
-    return data.map(mapMealRow);
+    const rows = data as PulledMealRow[];
+    const meals = rows.map(mapMealRow);
+    if (__DEV__) {
+      console.log("[CloudHydration] pullMeals: fetched", {
+        userId,
+        userIdFromQuery: userId,
+        queryDateRange: {
+          start: sinceIso,
+          end: new Date().toISOString(),
+        },
+        count: meals.length,
+        oldestLoggedAt: meals.at(-1)?.loggedAt ?? "none",
+        newestLoggedAt: meals.at(0)?.loggedAt ?? "none",
+        first3: rows.slice(0, 3).map((r) => ({
+          id: r.id,
+          title: r.title,
+          logged_at: r.logged_at,
+          user_id: r.user_id,
+        })),
+      });
+    }
+    return meals;
   } catch (e) {
+    if (__DEV__) console.warn("[CloudHydration] pullMeals error:", e);
     logSyncError("pullMeals", e);
     return [];
   }
@@ -264,8 +382,8 @@ function mapMealRow(row: {
  * in `pullMeals` either, and reconcile will catch it via the
  * "previously-synced but now missing" path.
  */
-export async function pullDeletedMealIds(): Promise<string[]> {
-  const userId = await getUserId();
+export async function pullDeletedMealIds(knownUserId?: string): Promise<string[]> {
+  const userId = knownUserId ?? (await getUserId());
   if (!userId) return [];
 
   try {
@@ -429,38 +547,144 @@ export async function pullGoals(): Promise<{
 
 // ── Profile Sync ─────────────────────────────────────────────
 
-export async function pushProfile(profile: UserProfile): Promise<void> {
-  const userId = await getUserId();
-  if (!userId) return;
-
-  try {
-    const client = getSupabaseClient();
-    await client.from("user_profiles").upsert(
-      {
-        user_id: userId,
-        gender: profile.gender,
-        birth_year: profile.birthYear,
-        height_cm: profile.heightCm,
-        current_weight_lbs: profile.currentWeightLbs,
-        goal_weight_lbs: profile.goalWeightLbs,
-        activity_level: profile.activityLevel,
-        weight_unit: profile.weightUnit,
-        height_unit: profile.heightUnit,
-        onboarding_completed: profile.onboardingCompleted,
-        water_goal_ml: profile.waterGoalMl,
-        water_increment_ml: profile.waterIncrementMl,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id" }
-    );
-  } catch (e) {
-    logSyncError("pushProfile", e);
+export async function pushProfile(
+  profile: UserProfile,
+  knownUserId?: string
+): Promise<{ ok: boolean; row?: Record<string, unknown>; error?: unknown }> {
+  const userId = knownUserId ?? (await getUserId());
+  if (!userId) {
+    return { ok: false, error: "no-auth-user" };
   }
+
+  const client = getSupabaseClient();
+  const now = new Date().toISOString();
+  const payload = {
+    gender: profile.gender,
+    birth_year: profile.birthYear,
+    height_cm: profile.heightCm,
+    current_weight_lbs: profile.currentWeightLbs,
+    goal_weight_lbs: profile.goalWeightLbs,
+    activity_level: profile.activityLevel,
+    weight_unit: profile.weightUnit,
+    height_unit: profile.heightUnit,
+    onboarding_completed: profile.onboardingCompleted,
+    updated_at: profile.updatedAt ?? now,
+  };
+
+  // ── Step 1: try UPDATE (row should already exist for onboarded users) ──
+  const { data: updatedRows, error: updateError } = await client
+    .from("user_profiles")
+    .update(payload)
+    .eq("user_id", userId)
+    .select("user_id, weight_unit, height_unit, updated_at");
+
+  if (updateError) {
+    logSyncError("pushProfile/update", updateError);
+    return { ok: false, error: { message: updateError.message, code: updateError.code } };
+  }
+
+  // ── Step 2: if no row matched, INSERT (new user who hasn't synced yet) ──
+  if (!updatedRows || updatedRows.length === 0) {
+    const { data: insertedRow, error: insertError } = await client
+      .from("user_profiles")
+      .insert({ user_id: userId, ...payload })
+      .select("user_id, weight_unit, height_unit, updated_at")
+      .single();
+
+    if (insertError) {
+      logSyncError("pushProfile/insert", insertError);
+      return { ok: false, error: { message: insertError.message, code: insertError.code } };
+    }
+
+    return { ok: true, row: insertedRow as Record<string, unknown> };
+  }
+
+  // ── Step 3: UPDATE succeeded — return the written row ──
+  return { ok: true, row: updatedRows[0] as Record<string, unknown> };
 }
 
-export async function pullProfile(): Promise<UserProfile | null> {
-  const userId = await getUserId();
-  if (!userId) return null;
+export async function pushUnitPreference(
+  userId: string,
+  weightUnit: UserProfile["weightUnit"],
+  heightUnit: UserProfile["heightUnit"],
+  updatedAt: string
+): Promise<{ ok: boolean; row?: Record<string, unknown>; error?: unknown }> {
+  const client = getSupabaseClient();
+  const payload = {
+    weight_unit: weightUnit,
+    height_unit: heightUnit,
+    updated_at: updatedAt,
+  };
+
+  // Step 1: update existing profile row.
+  const { data: updatedRows, error: updateError } = await client
+    .from("user_profiles")
+    .update(payload)
+    .eq("user_id", userId)
+    .select("user_id, weight_unit, height_unit, updated_at");
+
+  if (updateError) {
+    logSyncError("pushUnitPreference/update", updateError);
+    return { ok: false, error: { message: updateError.message, code: updateError.code } };
+  }
+
+  // Step 2: if profile row does not exist yet, insert minimum valid row.
+  if (!updatedRows || updatedRows.length === 0) {
+    const { data: insertedRow, error: insertError } = await client
+      .from("user_profiles")
+      .insert({
+        user_id: userId,
+        weight_unit: weightUnit,
+        height_unit: heightUnit,
+        updated_at: updatedAt,
+      })
+      .select("user_id, weight_unit, height_unit, updated_at")
+      .single();
+
+    if (insertError) {
+      logSyncError("pushUnitPreference/insert", insertError);
+      return { ok: false, error: { message: insertError.message, code: insertError.code } };
+    }
+
+    return { ok: true, row: insertedRow as Record<string, unknown> };
+  }
+
+  return { ok: true, row: updatedRows[0] as Record<string, unknown> };
+}
+
+/**
+ * Result of a profile pull from Supabase.
+ *
+ * Distinguishes three cases that the caller MUST handle differently:
+ *   - `found`:    Row exists for this user; profile data returned.
+ *   - `missing`:  No row exists yet — caller may create one with defaults.
+ *   - `error`:    Network/auth/transient failure — caller MUST NOT overwrite
+ *                 with local defaults (we don't know remote state).
+ *
+ * The previous single `null` return type collapsed `missing` and `error`,
+ * leading to a regression where a transient pullProfile failure caused
+ * a fresh local profile to overwrite the user's real (onboarded) row.
+ */
+export type ProfilePullResult =
+  | { kind: "found"; profile: UserProfile }
+  | { kind: "missing" }
+  | { kind: "error"; error: unknown };
+
+export async function pullProfile(
+  knownUserId?: string
+): Promise<ProfilePullResult> {
+  const userId = knownUserId ?? (await getUserId());
+  if (!userId) {
+    logColdStartStep("pull_profile_result", {
+      userId: null,
+      status: "error",
+      remoteProfileId: null,
+      remoteOnboardingCompleted: null,
+      remoteUpdatedAt: null,
+      error: "no-auth-user",
+    });
+    return { kind: "error", error: "no-auth-user" };
+  }
 
   try {
     const client = getSupabaseClient();
@@ -468,35 +692,146 @@ export async function pullProfile(): Promise<UserProfile | null> {
       .from("user_profiles")
       .select("*")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
-    if (error || !data) return null;
+    if (error) {
+      if (__DEV__) {
+        console.warn("[ProfileHydration] pullProfile error", {
+          userId,
+          code: (error as { code?: string }).code,
+          message: error.message,
+        });
+      }
+      logColdStartStep("pull_profile_result", {
+        userId,
+        status: "error",
+        remoteProfileId: null,
+        remoteOnboardingCompleted: null,
+        remoteUpdatedAt: null,
+        error: {
+          code: (error as { code?: string }).code ?? null,
+          message: error.message ?? String(error),
+        },
+      });
+      return { kind: "error", error };
+    }
+    if (!data) {
+      if (__DEV__) {
+        console.log("[ProfileHydration] profileFound: false (no row)", { userId });
+      }
+      logColdStartStep("pull_profile_result", {
+        userId,
+        status: "missing",
+        remoteProfileId: null,
+        remoteOnboardingCompleted: null,
+        remoteUpdatedAt: null,
+        error: null,
+      });
+      return { kind: "missing" };
+    }
+
+    const resolvedWeightUnit = data.weight_unit ?? "lbs";
+    const resolvedHeightUnit = data.height_unit ?? "cm";
+    const resolvedUpdatedAt =
+      typeof data.updated_at === "string" ? data.updated_at : null;
+    const resolvedOnboardingCompleted = data.onboarding_completed ?? false;
+    if (__DEV__) {
+      console.log("[ProfileHydration] profileFound: true", {
+        userId,
+        onboardingCompleted: resolvedOnboardingCompleted,
+        weightUnit: resolvedWeightUnit,
+        updatedAt: resolvedUpdatedAt,
+      });
+    }
+    logColdStartStep("pull_profile_result", {
+      userId,
+      status: "found",
+      remoteProfileId: (data.user_id as string | undefined) ?? userId,
+      remoteOnboardingCompleted: resolvedOnboardingCompleted,
+      remoteUpdatedAt: resolvedUpdatedAt,
+      error: null,
+    });
 
     return {
-      id: userId,
-      gender: data.gender ?? null,
-      birthYear: data.birth_year ?? null,
-      heightCm: data.height_cm ?? null,
-      currentWeightLbs: data.current_weight_lbs ?? null,
-      goalWeightLbs: data.goal_weight_lbs ?? null,
-      activityLevel: data.activity_level ?? null,
-      weightUnit: data.weight_unit ?? "lbs",
-      heightUnit: data.height_unit ?? "cm",
-      onboardingCompleted: data.onboarding_completed ?? false,
-      waterGoalMl: data.water_goal_ml ?? 2000,
-      waterIncrementMl: data.water_increment_ml ?? 250,
+      kind: "found",
+      profile: {
+        id: userId,
+        gender: data.gender ?? null,
+        birthYear: data.birth_year ?? null,
+        heightCm: data.height_cm ?? null,
+        currentWeightLbs: data.current_weight_lbs ?? null,
+        goalWeightLbs: data.goal_weight_lbs ?? null,
+        activityLevel: data.activity_level ?? null,
+        weightUnit: resolvedWeightUnit,
+        heightUnit: resolvedHeightUnit,
+        onboardingCompleted: resolvedOnboardingCompleted,
+        waterGoalMl: data.water_goal_ml ?? 2000,
+        waterIncrementMl: data.water_increment_ml ?? 250,
+        updatedAt: resolvedUpdatedAt,
+      },
     };
   } catch (e) {
     logSyncError("pullProfile", e);
-    return null;
+    logColdStartStep("pull_profile_result", {
+      userId,
+      status: "error",
+      remoteProfileId: null,
+      remoteOnboardingCompleted: null,
+      remoteUpdatedAt: null,
+      error: e instanceof Error ? e.message : String(e),
+    });
+    return { kind: "error", error: e };
   }
 }
 
 // ── Full Restore (login / app startup) ───────────────────────
 
-export async function restoreFromSupabase(): Promise<void> {
-  const userId = await getUserId();
-  if (!userId) return;
+/**
+ * Restore all cloud data for `knownUserId` into local stores.
+ *
+ * Accepts an optional `knownUserId` so callers that already hold the auth
+ * user ID (e.g. `useProgressSync`) can pass it directly, avoiding the extra
+ * `supabase.auth.getUser()` network round-trip that `getUserId()` requires.
+ * This removes a race window on fresh login where `getUser()` can transiently
+ * return null while the session is still being persisted by the Supabase SDK.
+ *
+ * `trigger` is a debug label describing why the restore was initiated
+ * (e.g. "login", "reload", "user-change").
+ */
+export type RestoreFromSupabaseResult =
+  | { ok: true; profileResolved: boolean; reason: "found" | "created" | "fetch_error" }
+  | { ok: false; reason: "no_user" | "exception" };
+
+export async function restoreFromSupabase(
+  knownUserId?: string,
+  trigger?: string
+): Promise<RestoreFromSupabaseResult> {
+  const userId = knownUserId ?? (await getUserId());
+  if (!userId) {
+    if (__DEV__) {
+      console.warn(
+        "[CloudHydration] restoreFromSupabase: no userId — skipping"
+      );
+    }
+    return { ok: false, reason: "no_user" };
+  }
+
+  const triggerLabel = trigger ?? "unknown";
+
+  const sinceDate = new Date();
+  sinceDate.setDate(sinceDate.getDate() - PULL_WINDOW_DAYS);
+  const sinceDateStr = sinceDate.toISOString().split("T")[0];
+
+  if (__DEV__) {
+    const localMealsBefore = useNutritionStore.getState().meals.length;
+    console.log("[CloudHydration] restoreFromSupabase: start", {
+      userId,
+      trigger: triggerLabel,
+      queryWindowDays: PULL_WINDOW_DAYS,
+      querySince: sinceDateStr,
+      localMealsBefore,
+    });
+  }
 
   try {
     const [
@@ -504,14 +839,29 @@ export async function restoreFromSupabase(): Promise<void> {
       remoteDeletedIds,
       remoteWeightLogs,
       remoteGoals,
-      remoteProfile,
+      profilePullResult,
     ] = await Promise.all([
-      pullMeals(),
-      pullDeletedMealIds(),
+      pullMeals(userId),
+      pullDeletedMealIds(userId),
       pullWeightLogs(),
       pullGoals(),
-      pullProfile(),
+      pullProfile(userId),
     ]);
+
+    if (__DEV__) {
+      const activeRemote = remoteMeals.length;
+      const deletedRemote = remoteDeletedIds.length;
+      console.log("[CloudHydration] restore:fetched", {
+        userId,
+        trigger: triggerLabel,
+        queryDateRange: `last_${PULL_WINDOW_DAYS}_days`,
+        remoteRowsFetchedCount: activeRemote,
+        remoteRowsWithDeletedAtCount: deletedRemote,
+        remoteWeightLogs: remoteWeightLogs.length,
+        hasRemoteGoals: !!remoteGoals,
+        profileResult: profilePullResult.kind,
+      });
+    }
 
     // ── Meals: bidirectional reconciliation ──
     //
@@ -523,6 +873,7 @@ export async function restoreFromSupabase(): Promise<void> {
     //   2. A local meal that has never been synced is kept even if absent
     //      from the server — it's still pending push.
     const nutritionApi = useNutritionStore.getState();
+    const localMealsBeforeMerge = nutritionApi.meals.length;
     const tombstones = new Set(nutritionApi.deletedMealIds);
     const serverActiveIds = new Set(remoteMeals.map((m) => m.id));
     const serverDeletedIds = new Set(remoteDeletedIds);
@@ -553,6 +904,18 @@ export async function restoreFromSupabase(): Promise<void> {
           new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime()
       );
       useNutritionStore.setState({ meals: merged });
+    }
+
+    if (__DEV__) {
+      const localMealsAfter = useNutritionStore.getState().meals.length;
+      console.log("[CloudHydration] restore:meals-merged", {
+        userId,
+        trigger: triggerLabel,
+        mealsCountBeforeSetState: localMealsBeforeMerge,
+        newRemoteMealsAdded: newRemoteMeals.length,
+        mealsCountAfterSetState: localMealsAfter,
+        tombstones: tombstones.size,
+      });
     }
 
     // Drop tombstones for ids the server confirms are gone (either soft-
@@ -589,14 +952,103 @@ export async function restoreFromSupabase(): Promise<void> {
       });
     }
 
-    // Profile: remote wins if onboarding was completed remotely
-    if (remoteProfile) {
+    if (__DEV__) {
+      console.log("[ProfileHydration] restore started", {
+        userId,
+        result: profilePullResult.kind,
+      });
+    }
+
+    // ── Profile state machine — three explicit cases ──
+    //
+    // CRITICAL: never collapse "missing" and "error" — they require opposite
+    // actions. A transient pullProfile error MUST NOT cause us to push our
+    // local defaults (onboarding_completed=false), or we will silently wipe
+    // out a returning user's onboarding state on every cold start with a
+    // flaky network.
+    //
+    //   "missing" → no row exists for this user (first social sign-in).
+    //               Create one with the current local state. The local state
+    //               is `initialProfile` (onboardingCompleted=false) for a
+    //               brand-new user, or carries the user's locally entered
+    //               onboarding inputs if they signed in mid-onboarding.
+    //
+    //   "error"   → fetch failed. Do NOT push. Trust local persisted state
+    //               for routing; the next successful sync will reconcile.
+    //
+    //   "found"   → reconcile via last-write-wins on updatedAt. If remote
+    //               says onboardingCompleted=true, prefer remote wholesale
+    //               (covers cross-device install, app reinstall after
+    //               completed onboarding).
+    if (profilePullResult.kind === "missing") {
+      if (__DEV__) {
+        console.log("[ProfileHydration] profileCreated: starting", { userId });
+      }
       const localProfile = useProfileStore.getState().profile;
+      if (localProfile.id !== userId) {
+        useProfileStore.getState().updateProfile({ id: userId });
+      }
+      // Stamp updatedAt so subsequent reconciliations have a real timestamp
+      // to compare against (avoids the NaN-vs-NaN keep_local fallthrough).
+      const stampedAt = new Date().toISOString();
+      useProfileStore.getState().updateProfile({ updatedAt: stampedAt });
+      const result = await pushProfile(
+        { ...useProfileStore.getState().profile, id: userId },
+        userId
+      );
+      if (__DEV__) {
+        console.log("[ProfileHydration] profileCreated: complete", {
+          userId,
+          ok: result.ok,
+          onboardingCompleted: useProfileStore.getState().profile.onboardingCompleted,
+        });
+      }
+    } else if (profilePullResult.kind === "error") {
+      if (__DEV__) {
+        console.warn("[ProfileHydration] profile fetch errored — keeping local state", {
+          userId,
+        });
+      }
+      // Do NOT push. Do NOT wipe local state. Caller will fall back to
+      // checking profile.id ownership before unblocking routing.
+    } else {
+      const remoteProfile = profilePullResult.profile;
+      const localProfile = useProfileStore.getState().profile;
+      const localUpdatedMs = localProfile.updatedAt
+        ? Date.parse(localProfile.updatedAt)
+        : Number.NaN;
+      const remoteUpdatedMs = remoteProfile.updatedAt
+        ? Date.parse(remoteProfile.updatedAt)
+        : Number.NaN;
+
+      if (__DEV__) {
+        console.log("[UnitsPersistence] local before", {
+          userId,
+          weightUnit: localProfile.weightUnit,
+          heightUnit: localProfile.heightUnit,
+          updatedAt: localProfile.updatedAt,
+        });
+        console.log("[UnitsPersistence] remote fetched", {
+          userId,
+          weightUnit: remoteProfile.weightUnit,
+          heightUnit: remoteProfile.heightUnit,
+          updatedAt: remoteProfile.updatedAt,
+        });
+      }
+
       if (
         remoteProfile.onboardingCompleted &&
         !localProfile.onboardingCompleted
       ) {
         // Remote completed onboarding — use remote data wholesale
+        if (__DEV__ && localProfile.weightUnit !== remoteProfile.weightUnit) {
+          console.log("[UnitsPersistence] remote hydrated", {
+            previousUnit: localProfile.weightUnit,
+            nextUnit: remoteProfile.weightUnit,
+            source: "remote",
+            userId,
+          });
+        }
         useProfileStore.getState().updateProfile(remoteProfile);
       } else if (
         !localProfile.onboardingCompleted &&
@@ -621,29 +1073,153 @@ export async function restoreFromSupabase(): Promise<void> {
           useProfileStore.getState().updateProfile(merged);
         }
       }
+
+      const remoteWeightUnit = remoteProfile.weightUnit;
+      const remoteHeightUnit = remoteProfile.heightUnit;
+      const validRemoteUnit =
+        remoteWeightUnit === "kg" || remoteWeightUnit === "lbs";
+      const validRemoteHeight =
+        remoteHeightUnit === "cm" || remoteHeightUnit === "ft_in";
+      if (!validRemoteUnit || !validRemoteHeight) {
+        if (__DEV__) {
+          console.log("[UnitsPersistence] decision", {
+            userId,
+            decision: "skip_invalid",
+            previousUnit: localProfile.weightUnit,
+            nextUnit: remoteWeightUnit,
+            source: "remote",
+            reason: "invalid-remote-unit",
+          });
+        }
+        if (__DEV__) {
+          console.log("[UnitsPersistence] remote skipped", {
+            userId,
+            previousUnit: localProfile.weightUnit,
+            nextUnit: remoteWeightUnit ?? "unknown",
+            source: "remote",
+            reason: "invalid-remote-unit",
+          });
+        }
+      } else if (Number.isNaN(localUpdatedMs) || remoteUpdatedMs > localUpdatedMs) {
+        if (
+          localProfile.weightUnit !== remoteWeightUnit ||
+          localProfile.heightUnit !== remoteHeightUnit ||
+          localProfile.updatedAt !== remoteProfile.updatedAt
+        ) {
+          useProfileStore.getState().updateProfile({
+            weightUnit: remoteWeightUnit,
+            heightUnit: remoteHeightUnit,
+            updatedAt: remoteProfile.updatedAt,
+          });
+        }
+        if (__DEV__) {
+          console.log("[UnitsPersistence] decision", {
+            userId,
+            decision: "apply_remote",
+            previousUnit: localProfile.weightUnit,
+            nextUnit: remoteWeightUnit,
+            source: "remote",
+          });
+        }
+      } else if (!Number.isNaN(remoteUpdatedMs) && localUpdatedMs > remoteUpdatedMs) {
+        if (__DEV__) {
+          console.log("[UnitsPersistence] decision", {
+            userId,
+            decision: "push_local",
+            previousUnit: localProfile.weightUnit,
+            nextUnit: localProfile.weightUnit,
+            source: "local",
+          });
+        }
+        await pushProfile(localProfile);
+      } else if (__DEV__) {
+        console.log("[UnitsPersistence] decision", {
+          userId,
+          decision: "keep_local",
+          previousUnit: localProfile.weightUnit,
+          nextUnit: localProfile.weightUnit,
+          source: "local",
+        });
+      }
+
+      if (__DEV__) {
+        const after = useProfileStore.getState().profile;
+        console.log("[UnitsPersistence] local after", {
+          userId,
+          weightUnit: after.weightUnit,
+          heightUnit: after.heightUnit,
+          updatedAt: after.updatedAt,
+        });
+      }
     }
+
+    // Stamp the local profile with this user's id so the routing guard can
+    // verify ownership (prevents stale profile from another user misleading
+    // the onboarding check).
+    const finalProfile = useProfileStore.getState().profile;
+    if (finalProfile.id !== userId) {
+      useProfileStore.getState().updateProfile({ id: userId });
+    }
+
+    const profileResolved = profilePullResult.kind !== "error";
+    const reason: "found" | "created" | "fetch_error" =
+      profilePullResult.kind === "found"
+        ? "found"
+        : profilePullResult.kind === "missing"
+          ? "created"
+          : "fetch_error";
+
+    if (__DEV__) {
+      console.log("[CloudHydration] restoreFromSupabase: complete", {
+        userId,
+        trigger: triggerLabel,
+        finalLocalMeals: useNutritionStore.getState().meals.length,
+        onboardingCompleted: useProfileStore.getState().profile.onboardingCompleted,
+        profileOwnerId: useProfileStore.getState().profile.id,
+        profileResolved,
+        reason,
+      });
+    }
+    return { ok: true, profileResolved, reason };
   } catch (e) {
-    // Whole-restore failure on login. Low-frequency, high-signal: full event.
-    if (__DEV__) console.warn("[Sync] restoreFromSupabase:", e);
+    if (__DEV__) console.warn("[CloudHydration] restoreFromSupabase error:", e);
     reportError(e, {
       area: "sync",
       action: "restoreFromSupabase",
       provider: "supabase",
       userId: userId ?? undefined,
     });
+    return { ok: false, reason: "exception" };
   }
 }
 
 // ── Full Push (push everything local to remote) ──────────────
 
-export async function pushAllToSupabase(): Promise<void> {
-  const userId = await getUserId();
+export async function pushAllToSupabase(options?: {
+  suppressMealUpserts?: boolean;
+  suppressTombstoneReplay?: boolean;
+  reason?: string;
+  knownUserId?: string;
+}): Promise<void> {
+  const userId = options?.knownUserId ?? (await getUserId());
   if (!userId) return;
 
   try {
     const meals = useNutritionStore.getState().meals;
     const weightLogs = useProgressStore.getState().weightLogs;
     const { goalType, plan, timeframeWeeks } = useGoalsStore.getState();
+
+    if (__DEV__) {
+      console.log("[DataLossAudit] pushAllToSupabase:start", {
+        userId,
+        reason: options?.reason ?? "unspecified",
+        localMealsCount: meals.length,
+        deletedMealIdsCount: useNutritionStore.getState().deletedMealIds.length,
+        pushAllToSupabaseCalled: true,
+        suppressMealUpserts: Boolean(options?.suppressMealUpserts),
+        suppressTombstoneReplay: Boolean(options?.suppressTombstoneReplay),
+      });
+    }
 
     // Batch upsert meals. We deliberately do NOT include a `deleted_at`
     // column in the row payload — Postgres `ON CONFLICT DO UPDATE` only
@@ -652,7 +1228,7 @@ export async function pushAllToSupabase(): Promise<void> {
     // restore. (For schemas that pre-date the soft-delete migration this
     // is moot; in that case the row was hard-deleted and would re-insert,
     // which is exactly why `restoreFromSupabase` runs BEFORE this push.)
-    if (meals.length > 0) {
+    if (meals.length > 0 && !options?.suppressMealUpserts) {
       const client = getSupabaseClient();
       const rows = meals.map((meal) => ({
         id: meal.id,
@@ -684,9 +1260,38 @@ export async function pushAllToSupabase(): Promise<void> {
     // (e.g. user removed a meal while offline). Without this, a logged-in
     // batch push would silently leave tombstoned meals alive on the server,
     // and the next `restoreFromSupabase` would re-pull them.
+    //
+    // Defense-in-depth: even if a caller forgets to set
+    // `suppressTombstoneReplay`, `pushMealDelete` itself consults
+    // `mealDataSafety.canDelete()` and rejects if we're not in `ready` phase
+    // for this user. This prevents a recurrence of the 2026-04-29 incident
+    // where 75 valid rows were soft-deleted on account switch.
     const tombstones = useNutritionStore.getState().deletedMealIds;
-    if (tombstones.length > 0) {
-      await Promise.all(tombstones.map((id) => pushMealDelete(id)));
+    if (tombstones.length > 0 && !options?.suppressTombstoneReplay) {
+      await Promise.all(
+        tombstones.map((id) =>
+          pushMealDelete(id, userId, "pushAllToSupabase:replay")
+        )
+      );
+    } else if (tombstones.length > 0 && __DEV__) {
+      console.log("[MealDataSafety] tombstone replay suppressed", {
+        userId,
+        tombstoneCountBeforePush: tombstones.length,
+        reason: options?.reason ?? "suppressTombstoneReplay flag",
+      });
+    }
+
+    if (__DEV__) {
+      console.log("[DataLossAudit] pushAllToSupabase:done", {
+        userId,
+        mealsUploadedCount:
+          meals.length > 0 && !options?.suppressMealUpserts ? meals.length : 0,
+        tombstonesUploadedCount:
+          tombstones.length > 0 && !options?.suppressTombstoneReplay
+            ? tombstones.length
+            : 0,
+        pushAllToSupabaseCalled: true,
+      });
     }
 
     // Batch upsert weight logs

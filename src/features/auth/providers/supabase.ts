@@ -8,6 +8,7 @@
 
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import * as AppleAuthentication from "expo-apple-authentication";
+import Constants from "expo-constants";
 import * as Crypto from "expo-crypto";
 import { getAppConfig } from "../../../config";
 import { getSupabaseClient } from "../../../lib/supabase";
@@ -22,6 +23,21 @@ import type {
 
 export class SupabaseAuthClient implements AuthClient {
   private listeners: ((session: Session | null) => void)[] = [];
+
+  private logAppleSignInDiagnostics(step: string) {
+    if (!__DEV__) return;
+    const runtimeBundleId = Constants.expoConfig?.ios?.bundleIdentifier ?? null;
+    const configuredBundleId = getAppConfig().app.bundleIdentifier ?? null;
+    console.log("[Auth:Apple]", {
+      step,
+      // Native Apple Sign-In audience should match iOS bundle identifier.
+      bundleIdentifier: runtimeBundleId,
+      expectedAudience: runtimeBundleId,
+      configuredBundleIdentifier: configuredBundleId,
+      provider: "apple",
+      clientId: runtimeBundleId,
+    });
+  }
 
   async signIn(email: string, password: string): Promise<AuthResponse> {
     try {
@@ -107,11 +123,14 @@ export class SupabaseAuthClient implements AuthClient {
   async deleteAccount(): Promise<{ error: Error | null }> {
     try {
       const supabase = getSupabaseClient();
-      const { error } = await supabase.functions.invoke("delete-account", {
+      const { data, error } = await supabase.functions.invoke("delete-account", {
         method: "POST",
       });
       if (error) {
         return { error: new Error(error.message) };
+      }
+      if (!data?.ok) {
+        return { error: new Error("Account deletion failed") };
       }
       this.notifyListeners(null);
       return { error: null };
@@ -233,6 +252,7 @@ export class SupabaseAuthClient implements AuthClient {
 
   async signInWithAppleNative(): Promise<AuthResponse> {
     try {
+      this.logAppleSignInDiagnostics("before_apple_signin");
       const rawNonce = Crypto.randomUUID();
       const hashedNonce = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.SHA256,
@@ -256,6 +276,7 @@ export class SupabaseAuthClient implements AuthClient {
       }
 
       const supabase = getSupabaseClient();
+      this.logAppleSignInDiagnostics("before_supabase_signInWithIdToken");
       const { data, error } = await supabase.auth.signInWithIdToken({
         provider: "apple",
         token: credential.identityToken,
@@ -278,6 +299,7 @@ export class SupabaseAuthClient implements AuthClient {
       const session = mapSession(user, data.session);
       return { user, session, error: null };
     } catch (err: any) {
+      this.logAppleSignInDiagnostics("apple_signin_error");
       if (err?.code === "ERR_REQUEST_CANCELED") {
         return {
           user: null,

@@ -19,6 +19,8 @@
     "logFirstMeal": "Zaloguj pierwszy posilek, aby zobaczyc czesto dodawane jedzenie",
     "noMealsYet": "Brak zalogowanych posilkow",
     "tapToLog": "Dotknij + aby zrobic zdjecie, powiedziec lub wpisac posilek",
+    "dismissPendingScanTitle": "Usunac ten skan?",
+    "dismissPendingScanMessage": "Podglad zniknie z ekranu glownego. Mozesz ponownie przechwycic z + w dowolnym momencie.",
     "steps": "Kroki",
     "activeCal": "Aktywne kcal",
     "calTarget": "z {{target}} kcal",
@@ -26,7 +28,8 @@
     "currentWeightA11y": "Aktualna waga {{weight}}",
     "dayShort": "D",
     "weekShort": "T",
-    "monthShort": "M"
+    "monthShort": "M",
+    "brandName": "CalCut"
   },
   "streak": {
     "dayStreak_one": "Seria {{count}} dnia",

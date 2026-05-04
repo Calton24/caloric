@@ -15,6 +15,7 @@ import Animated, {
     useSharedValue,
     withSpring,
 } from "react-native-reanimated";
+import { safeRouterBack } from "../../src/navigation/safeBack";
 import type { Theme } from "../../src/theme/ThemeProvider";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 
@@ -96,7 +97,9 @@ export function OnboardingHeader({
     <View style={styles.header}>
       {showBack ? (
         <Pressable
-          onPress={() => router.back()}
+          onPress={() =>
+            safeRouterBack(router, "/(onboarding)/landing", "onboarding_header_back")
+          }
           hitSlop={12}
           style={styles.backButton}
         >

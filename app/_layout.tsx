@@ -11,13 +11,22 @@ import {
     PlusJakartaSans_800ExtraBold,
     PlusJakartaSans_800ExtraBold_Italic,
 } from "@expo-google-fonts/plus-jakarta-sans";
+import Constants from "expo-constants";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, usePathname, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { ActivityIndicator, View } from "react-native";
 import "react-native-reanimated";
 import * as Sentry from "@sentry/react-native";
+import { triggerFoodLoggingTestError } from "../src/infrastructure/errorReporting/foodLoggingErrors";
+import { useAuth } from "../src/features/auth/useAuth";
+import { OnboardingAuthorityGate } from "../src/features/onboarding/OnboardingAuthorityGate";
+import { useOnboardingAuthorityStore } from "../src/features/onboarding/onboarding-authority.store";
+import {
+  useSettingsHydrated,
+  useSettingsStore,
+} from "../src/features/settings/settings.store";
 
 const sentryDsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
 const sentryEnvironment =
@@ -33,6 +42,81 @@ Sentry.init({
 });
 
 SplashScreen.preventAutoHideAsync();
+
+const TRANSIENT_MODAL_PATHS = new Set([
+  "/(modals)/tracking",
+  "/tracking",
+  "/(modals)/camera-log",
+  "/camera-log",
+  "/(modals)/scan-result",
+  "/scan-result",
+  "/(modals)/confirm-meal",
+  "/confirm-meal",
+]);
+
+function isTransientModalPath(pathname: string): boolean {
+  return TRANSIENT_MODAL_PATHS.has(pathname);
+}
+
+function RouteSanitizerGate() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { user, isLoading } = useAuth();
+  const settingsHydrated = useSettingsHydrated();
+  const hasSeenPermissions = useSettingsStore(
+    (state) => state.settings.hasSeenPermissions
+  );
+  const authorityState = useOnboardingAuthorityStore((s) => s.state);
+  const sanitizedThisBootstrap = useRef(false);
+
+  // Authoritative complete signal: the resolver has confirmed THIS user has
+  // onboarding_completed=true server-side. Anything else (unknown, resolving,
+  // error, stale-user, missing, incomplete) is NOT "stable home state".
+  const onboardingComplete =
+    !!user &&
+    authorityState.kind === "resolved" &&
+    authorityState.userId === user.id &&
+    authorityState.status === "complete";
+
+  const isStableAuthenticatedHomeState = useMemo(() => {
+    if (!user) return false;
+    if (isLoading) return false;
+    if (!settingsHydrated) return false;
+    if (!onboardingComplete) return false;
+    if (!hasSeenPermissions) return false;
+    return true;
+  }, [user, isLoading, settingsHydrated, onboardingComplete, hasSeenPermissions]);
+
+  useEffect(() => {
+    // Reset bootstrap marker on full auth teardown so next sign-in can sanitize.
+    if (!user) {
+      sanitizedThisBootstrap.current = false;
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (sanitizedThisBootstrap.current) return;
+    if (!isStableAuthenticatedHomeState) return;
+    if (!isTransientModalPath(pathname)) {
+      // First stable route is already safe; mark so we don't sanitize
+      // intentional modal opens later in this same runtime session.
+      sanitizedThisBootstrap.current = true;
+      return;
+    }
+
+    sanitizedThisBootstrap.current = true;
+    if (__DEV__) {
+      console.log("[RouteSanitizer] transient route replaced", {
+        from: pathname,
+        to: "/(tabs)",
+        userIdPresent: Boolean(user?.id),
+      });
+    }
+    router.replace("/(tabs)");
+  }, [isStableAuthenticatedHomeState, pathname, router, user?.id]);
+
+  return null;
+}
 
 function RootStack() {
   const { theme } = useTheme();
@@ -138,19 +222,36 @@ function RootLayout() {
   }, [fontsLoaded, fontError]);
 
   useEffect(() => {
+    console.log("[BundleCheck]", {
+      bundleIdentifier: Constants.expoConfig?.ios?.bundleIdentifier,
+      env: process.env.EXPO_PUBLIC_APP_ENV,
+    });
+  }, []);
+
+  useEffect(() => {
     if (!__DEV__) return;
     // Dev-only manual test hook: run `globalThis.__triggerSentryTestError?.()`
     // from JS debugger/console to verify event ingestion.
     (globalThis as typeof globalThis & {
       __triggerSentryTestError?: () => void;
+      __triggerFoodLoggingTestError?: () => void;
     }).__triggerSentryTestError = () => {
       Sentry.captureException(new Error("Sentry test error"));
+    };
+    (globalThis as typeof globalThis & {
+      __triggerFoodLoggingTestError?: () => void;
+    }).__triggerFoodLoggingTestError = () => {
+      triggerFoodLoggingTestError();
     };
 
     return () => {
       delete (globalThis as typeof globalThis & {
         __triggerSentryTestError?: () => void;
+        __triggerFoodLoggingTestError?: () => void;
       }).__triggerSentryTestError;
+      delete (globalThis as typeof globalThis & {
+        __triggerFoodLoggingTestError?: () => void;
+      }).__triggerFoodLoggingTestError;
     };
   }, []);
 
@@ -175,7 +276,10 @@ function RootLayout() {
   return (
     <ErrorBoundary>
       <CaloricProviders testID="app-ready">
-        <RootStack />
+        <RouteSanitizerGate />
+        <OnboardingAuthorityGate>
+          <RootStack />
+        </OnboardingAuthorityGate>
       </CaloricProviders>
     </ErrorBoundary>
   );

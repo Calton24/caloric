@@ -139,6 +139,21 @@ export function useHomeData() {
     return getDailyNutritionSummary(meals, selectedDate);
   }, [meals, selectedDate]);
 
+  useEffect(() => {
+    if (!__DEV__) return;
+    const first3 = meals.slice(0, 3).map((m) => ({
+      id: m.id,
+      loggedAt: m.loggedAt,
+      localDate: toISODate(new Date(m.loggedAt)),
+    }));
+    console.log("[HomeMeals]", {
+      selectedDate,
+      totalMealsInStore: meals.length,
+      mealsForSelectedDate: dailySummary.meals.length,
+      first3StoreMealDates: first3,
+    });
+  }, [selectedDate, meals, dailySummary.meals.length]);
+
   // Calorie progress per day (0–1) for each page in the 3-week window
   const weekPagesProgress = useMemo(() => {
     const budget = plan?.calorieBudget ?? 0;

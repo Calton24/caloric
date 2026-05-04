@@ -24,6 +24,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Localization from "expo-localization";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -55,10 +56,13 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-    LANGUAGE_LABELS,
-    SUPPORTED_LANGUAGES,
-    type SupportedLanguage,
-} from "../../src/infrastructure/i18n/init";
+  AUTO_VOICE_LANGUAGE_OPTION,
+  SUPPORTED_LANGUAGES,
+  SUPPORTED_VOICE_LANGUAGES,
+  resolveToSupportedLanguage,
+  type SupportedLanguage,
+} from "../../src/config/languages";
+import { useSettingsStore } from "../../src/features/settings/settings.store";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { CalCutLogo } from "../../src/ui/brand/CalCutLogo";
 import { FilmGrain } from "../../src/ui/effects/FilmGrain";
@@ -157,30 +161,16 @@ const brandStyles = StyleSheet.create({
 });
 
 // ═══════════════════════════════════════════════════════════════
-// Language Flag Mapping
-// ═══════════════════════════════════════════════════════════════
-
-const LANG_FLAGS: Record<SupportedLanguage, string> = {
-  "en-GB": "🇬🇧",
-  "en-US": "🇺🇸",
-  de: "🇩🇪",
-  es: "🇪🇸",
-  fr: "🇫🇷",
-  nl: "🇳🇱",
-  pl: "🇵🇱",
-  pt: "🇵🇹",
-  "pt-BR": "🇧🇷",
-};
-
-// ═══════════════════════════════════════════════════════════════
 // Language Pill + Dropdown
 // ═══════════════════════════════════════════════════════════════
 
 function LanguagePill() {
   const { t, language, changeLanguage } = useAppTranslation();
+  const setAppLanguage = useSettingsStore((s) => s.setAppLanguage);
   const [open, setOpen] = useState(false);
 
-  const flag = LANG_FLAGS[language] ?? "🇬🇧";
+  const languageOption = SUPPORTED_LANGUAGES.find((l) => l.code === language);
+  const flag = languageOption?.flag ?? "🇬🇧";
 
   const code =
     language === "en-GB"
@@ -226,13 +216,20 @@ function LanguagePill() {
         <Pressable style={langStyles.backdrop} onPress={() => setOpen(false)}>
           <View style={langStyles.dropdown}>
             <Text style={langStyles.dropdownTitle}>{t("common.language")}</Text>
-            {SUPPORTED_LANGUAGES.map((lang) => {
-              const isActive = lang === language;
+            {SUPPORTED_VOICE_LANGUAGES.map((lang) => {
+              const isActive = lang.code === language;
               return (
                 <Pressable
-                  key={lang}
+                  key={lang.code}
                   onPress={() => {
-                    changeLanguage(lang);
+                    const nextLang =
+                      lang.code === AUTO_VOICE_LANGUAGE_OPTION.code
+                        ? resolveToSupportedLanguage(
+                            Localization.getLocales?.()[0]?.languageTag ?? "en-GB"
+                          )
+                        : (lang.code as SupportedLanguage);
+                    changeLanguage(nextLang);
+                    setAppLanguage(nextLang);
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     setOpen(false);
                   }}
@@ -242,14 +239,14 @@ function LanguagePill() {
                     pressed && { opacity: 0.7 },
                   ]}
                 >
-                  <Text style={langStyles.optionFlag}>{LANG_FLAGS[lang]}</Text>
+                  <Text style={langStyles.optionFlag}>{lang.flag}</Text>
                   <Text
                     style={[
                       langStyles.optionLabel,
                       isActive && langStyles.optionLabelActive,
                     ]}
                   >
-                    {LANGUAGE_LABELS[lang]}
+                    {lang.label}
                   </Text>
                   {isActive && (
                     <Ionicons name="checkmark" size={18} color="#34D399" />

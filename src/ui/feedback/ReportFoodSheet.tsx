@@ -29,6 +29,7 @@ import {
 } from "../../features/feedback/scan-feedback.service";
 import { useAppTranslation } from "../../infrastructure/i18n";
 import { useTheme } from "../../theme/useTheme";
+import { formatFoodName } from "../../utils/formatFoodName";
 import { TSpacer } from "../primitives/TSpacer";
 import { TText } from "../primitives/TText";
 import { useBottomSheet } from "../sheets/useBottomSheet";
@@ -172,7 +173,7 @@ export function ReportFoodSheet({
               style={[sheetStyles.subtitle, { color: theme.colors.textMuted }]}
               numberOfLines={1}
             >
-              {foodName}
+              {formatFoodName(foodName)}
             </TText>
           ) : null}
         </View>

@@ -7,8 +7,8 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useEffect } from "react";
-import { StyleSheet, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Alert, StyleSheet, View } from "react-native";
 import Animated, {
     Easing,
     FadeIn,
@@ -22,7 +22,10 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUnits } from "../../hooks/useUnits";
+import { useAuth } from "../../src/features/auth/useAuth";
 import { useGoalsStore } from "../../src/features/goals/goals.store";
+import { markOnboardingCompleteRemote } from "../../src/features/onboarding/onboarding-authority";
+import { useOnboardingAuthorityStore } from "../../src/features/onboarding/onboarding-authority.store";
 import { useOnboarding } from "../../src/features/onboarding/use-onboarding";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
@@ -94,6 +97,52 @@ export default function OnboardingCompleteScreen() {
   const router = useRouter();
   const { completeOnboarding, profile } = useOnboarding();
   const plan = useGoalsStore((s) => s.plan);
+  const { user } = useAuth();
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleLetsGo = async () => {
+    if (submitting) return;
+    if (!user?.id) {
+      // Cannot reach onboarding/complete unauthenticated, but guard anyway.
+      Alert.alert(
+        t("common.error"),
+        "You must be signed in to finish onboarding."
+      );
+      return;
+    }
+    setSubmitting(true);
+    try {
+      // SERVER FIRST. Only mark locally + navigate on confirmed DB success.
+      // If this write fails the user stays here and can retry — they will
+      // never be silently routed into the app with onboarding still false
+      // on the server.
+      const result = await markOnboardingCompleteRemote(user.id);
+      if (!result.ok) {
+        Alert.alert(
+          t("common.error"),
+          "We couldn't save your setup. Please try again."
+        );
+        return;
+      }
+      // Optimistically reflect server truth in the in-memory authority
+      // store so the routing layer can immediately treat this user as
+      // "complete" without waiting for another resolve cycle.
+      useOnboardingAuthorityStore
+        .getState()
+        .setResolved(
+          user.id,
+          "complete",
+          true,
+          null,
+          result.updatedAt ?? null
+        );
+      // Cache locally for speed (NOT the source of truth for routing).
+      completeOnboarding();
+      router.replace("/(modals)/permissions-setup" as any);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   // Checkmark scale-in
   const checkScale = useSharedValue(0);
@@ -221,10 +270,7 @@ export default function OnboardingCompleteScreen() {
         <OnboardingCTA
           label={t("common.letsGo")}
           icon="rocket-outline"
-          onPress={() => {
-            completeOnboarding();
-            router.replace("/(modals)/permissions-setup" as any);
-          }}
+          onPress={handleLetsGo}
           theme={theme}
           testID="onboarding-done"
           delay={1400}

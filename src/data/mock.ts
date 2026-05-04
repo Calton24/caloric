@@ -31,6 +31,7 @@ export const MOCK_USER: UserProfile = {
   onboardingCompleted: true,
   waterGoalMl: 2000,
   waterIncrementMl: 250,
+  updatedAt: null,
 };
 
 // ─── Goal Plan ─────────────────────────────────────────────────

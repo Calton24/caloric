@@ -127,17 +127,40 @@ describe("Auth Architecture: index.tsx", () => {
     const fs = require("fs");
     const source = fs.readFileSync("app/index.tsx", "utf8");
 
-    expect(source).not.toContain("useEffect");
+    // The router should be declarative — no URL handling effects.
+    // A dev-only logging useEffect is permitted, but it MUST NOT touch
+    // deep-link / URL APIs.
     expect(source).not.toContain("getInitialURL");
+    expect(source).not.toContain("Linking.");
+    expect(source).not.toContain("expo-linking");
   });
 
-  it("should only use declarative Redirect for routing", () => {
+  it("should not perform imperative routing — the global gate owns that", () => {
     const fs = require("fs");
     const source = fs.readFileSync("app/index.tsx", "utf8");
 
-    expect(source).toContain("Redirect");
+    // Routing decisions live in OnboardingAuthorityGate (mounted in
+    // app/_layout.tsx), so app/index.tsx is just a passive loader that
+    // the gate replaces away from. It MUST NOT call router.replace /
+    // router.push itself — that would create a competing source of
+    // truth for routing.
     expect(source).not.toContain("router.replace");
     expect(source).not.toContain("router.push");
+  });
+});
+
+describe("Auth Architecture: OnboardingAuthorityGate", () => {
+  it("must be mounted globally in the root layout", () => {
+    const fs = require("fs");
+    const source = fs.readFileSync("app/_layout.tsx", "utf8");
+
+    // The global gate is the single source of truth for routing based
+    // on server-resolved onboarding status. Mounting it in the root
+    // layout ensures it runs for every pathname — including routes that
+    // Expo Router can restore directly on cold start (e.g.
+    // /(onboarding)/goal). app/index.tsx alone is not sufficient because
+    // Expo Router does not always pass through it on launch.
+    expect(source).toContain("OnboardingAuthorityGate");
   });
 });
 

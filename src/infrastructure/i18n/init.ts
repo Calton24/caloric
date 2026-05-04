@@ -18,6 +18,11 @@
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import { getAppConfig } from "../../config";
+import {
+  LANGUAGE_LABELS,
+  SUPPORTED_APP_LANGUAGE_CODES,
+  type SupportedLanguage,
+} from "../../config/languages";
 import { logger } from "../../logging/logger";
 
 // Translation resources — static imports, split by feature namespace
@@ -120,7 +125,12 @@ import ptBRProgress from "../../locales/pt-BR/progress.json";
 import ptBRSettings from "../../locales/pt-BR/settings.json";
 import ptBRTracking from "../../locales/pt-BR/tracking.json";
 
-/** Shallow-merge feature namespace files into one object per language */
+/**
+ * Shallow-merge feature JSON files into one `common` namespace.
+ * Top-level keys from later files overwrite earlier ones (e.g. both
+ * `onboarding.json` and `settings.json` define `paywall` — only the last
+ * wins). Keep all `paywall.*` strings in `settings.json` per locale.
+ */
 function mergeNamespaces(
   ...files: Record<string, unknown>[]
 ): Record<string, unknown> {
@@ -133,30 +143,9 @@ function mergeNamespaces(
 
 // ---------- Constants ----------
 
-export const SUPPORTED_LANGUAGES = [
-  "en-GB",
-  "en-US",
-  "de",
-  "es",
-  "fr",
-  "nl",
-  "pl",
-  "pt",
-  "pt-BR",
-] as const;
-export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
-
-export const LANGUAGE_LABELS: Record<SupportedLanguage, string> = {
-  "en-GB": "English (UK)",
-  "en-US": "English (US)",
-  de: "Deutsch",
-  es: "Español",
-  fr: "Français",
-  nl: "Nederlands",
-  pl: "Polski",
-  pt: "Português",
-  "pt-BR": "Português (BR)",
-};
+export const SUPPORTED_LANGUAGES = SUPPORTED_APP_LANGUAGE_CODES;
+export { LANGUAGE_LABELS };
+export type { SupportedLanguage };
 
 const FALLBACK_LANGUAGE: SupportedLanguage = "en-GB";
 const STORAGE_KEY = "mobile_core_i18n_language";
@@ -309,6 +298,12 @@ try {
 // ---------- State ----------
 
 let initialized = false;
+/**
+ * Tracks whether we have done at least a synchronous English-only init.
+ * Allows modal screens that render before the async `initI18n()` finishes to
+ * still show real copy (English) rather than raw keys.
+ */
+let syncBootstrapped = false;
 
 type I18nMode = "disabled" | "enabled";
 
@@ -323,7 +318,7 @@ function logBoot(mode: I18nMode, locale?: string, fallback?: string): void {
 // ---------- Helpers ----------
 
 function isSupportedLanguage(lang: string): lang is SupportedLanguage {
-  return (SUPPORTED_LANGUAGES as readonly string[]).includes(lang);
+  return (SUPPORTED_APP_LANGUAGE_CODES as readonly string[]).includes(lang);
 }
 
 function resolveDeviceLocale(): string {
@@ -394,6 +389,39 @@ export async function clearPersistedLanguage(): Promise<void> {
 // ---------- Public API ----------
 
 /**
+ * Bootstrap i18next synchronously with English so the first React render
+ * always shows real copy rather than raw keys.
+ *
+ * Called at module-load time by CaloricProviders (before any useEffect).
+ * Idempotent and safe to call multiple times — the async `initI18n()` will
+ * later upgrade the language to the correct locale.
+ */
+export function bootstrapI18nSync(): void {
+  if (syncBootstrapped) return;
+  syncBootstrapped = true;
+
+  const config = getAppConfig();
+  if (!config.features.i18n) return;
+
+  // Use `init` only if i18next hasn't started initialising yet.
+  // The synchronous path skips AsyncStorage (no await) and always
+  // uses English. The async `initI18n()` will call `changeLanguage`
+  // after reading the stored preference, upgrading to the right locale.
+  if (!i18next.isInitialized) {
+    i18next.use(initReactI18next).init({
+      resources,
+      lng: FALLBACK_LANGUAGE,
+      fallbackLng: FALLBACK_LANGUAGE,
+      defaultNS: "common",
+      ns: ["common"],
+      interpolation: { escapeValue: false },
+      compatibilityJSON: "v4",
+      react: { useSuspense: false },
+    });
+  }
+}
+
+/**
  * Initialise i18next.
  * Idempotent — safe to call multiple times.
  * Must be awaited before rendering translated UI.
@@ -416,21 +444,28 @@ export async function initI18n(): Promise<void> {
       ? stored
       : matchSupportedLanguage(deviceLocale);
 
-  // eslint-disable-next-line import/no-named-as-default-member
-  await i18next.use(initReactI18next).init({
-    resources,
-    lng: resolved,
-    fallbackLng: FALLBACK_LANGUAGE,
-    defaultNS: "common",
-    ns: ["common"],
-    interpolation: {
-      escapeValue: false, // React already escapes
-    },
-    compatibilityJSON: "v4", // Proper plural rules
-    react: {
-      useSuspense: false, // Avoid Suspense in RN
-    },
-  });
+  if (i18next.isInitialized) {
+    // bootstrapI18nSync() already ran — just upgrade to the correct locale.
+    if (i18next.language !== resolved) {
+      await i18next.changeLanguage(resolved);
+    }
+  } else {
+    // eslint-disable-next-line import/no-named-as-default-member
+    await i18next.use(initReactI18next).init({
+      resources,
+      lng: resolved,
+      fallbackLng: FALLBACK_LANGUAGE,
+      defaultNS: "common",
+      ns: ["common"],
+      interpolation: {
+        escapeValue: false, // React already escapes
+      },
+      compatibilityJSON: "v4", // Proper plural rules
+      react: {
+        useSuspense: false, // Avoid Suspense in RN
+      },
+    });
+  }
 
   logBoot("enabled", resolved, FALLBACK_LANGUAGE);
   initialized = true;

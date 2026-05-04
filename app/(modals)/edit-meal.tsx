@@ -35,6 +35,7 @@ import { formatDateHeader } from "../../src/infrastructure/i18n";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { toLocalDateTime } from "../../src/lib/utils/date";
 import { useTheme } from "../../src/theme/useTheme";
+import { formatFoodName } from "../../src/utils/formatFoodName";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 
@@ -266,7 +267,7 @@ export default function EditMealScreen() {
                 style={[styles.titleInput, { color: theme.colors.text }]}
                 numberOfLines={2}
               >
-                {title}
+                {formatFoodName(title)}
               </TText>
             )}
             <TSpacer size="xs" />
@@ -610,7 +611,7 @@ function EditableItemCard({
             style={[styles.itemName, { color: theme.colors.text }]}
             numberOfLines={1}
           >
-            {item.name}
+            {formatFoodName(item.name)}
           </TText>
           <TText
             style={[styles.itemCals, { color: theme.colors.textSecondary }]}

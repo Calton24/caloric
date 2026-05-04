@@ -149,7 +149,7 @@ If this log fires during the proof, condition 6 fails. No new code needed.
    ```bash
    adb shell am start -a android.intent.action.VIEW \
      -d "caloric://auth/reset-password?token_hash=PROBE_abc123&type=recovery" \
-     com.calton24.caloric
+     com.calton.caloric
    ```
 
 5. Check Metro logs for:

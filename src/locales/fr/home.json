@@ -19,6 +19,8 @@
     "logFirstMeal": "Enregistrez votre premier repas pour voir les aliments frequents ici",
     "noMealsYet": "Aucun repas enregistre",
     "tapToLog": "Appuyez sur + pour photographier, parler ou saisir votre premier repas",
+    "dismissPendingScanTitle": "Supprimer ce scan ?",
+    "dismissPendingScanMessage": "L'aperçu quittera l'écran d'accueil. Vous pouvez capturer à nouveau depuis +.",
     "steps": "Pas",
     "activeCal": "Cal actives",
     "calTarget": "sur {{target}} cal",
@@ -26,7 +28,8 @@
     "currentWeightA11y": "Poids actuel {{weight}}",
     "dayShort": "J",
     "weekShort": "S",
-    "monthShort": "M"
+    "monthShort": "M",
+    "brandName": "CalCut"
   },
   "streak": {
     "dayStreak_one": "Série de {{count}} jour",

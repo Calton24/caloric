@@ -8,8 +8,8 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import React from "react";
+import { usePathname, useRouter } from "expo-router";
+import React, { useEffect } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
     FadeIn,
@@ -17,11 +17,13 @@ import Animated, {
     FadeInUp,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { addFoodLoggingBreadcrumb } from "../../src/infrastructure/errorReporting/foodLoggingErrors";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { TrackingPromptCard } from "../../src/ui/components/TrackingPromptCard";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
+import { FoodLoggingErrorBoundary } from "../../src/ui/errors/FoodLoggingErrorBoundary";
 
 const PROMPTS = [
   {
@@ -57,10 +59,32 @@ const PROMPTS = [
   },
 ];
 
-export default function TrackingLauncherScreen() {
+function TrackingLauncherScreenInner() {
   const { theme } = useTheme();
   const { t } = useAppTranslation();
   const router = useRouter();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    addFoodLoggingBreadcrumb("food_logging.tracking_hub_opened", {
+      route: pathname,
+    });
+  }, [pathname]);
+
+  const handleClose = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      if (__DEV__) {
+        console.log("[RouteRecovery]", {
+          currentPath: "/(modals)/tracking",
+          reason: "no_back_stack",
+          targetRoute: "/(tabs)",
+        });
+      }
+      router.replace("/(tabs)");
+    }
+  };
 
   return (
     <View
@@ -69,7 +93,7 @@ export default function TrackingLauncherScreen() {
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} hitSlop={12}>
+          <Pressable onPress={handleClose} hitSlop={12}>
             <Ionicons name="close" size={24} color={theme.colors.text} />
           </Pressable>
           <TText
@@ -215,6 +239,14 @@ export default function TrackingLauncherScreen() {
         </Animated.View>
       </SafeAreaView>
     </View>
+  );
+}
+
+export default function TrackingLauncherScreen() {
+  return (
+    <FoodLoggingErrorBoundary routeLabel="/(modals)/tracking">
+      <TrackingLauncherScreenInner />
+    </FoodLoggingErrorBoundary>
   );
 }
 

@@ -7,12 +7,14 @@
 import { useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { isSupportedLanguage } from "../../config/languages";
 import { getStorage } from "../../infrastructure/storage";
 import type { AppSettings, UnitsPreference } from "./settings.types";
 
 interface SettingsStore {
   settings: AppSettings;
-  setInputLanguage: (language: string) => void;
+  setAppLanguage: (language: AppSettings["appLanguage"]) => void;
+  setVoiceLanguage: (language: AppSettings["voiceLanguage"]) => void;
   setUnitsPreference: (preference: UnitsPreference) => void;
   setLogReminderEnabled: (enabled: boolean) => void;
   setAppleHealthSyncEnabled: (enabled: boolean) => void;
@@ -25,7 +27,8 @@ interface SettingsStore {
 }
 
 export const initialSettings: AppSettings = {
-  inputLanguage: "en-US",
+  appLanguage: "en-GB",
+  voiceLanguage: "en-GB",
   unitsPreference: "system",
   logReminderEnabled: false,
   appleHealthSyncEnabled: false,
@@ -41,8 +44,17 @@ export const useSettingsStore = create<SettingsStore>()(
     (set) => ({
       settings: initialSettings,
 
-      setInputLanguage: (inputLanguage) =>
-        set((s) => ({ settings: { ...s.settings, inputLanguage } })),
+      setAppLanguage: (appLanguage) =>
+        set((s) => {
+          console.log("[Language] changed app language", { appLanguage });
+          return { settings: { ...s.settings, appLanguage } };
+        }),
+
+      setVoiceLanguage: (voiceLanguage) =>
+        set((s) => {
+          console.log("[Language] changed voice language", { voiceLanguage });
+          return { settings: { ...s.settings, voiceLanguage } };
+        }),
 
       setUnitsPreference: (unitsPreference) =>
         set((s) => ({ settings: { ...s.settings, unitsPreference } })),
@@ -80,10 +92,37 @@ export const useSettingsStore = create<SettingsStore>()(
       })),
       merge: (persisted, current) => ({
         ...current,
-        settings: {
-          ...(current as SettingsStore).settings,
-          ...((persisted as Partial<SettingsStore>)?.settings ?? {}),
-        },
+        settings: (() => {
+          const currentSettings = (current as SettingsStore).settings;
+          const persistedSettings =
+            (persisted as Partial<SettingsStore>)?.settings ?? {};
+          const legacyInputLanguage = (persistedSettings as any).inputLanguage as
+            | string
+            | undefined;
+
+          const appLanguage = isSupportedLanguage(
+            (persistedSettings as any).appLanguage
+          )
+            ? ((persistedSettings as any).appLanguage as AppSettings["appLanguage"])
+            : isSupportedLanguage(legacyInputLanguage ?? "")
+              ? (legacyInputLanguage as AppSettings["appLanguage"])
+              : currentSettings.appLanguage;
+
+          const voiceLanguageRaw = (persistedSettings as any).voiceLanguage;
+          const voiceLanguage =
+            voiceLanguageRaw === "auto" || isSupportedLanguage(voiceLanguageRaw)
+              ? (voiceLanguageRaw as AppSettings["voiceLanguage"])
+              : isSupportedLanguage(legacyInputLanguage ?? "")
+                ? (legacyInputLanguage as AppSettings["voiceLanguage"])
+                : appLanguage;
+
+          return {
+            ...currentSettings,
+            ...persistedSettings,
+            appLanguage,
+            voiceLanguage,
+          };
+        })(),
       }),
     }
   )

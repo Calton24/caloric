@@ -56,6 +56,10 @@ export interface MenuItem {
   disabled?: boolean;
   /** Destructive style (red) */
   destructive?: boolean;
+  /** Keep drawer open after item press (useful for inline toggles). */
+  keepOpenOnPress?: boolean;
+  /** Optional right-side accessory (toggle, segmented control, etc.). */
+  rightAccessory?: React.ReactNode;
 }
 
 export interface MenuSection {
@@ -83,6 +87,16 @@ export interface HamburgerMenuProps {
   style?: StyleProp<ViewStyle>;
   /** Accessibility label for the toggle button */
   accessibilityLabel?: string;
+  /**
+   * Optional custom trigger renderer (e.g. profile icon).
+   * When omitted, the default animated hamburger icon is used.
+   */
+  renderTrigger?: (args: {
+    open: boolean;
+    onOpen: () => void;
+    onClose: () => void;
+    onToggle: () => void;
+  }) => React.ReactNode;
 }
 
 /* ── Timing ────────────────────────────────────────── */
@@ -104,6 +118,7 @@ export function HamburgerMenu({
   drawerWidth = 280,
   style,
   accessibilityLabel = "Menu",
+  renderTrigger,
 }: HamburgerMenuProps) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -210,6 +225,10 @@ export function HamburgerMenu({
     (item: MenuItem) => {
       if (item.disabled) return;
       haptics.selection();
+      if (item.keepOpenOnPress) {
+        item.onPress?.();
+        return;
+      }
       onToggle(false);
       // Delay action until drawer close animation starts
       setTimeout(() => item.onPress?.(), 100);
@@ -218,7 +237,14 @@ export function HamburgerMenu({
   );
 
   /* ── Hamburger Icon Button ── */
-  const iconButton = (
+  const iconButton = renderTrigger ? (
+    renderTrigger({
+      open,
+      onOpen: handleOpen,
+      onClose: handleClose,
+      onToggle: () => (open ? handleClose() : handleOpen()),
+    })
+  ) : (
     <Pressable
       onPress={open ? handleClose : handleOpen}
       accessibilityRole="button"
@@ -353,6 +379,9 @@ export function HamburgerMenu({
                   >
                     {item.label}
                   </TText>
+                  {item.rightAccessory ? (
+                    <View style={styles.menuRightAccessory}>{item.rightAccessory}</View>
+                  ) : null}
                 </Pressable>
               ))}
               {sIdx < sections.length - 1 && (
@@ -429,6 +458,10 @@ const styles = StyleSheet.create({
   },
   menuLabel: {
     flex: 1,
+  },
+  menuRightAccessory: {
+    marginLeft: 8,
+    flexShrink: 0,
   },
   separator: {
     height: StyleSheet.hairlineWidth,
