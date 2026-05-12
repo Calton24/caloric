@@ -30,8 +30,10 @@
 
 import { useCallback } from "react";
 import { getSupabaseClient } from "../../lib/supabase/client";
+import { FOOD_LOG_SAFE_MODE } from "../debug/safe-mode-flags";
 import type { GatedFeature } from "../../ui/components/FeatureGatePaywall";
 import { useAuth } from "../auth/useAuth";
+import { selectTrialGrantsFullAccess, useAppTrialStore } from "./app-trial.store";
 import { FREE_SCAN_LIMIT, useScanCreditsStore } from "./scanCredits.store";
 import { useSubscriptionStore } from "./subscription.store";
 
@@ -93,6 +95,8 @@ export function useFeatureAccess() {
   const isPro = useSubscriptionStore(
     (s) => s.subscription.hasActiveSubscription
   );
+  const trialGrantsFullAccess = useAppTrialStore(selectTrialGrantsFullAccess);
+  const hasPremiumUxAccess = isPro || trialGrantsFullAccess;
   const lastServerVerifiedAt = useSubscriptionStore(
     (s) => s.subscription.lastServerVerifiedAt
   );
@@ -100,6 +104,7 @@ export function useFeatureAccess() {
   // Premium users whose last server verification is not fresh need a recheck
   // before the scan proceeds. Stale = soft (preserve on failure); expired/unverified = hard.
   const requiresRevalidation = isPro && verificationStatus !== "fresh";
+  // Trial users are not "Pro" for server credit / verification semantics.
   const { hasCredits, remaining, consumeCredit } = useScanCreditsStore();
 
   /**
@@ -109,20 +114,20 @@ export function useFeatureAccess() {
    * - Unauthenticated: blocked (need account first)
    */
   const canScan = useCallback((): AccessResult => {
-    if (isPro) return { allowed: true };
+    if (hasPremiumUxAccess) return { allowed: true };
     if (!user) return { allowed: false, reason: "not_authenticated" };
     if (!hasCredits()) return { allowed: false, reason: "no_credits" };
     return { allowed: true };
-  }, [isPro, user, hasCredits]);
+  }, [hasPremiumUxAccess, user, hasCredits]);
 
   /**
    * Consume one AI scan credit locally. Call AFTER the scan succeeds.
    * No-op for premium users.
    */
   const consumeScan = useCallback(async (): Promise<void> => {
-    if (isPro) return;
+    if (hasPremiumUxAccess) return;
     await consumeCredit();
-  }, [isPro, consumeCredit]);
+  }, [hasPremiumUxAccess, consumeCredit]);
 
   /**
    * Check access to a gated feature.
@@ -132,19 +137,21 @@ export function useFeatureAccess() {
    */
   const checkFeature = useCallback(
     (feature: GatedFeature): AccessResult => {
-      if (isPro) return { allowed: true };
+      if (hasPremiumUxAccess) return { allowed: true };
       if (feature === "unlimited_scans") return canScan();
       if (PREMIUM_ONLY_FEATURES.has(feature)) {
         return { allowed: false, reason: "premium_required" };
       }
       return { allowed: true };
     },
-    [isPro, canScan]
+    [hasPremiumUxAccess, canScan]
   );
 
   return {
     /** Whether the user has an active premium subscription */
     isPro,
+    /** Full app feature access: paid subscription or active server trial */
+    hasPremiumUxAccess,
     /** Check if AI scan is allowed (client-side — instant UX) */
     canScan,
     /** Consume one scan credit locally (no-op if premium) */
@@ -152,7 +159,7 @@ export function useFeatureAccess() {
     /** Check access to any gated feature */
     checkFeature,
     /** Number of free scans remaining */
-    scansRemaining: isPro ? Infinity : remaining(),
+    scansRemaining: hasPremiumUxAccess ? Infinity : remaining(),
     /** Total scan limit for free tier */
     scanLimit: FREE_SCAN_LIMIT,
     /**
@@ -179,6 +186,20 @@ export function useFeatureAccess() {
       async ({
         hard = false,
       }: { hard?: boolean } = {}): Promise<AccessResult> => {
+        if (FOOD_LOG_SAFE_MODE) {
+          if (__DEV__) {
+            console.log(
+              "[AccountHydration] sync-entitlement skipped (food_log_safe_mode)"
+            );
+          }
+          if (
+            useSubscriptionStore.getState().subscription.hasActiveSubscription
+          ) {
+            return { allowed: true };
+          }
+          if (hard) return { allowed: false, reason: "verification_required" };
+          return canScan();
+        }
         try {
           const { data, error } =
             await getSupabaseClient().functions.invoke("sync-entitlement");

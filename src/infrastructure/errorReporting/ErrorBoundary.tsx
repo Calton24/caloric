@@ -4,7 +4,13 @@
  */
 
 import React, { Component, ErrorInfo, ReactNode } from "react";
-import { Platform, StyleSheet, Text, View } from "react-native";
+import {
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { reportBreadcrumb, reportError } from "./reportError";
 
 interface ErrorBoundaryProps {
@@ -88,7 +94,8 @@ export class ErrorBoundary extends Component<
         return this.props.fallback;
       }
 
-      // Default fallback UI
+      // Default fallback UI — include message + retry so TestFlight / internal
+      // builds are actionable without opening Sentry for every repro.
       return (
         <View style={styles.container}>
           <View style={styles.content}>
@@ -96,10 +103,25 @@ export class ErrorBoundary extends Component<
             <Text style={styles.message}>
               We&apos;ve been notified and are working on a fix.
             </Text>
+            {this.state.error.message ? (
+              <Text style={styles.errorSummary} selectable>
+                {this.state.error.message}
+              </Text>
+            ) : null}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Try again"
+              onPress={this.retry}
+              style={({ pressed }) => [
+                styles.retryButton,
+                pressed && styles.retryButtonPressed,
+              ]}
+            >
+              <Text style={styles.retryLabel}>Try again</Text>
+            </Pressable>
             {__DEV__ && (
               <View style={styles.errorDetails}>
-                <Text style={styles.errorTitle}>Error Details (dev only):</Text>
-                <Text style={styles.errorText}>{this.state.error.message}</Text>
+                <Text style={styles.errorTitle}>Stack (dev only)</Text>
                 <Text style={styles.errorStack}>{this.state.error.stack}</Text>
               </View>
             )}
@@ -137,6 +159,30 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 24,
   },
+  errorSummary: {
+    marginTop: 16,
+    fontSize: 13,
+    color: "#333",
+    textAlign: "center",
+    lineHeight: 20,
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+  },
+  retryButton: {
+    marginTop: 24,
+    alignSelf: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    borderRadius: 10,
+    backgroundColor: "#111",
+  },
+  retryButtonPressed: {
+    opacity: 0.85,
+  },
+  retryLabel: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
   errorDetails: {
     marginTop: 32,
     padding: 16,
@@ -150,12 +196,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: 8,
     color: "#d32f2f",
-  },
-  errorText: {
-    fontSize: 12,
-    color: "#d32f2f",
-    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
-    marginBottom: 8,
   },
   errorStack: {
     fontSize: 10,

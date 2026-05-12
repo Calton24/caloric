@@ -8,7 +8,7 @@
 
 ## Overview
 
-This document summarizes all pre-production features implemented for Caloric app submission to the App Store and Google Play Store. These features ensure compliance with app store requirements, privacy regulations (GDPR, CCPA, ATT), and best practices for user experience.
+This document summarizes all pre-production features implemented for CalCut app submission to the App Store and Google Play Store. These features ensure compliance with app store requirements, privacy regulations (GDPR, CCPA, ATT), and best practices for user experience.
 
 ---
 

@@ -427,14 +427,18 @@ const POST_JOURNEY: DayContent = {
  * Days 1-21 have unique content. Day 22+ returns lifestyle mode.
  */
 export function getDayContent(streakDay: number): DayContent {
-  if (streakDay <= 0) {
-    // Day 0 / no streak — treat as Day 1 (they haven't logged yet)
+  // Corrupt / hydrated NaN streak values must never index JOURNEY[NaN]
+  if (!Number.isFinite(streakDay)) {
     return JOURNEY[0];
   }
-  if (streakDay > 21) {
-    return { ...POST_JOURNEY, day: streakDay };
+  const day = Math.floor(streakDay);
+  if (day <= 0) {
+    return JOURNEY[0];
   }
-  return JOURNEY[streakDay - 1];
+  if (day > 21) {
+    return { ...POST_JOURNEY, day };
+  }
+  return JOURNEY[day - 1];
 }
 
 /**

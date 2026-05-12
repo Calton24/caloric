@@ -103,7 +103,8 @@
       "subtitle": "Erstelle ein Konto, um deine Kalorienziele, Makros und Fortschritte geräteübergreifend zu synchronisieren.",
       "socialProof": "2.400+ Nutzer haben sich diese Woche angemeldet",
       "privacy": "Deine Daten bleiben privat",
-      "speed": "Dauert 5 Sekunden"
+      "speed": "Dauert 5 Sekunden",
+      "checkpointSyncFailed": "We couldn't save your place in setup. Check your connection and try signing in again."
     },
     "complete": {
       "heading": "Alles eingerichtet!",

@@ -11,8 +11,9 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import RNSlider from "@react-native-community/slider";
 import { LinearGradient } from "expo-linear-gradient";
-import { usePathname, useRouter } from "expo-router";
+import { router, usePathname, useRouter, useSegments } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import * as Sentry from "@sentry/react-native";
 import {
     Modal,
     Pressable,
@@ -20,6 +21,7 @@ import {
     StyleSheet,
     TextInput,
     View,
+    InteractionManager,
 } from "react-native";
 import Animated, {
     FadeIn,
@@ -35,6 +37,7 @@ import {
     type ScanSource,
 } from "../../src/features/feedback/scan-feedback.service";
 
+import { useAuth } from "../../src/features/auth/useAuth";
 import { useNutritionDraftStore } from "../../src/features/nutrition/nutrition.draft.store";
 import { useBackgroundScanStore } from "../../src/features/camera/background-scan.store";
 import { FixWithAISheet } from "../../src/features/nutrition/correction/FixWithAISheet";
@@ -59,46 +62,62 @@ import { displayName } from "../../src/features/nutrition/nutrition-pipeline";
 import { getMealsForDate } from "../../src/features/nutrition/nutrition.selectors";
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
 import {
-    useRetentionEngine,
-    useRetentionStore,
+  useRetentionEngine,
+  useRetentionStore,
 } from "../../src/features/retention";
-import {
-    ShareMilestoneModal,
-    useShareMilestone,
-} from "../../src/features/share";
-import { useScanCreditsStore } from "../../src/features/subscription/scanCredits.store";
 import { usePaywallTrigger } from "../../src/features/subscription/usePaywallTrigger";
+import { ShareMilestoneModal, useShareMilestone } from "../../src/features/share";
+
+import { useScanCreditsStore } from "../../src/features/subscription/scanCredits.store";
 import { formatDateHeader } from "../../src/infrastructure/i18n";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { haptics } from "../../src/infrastructure/haptics";
 import { useGoalsStore, useNutritionStore } from "../../src/stores";
 import { useTheme } from "../../src/theme/useTheme";
-import { JourneyPaywall } from "../../src/ui/components/JourneyPaywall";
 import { MealReviewImage } from "../../src/ui/components/MealReviewImage";
-import { PostLogCelebration } from "../../src/ui/components/PostLogCelebration";
 import { RichText } from "../../src/ui/components/RichText";
 import { ReportFoodSheet } from "../../src/ui/feedback/ReportFoodSheet";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 import { useBottomSheet } from "../../src/ui/sheets/useBottomSheet";
+import { dismissRootSheet } from "../../src/ui/sheets/BottomSheetProvider";
 import { useToast } from "../../src/ui/components/Toast";
 import {
   addFoodLoggingBreadcrumb,
   captureFoodLoggingError,
 } from "../../src/infrastructure/errorReporting/foodLoggingErrors";
+import {
+  getEstimatedItemNutrients,
+  getMealCalories,
+} from "../../src/features/nutrition/meal-normalize";
 import { FoodLoggingErrorBoundary } from "../../src/ui/errors/FoodLoggingErrorBoundary";
+import { ENABLE_POST_SAVE_EXTRAS } from "../../src/features/food-logging/track-calories.constants";
+import { FOOD_LOG_POST_SAVE_NAV_MODE } from "../../src/features/debug/safe-mode-flags";
+import { foodLogPathBreadcrumb } from "../../src/features/food-logging/food-log-path-breadcrumbs";
+import { queueFoodLogStoreApply } from "../../src/features/food-logging/food-log-apply-queue";
+import { exitConfirmMealSafely } from "../../src/features/food-logging/safe-return-after-meal-log";
+import {
+  commitFoodLogTransaction,
+  runPendingFoodLogApplyFromQueue,
+} from "../../src/features/food-logging/services/food-log-transaction.service";
+import { JourneyPaywall } from "../../src/ui/components/JourneyPaywall";
+import { PostLogCelebration } from "../../src/ui/components/PostLogCelebration";
+
+function waitMs(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
 
 function ConfirmMealScreenInner() {
   const { theme } = useTheme();
   const { t } = useAppTranslation();
+  const { user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const segments = useSegments();
   const toast = useToast();
   const {
     draft: hookDraft,
     updateDraft,
-    saveDraftWithoutNav,
-    navigateAfterSave,
     clearDraft,
   } = useLoggingFlow();
 
@@ -108,7 +127,14 @@ function ConfirmMealScreenInner() {
 
   const logDate = useNutritionDraftStore((s) => s.logDate);
   const setLogDate = useNutritionDraftStore((s) => s.setLogDate);
-  const { open: openSheet } = useBottomSheet();
+  const { open: openSheet, close: closeSheet } = useBottomSheet();
+
+  const dismissAllSheets = useCallback(() => {
+    // Kill any sheet owned by this modal stack.
+    closeSheet(undefined, { immediate: true });
+    // Kill root-level sheet in case it was left mounted by another provider.
+    dismissRootSheet({ immediate: true });
+  }, [closeSheet]);
 
   /** Same bottom sheet as Home FAB “+” — keyboard / mic / camera + quick picks */
   const openLogFoodLauncher = useCallback(() => {
@@ -130,20 +156,24 @@ function ConfirmMealScreenInner() {
     });
   }, [openSheet, hookDraft]);
 
-  // Share milestone system
-  const shareMilestone = useShareMilestone();
+  // Post-save growth (share milestone, journey paywall): removed from this
+  // screen until save + home is stable — see track-calories.constants.ts.
+
   const recordFirstMeal = useRetentionStore((s) => s.recordFirstMeal);
-  const retention = useRetentionEngine();
-  const paywallTrigger = usePaywallTrigger();
 
   // Guard against state updates / navigation after unmount
   const isMounted = useRef(true);
+  const isSubmittingRef = useRef(false);
   useEffect(() => {
     isMounted.current = true;
     return () => {
       isMounted.current = false;
     };
   }, []);
+
+  const [trackPhase, setTrackPhase] = useState<
+    "idle" | "saving" | "saved" | "exiting" | "error"
+  >("idle");
 
   // Post-log celebration state
   const [celebration, setCelebration] = useState<{
@@ -159,12 +189,16 @@ function ConfirmMealScreenInner() {
     streakDay: number;
   } | null>(null);
 
+  const retention = useRetentionEngine();
+  const paywallTrigger = usePaywallTrigger();
+  const shareMilestone = useShareMilestone();
+
   // Calorie budget & today's consumed
   const calorieBudget = useGoalsStore((s) => s.plan?.calorieBudget ?? 2000);
   const allMeals = useNutritionStore((s) => s.meals);
   const targetDate = logDate ?? new Date().toISOString().slice(0, 10);
   const consumedToday = getMealsForDate(allMeals, targetDate).reduce(
-    (sum, m) => sum + m.calories,
+    (sum, m) => sum + getMealCalories(m),
     0
   );
 
@@ -195,14 +229,14 @@ function ConfirmMealScreenInner() {
     (index: number) => {
       const item = draft?.estimatedItems?.[index];
       if (!item) return;
-      const qty = item.parsed?.quantity ?? 1;
+      const nu = getEstimatedItemNutrients(item);
+      const qtyRaw = item.parsed?.quantity ?? 1;
+      const qty = qtyRaw > 0 ? qtyRaw : 1;
       baseNutrientsRef.current = {
-        calories:
-          qty > 0 ? item.nutrients.calories / qty : item.nutrients.calories,
-        protein:
-          qty > 0 ? item.nutrients.protein / qty : item.nutrients.protein,
-        carbs: qty > 0 ? item.nutrients.carbs / qty : item.nutrients.carbs,
-        fat: qty > 0 ? item.nutrients.fat / qty : item.nutrients.fat,
+        calories: qty > 0 ? nu.calories / qty : nu.calories,
+        protein: qty > 0 ? nu.protein / qty : nu.protein,
+        carbs: qty > 0 ? nu.carbs / qty : nu.carbs,
+        fat: qty > 0 ? nu.fat / qty : nu.fat,
         quantity: qty,
         servings: item.estimatedServings,
       };
@@ -229,7 +263,19 @@ function ConfirmMealScreenInner() {
       const items = [...draft.estimatedItems];
       const item = { ...items[sliderItemIndex] };
 
-      item.parsed = { ...item.parsed, quantity: newQty };
+      const parsedBase = item.parsed;
+      item.parsed = {
+        name:
+          parsedBase?.name ??
+          item.matchedName?.trim().toLowerCase() ??
+          "food",
+        quantity: newQty,
+        unit: parsedBase?.unit ?? "serving",
+        preparation: parsedBase?.preparation ?? null,
+        confidence:
+          parsedBase?.confidence ?? Math.min(1, Math.max(0, item.confidence)),
+        rawFragment: parsedBase?.rawFragment ?? item.matchedName ?? "",
+      };
       item.nutrients = {
         calories: Math.round(base.calories * newQty),
         protein: Math.round(base.protein * newQty * 10) / 10,
@@ -242,12 +288,15 @@ function ConfirmMealScreenInner() {
       items[sliderItemIndex] = item;
 
       const totals = items.reduce(
-        (acc, i) => ({
-          calories: acc.calories + i.nutrients.calories,
-          protein: Math.round((acc.protein + i.nutrients.protein) * 10) / 10,
-          carbs: Math.round((acc.carbs + i.nutrients.carbs) * 10) / 10,
-          fat: Math.round((acc.fat + i.nutrients.fat) * 10) / 10,
-        }),
+        (acc, i) => {
+          const n = getEstimatedItemNutrients(i);
+          return {
+            calories: acc.calories + n.calories,
+            protein: Math.round((acc.protein + n.protein) * 10) / 10,
+            carbs: Math.round((acc.carbs + n.carbs) * 10) / 10,
+            fat: Math.round((acc.fat + n.fat) * 10) / 10,
+          };
+        },
         { calories: 0, protein: 0, carbs: 0, fat: 0 }
       );
 
@@ -282,7 +331,9 @@ function ConfirmMealScreenInner() {
         initial = String(draft?.calories ?? 0);
       } else {
         const item = draft?.estimatedItems?.[itemIndex];
-        initial = String(item?.nutrients.calories ?? 0);
+        initial = String(
+          item ? getEstimatedItemNutrients(item).calories : 0,
+        );
       }
       setEditValue(initial);
       setEditing({ itemIndex, field });
@@ -311,25 +362,29 @@ function ConfirmMealScreenInner() {
     // Multi-item mode — calorie edit only (serving uses slider)
     const items = [...(draft.estimatedItems ?? [])];
     const item = { ...items[editing.itemIndex] };
+    const prevN = getEstimatedItemNutrients(item);
 
-    const oldCal = item.nutrients.calories || 1;
+    const oldCal = prevN.calories > 0 ? prevN.calories : 1;
     const ratio = Math.round(numValue) / oldCal;
     item.nutrients = {
       calories: Math.round(numValue),
-      protein: Math.round(item.nutrients.protein * ratio * 10) / 10,
-      carbs: Math.round(item.nutrients.carbs * ratio * 10) / 10,
-      fat: Math.round(item.nutrients.fat * ratio * 10) / 10,
+      protein: Math.round(prevN.protein * ratio * 10) / 10,
+      carbs: Math.round(prevN.carbs * ratio * 10) / 10,
+      fat: Math.round(prevN.fat * ratio * 10) / 10,
     };
 
     items[editing.itemIndex] = item;
 
     const totals = items.reduce(
-      (acc, i) => ({
-        calories: acc.calories + i.nutrients.calories,
-        protein: Math.round((acc.protein + i.nutrients.protein) * 10) / 10,
-        carbs: Math.round((acc.carbs + i.nutrients.carbs) * 10) / 10,
-        fat: Math.round((acc.fat + i.nutrients.fat) * 10) / 10,
-      }),
+      (acc, i) => {
+        const n = getEstimatedItemNutrients(i);
+        return {
+          calories: acc.calories + n.calories,
+          protein: Math.round((acc.protein + n.protein) * 10) / 10,
+          carbs: Math.round((acc.carbs + n.carbs) * 10) / 10,
+          fat: Math.round((acc.fat + n.fat) * 10) / 10,
+        };
+      },
       { calories: 0, protein: 0, carbs: 0, fat: 0 }
     );
 
@@ -372,36 +427,39 @@ function ConfirmMealScreenInner() {
   // and record a scan event for the feedback loop
   const hasCaptured = useRef(false);
   useEffect(() => {
-    if (draft && !hasCaptured.current) {
-      captureOriginalEstimate(draft);
-      hasCaptured.current = true;
+    if (!draft || hasCaptured.current) return;
 
-      // Fire-and-forget: record this scan for the feedback loop
-      recordScanEvent({
-        source: (draft.source ?? "text") as ScanSource,
-        rawInput: draft.rawInput,
-        matchedResult: draft.estimatedItems?.[0]
-          ? {
-              matchedName: draft.estimatedItems[0].matchedName,
-              matchSource: draft.estimatedItems[0].matchSource,
-              matchId: draft.estimatedItems[0].matchId,
-            }
-          : undefined,
-        finalFoodName: draft.title,
-        finalCalories: draft.calories,
-        finalProtein: draft.protein,
-        finalCarbs: draft.carbs,
-        finalFat: draft.fat,
-        confidence: draft.confidence,
-      }).then((id) => {
-        scanEventIdRef.current = id;
-      });
-    }
-    return () => {
-      // If user dismisses without confirming, clear the snapshot
-      if (hasCaptured.current) clearOriginalEstimate();
-    };
+    captureOriginalEstimate(draft);
+    hasCaptured.current = true;
+
+    // Fire-and-forget: record this scan for the feedback loop
+    void recordScanEvent({
+      source: (draft.source ?? "text") as ScanSource,
+      rawInput: draft.rawInput,
+      matchedResult: draft.estimatedItems?.[0]
+        ? {
+            matchedName: draft.estimatedItems[0].matchedName,
+            matchSource: draft.estimatedItems[0].matchSource,
+            matchId: draft.estimatedItems[0].matchId,
+          }
+        : undefined,
+      finalFoodName: draft.title,
+      finalCalories: draft.calories,
+      finalProtein: draft.protein,
+      finalCarbs: draft.carbs,
+      finalFat: draft.fat,
+      confidence: draft.confidence,
+    }).then((id) => {
+      scanEventIdRef.current = id;
+    });
   }, [draft]);
+
+  useEffect(() => {
+    return () => {
+      clearOriginalEstimate();
+      hasCaptured.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     addFoodLoggingBreadcrumb("food_logging.confirm_meal_opened", {
@@ -410,250 +468,304 @@ function ConfirmMealScreenInner() {
     });
   }, [pathname, draft]);
 
-  const handleConfirm = useCallback(() => {
-    addFoodLoggingBreadcrumb("food_logging.track_calories_pressed", {
-      route: pathname,
-      source: draft?.source,
-      calories: draft?.calories,
-      has_estimated_items: Boolean(draft?.estimatedItems?.length),
-    });
-    try {
-      // Track any corrections before saving
-      const correction = draft ? trackCorrection(draft) : null;
-      addFoodLoggingBreadcrumb("food_logging.track_calories_corrections_done", {
-        was_edited: correction?.wasEdited ?? false,
-      });
-
-      // Persist confirmation + corrections to Supabase (fire-and-forget)
-      const eventId = scanEventIdRef.current ?? getLastScanEventId();
-      if (eventId) {
-        markScanConfirmed(eventId, correction?.wasEdited ?? false, {
-          foodName: draft?.title ?? "",
-          calories: draft?.calories ?? 0,
-          protein: draft?.protein ?? 0,
-          carbs: draft?.carbs ?? 0,
-          fat: draft?.fat ?? 0,
+  /** Paywall / share-milestone / deferred safe exit — after emit + celebration (if any). */
+  const proceedAfterTrackCaloriesSave = useCallback(
+    (opts?: { clearDraftAfterNav?: () => void }) => {
+      const clearDraftAfterNav = opts?.clearDraftAfterNav;
+      setCelebration(null);
+      const streakDay = retention.dayContent.day;
+      const action = paywallTrigger.evaluateStreak(streakDay);
+      if (action && action.type === "journey") {
+        setJourneyPaywall({
+          paywallTrigger: action.paywallTrigger,
+          streakDay: action.streakDay,
         });
-
-        // If user edited values, store the correction as ground truth
-        if (correction?.wasEdited) {
-          submitScanCorrection({
-            scanEventId: eventId,
-            originalFoodName: correction.original.title,
-            originalMacros: {
-              calories: correction.original.calories,
-              protein: correction.original.protein,
-              carbs: correction.original.carbs,
-              fat: correction.original.fat,
-            },
-            correctedFoodName: correction.confirmed.title,
-            correctedMacros: {
-              calories: correction.confirmed.calories,
-              protein: correction.confirmed.protein,
-              carbs: correction.confirmed.carbs,
-              fat: correction.confirmed.fat,
-            },
-          });
-        }
-      }
-      addFoodLoggingBreadcrumb("food_logging.track_calories_scan_feedback_done", {
-        had_scan_event: Boolean(eventId),
-        submitted_correction: Boolean(correction?.wasEdited),
-      });
-
-      // Capture the linked pending-review id BEFORE save — `saveDraftWithoutNav`
-      // clears the draft on the way out, and we need this to mark the
-      // server-side row as `saved` once the meal id is known.
-      const linkedPendingReviewId = draft?.pendingReviewId ?? null;
-      const mealsBefore = useNutritionStore.getState().meals;
-      const latestMealIdBefore = mealsBefore[0]?.id;
-
-      addFoodLoggingBreadcrumb("food_logging.track_calories_before_local_save");
-      if (!saveDraftWithoutNav()) {
-        addFoodLoggingBreadcrumb("food_logging.track_calories_save_aborted", {
-          reason: "validation_or_add_meal_failed",
-        });
-        toast.show(t("mealConfirm.invalidMealDraft"), "error");
         return;
       }
-      addFoodLoggingBreadcrumb("food_logging.track_calories_after_local_save");
-
-      // Resolve the meal id that was just created and link it back to the
-      // pending-review row. We look at meal[0] because addMeal prepends.
-      const mealsAfter = useNutritionStore.getState().meals;
-      const newMealId =
-        mealsAfter[0]?.id !== latestMealIdBefore
-          ? mealsAfter[0]?.id
-          : undefined;
-
-      // Mark the linked pending-review job as `saved` (filtered from UI,
-      // kept server-side as audit trail). Falls back to `resetScan` for
-      // the legacy single-job flow when no link exists.
-      if (linkedPendingReviewId && newMealId) {
-        useBackgroundScanStore
-          .getState()
-          .markScanSaved(linkedPendingReviewId, newMealId);
-        // Best-effort server sync — fire-and-forget. Imported lazily to
-        // avoid pulling the sync module into module initialisation cycles.
-        void import(
-          "../../src/features/food-logging/pending-review.service"
-        ).then((m) => m.markServerReviewSaved(linkedPendingReviewId, newMealId));
-        // Best-effort cleanup of the durable local copy. The remote image
-        // path on `meal_entries` is the long-term home; the local copy was
-        // only insurance for the pending-review thumbnail.
-        void import(
-          "../../src/features/food-logging/meal-image-upload.service"
-        ).then((m) => m.deleteDurableImage(linkedPendingReviewId));
-        addFoodLoggingBreadcrumb("food_logging.pending_review_save_linked", {
-          job_id: linkedPendingReviewId,
-          meal_id: newMealId,
-        });
-      } else {
-        // No link → preserve previous behaviour for non-camera saves.
-        useBackgroundScanStore.getState().resetScan();
-      }
-
-      // Record first meal for retention engine
-      addFoodLoggingBreadcrumb("food_logging.track_calories_before_retention");
-      recordFirstMeal();
-      addFoodLoggingBreadcrumb("food_logging.track_calories_after_retention");
-
-      // ── Insight detection for challenge monetisation ──
-      // Check if this meal creates a behaviour-based insight moment
-      const scanCount = useScanCreditsStore.getState().credits.totalUsed;
-      const mealCalories = draft?.calories ?? 0;
-      const calorieDeviation = Math.abs(
-        consumedToday + mealCalories - calorieBudget
-      );
-      const proteinTarget = (calorieBudget * 0.3) / 4; // ~30% of cals from protein
-      const proteinRatio =
-        proteinTarget > 0 ? (draft?.protein ?? 0) / proteinTarget : 1;
-      const dailyIntakePercent =
-        calorieBudget > 0 ? (consumedToday + mealCalories) / calorieBudget : 0;
-      const timeOfDay = new Date().getHours();
-
-      const insightInput = {
-        scanCount,
-        calorieDeviation,
-        proteinRatio,
-        dailyIntakePercent,
-        timeOfDay,
-      };
-
-      addFoodLoggingBreadcrumb("food_logging.track_calories_before_insight");
-      if (isInsightMoment(insightInput)) {
-        // Only update if the message is materially different — avoids
-        // noisy rewrites that make the evidence feel unstable.
-        const message = getInsightMessage(insightInput);
-        const current = useChallengeStore.getState().lastInsightMessage;
-        if (message && message !== current) {
-          useChallengeStore.getState().markInsightTriggered(message);
-        } else if (!useChallengeStore.getState().insightTriggered) {
-          useChallengeStore
-            .getState()
-            .markInsightTriggered(message ?? undefined);
+      setTimeout(() => {
+        if (!isMounted.current) return;
+        const triggered = shareMilestone.check();
+        if (!triggered) {
+          exitConfirmMealSafely(router, {
+            pathname,
+            segments: segments as readonly string[],
+          });
+          clearDraftAfterNav?.();
         }
-      }
-      addFoodLoggingBreadcrumb("food_logging.track_calories_after_insight");
+        // When share milestone triggers, draft stays until ShareMilestoneModal
+        // onClose runs clearDraft + exit (avoids blank modal shell under overlay).
+      }, 50);
+    },
+    [retention, paywallTrigger, shareMilestone, router, pathname, segments],
+  );
 
-      // Get after-log celebration content from the day journey
-      addFoodLoggingBreadcrumb("food_logging.track_calories_before_celebration");
-      const afterLog = retention.getAfterLogContent();
-      const dayPaywall = retention.dayPaywall;
-      setCelebration({
-        message: afterLog.message,
-        sub: afterLog.sub,
-        emoji: afterLog.emoji,
-        microTrigger: dayPaywall?.microTrigger,
-      });
-      addFoodLoggingBreadcrumb("food_logging.track_calories_celebration_set");
-    } catch (err) {
-      console.error("[ConfirmMeal] handleConfirm error:", err);
-      captureFoodLoggingError(err, {
-        flow: "confirm_meal",
-        step: "handle_track_calories",
+  const handleConfirm = useCallback(() => {
+    void (async () => {
+      if (isSubmittingRef.current) return;
+      isSubmittingRef.current = true;
+      setTrackPhase("saving");
+      dismissAllSheets();
+
+      const draftForSave =
+        draft ?? useNutritionDraftStore.getState().draft;
+      const logDateForSave = useNutritionDraftStore.getState().logDate;
+
+      addFoodLoggingBreadcrumb("food_logging.track_calories_pressed", {
         route: pathname,
-        foodTitle: draft?.title,
-        calories: draft?.calories,
+        source: draftForSave?.source,
+        calories: draftForSave?.calories,
+        has_estimated_items: Boolean(draftForSave?.estimatedItems?.length),
       });
-      // Fallback: save and navigate directly if celebration breaks
+      foodLogPathBreadcrumb("food_log.press", { pathname });
+
       try {
-        addFoodLoggingBreadcrumb("food_logging.track_calories_fallback_save");
-        if (!saveDraftWithoutNav()) {
-          toast.show(t("mealConfirm.invalidMealDraft"), "error");
+        foodLogPathBreadcrumb("food_log.validate_start", { pathname });
+        const correction = draftForSave
+          ? trackCorrection(draftForSave)
+          : null;
+        addFoodLoggingBreadcrumb("food_logging.track_calories_corrections_done", {
+          was_edited: correction?.wasEdited ?? false,
+        });
+
+        const eventId = scanEventIdRef.current ?? getLastScanEventId();
+        if (eventId) {
+          markScanConfirmed(eventId, correction?.wasEdited ?? false, {
+            foodName: draftForSave?.title ?? "",
+            calories: draftForSave?.calories ?? 0,
+            protein: draftForSave?.protein ?? 0,
+            carbs: draftForSave?.carbs ?? 0,
+            fat: draftForSave?.fat ?? 0,
+          });
+
+          if (correction?.wasEdited) {
+            submitScanCorrection({
+              scanEventId: eventId,
+              originalFoodName: correction.original.title,
+              originalMacros: {
+                calories: correction.original.calories,
+                protein: correction.original.protein,
+                carbs: correction.original.carbs,
+                fat: correction.original.fat,
+              },
+              correctedFoodName: correction.confirmed.title,
+              correctedMacros: {
+                calories: correction.confirmed.calories,
+                protein: correction.confirmed.protein,
+                carbs: correction.confirmed.carbs,
+                fat: correction.confirmed.fat,
+              },
+            });
+          }
         }
-      } catch (fallbackErr) {
-        captureFoodLoggingError(fallbackErr, {
-          flow: "confirm_meal",
-          step: "handle_track_calories_fallback_save",
-          route: pathname,
+        addFoodLoggingBreadcrumb("food_logging.track_calories_scan_feedback_done", {
+          had_scan_event: Boolean(eventId),
+          submitted_correction: Boolean(correction?.wasEdited),
         });
-        /* already saved or draft missing */
-      }
-      try {
-        addFoodLoggingBreadcrumb("food_logging.track_calories_fallback_nav");
-        navigateAfterSave();
-      } catch (navErr) {
-        console.error("[ConfirmMeal] navigation fallback error:", navErr);
-        captureFoodLoggingError(navErr, {
-          flow: "confirm_meal",
-          step: "handle_track_calories_fallback_navigate",
-          route: pathname,
+
+        const linkedPendingReviewId =
+          draftForSave?.pendingReviewId ?? null;
+
+        addFoodLoggingBreadcrumb("food_logging.track_calories_before_local_save");
+        foodLogPathBreadcrumb("food_log.commit_start", { pathname });
+        const result = await commitFoodLogTransaction(draftForSave, {
+          logDate: logDateForSave,
+          userId: user?.id ?? null,
         });
-        // Last resort: just dismiss the modal
-        if (router.canDismiss()) router.dismiss();
+        foodLogPathBreadcrumb("food_log.validate_success", { pathname });
+        const newMealId = result.mealId;
+        queueFoodLogStoreApply({
+          transactionId: result.transactionId,
+          mealId: result.mealId,
+        });
+        addFoodLoggingBreadcrumb("food_logging.track_calories_after_local_save", {
+          meal_id: newMealId,
+          transaction_id: result.transactionId,
+        });
+        foodLogPathBreadcrumb("food_log.commit_success", {
+          mealId: newMealId,
+          transactionId: result.transactionId,
+          pathname,
+        });
+
+        // Update local "Recently uploaded" state synchronously so a hot reload
+        // cannot leave the card in "Review" after the meal is already saved.
+        if (linkedPendingReviewId && newMealId) {
+          try {
+            useBackgroundScanStore
+              .getState()
+              .markScanSaved(linkedPendingReviewId, newMealId);
+            addFoodLoggingBreadcrumb("food_logging.pending_review_save_linked", {
+              job_id: linkedPendingReviewId,
+              meal_id: newMealId,
+            });
+          } catch {
+            // best-effort only
+          }
+        }
+
+        // Keep the critical save path minimal to reduce native/JSI churn.
+        // All non-critical side effects run after interactions.
+        InteractionManager.runAfterInteractions(() => {
+          try {
+            if (linkedPendingReviewId && newMealId) {
+              void import(
+                "../../src/features/food-logging/pending-review.service"
+              ).then((m) =>
+                m.markServerReviewSaved(linkedPendingReviewId, newMealId)
+              );
+              void import(
+                "../../src/features/food-logging/meal-image-upload.service"
+              ).then((m) => m.deleteDurableImage(linkedPendingReviewId));
+            } else {
+              useBackgroundScanStore.getState().resetScan();
+            }
+          } catch {
+            // best-effort only
+          }
+
+          try {
+            addFoodLoggingBreadcrumb("food_logging.track_calories_before_retention");
+            recordFirstMeal();
+            addFoodLoggingBreadcrumb("food_logging.track_calories_after_retention");
+
+            const scanCount = useScanCreditsStore.getState().credits.totalUsed;
+            const mealCalories = draftForSave?.calories ?? 0;
+            const calorieDeviation = Math.abs(
+              consumedToday + mealCalories - calorieBudget
+            );
+            const proteinTarget = (calorieBudget * 0.3) / 4;
+            const proteinRatio =
+              proteinTarget > 0 ? (draftForSave?.protein ?? 0) / proteinTarget : 1;
+            const dailyIntakePercent =
+              calorieBudget > 0
+                ? (consumedToday + mealCalories) / calorieBudget
+                : 0;
+            const timeOfDay = new Date().getHours();
+
+            const insightInput = {
+              scanCount,
+              calorieDeviation,
+              proteinRatio,
+              dailyIntakePercent,
+              timeOfDay,
+            };
+
+            addFoodLoggingBreadcrumb("food_logging.track_calories_before_insight");
+            if (isInsightMoment(insightInput)) {
+              const message = getInsightMessage(insightInput);
+              const current = useChallengeStore.getState().lastInsightMessage;
+              if (message && message !== current) {
+                useChallengeStore.getState().markInsightTriggered(message);
+              } else if (!useChallengeStore.getState().insightTriggered) {
+                useChallengeStore
+                  .getState()
+                  .markInsightTriggered(message ?? undefined);
+              }
+            }
+            addFoodLoggingBreadcrumb("food_logging.track_calories_after_insight");
+          } catch {
+            // best-effort only
+          }
+        });
+
+        setTrackPhase("saved");
+        // Do NOT clearDraft() here — it swaps the UI to an empty placeholder View
+        // while dismissTo/replace is still pending (450ms + nav), which looks like
+        // a stuck blank sheet. Clear runs inside proceedAfterTrackCaloriesSave after exit.
+        await waitMs(450);
+
+        try {
+          Sentry.addBreadcrumb({
+            category: "food_log",
+            level: "info",
+            message: "[FoodLogDebug] commit_success",
+            data: {
+              mealId: result.mealId,
+              transactionId: result.transactionId,
+              pathname,
+            },
+          });
+        } catch {
+          /* ignore */
+        }
+
+        if (FOOD_LOG_POST_SAVE_NAV_MODE === "none") {
+          InteractionManager.runAfterInteractions(() => {
+            void runPendingFoodLogApplyFromQueue(user?.id ?? null);
+          });
+        }
+
+        addFoodLoggingBreadcrumb("food_logging.track_calories_before_celebration");
+        if (ENABLE_POST_SAVE_EXTRAS) {
+          const afterLog = retention.getAfterLogContent();
+          const dayPaywall = retention.dayPaywall;
+          setCelebration({
+            message: afterLog.message,
+            sub: afterLog.sub,
+            emoji: afterLog.emoji,
+            microTrigger: dayPaywall?.microTrigger,
+          });
+          addFoodLoggingBreadcrumb("food_logging.track_calories_celebration_set");
+        } else {
+          addFoodLoggingBreadcrumb("food_logging.track_calories_celebration_skipped");
+          foodLogPathBreadcrumb("food_log.exit_start", { pathname });
+          setTrackPhase("exiting");
+          dismissAllSheets();
+          proceedAfterTrackCaloriesSave({ clearDraftAfterNav: clearDraft });
+          foodLogPathBreadcrumb("food_log.exit_success", { pathname });
+        }
+      } catch (err) {
+        console.error("[ConfirmMeal] handleConfirm error:", err);
+        captureFoodLoggingError(err, {
+          flow: "confirm_meal",
+          step: "handle_track_calories",
+          route: pathname,
+          foodTitle: draftForSave?.title,
+          calories: draftForSave?.calories,
+        });
+        setTrackPhase("error");
+        toast.show(t("mealConfirm.invalidMealDraft"), "error");
+      } finally {
+        isSubmittingRef.current = false;
       }
-    }
+    })();
   }, [
     pathname,
-    saveDraftWithoutNav,
-    navigateAfterSave,
     draft,
     retention,
-    router,
     toast,
     t,
     consumedToday,
     calorieBudget,
     recordFirstMeal,
+    proceedAfterTrackCaloriesSave,
+    clearDraft,
+    user?.id,
+    dismissAllSheets,
   ]);
 
   /** Called when the celebration overlay dismisses (auto or tap) */
   const handleCelebrationDismiss = useCallback(() => {
-    setCelebration(null);
-
-    // Check if this is a conversion day → show journey paywall
-    const streakDay = retention.dayContent.day;
-    const action = paywallTrigger.evaluateStreak(streakDay);
-    if (action && action.type === "journey") {
-      setJourneyPaywall({
-        paywallTrigger: action.paywallTrigger,
-        streakDay: action.streakDay,
-      });
-      return;
-    }
-
-    // Check for share milestone then navigate
-    setTimeout(() => {
-      if (!isMounted.current) return;
-      const triggered = shareMilestone.check();
-      if (!triggered) {
-        navigateAfterSave();
-      }
-    }, 50);
-  }, [shareMilestone, navigateAfterSave, retention, paywallTrigger]);
+    dismissAllSheets();
+    proceedAfterTrackCaloriesSave();
+  }, [dismissAllSheets, proceedAfterTrackCaloriesSave]);
 
   /** Called when journey paywall is dismissed (purchased or skipped) */
   const handleJourneyPaywallDismiss = useCallback(() => {
+    dismissAllSheets();
     setJourneyPaywall(null);
     setTimeout(() => {
       if (!isMounted.current) return;
       const triggered = shareMilestone.check();
       if (!triggered) {
-        navigateAfterSave();
+        exitConfirmMealSafely(router, {
+          pathname,
+          segments: segments as readonly string[],
+        });
+        clearDraft();
       }
     }, 50);
-  }, [shareMilestone, navigateAfterSave]);
+  }, [dismissAllSheets, shareMilestone, router, pathname, segments, clearDraft]);
 
   /** Open the Report Food bottom sheet */
   const handleReportFood = useCallback(() => {
@@ -684,12 +796,15 @@ function ConfirmMealScreenInner() {
       const updatedItems = draft.estimatedItems.filter((_, i) => i !== index);
 
       const totals = updatedItems.reduce(
-        (acc, item) => ({
-          calories: acc.calories + item.nutrients.calories,
-          protein: Math.round((acc.protein + item.nutrients.protein) * 10) / 10,
-          carbs: Math.round((acc.carbs + item.nutrients.carbs) * 10) / 10,
-          fat: Math.round((acc.fat + item.nutrients.fat) * 10) / 10,
-        }),
+        (acc, item) => {
+          const n = getEstimatedItemNutrients(item);
+          return {
+            calories: acc.calories + n.calories,
+            protein: Math.round((acc.protein + n.protein) * 10) / 10,
+            carbs: Math.round((acc.carbs + n.carbs) * 10) / 10,
+            fat: Math.round((acc.fat + n.fat) * 10) / 10,
+          };
+        },
         { calories: 0, protein: 0, carbs: 0, fat: 0 }
       );
 
@@ -1268,7 +1383,8 @@ function ConfirmMealScreenInner() {
                             { color: theme.colors.textSecondary },
                           ]}
                         >
-                          {item.nutrients.calories} {t("tracking.kcal")}
+                          {getEstimatedItemNutrients(item).calories}{" "}
+                          {t("tracking.kcal")}
                         </TText>
                         <Ionicons
                           name="pencil"
@@ -1459,19 +1575,51 @@ function ConfirmMealScreenInner() {
 
             <TSpacer size="lg" />
 
+            {draft?.parseMethod === "barcode-lookup" &&
+            draft.calories === 0 &&
+            draft.protein === 0 &&
+            draft.carbs === 0 &&
+            draft.fat === 0 ? (
+              <TText
+                style={[
+                  styles.inlineHintText,
+                  { color: theme.colors.textMuted },
+                ]}
+              >
+                {t("mealConfirm.barcodeNutritionMissing")}
+              </TText>
+            ) : null}
+
+            <TSpacer size="sm" />
+
             {/* Track Calories button */}
             <Pressable
               onPress={handleConfirm}
+              disabled={
+                trackPhase === "saving" ||
+                trackPhase === "exiting" ||
+                trackPhase === "saved"
+              }
               style={({ pressed }) => [
                 styles.trackBtn,
                 {
-                  opacity: pressed ? 0.9 : 1,
+                  opacity:
+                    pressed ||
+                    trackPhase === "saving" ||
+                    trackPhase === "exiting" ||
+                    trackPhase === "saved"
+                      ? 0.65
+                      : 1,
                   transform: [{ scale: pressed ? 0.98 : 1 }],
                 },
               ]}
             >
               <TText style={styles.trackBtnText}>
-                {t("mealConfirm.trackCalories")}
+                {trackPhase === "saving"
+                  ? "Saving…"
+                  : trackPhase === "saved" || trackPhase === "exiting"
+                    ? "Saved ✓"
+                    : t("mealConfirm.trackCalories")}
               </TText>
             </Pressable>
           </Animated.View>
@@ -1604,7 +1752,11 @@ function ConfirmMealScreenInner() {
           challengeDays={shareMilestone.challengeDays}
           onClose={() => {
             shareMilestone.dismiss();
-            navigateAfterSave();
+            clearDraft();
+            exitConfirmMealSafely(router, {
+              pathname,
+              segments: segments as readonly string[],
+            });
           }}
         />
       )}
@@ -1619,22 +1771,38 @@ function ConfirmMealScreenInner() {
         />
       )}
 
-      {/* Post-log celebration overlay (auto-dismisses after 2.5s) */}
-      <PostLogCelebration
-        visible={!!celebration}
-        message={celebration?.message ?? ""}
-        sub={celebration?.sub ?? ""}
-        emoji={celebration?.emoji ?? ""}
-        microTrigger={celebration?.microTrigger}
-        onDismiss={handleCelebrationDismiss}
-      />
+      {/* Post-log celebration (day-journey copy) — gated; off by default for a direct exit after Track Calories. */}
+      {ENABLE_POST_SAVE_EXTRAS ? (
+        <PostLogCelebration
+          visible={!!celebration}
+          message={celebration?.message ?? ""}
+          sub={celebration?.sub ?? ""}
+          emoji={celebration?.emoji ?? ""}
+          microTrigger={celebration?.microTrigger}
+          onDismiss={handleCelebrationDismiss}
+        />
+      ) : null}
     </View>
   );
 }
 
 export default function ConfirmMealScreen() {
   return (
-    <FoodLoggingErrorBoundary routeLabel="/(modals)/confirm-meal">
+    <FoodLoggingErrorBoundary
+      routeLabel="/(modals)/confirm-meal"
+      onScanAnother={() => {
+        try {
+          router.replace("/(modals)/camera-log" as never);
+        } catch (e) {
+          captureFoodLoggingError(e, {
+            flow: "confirm_meal",
+            step: "error_boundary_scan_another_nav",
+            route: "/(modals)/confirm-meal",
+          });
+        }
+      }}
+      scanAnotherLabel="Scan another barcode"
+    >
       <ConfirmMealScreenInner />
     </FoodLoggingErrorBoundary>
   );
@@ -1819,6 +1987,18 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "700",
     color: "#1C1C1E",
+  },
+  inlineErrorText: {
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
+    paddingHorizontal: 8,
+  },
+  inlineHintText: {
+    fontSize: 14,
+    fontWeight: "500",
+    textAlign: "center",
+    paddingHorizontal: 8,
   },
   // ── Hint ──
   fixWithAICta: {

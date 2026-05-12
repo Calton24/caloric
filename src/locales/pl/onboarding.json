@@ -103,7 +103,8 @@
       "subtitle": "Załóż konto, aby synchronizować cele kaloryczne, makro i postępy na wszystkich urządzeniach.",
       "socialProof": "2 400+ użytkowników zarejestrowało się w tym tygodniu",
       "privacy": "Twoje dane pozostają prywatne",
-      "speed": "Zajmuje 5 sekund"
+      "speed": "Zajmuje 5 sekund",
+      "checkpointSyncFailed": "We couldn't save your place in setup. Check your connection and try signing in again."
     },
     "complete": {
       "heading": "Wszystko gotowe!",

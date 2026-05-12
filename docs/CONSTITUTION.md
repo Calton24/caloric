@@ -1,4 +1,4 @@
-# Caloric Constitution (v1)
+# CalCut Constitution (v1)
 
 Five rules. Non-negotiable. Enforced by ESLint + PR review.
 

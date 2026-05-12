@@ -33,11 +33,11 @@ SENTRY_AUTH_TOKEN=your-auth-token
 
 ### 3. That's It!
 
-Error reporting is **automatically initialized** in `CaloricProviders` and works immediately.
+Error reporting is **automatically initialized** in `CalCutProviders` and works immediately.
 
 ## How It Works
 
-1. **Initialization**: `initErrorReporting()` is called when `CaloricProviders` mounts
+1. **Initialization**: `initErrorReporting()` is called when `CalCutProviders` mounts
 2. **No-op by default**: If `EXPO_PUBLIC_SENTRY_DSN` is not set, a no-op reporter is used
 3. **ErrorBoundary**: Wraps the entire app to catch React errors
 4. **Disabled in dev**: Sentry is disabled in `__DEV__` unless explicitly enabled

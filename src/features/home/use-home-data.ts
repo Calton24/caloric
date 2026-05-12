@@ -1,4 +1,9 @@
+import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { InteractionManager } from "react-native";
+import { useAuth } from "../auth/useAuth";
+import { peekFoodLogStoreApply } from "../food-logging/food-log-apply-queue";
+import { runPendingFoodLogApplyFromQueue } from "../food-logging/services/food-log-transaction.service";
 import {
     formatDateHeader,
     getMonthDays,
@@ -14,6 +19,11 @@ import {
 } from "../nutrition/nutrition.selectors";
 import { useNutritionStore } from "../nutrition/nutrition.store";
 import { useProfileStore } from "../profile/profile.store";
+import { subscribeFoodLogCommitted } from "../food-logging/events/food-log-events";
+import { listMeals } from "../food-logging/repositories/meal.repository";
+import { FOOD_LOG_DISABLE_POST_SAVE_HOME_REFRESH } from "../food-logging/post-save-debug-flags";
+import { recomputeStreakAfterMealListChange } from "../streak/recompute-streak-after-meal-list-change";
+import { createHomeNutritionSummary } from "./selectors/create-home-nutrition-summary";
 import { getLatestWeight } from "../progress/progress.selectors";
 import { useProgressStore } from "../progress/progress.store";
 
@@ -25,6 +35,72 @@ function shiftDate(isoDate: string, days: number): string {
 }
 
 export function useHomeData() {
+  const { user } = useAuth();
+  /** Meals in AsyncStorage are keyed by Supabase auth id (see persistMeal), not profile.id. */
+  const authUserIdRef = useRef<string | null>(null);
+  authUserIdRef.current = user?.id ?? null;
+  const [foodLogSettling, setFoodLogSettling] = useState(false);
+
+  /**
+   * confirm-meal commits to AsyncStorage then queues store apply. The apply
+   * must run after navigation (dismissAll / replaceTabs) so the home tab is
+   * stable — it was only wired for FOOD_LOG_POST_SAVE_NAV_MODE === "none",
+   * which left the queue unconsumed for the default dismissAll path.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      if (!peekFoodLogStoreApply()) return undefined;
+      const task = InteractionManager.runAfterInteractions(() => {
+        void runPendingFoodLogApplyFromQueue(user?.id ?? null);
+      });
+      return () => {
+        task.cancel?.();
+      };
+    }, [user?.id]),
+  );
+
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const unsub = subscribeFoodLogCommitted((payload) => {
+      if (__DEV__) {
+        console.log("[HomeRefresh] food_log_committed_received", payload);
+      }
+      if (FOOD_LOG_DISABLE_POST_SAVE_HOME_REFRESH) {
+        return;
+      }
+      setFoodLogSettling(true);
+      if (timeout) clearTimeout(timeout);
+      InteractionManager.runAfterInteractions(async () => {
+        if (__DEV__) {
+          console.log("[HomeRefresh] applying_after_interactions", payload);
+        }
+        // Delay a bit more so modal transitions and JS runtime settle first.
+        await new Promise<void>((resolve) => setTimeout(resolve, 500));
+        const authId = authUserIdRef.current;
+        const profileId = useProfileStore.getState().profile.id;
+        const userIdForRepo =
+          authId ??
+          (profileId && profileId !== "local-user" ? profileId : null);
+        if (!userIdForRepo) return;
+        try {
+          const repoMeals = await listMeals(userIdForRepo);
+          const deleted = new Set(useNutritionStore.getState().deletedMealIds);
+          const visibleRepoMeals = repoMeals.filter((m) => !deleted.has(m.id));
+          useNutritionStore
+            .getState()
+            .mergeMealsFromRepositorySnapshot(visibleRepoMeals);
+          recomputeStreakAfterMealListChange("repository_snapshot_merged");
+        } catch {
+          // non-fatal; keep current in-memory view
+        }
+      });
+      timeout = setTimeout(() => setFoodLogSettling(false), 1200);
+    });
+    return () => {
+      unsub();
+      if (timeout) clearTimeout(timeout);
+    };
+  }, []);
   const profile = useProfileStore((state) => state.profile);
   const plan = useGoalsStore((state) => state.plan);
   const goalType = useGoalsStore((state) => state.goalType);
@@ -135,6 +211,14 @@ export function useHomeData() {
     return indices;
   }, [meals, weekDays]);
 
+  const calorieBudget = plan?.calorieBudget ?? 0;
+
+  const homeNutritionSummary = useMemo(
+    () =>
+      createHomeNutritionSummary(meals, selectedDate, calorieBudget),
+    [meals, selectedDate, calorieBudget]
+  );
+
   const dailySummary = useMemo(() => {
     return getDailyNutritionSummary(meals, selectedDate);
   }, [meals, selectedDate]);
@@ -178,10 +262,11 @@ export function useHomeData() {
     });
   }, [meals, weekPages, plan?.calorieBudget]);
 
-  const calorieBudget = plan?.calorieBudget ?? 0;
-  const caloriesRemaining = calorieBudget - dailySummary.totalCalories;
+  const caloriesRemaining = calorieBudget - homeNutritionSummary.totalCalories;
   const calorieProgress =
-    calorieBudget > 0 ? dailySummary.totalCalories / calorieBudget : 0;
+    calorieBudget > 0
+      ? homeNutritionSummary.totalCalories / calorieBudget
+      : 0;
 
   const proteinTarget = plan?.macros.protein ?? 0;
   const carbsTarget = plan?.macros.carbs ?? 0;
@@ -274,6 +359,8 @@ export function useHomeData() {
     // Calories
     calorieBudget,
     dailySummary,
+    homeNutritionSummary,
+    foodLogAnimationsEnabled: !foodLogSettling,
     caloriesRemaining,
     calorieProgress,
 

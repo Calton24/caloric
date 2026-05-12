@@ -38,7 +38,7 @@ import { serve } from "std/http/server.ts";
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const OFF_BASE_URL = "https://world.openfoodfacts.org";
-const OFF_USER_AGENT = "Caloric/1.0 (calorie-tracking-app; supabase-import)";
+const OFF_USER_AGENT = "CalCut/1.0 (calorie-tracking-app; supabase-import)";
 const PAGE_SIZE = 100; // OFF max per request
 const BATCH_SIZE = 200; // DB upsert batch size
 const DEFAULT_START_PAGE = 1;

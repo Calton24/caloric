@@ -4,11 +4,17 @@
 
 import Constants from "expo-constants";
 import { getAppConfig } from "../../config";
+import {
+  FOOD_LOG_SAFE_MODE,
+  assertFoodLogSafeModeImport,
+} from "../../features/debug/safe-mode-flags";
 import { logger } from "../../logging/logger";
 import { setGrowthClient } from "./growth";
 import { NoopGrowthClient } from "./providers/NoopGrowthClient";
 import { SupabaseGrowthClient } from "./providers/SupabaseGrowthClient";
 import type { GrowthClient } from "./types";
+
+assertFoodLogSafeModeImport("growth");
 
 function env(key: string): string | undefined {
   return (
@@ -23,6 +29,7 @@ let resolvedClient: GrowthClient = new NoopGrowthClient();
 
 type GrowthMode =
   | "disabled_by_config"
+  | "disabled_food_log_safe_mode"
   | "enabled_missing_backend"
   | "supabase_initialized";
 
@@ -32,6 +39,14 @@ function logMode(mode: GrowthMode): void {
 
 export function initGrowth(): GrowthClient {
   if (initialized) return resolvedClient;
+
+  if (FOOD_LOG_SAFE_MODE) {
+    resolvedClient = new NoopGrowthClient();
+    setGrowthClient(resolvedClient);
+    initialized = true;
+    logMode("disabled_food_log_safe_mode");
+    return resolvedClient;
+  }
 
   const config = getAppConfig();
   const enabled = !!config.features.growth;

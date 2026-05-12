@@ -3,7 +3,7 @@
  * Run: node scripts/generate-i18n-types.js
  *
  * Generated from 11 English locale files.
- * Total keys: 1182 (1015 simple, 167 with interpolation)
+ * Total keys: 1287 (1106 simple, 181 with interpolation)
  */
 
 /** All valid translation keys (no interpolation params) */
@@ -196,6 +196,7 @@ export type SimpleTranslationKey =
   | "onboarding.saveProgress.socialProof"
   | "onboarding.saveProgress.privacy"
   | "onboarding.saveProgress.speed"
+  | "onboarding.saveProgress.checkpointSyncFailed"
   | "onboarding.complete.heading"
   | "onboarding.complete.subtitle"
   | "onboarding.complete.letsGo"
@@ -238,6 +239,11 @@ export type SimpleTranslationKey =
   | "home.steps"
   | "home.activeCal"
   | "home.noMoreCards"
+  | "home.currentWeightA11yLoading"
+  | "home.currentWeightA11yUnset"
+  | "home.weightPending"
+  | "home.weightSetPrompt"
+  | "home.restoringData"
   | "home.dayShort"
   | "home.weekShort"
   | "home.monthShort"
@@ -359,10 +365,16 @@ export type SimpleTranslationKey =
   | "settings.upgradeToPro"
   | "settings.thankYou"
   | "settings.free"
+  | "settings.trialEndsToday"
+  | "settings.trialExpiredShort"
   | "settings.challenge"
   | "settings.monthly"
   | "settings.yearly"
+  | "settings.weekly"
   | "settings.plan"
+  | "settings.social"
+  | "settings.socialInstagram"
+  | "settings.socialTiktok"
   | "settings.legal"
   | "settings.privacyPolicy"
   | "settings.termsOfService"
@@ -375,6 +387,7 @@ export type SimpleTranslationKey =
   | "settings.deleteForever"
   | "settings.allDataErased"
   | "settings.deleteError"
+  | "settings.deleteAccountFailed"
   | "settings.restoring"
   | "settings.liveActivityDesc"
   | "settings.iosOnly"
@@ -442,6 +455,12 @@ export type SimpleTranslationKey =
   | "settings.dailyGoalLabel"
   | "settings.hydrationTitle"
   | "settings.hydrationBody"
+  | "settings.manageAccountSubtitle"
+  | "settings.deleteAccountTitle"
+  | "settings.deleteAccountDescription"
+  | "settings.deleteTypeHint"
+  | "settings.deleteForeverCta"
+  | "settings.cancelCta"
   | "notificationSettings.title"
   | "notificationSettings.logReminder"
   | "notificationSettings.logReminderDesc"
@@ -501,6 +520,7 @@ export type SimpleTranslationKey =
   | "paywall.benefitExportSub"
   | "paywall.tierMonthly"
   | "paywall.tierYearly"
+  | "paywall.tierWeekly"
   | "paywall.tierPlan"
   | "paywall.heading"
   | "paywall.trialBadge"
@@ -517,6 +537,11 @@ export type SimpleTranslationKey =
   | "paywall.restorePurchases"
   | "paywall.challengeHeading"
   | "paywall.challengeSubheading"
+  | "paywall.packagesUnavailable"
+  | "paywall.gateHeading"
+  | "paywall.gateSubheading"
+  | "paywall.upgradeHeading"
+  | "paywall.upgradeSubheading"
   | "paywall.challengeJoin"
   | "paywall.challengeSocialProof"
   | "paywall.challengeStartFree"
@@ -533,6 +558,39 @@ export type SimpleTranslationKey =
   | "paywall.featureSmartTrendsSub"
   | "paywall.feature21Day"
   | "paywall.feature21DaySub"
+  | "paywall.headerGate"
+  | "paywall.headerGateSub"
+  | "paywall.headerUpgrade"
+  | "paywall.headerUpgradeSub"
+  | "paywall.headerOnboarding"
+  | "paywall.headerOnboardingSub"
+  | "paywall.valueAi"
+  | "paywall.valueGoals"
+  | "paywall.valueTrends"
+  | "paywall.valueStreaks"
+  | "paywall.valueSupport"
+  | "paywall.whyHeadline"
+  | "paywall.whySmarter"
+  | "paywall.whySmarterSub"
+  | "paywall.whyPersonalized"
+  | "paywall.whyPersonalizedSub"
+  | "paywall.whySeeProgress"
+  | "paywall.whySeeProgressSub"
+  | "paywall.whyStayMotivated"
+  | "paywall.whyStayMotivatedSub"
+  | "paywall.whyPrioritySupport"
+  | "paywall.whyPrioritySupportSub"
+  | "paywall.secureTitle"
+  | "paywall.secureSub"
+  | "paywall.guaranteeTitle"
+  | "paywall.guaranteeSub"
+  | "paywall.billedThroughStore"
+  | "paywall.controlTitle"
+  | "paywall.controlSub"
+  | "paywall.skipForNow"
+  | "paywall.monthSuffix"
+  | "paywall.weekSuffix"
+  | "paywall.yearSuffix"
   | "paywall.testimonial1"
   | "paywall.testimonial1Author"
   | "paywall.testimonial2"
@@ -607,6 +665,37 @@ export type SimpleTranslationKey =
   | "camera.retry"
   | "camera.retake"
   | "camera.scanHint"
+  | "camera.barcodeFoundTitle"
+  | "camera.barcodeLookupSubtitle"
+  | "camera.barcodeLookupChecking"
+  | "camera.barcodeScanAgain"
+  | "camera.barcodeLookupCancel"
+  | "fallback.cameraTitle"
+  | "fallback.cameraTitleHeadline"
+  | "fallback.cameraSubtitle"
+  | "fallback.cameraPlaceholder"
+  | "fallback.barcodeTitle"
+  | "fallback.barcodeTitleHeadline"
+  | "fallback.barcodeSubtitle"
+  | "fallback.barcodePlaceholder"
+  | "fallback.manualTitle"
+  | "fallback.manualTitleHeadline"
+  | "fallback.manualSubtitle"
+  | "fallback.manualPlaceholder"
+  | "fallback.findFood"
+  | "fallback.searching"
+  | "fallback.retry"
+  | "fallback.retake"
+  | "fallback.scanAgain"
+  | "fallback.addManually"
+  | "fallback.stillNotFound"
+  | "fallback.lookupFailed"
+  | "fallback.reasonNetwork"
+  | "fallback.reasonBarcodeNotFound"
+  | "fallback.reasonLowConfidence"
+  | "fallback.suggestionAddBrand"
+  | "fallback.suggestionAddPortion"
+  | "fallback.suggestionDescribeIngredients"
   | "mealConfirm.analysisIncomplete"
   | "mealConfirm.analysisIncompleteDesc"
   | "mealConfirm.goBack"
@@ -615,6 +704,8 @@ export type SimpleTranslationKey =
   | "mealConfirm.typeItIn"
   | "mealConfirm.trackCalories"
   | "mealConfirm.invalidMealDraft"
+  | "mealConfirm.saveFailed"
+  | "mealConfirm.barcodeNutritionMissing"
   | "mealConfirm.adjustHint"
   | "mealConfirm.moreOptionsA11y"
   | "mealConfirm.reportFood"
@@ -1084,6 +1175,7 @@ export type ParamTranslationKey =
   | "streakInsight.milestoneClose"
   | "streakInsight.keepLogging"
   | "streakInsight.daysToMilestone"
+  | "settings.trialEndsInDays"
   | "settings.lastSynced"
   | "settings.syncCompleteDesc"
   | "settings.planSummary"
@@ -1094,10 +1186,23 @@ export type ParamTranslationKey =
   | "featureRequest.cooldownRetry"
   | "paywall.builtConsistency"
   | "paywall.dayStreakBadge"
+  | "paywall.bestValueSave"
+  | "paywall.billedAnnually"
+  | "paywall.billedWeekly"
+  | "paywall.billedMonthly"
+  | "paywall.billingFooterWeekly"
+  | "paywall.billingFooterMonthly"
+  | "paywall.billingFooterYearlyEquiv"
+  | "paywall.billingFooterYearlySimple"
+  | "paywall.billingFooterGeneric"
+  | "paywall.yearlyApproxPerMonth"
+  | "paywall.billingFooterLifetime"
   | "recalibration.applyBudgetA11y"
   | "tracking.macroSummary"
   | "camera.freeScansRemaining"
   | "camera.freeScansRemaining_plural"
+  | "camera.barcodeCodeLabel"
+  | "fallback.barcodeLabel"
   | "mealConfirm.noMatchRich"
   | "mealConfirm.fixSheet.calories"
   | "editMeal.deleteMealConfirm"
@@ -1258,6 +1363,7 @@ export interface TranslationParams {
   "streakInsight.milestoneClose": { target: string | number };
   "streakInsight.keepLogging": { remaining: string | number };
   "streakInsight.daysToMilestone": { remaining: string | number; target: string | number };
+  "settings.trialEndsInDays": { count: string | number };
   "settings.lastSynced": { date: string | number };
   "settings.syncCompleteDesc": { weightImported: string | number; mealsExported: string | number };
   "settings.planSummary": { calories: string | number; weeks: string | number };
@@ -1268,10 +1374,23 @@ export interface TranslationParams {
   "featureRequest.cooldownRetry": { seconds: string | number };
   "paywall.builtConsistency": { count: string | number };
   "paywall.dayStreakBadge": { count: string | number };
+  "paywall.bestValueSave": { percent: string | number };
+  "paywall.billedAnnually": { price: string | number };
+  "paywall.billedWeekly": { price: string | number };
+  "paywall.billedMonthly": { price: string | number };
+  "paywall.billingFooterWeekly": { price: string | number };
+  "paywall.billingFooterMonthly": { price: string | number };
+  "paywall.billingFooterYearlyEquiv": { equiv: string | number };
+  "paywall.billingFooterYearlySimple": { price: string | number };
+  "paywall.billingFooterGeneric": { price: string | number };
+  "paywall.yearlyApproxPerMonth": { price: string | number };
+  "paywall.billingFooterLifetime": { price: string | number };
   "recalibration.applyBudgetA11y": { calories: string | number };
   "tracking.macroSummary": { protein: string | number; unit: string | number; carbs: string | number; fat: string | number };
   "camera.freeScansRemaining": { count: string | number };
   "camera.freeScansRemaining_plural": { count: string | number };
+  "camera.barcodeCodeLabel": { code: string | number };
+  "fallback.barcodeLabel": { code: string | number };
   "mealConfirm.noMatchRich": { food: string | number };
   "mealConfirm.fixSheet.calories": { count: string | number };
   "editMeal.deleteMealConfirm": { title: string | number };

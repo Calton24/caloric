@@ -182,7 +182,7 @@ export function buildPaywallContext(
       variant: "intro",
       headline: "This pattern is affecting your results.",
       insightMessage: insightMessage ?? undefined,
-      body: "Caloric can help you correct this. Unlock full AI analysis to start fixing it.",
+      body: "CalCut can help you correct this. Unlock full AI analysis to start fixing it.",
       cta: "Unlock full analysis",
       showIntroPricing: true,
       showAnnualDiscount: true,

@@ -10,6 +10,8 @@
  */
 
 import { analytics } from "../../../infrastructure/analytics";
+import { DISABLE_POST_SAVE_ANALYTICS } from "../../food-logging/post-save-debug-flags";
+import { getEstimatedItemNutrients } from "../meal-normalize";
 import { MealDraft } from "../nutrition.draft.types";
 import { recordItemCorrections } from "./portion-learning.service";
 
@@ -84,7 +86,7 @@ export function captureOriginalEstimate(draft: MealDraft): void {
   originalItemSnapshots =
     draft.estimatedItems?.map((item) => ({
       name: item.parsed?.name ?? item.matchedName ?? "unknown",
-      calories: item.nutrients.calories,
+      calories: getEstimatedItemNutrients(item).calories,
     })) ?? [];
 }
 
@@ -132,40 +134,47 @@ export function trackCorrection(finalDraft: MealDraft): MealCorrection | null {
   };
 
   // Fire analytics
-  analytics.track("meal_logged", {
-    source: originalSnapshot.source,
-    parseMethod: originalSnapshot.parseMethod,
-    confidence: originalSnapshot.confidence,
-    calories: finalDraft.calories,
-    wasEdited: correction.wasEdited,
-    editedFields: editedFields.join(","),
-    calorieDelta: correction.calorieDelta,
-  });
-
-  if (correction.wasEdited) {
-    analytics.track("meal_corrected", {
+  if (!DISABLE_POST_SAVE_ANALYTICS) {
+    analytics.track("meal_logged", {
       source: originalSnapshot.source,
       parseMethod: originalSnapshot.parseMethod,
       confidence: originalSnapshot.confidence,
+      calories: finalDraft.calories,
+      wasEdited: correction.wasEdited,
       editedFields: editedFields.join(","),
-      originalCalories: originalSnapshot.calories,
-      confirmedCalories: finalDraft.calories,
       calorieDelta: correction.calorieDelta,
-      originalProtein: originalSnapshot.protein,
-      confirmedProtein: finalDraft.protein,
     });
 
+    if (correction.wasEdited) {
+      analytics.track("meal_corrected", {
+        source: originalSnapshot.source,
+        parseMethod: originalSnapshot.parseMethod,
+        confidence: originalSnapshot.confidence,
+        editedFields: editedFields.join(","),
+        originalCalories: originalSnapshot.calories,
+        confirmedCalories: finalDraft.calories,
+        calorieDelta: correction.calorieDelta,
+        originalProtein: originalSnapshot.protein,
+        confirmedProtein: finalDraft.protein,
+      });
+    }
+  }
+
+  if (correction.wasEdited) {
     // Feed per-item corrections into the portion learning loop
     if (
       finalDraft.estimatedItems &&
       finalDraft.estimatedItems.length > 0 &&
       originalItemSnapshots.length === finalDraft.estimatedItems.length
     ) {
-      const itemCorrections = originalItemSnapshots.map((orig, i) => ({
-        name: orig.name,
-        originalCalories: orig.calories,
-        confirmedCalories: finalDraft.estimatedItems![i].nutrients.calories,
-      }));
+      const itemCorrections = originalItemSnapshots.map((orig, i) => {
+        const item = finalDraft.estimatedItems![i];
+        return {
+          name: orig.name,
+          originalCalories: orig.calories,
+          confirmedCalories: getEstimatedItemNutrients(item).calories,
+        };
+      });
       recordItemCorrections(itemCorrections);
     } else if (originalItemSnapshots.length === 0) {
       // Single-item meal — use meal-level correction

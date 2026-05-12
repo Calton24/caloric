@@ -1,6 +1,6 @@
-# Caloric Architecture
+# CalCut Architecture
 
-Comprehensive architecture documentation for Caloric's infrastructure patterns, data flow, and component organization.
+Comprehensive architecture documentation for CalCut's infrastructure patterns, data flow, and component organization.
 
 ---
 
@@ -25,14 +25,14 @@ Comprehensive architecture documentation for Caloric's infrastructure patterns, 
 ```
 GestureHandlerRootView (react-native-gesture-handler)
 └── SafeAreaProvider (@react-navigation/native)
-    └── ThemeProvider (Caloric custom)
-        └── AuthProvider (Caloric custom)
+    └── ThemeProvider (CalCut custom)
+        └── AuthProvider (CalCut custom)
             └── BottomSheetModalProvider (@gorhom/bottom-sheet)
-                └── BottomSheetProvider (Caloric custom)
+                └── BottomSheetProvider (CalCut custom)
                     └── {children} (Expo Router)
 ```
 
-**Location:** `src/CaloricProviders.tsx`
+**Location:** `src/CalCutProviders.tsx`
 
 **Why This Order:**
 
@@ -47,15 +47,15 @@ GestureHandlerRootView (react-native-gesture-handler)
 
 ```tsx
 // app/_layout.tsx
-import { CaloricProviders } from "@/src/CaloricProviders";
+import { CalCutProviders } from "@/src/CalCutProviders";
 
 export default function RootLayout() {
   return (
-    <CaloricProviders>
+    <CalCutProviders>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
-    </CaloricProviders>
+    </CalCutProviders>
   );
 }
 ```
@@ -64,7 +64,7 @@ export default function RootLayout() {
 
 ## Infrastructure Abstractions
 
-Caloric uses **swappable abstractions** for cross-cutting concerns. All follow the same pattern:
+CalCut uses **swappable abstractions** for cross-cutting concerns. All follow the same pattern:
 
 ### Pattern: Interface + Default + Swapper
 
@@ -305,7 +305,7 @@ function NotesScreen() {
 
 ## Realtime Architecture
 
-Caloric uses **Supabase Broadcast Channels** for realtime updates.
+CalCut uses **Supabase Broadcast Channels** for realtime updates.
 
 ### Pattern: Broadcast (NOT Postgres Changes)
 
@@ -639,7 +639,7 @@ const open = (content, options) => {
 
 ### Multi-App Architecture
 
-Caloric supports multiple apps from one codebase:
+CalCut supports multiple apps from one codebase:
 
 ```
 Single codebase

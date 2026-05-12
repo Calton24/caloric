@@ -12,12 +12,13 @@
  */
 
 import type { FoodMatch, NutrientProfile } from "./matching.types";
+import { toSafeNumber } from "../meal-normalize";
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
 const BASE_URL = "https://world.openfoodfacts.org";
 const UK_URL = "https://uk.openfoodfacts.org";
-const USER_AGENT = "Caloric/1.0 (calorie-tracking-app)";
+const USER_AGENT = "CalCut/1.0 (calorie-tracking-app)";
 
 // Country-specific OFF subdomains for better regional results
 const REGION_URLS: Record<string, string> = {
@@ -95,13 +96,13 @@ interface OffSearchResponse {
 
 function buildNutrientProfile(n: OffNutriments): NutrientProfile {
   return {
-    calories: Math.round(n["energy-kcal_100g"] ?? 0),
-    protein: Math.round((n.proteins_100g ?? 0) * 10) / 10,
-    carbs: Math.round((n.carbohydrates_100g ?? 0) * 10) / 10,
-    fat: Math.round((n.fat_100g ?? 0) * 10) / 10,
-    fiber: Math.round((n.fiber_100g ?? 0) * 10) / 10,
-    sugar: Math.round((n.sugars_100g ?? 0) * 10) / 10,
-    sodium: Math.round((n.sodium_100g ?? 0) * 1000), // convert g → mg
+    calories: Math.round(toSafeNumber(n["energy-kcal_100g"], 0)),
+    protein: Math.round(toSafeNumber(n.proteins_100g, 0) * 10) / 10,
+    carbs: Math.round(toSafeNumber(n.carbohydrates_100g, 0) * 10) / 10,
+    fat: Math.round(toSafeNumber(n.fat_100g, 0) * 10) / 10,
+    fiber: Math.round(toSafeNumber(n.fiber_100g, 0) * 10) / 10,
+    sugar: Math.round(toSafeNumber(n.sugars_100g, 0) * 10) / 10,
+    sodium: Math.round(toSafeNumber(n.sodium_100g, 0) * 1000), // g → mg
   };
 }
 

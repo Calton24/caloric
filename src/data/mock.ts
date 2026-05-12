@@ -1,5 +1,5 @@
 /**
- * Caloric — Mock Data
+ * CalCut — Mock Data
  *
  * Realistic sample data for all screens.
  * @deprecated Use src/lib/constants/mock-data.ts for new code.

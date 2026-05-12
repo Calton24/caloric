@@ -26,7 +26,7 @@ src/config/
 ├── loader.ts             # Config loader with singleton pattern
 ├── index.ts              # Public API exports
 └── profiles/
-    ├── caloric.ts         # Example: Caloric app config (with Firebase)
+    ├── caloric.ts         # Example: CalCut app config (with Firebase)
     ├── proxi.ts          # Example: Proxi app config (with Firebase)
     └── index.ts          # Profile registry
 ```
@@ -114,7 +114,7 @@ npm start
 ### Switch Between Apps
 
 ```bash
-# Run Caloric
+# Run CalCut
 EXPO_PUBLIC_APP_PROFILE=caloric npm start
 
 # Run Proxi
@@ -156,7 +156,7 @@ export const caloricConfig: AppProfileConfig = {
     // ...
   },
   app: {
-    name: "Caloric",
+    name: "CalCut",
     bundleIdentifier: "com.yourcompany.caloric",
     // ...
   },
@@ -295,7 +295,7 @@ See [`docs/SECURITY.md`](docs/SECURITY.md) for complete security guide.
        ↓
 8. Create Supabase client with credentials
        ↓
-9. App runs with Caloric's features
+9. App runs with CalCut's features
 ```
 
 ---

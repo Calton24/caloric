@@ -5,19 +5,20 @@ import { useEffect, useState } from "react";
 export function RedirectBridge({ tokenHash }: { tokenHash: string }) {
   const [showFallback, setShowFallback] = useState(false);
 
-  const deepLink = `caloric://auth/reset-password?token_hash=${encodeURIComponent(tokenHash)}&type=recovery`;
+  const deepLinkCalcult = `calcut://auth/reset-password?token_hash=${encodeURIComponent(tokenHash)}&type=recovery`;
+  const deepLinkLegacy = `caloric://auth/reset-password?token_hash=${encodeURIComponent(tokenHash)}&type=recovery`;
 
   useEffect(() => {
-    window.location.href = deepLink;
+    window.location.href = deepLinkCalcult;
     const timer = setTimeout(() => setShowFallback(true), 1500);
     return () => clearTimeout(timer);
-  }, [deepLink]);
+  }, [deepLinkCalcult]);
 
   return (
     <main style={styles.container}>
       {!showFallback ? (
         <>
-          <h1 style={styles.heading}>Opening Caloric…</h1>
+          <h1 style={styles.heading}>Opening CalCut…</h1>
           <p style={styles.text}>You should be redirected to the app.</p>
         </>
       ) : (
@@ -26,8 +27,11 @@ export function RedirectBridge({ tokenHash }: { tokenHash: string }) {
           <p style={styles.text}>
             If the app didn&apos;t open automatically, tap the button below.
           </p>
-          <a href={deepLink} style={styles.button}>
-            Open in Caloric
+          <a href={deepLinkCalcult} style={styles.button}>
+            Open in CalCut
+          </a>
+          <a href={deepLinkLegacy} style={styles.storeLink}>
+            Using an older install? Try legacy link
           </a>
           <a
             href="https://apps.apple.com/app/caloric/id6741090498"

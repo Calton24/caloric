@@ -9,7 +9,7 @@ export {
     setNotificationsClient
 } from "./notifications";
 
-// ── Bootstrap (called once in CaloricProviders) ──
+// ── Bootstrap (called once in CalCutProviders) ──
 export { initNotifications, resetNotifications } from "./factory";
 
 // ── Types ──

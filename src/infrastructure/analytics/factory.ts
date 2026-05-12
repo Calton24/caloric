@@ -11,11 +11,17 @@
 
 import Constants from "expo-constants";
 import { getAppConfig } from "../../config";
+import {
+  FOOD_LOG_SAFE_MODE,
+  assertFoodLogSafeModeImport,
+} from "../../features/debug/safe-mode-flags";
 import { logger } from "../../logging/logger";
 import { setAnalyticsClient } from "./analytics";
 import { NoopAnalyticsClient } from "./NoopAnalyticsClient";
 import { PostHogAnalyticsClient } from "./PostHogAnalyticsClient";
 import type { AnalyticsClient } from "./types";
+
+assertFoodLogSafeModeImport("analytics");
 
 function env(key: string): string | undefined {
   return (
@@ -30,6 +36,7 @@ let resolvedClient: AnalyticsClient = new NoopAnalyticsClient();
 
 type AnalyticsMode =
   | "disabled_by_config"
+  | "disabled_food_log_safe_mode"
   | "enabled_missing_key"
   | "posthog_initialized"
   | "sdk_missing_fallback_noop";
@@ -40,6 +47,14 @@ function logMode(mode: AnalyticsMode): void {
 
 export function initAnalytics(): AnalyticsClient {
   if (initialized) return resolvedClient;
+
+  if (FOOD_LOG_SAFE_MODE) {
+    resolvedClient = new NoopAnalyticsClient();
+    setAnalyticsClient(resolvedClient);
+    initialized = true;
+    logMode("disabled_food_log_safe_mode");
+    return resolvedClient;
+  }
 
   const config = getAppConfig();
   const enabled = !!config.features.analytics;

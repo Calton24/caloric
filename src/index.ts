@@ -1,10 +1,10 @@
 /**
- * Caloric - Main Entry Point
+ * CalCut - Main Entry Point (library barrel)
  * Export all components, hooks, and utilities
  */
 
 // === PROVIDERS ===
-export { CaloricProviders } from "./CaloricProviders";
+export { CalCutProviders } from "./CalCutProviders";
 export { AuthProvider } from "./features/auth/AuthProvider";
 export { ThemeProvider } from "./theme/ThemeProvider";
 export { BottomSheetProvider } from "./ui/sheets/BottomSheetProvider";

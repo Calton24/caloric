@@ -52,7 +52,7 @@ export const BottomSheetContext = createContext<
  * a separate `BottomSheetProvider` mounted by the `(modals)` layout. Calling
  * `useBottomSheet().close()` from inside those screens hits the modal-level
  * provider and CANNOT close the Home FAB log sheet (which is owned by the
- * root provider in `CaloricProviders`). That orphan root sheet was producing
+ * root provider in `CalCutProviders`). That orphan root sheet was producing
  * the dark "ghost layer" visible during camera dismiss in production.
  *
  * Mark exactly one provider as `isRoot` and any code (including non-React
@@ -150,6 +150,13 @@ export function BottomSheetProvider({
   const close = useCallback(
     (onDismissed?: () => void, options?: CloseSheetOptions) => {
       const immediate = options?.immediate === true;
+      if (immediate) {
+        // Hard-dismiss mode: clear any queued "next" sheet so we don't reopen
+        // right after this dismiss completes.
+        pendingRef.current = null;
+        setPendingPresent(false);
+        setContent(null);
+      }
       if (!immediate && !isShowingRef.current) {
         onDismissed?.();
         return;
@@ -167,6 +174,12 @@ export function BottomSheetProvider({
   useEffect(() => {
     if (!isRoot) return;
     rootDismissImpl = (immediate: boolean) => {
+      if (immediate) {
+        // Root hard-dismiss should also nuke queued content.
+        pendingRef.current = null;
+        setPendingPresent(false);
+        setContent(null);
+      }
       if (!isShowingRef.current && !sheetMounted) return;
       onDismissedRef.current = null;
       bottomSheetRef.current?.dismiss(

@@ -1,345 +1,643 @@
 /**
  * OnboardingAuthorityGate — global route guard.
  *
- * Mounted in the root layout (app/_layout.tsx) so it runs for EVERY
- * pathname, including routes that Expo Router restores directly on cold
- * start (e.g. /(onboarding)/goal). This is critical because app/index.tsx
- * is NOT guaranteed to run on cold start — Expo Router restores the user
- * back into whatever route they last had open.
+ * Mounted in the root layout (app/_layout.tsx) so it runs for EVERY pathname.
  *
- * Authority for routing: useOnboardingAuthorityStore (server-resolved).
- * Local persisted onboardingCompleted is NEVER consulted.
+ * Architecture
+ * ------------
+ *   This component is a THIN ADAPTER. All routing logic lives in
+ *   src/features/access/access-decision.ts as a pure, unit-tested state
+ *   machine. The gate's only responsibilities are:
+ *     - mount the onboarding resolver hook
+ *     - read every input store (auth, onboarding, RC, trial, last-known)
+ *     - call getAccessDecision(input)
+ *     - apply the decision (replace, allow, render overlay)
+ *     - persist last-known access on every definitive resolution
+ *     - emit structured logs / Sentry breadcrumb on every gate redirect
  *
- * Architecture rule (do not break):
- *   The resolver hook (`useOnboardingAuthority`) is called HERE, at the
- *   top of the gate, BEFORE any conditional render. This guarantees the
- *   resolver mounts even when the gate is about to block its children
- *   with a loading overlay. Without this guarantee a "block children"
- *   render path would prevent the resolver from running and the spinner
- *   would hang forever.
- *
- * Behavior matrix:
- *
- *   auth loading                         → render children (let Stack draw splash)
- *   no user, on onboarding/auth routes   → render children
- *   no user, anywhere else (including /) → router.replace("/(onboarding)/landing")
- *   user, status unknown/resolving/stale → on onboarding route or index:
- *                                          BLOCK render (loading overlay)
- *                                          on other routes: render children
- *   user, status === error               → on onboarding route or index:
- *                                          BLOCK render (retry overlay)
- *                                          on other routes: render children
- *   user, status === complete            → on onboarding route or index:
- *                                          replace("/(tabs)")
- *                                          on other routes: render children
- *   user, status === incomplete          → on onboarding/auth/permissions:
- *                                          render children (DO NOT FORCE
- *                                          BACK TO /goal — let them progress
- *                                          through the steps)
- *                                          on app route or index:
- *                                          replace("/(onboarding)/goal")
- *
- * The "incomplete user on onboarding route is allowed" rule is critical:
- * earlier versions of the gate matched only `/(onboarding)*` prefixes, but
- * Expo Router strips group segments from `usePathname()` so that
- * `/(onboarding)/activity` arrives here as `/activity`. The matcher must
- * recognise bare step names too — otherwise every "Continue" button press
- * during onboarding looks like a jump to an app route, and the gate
- * snaps the user back to /goal in an infinite loop.
+ * No conditionals scattered across the component. No bespoke "is loading"
+ * checks. The decision machine handles every state — including the flicker
+ * shield that fixed the "intermittent paywall after app close/reopen" bug.
  */
 
-import { usePathname, useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
+import {
+  useGlobalSearchParams,
+  usePathname,
+  useRouter,
+  useSegments,
+  type Href,
+} from "expo-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import {
   ActivityIndicator,
+  InteractionManager,
   Pressable,
   StyleSheet,
   View,
 } from "react-native";
+import {
+  reportBreadcrumb,
+  reportError,
+} from "../../infrastructure/errorReporting";
 import { logColdStartStep } from "../../infrastructure/tracing/coldStartTrace";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../../ui/primitives/TText";
+import {
+  deriveLastKnownAccessKind,
+  getAccessDecision,
+  type AccessDecisionInput,
+  type AuthStatus,
+  type OnboardingStatus,
+  type RouteFlags,
+} from "../access/access-decision";
+import { useLastKnownAccessStore } from "../access/last-known-access.store";
+import { useAppTrialStore } from "../subscription/app-trial.store";
+import { trackPaywallGateShown } from "../subscription/subscription-analytics";
+import { useSubscriptionStore } from "../subscription/subscription.store";
 import { useAuth } from "../auth/useAuth";
-import type { OnboardingStep } from "./onboarding-authority";
+import { useProfileStore } from "../profile/profile.store";
+import { computeEffectiveOnboardingStatus } from "./compute-effective-onboarding-status";
+import type {
+  OnboardingAuthorityStatus,
+  OnboardingStep,
+} from "./onboarding-authority";
 import { useOnboardingAuthorityStore } from "./onboarding-authority.store";
 import {
   isAuthRoute,
+  isGatedAllowedRoute,
   isIndexRoute,
   isInsideOnboardingFlow,
+  isPaywallRoute,
   isPermissionsRoute,
-  isProtectedAppRoute,
+  isVoluntaryUpgradePaywallPath,
 } from "./onboarding-route-matchers";
 import { STEP_TO_ROUTE } from "./onboarding-step-routes";
 import { useOnboardingAuthority } from "./use-onboarding-authority";
+import {
+  APP_ENTRY_PATH,
+  evaluateAppEntryNotFoundRedirectGuard,
+} from "../navigation/app-entry-href";
+import { buildRouteContext } from "../navigation/route-segments";
 
 interface Props {
   children: React.ReactNode;
 }
 
-type GateAction =
-  | "allow"
-  | "replace_to_tabs"
-  | "replace_to_landing"
-  | "replace_to_onboarding_goal"
-  | "block_loading"
-  | "block_error";
+/**
+ * Grace window before the access-decision flicker shield gives up.
+ * Long enough to absorb a slow-network cold start; short enough that a
+ * permanently-broken backend (missing migration / dead RPC) doesn't
+ * trap the user on an infinite spinner.
+ */
+const REVALIDATION_GRACE_MS = 8_000;
+/** If server onboarding stays "loading" this long, allow safe fallbacks (local proof). */
+const ONBOARDING_GATE_WAIT_MS = 8_000;
+/** Ignore duplicate redirect_tabs to the same target (remount / segment lag). */
+const REDIRECT_DEDUPE_MS = 1_500;
+
+/** Decision targets are strings; map to Expo Router Href. */
+function targetToHref(target: string): Href {
+  if (target === "/(onboarding)/paywall?mode=gate") {
+    return { pathname: "/(onboarding)/paywall", params: { mode: "gate" } };
+  }
+  if (target === APP_ENTRY_PATH) {
+    return "/(tabs)" as Href;
+  }
+  return target as Href;
+}
 
 export function OnboardingAuthorityGate({ children }: Props) {
-  // ── Mount the resolver hook UNCONDITIONALLY, before any other logic. ──
-  // The resolver is what populates the authority store. If it doesn't run
-  // the gate hangs forever waiting for a resolution that never arrives.
-  // Calling it here, at the very top of the gate, guarantees it runs
-  // regardless of whether we end up returning children or a loading
-  // overlay below. (React rules-of-hooks: hooks must run unconditionally
-  // before any early return.)
+  // Mount the resolver UNCONDITIONALLY. It populates the authority store
+  // (server onboarding status). Calling it before any early-return is the
+  // only way to guarantee it runs even when the gate is rendering an
+  // overlay instead of children.
   useOnboardingAuthority();
 
   const router = useRouter();
   const pathname = usePathname();
+  const segments = useSegments();
+  // `useSegments()` often returns a new array reference every render even when
+  // the logical path is unchanged. That would recreate `routeContext`, re-fire
+  // the redirect `useEffect`, and can spiral into "Maximum update depth" via
+  // React Navigation's internal store subscribers.
+  const segmentsKey = (segments as string[]).join("\0");
+  const routeContext = useMemo(
+    () => buildRouteContext(pathname, segments as string[]),
+    [pathname, segmentsKey],
+  );
+  const globalSearchParams = useGlobalSearchParams<{
+    mode?: string | string[];
+  }>();
+  const globalPaywallMode = globalSearchParams.mode;
   const { user, isLoading: authLoading } = useAuth();
-  const authorityState = useOnboardingAuthorityStore((s) => s.state);
+  const profileUserId = useProfileStore((s) => s.profile.id);
+  const profileOnboardingCompleted = useProfileStore(
+    (s) => s.profile.onboardingCompleted,
+  );
+  /**
+   * IMPORTANT: `setResolved` mints a new `resolvedAt` on every write. Subscribing
+   * to the whole `state` object makes the gate re-render (and re-run the redirect
+   * `useEffect`) even when routing-relevant fields are unchanged — that can spiral
+   * into "Maximum update depth" with React Navigation's internal sync store.
+   *
+   * `useShallow` + a slice that omits `resolvedAt` keeps renders aligned with
+   * actual routing input changes only.
+   */
+  const authorityRouting = useOnboardingAuthorityStore(
+    useShallow((s) => {
+      const st = s.state;
+      if (st.kind === "unknown") return { kind: "unknown" as const };
+      if (st.kind === "resolving") {
+        return { kind: "resolving" as const, userId: st.userId };
+      }
+      return {
+        kind: "resolved" as const,
+        userId: st.userId,
+        status: st.status,
+        onboardingCompleted: st.onboardingCompleted,
+        onboardingStep: st.onboardingStep,
+        errorMessage: st.errorMessage,
+      };
+    }),
+  );
   const requestRetry = useOnboardingAuthorityStore((s) => s.requestRetry);
   const { theme } = useTheme();
 
-  // Dedupe guard: prevents replace loops if the destination pathname
-  // happens to look like the source to our matcher (e.g. router.replace
-  // bounces us between /(onboarding)/goal and /goal). We track the last
-  // (pathname, target) tuple we attempted and bail on a repeat.
-  const lastRedirectRef = useRef<{ from: string; to: string } | null>(null);
+  // Subscription + trial state
+  const rcValidationStatus = useSubscriptionStore((s) => s.rcValidationStatus);
+  const cachedHasSubscription = useSubscriptionStore(
+    (s) => s.subscription.hasActiveSubscription,
+  );
+  const appTrialBootstrap = useAppTrialStore((s) => s.bootstrapStatus);
+  const trial = useAppTrialStore((s) => s.trial);
+  const trialIsActive = trial?.isActive ?? false;
+  const trialIsExpired = trial?.isExpired ?? false;
 
-  // Derive route category once.
-  const insideOnboardingFlow = isInsideOnboardingFlow(pathname);
-  const authRoute = isAuthRoute(pathname);
-  const permissionsRoute = isPermissionsRoute(pathname);
-  const indexRoute = isIndexRoute(pathname);
-  const protectedAppRoute = isProtectedAppRoute(pathname);
+  // Last-known access (flicker shield)
+  const lastKnownAccess = useLastKnownAccessStore((s) => s.cache);
+  const hydrateLastKnown = useLastKnownAccessStore((s) => s.hydrate);
+  useEffect(() => {
+    void hydrateLastKnown();
+  }, [hydrateLastKnown]);
 
-  // Derive resolved status FOR THE CURRENT USER (stale entries → null).
+  // Dedupe guard for redirects (pathname "/" is ambiguous with route groups).
+  const lastRedirectRef = useRef<{
+    from: string;
+    to: string;
+    userId: string | null;
+    decisionReason: string;
+    at: number;
+  } | null>(null);
+
+  /** Timestamp of last `router.replace(APP_ENTRY)` while on `+not-found`. */
+  const lastAppEntryFromNotFoundAtRef = useRef<number | null>(null);
+  /** After a fatal not-found loop, stop spamming redirects until route recovers. */
+  const appEntryNotFoundBlockedRef = useRef(false);
+  /** Cancels superseded deferred `router.replace` work (avoids piling nav on RN dev RedBox). */
+  const pendingNavigationRef = useRef<{ cancel: () => void } | null>(null);
+
+  // Revalidation grace timer. The flicker shield holds the gate in
+  // "loading" while a transient RC/trial error is being retried — but
+  // only for a bounded budget. If the server is permanently broken
+  // (e.g. missing migration), we must give up and let the gate make a
+  // definitive decision so the user isn't trapped on a spinner.
+  const [revalidationGraceExpired, setRevalidationGraceExpired] =
+    useState(false);
+
+  // ── Map raw stores → decision input ─────────────────────────────────────
+  // Auth-status derivation rule (release-blocker fix):
+  //   - userId present                 → signedIn (regardless of isLoading)
+  //   - no userId + auth still booting → loading
+  //   - no userId + auth boot finished → signedOut
+  //
+  // The previous derivation `authLoading ? loading : (userId ? signedIn : signedOut)`
+  // could trap a real authenticated user in the "loading" branch when
+  // AuthProvider's `setUser(...)` ran before `setIsLoading(false)` —
+  // e.g. when supabase.auth.onAuthStateChange fires INITIAL_SESSION
+  // before getSession() resolves. The fix: treat a known userId as the
+  // definitive signedIn signal, regardless of the bootstrap flag.
   const userId = user?.id ?? null;
+  const authStatus: AuthStatus = userId
+    ? "signedIn"
+    : authLoading
+      ? "loading"
+      : "signedOut";
+
   const resolvedForCurrentUser =
-    authorityState.kind === "resolved" &&
-    authorityState.userId === (userId ?? "");
-  const status = resolvedForCurrentUser
-    ? (authorityState as { status: string }).status
-    : null;
+    authorityRouting.kind === "resolved" &&
+    authorityRouting.userId === (userId ?? "");
+  const serverDerivedOnboardingStatus: OnboardingStatus = !resolvedForCurrentUser
+    ? "loading"
+    : (() => {
+        const status = authorityRouting.status as OnboardingAuthorityStatus;
+        if (status === "complete") return "complete";
+        if (status === "incomplete") return "incomplete";
+        if (status === "missing") return "loading"; // resolver is creating row
+        return "error";
+      })();
   const onboardingStep: OnboardingStep | null = resolvedForCurrentUser
-    ? ((authorityState as { onboardingStep: OnboardingStep | null })
-        .onboardingStep ?? null)
+    ? (authorityRouting.onboardingStep ?? null)
     : null;
-  // Resume target: where to send an incomplete user when they're at `/`
-  // or an app route. Falls back to /goal when no checkpoint exists.
-  const resumeTarget: string =
-    (onboardingStep && STEP_TO_ROUTE[onboardingStep]) ?? "/(onboarding)/goal";
+  const resumeTarget =
+    (onboardingStep && STEP_TO_ROUTE[onboardingStep]) || "/(onboarding)/goal";
+
+  const [onboardingWaitExpired, setOnboardingWaitExpired] = useState(false);
+  useEffect(() => {
+    if (serverDerivedOnboardingStatus !== "loading") {
+      setOnboardingWaitExpired(false);
+      return;
+    }
+    const handle = setTimeout(() => {
+      setOnboardingWaitExpired(true);
+      if (__DEV__) {
+        console.log("[OnboardingAuthorityLifecycle]", {
+          event: "timeout_fallback",
+          userId,
+          reason: "onboarding_loading_exceeded_budget",
+          budgetMs: ONBOARDING_GATE_WAIT_MS,
+        });
+      }
+    }, ONBOARDING_GATE_WAIT_MS);
+    return () => clearTimeout(handle);
+  }, [serverDerivedOnboardingStatus, userId]);
+
+  const localOnboardingProof =
+    Boolean(userId) &&
+    profileUserId === userId &&
+    profileOnboardingCompleted;
+
+  const onboardingStatus: OnboardingStatus = computeEffectiveOnboardingStatus(
+    serverDerivedOnboardingStatus,
+    {
+      userId,
+      profileUserId,
+      profileOnboardingCompleted,
+      rcValidationStatus,
+      trialBootstrapStatus: appTrialBootstrap,
+      trialIsActive,
+      onboardingWaitExpired,
+    },
+  );
+
+  const routeFlags: RouteFlags = {
+    isAuth: isAuthRoute(pathname),
+    isInsideOnboardingFlow: isInsideOnboardingFlow(pathname),
+    isPermissions: isPermissionsRoute(pathname),
+    isIndex: isIndexRoute(pathname),
+    isPaywall: isPaywallRoute(pathname),
+    isVoluntaryUpgradePaywall: isVoluntaryUpgradePaywallPath(
+      pathname,
+      globalPaywallMode,
+    ),
+    isGatedAllowed: isGatedAllowedRoute(pathname, globalPaywallMode),
+  };
+
+  const decisionInput: AccessDecisionInput = {
+    authStatus,
+    onboardingStatus,
+    resumeTarget,
+    rcValidationStatus,
+    trialBootstrapStatus: appTrialBootstrap,
+    trialIsActive,
+    trialIsExpired,
+    lastKnownAccess,
+    revalidationGraceExpired,
+    currentPathname: pathname,
+    routeContext,
+    routeFlags,
+  };
+
+  const decision = getAccessDecision(decisionInput);
+
+  // Manage grace timer. Start it the moment the decision becomes
+  // "loading because of last-known-active flicker shield"; clear it
+  // when we leave that state.
+  const inFlickerShield =
+    decision.type === "loading" &&
+    (decision.reason === "trial_error_revalidating_with_active_cache" ||
+      decision.reason === "rc_error_revalidating_with_active_cache");
+  useEffect(() => {
+    return () => {
+      pendingNavigationRef.current?.cancel?.();
+      pendingNavigationRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
-    const baseLogPayload = {
+    if (!inFlickerShield) {
+      if (revalidationGraceExpired) setRevalidationGraceExpired(false);
+      return;
+    }
+    if (revalidationGraceExpired) return; // already expired this session
+    const timer = setTimeout(() => {
+      if (__DEV__) {
+        console.warn(
+          "[AccessDecision] revalidation grace expired — falling through to definitive decision",
+        );
+      }
+      setRevalidationGraceExpired(true);
+    }, REVALIDATION_GRACE_MS);
+    return () => clearTimeout(timer);
+  }, [inFlickerShield, revalidationGraceExpired]);
+
+  // ── Apply decision (side effects) ───────────────────────────────────────
+  useEffect(() => {
+    // Persist last-known access whenever inputs are definitive.
+    const derivedKind = deriveLastKnownAccessKind({
+      rcValidationStatus,
+      trialBootstrapStatus: appTrialBootstrap,
+      trialIsActive,
+    });
+    if (derivedKind !== null) {
+      useLastKnownAccessStore.getState().record(derivedKind);
+    }
+
+    // Structured log + Sentry breadcrumb for EVERY decision.
+    const logPayload = {
       pathname,
+      segments: routeContext.segments,
+      isInTabsGroup: routeContext.isInTabsGroup,
+      isTrueRootIndex: routeContext.isTrueRootIndex,
+      isNotFoundRoute: routeContext.isNotFoundRoute,
       userId,
-      authLoading,
-      authorityKind: authorityState.kind,
-      resolvedForCurrentUser,
-      insideOnboardingFlow,
-      protectedAppRoute,
-      status,
+      authStatus,
+      authBootstrapReady: !authLoading,
+      hasSession: Boolean(userId),
+      authorityKind: authorityRouting.kind,
+      serverDerivedOnboardingStatus,
+      onboardingStatus,
       onboardingStep,
+      localOnboardingProof,
+      profileUserId,
+      onboardingWaitExpired,
+      rcValidationStatus,
+      cachedHasSubscription,
+      trialBootstrapStatus: appTrialBootstrap,
+      trialIsActive,
+      trialIsExpired,
+      lastKnownAccessKind: lastKnownAccess.kind,
+      lastKnownCheckedAt: lastKnownAccess.checkedAt,
+      decisionType: decision.type,
+      decisionReason: decision.reason,
+      decisionTarget: decision.target ?? null,
     };
+    if (__DEV__) {
+      console.log("[RouteState]", {
+        pathname,
+        segments: routeContext.segments,
+        isInTabsGroup: routeContext.isInTabsGroup,
+        isTrueRootIndex: routeContext.isTrueRootIndex,
+        isNotFoundRoute: routeContext.isNotFoundRoute,
+      });
+      console.log("[AuthState]", {
+        authBootstrapReady: !authLoading,
+        authLoading,
+        hasSession: Boolean(userId),
+        userId,
+        authStatusForGate: authStatus,
+      });
+      console.log("[AccessDecision]", logPayload);
+    }
+    logColdStartStep("authority_gate_decision", logPayload);
 
-    const safeReplace = (target: string, reason: string, action: GateAction) => {
-      // Same-path no-op: if the gate's target is already the current
-      // pathname (in any of its rendered forms), don't dispatch a redirect.
-      if (target === pathname) {
-        logGateDecision({
-          ...baseLogPayload,
-          action: "allow",
-          targetRoute: null,
-          reason: `${reason}__same_path_skip`,
-        });
+    if (
+      decision.type === "redirect_gate" ||
+      decision.type === "redirect_landing" ||
+      decision.type === "redirect_onboarding" ||
+      decision.type === "redirect_tabs"
+    ) {
+      reportBreadcrumb(`access-gate:${decision.type}:${decision.reason}`, {
+        area: "bootstrap",
+        action: "access_gate_decision",
+        extra: logPayload,
+      });
+    }
+
+    // Apply redirects.
+    if (
+      decision.type === "redirect_gate" ||
+      decision.type === "redirect_landing" ||
+      decision.type === "redirect_onboarding" ||
+      decision.type === "redirect_tabs"
+    ) {
+      const target = decision.target;
+      if (!target) return;
+
+      const now = Date.now();
+
+      if (!routeContext.isNotFoundRoute) {
+        lastAppEntryFromNotFoundAtRef.current = null;
+        appEntryNotFoundBlockedRef.current = false;
+      }
+
+      if (
+        decision.type === "redirect_tabs" &&
+        routeContext.isInTabsGroup &&
+        target === APP_ENTRY_PATH
+      ) {
+        if (__DEV__) {
+          console.log("[RouteRedirectSkipped]", {
+            reason: "already_in_tabs",
+            target,
+            pathname,
+            segments: routeContext.segments,
+            userId,
+          });
+        }
         return;
       }
-      // Replay-of-same-tuple no-op: if we already tried to go from
-      // `pathname` to `target`, don't try again — that's how loops form.
-      const last = lastRedirectRef.current;
-      if (last && last.from === pathname && last.to === target) {
-        logGateDecision({
-          ...baseLogPayload,
-          action: "allow",
-          targetRoute: null,
-          reason: `${reason}__dedupe_skip`,
-        });
+
+      const entryGuard = evaluateAppEntryNotFoundRedirectGuard({
+        isRedirectTabsToAppEntry:
+          decision.type === "redirect_tabs" && target === APP_ENTRY_PATH,
+        isNotFoundRoute: routeContext.isNotFoundRoute,
+        blocked: appEntryNotFoundBlockedRef.current,
+        lastAttemptAt: lastAppEntryFromNotFoundAtRef.current,
+        now,
+      });
+
+      if (entryGuard.action === "skip_blocked") {
+        if (__DEV__) {
+          console.log("[RouteRedirectSkipped]", {
+            reason: "app_entry_not_found_blocked",
+            target,
+            pathname,
+            segments: routeContext.segments,
+            userId,
+          });
+        }
         return;
       }
-      lastRedirectRef.current = { from: pathname, to: target };
-      logGateDecision({
-        ...baseLogPayload,
-        action,
-        targetRoute: target,
-        reason,
-      });
-      router.replace(target as never);
-    };
 
-    const allow = (reason: string) => {
-      logGateDecision({
-        ...baseLogPayload,
-        action: "allow",
-        targetRoute: null,
-        reason,
-      });
-    };
-
-    const block = (action: "block_loading" | "block_error", reason: string) => {
-      logGateDecision({
-        ...baseLogPayload,
-        action,
-        targetRoute: null,
-        reason,
-      });
-    };
-
-    if (authLoading) {
-      allow("auth_loading");
-      return;
-    }
-
-    if (!userId) {
-      // Unauthenticated. Allow onboarding flow + auth screens; otherwise
-      // funnel to the landing page. Permissions and index also funnel
-      // back to landing because no part of the app should be visible
-      // before the user picks an auth path.
-      if (insideOnboardingFlow || authRoute) {
-        allow("unauth_on_allowed_route");
-        return;
-      }
-      safeReplace(
-        "/(onboarding)/landing",
-        indexRoute
-          ? "unauth_at_index"
-          : permissionsRoute
-            ? "unauth_at_permissions"
-            : "unauth_on_app_route",
-        "replace_to_landing"
-      );
-      return;
-    }
-
-    // Authenticated. Wait for the authority store to resolve THIS user.
-    if (!resolvedForCurrentUser) {
-      block(
-        "block_loading",
-        authorityState.kind === "unknown"
-          ? "authority_unknown"
-          : authorityState.kind === "resolving"
-            ? "authority_resolving"
-            : "authority_stale_user"
-      );
-      return;
-    }
-
-    if (status === "error" || status === "missing") {
-      block(
-        status === "error" ? "block_error" : "block_loading",
-        status === "error" ? "authority_error" : "authority_missing"
-      );
-      return;
-    }
-
-    if (status === "complete") {
-      // Completed users belong in the app. Kick them out of onboarding
-      // (it has nothing left to do) and out of the index loader.
-      if (insideOnboardingFlow || indexRoute) {
-        safeReplace(
-          "/(tabs)",
-          indexRoute ? "complete_at_index" : "complete_on_onboarding_route",
-          "replace_to_tabs"
+      if (entryGuard.action === "fatal_config") {
+        appEntryNotFoundBlockedRef.current = true;
+        const payload = {
+          ...entryGuard.payload,
+          pathname,
+          segments: routeContext.segments,
+        };
+        if (__DEV__) {
+          console.warn("[RouteConfigError]", payload);
+        }
+        reportError(
+          new Error(String(entryGuard.payload.message)),
+          {
+            area: "bootstrap",
+            action: "app_entry_route_config",
+            extra: payload,
+          },
         );
         return;
       }
-      allow("complete_on_app_route");
-      return;
-    }
 
-    if (status === "incomplete") {
-      // Critical rule: if the user is inside the onboarding flow, ALLOW
-      // the current pathname exactly as-is. Do NOT force-replace to
-      // /goal, otherwise every "Continue" button kicks the user back to
-      // step 1.
-      //
-      // Auth and permissions are also fine — those are valid sub-flows
-      // an incomplete user can be in.
-      if (insideOnboardingFlow || authRoute || permissionsRoute) {
-        allow("incomplete_on_allowed_route");
+      if (entryGuard.action === "proceed_mark_attempt") {
+        lastAppEntryFromNotFoundAtRef.current = now;
+      }
+
+      const last = lastRedirectRef.current;
+      if (
+        last &&
+        last.to === target &&
+        last.userId === userId &&
+        last.decisionReason === decision.reason &&
+        now - last.at < REDIRECT_DEDUPE_MS
+      ) {
+        if (__DEV__) {
+          console.log("[RouteRedirectSkipped]", {
+            reason: "duplicate_recent_redirect",
+            target,
+            pathname,
+            segments: routeContext.segments,
+            userId,
+          });
+        }
         return;
       }
-      // Index or any actual app route → resume the user from their last
-      // onboarding checkpoint (server `onboarding_step`). Falls back to
-      // /goal when no checkpoint exists yet (brand-new user, or row was
-      // just created by the resolver's missing-row recovery).
-      safeReplace(
-        resumeTarget,
-        indexRoute ? "incomplete_at_index_resume" : "incomplete_on_app_route_resume",
-        "replace_to_onboarding_goal"
+
+      if (last && last.from === pathname && last.to === target) {
+        if (__DEV__) {
+          console.log("[RouteRedirectSkipped]", {
+            reason: "same_from_to",
+            target,
+            pathname,
+            userId,
+          });
+        }
+        return;
+      }
+
+      lastRedirectRef.current = {
+        from: pathname,
+        to: target,
+        userId,
+        decisionReason: decision.reason,
+        at: now,
+      };
+
+      if (__DEV__) {
+        console.log("[RouteRedirect]", {
+          from: pathname,
+          to: target,
+          reason: decision.reason,
+          userId,
+          decisionType: decision.type,
+          segments: routeContext.segments,
+        });
+      }
+
+      if (decision.type === "redirect_gate") {
+        trackPaywallGateShown({ rc: rcValidationStatus, pathname });
+      }
+
+      const href = targetToHref(target);
+      pendingNavigationRef.current?.cancel?.();
+      pendingNavigationRef.current = InteractionManager.runAfterInteractions(
+        () => {
+          pendingNavigationRef.current = null;
+          requestAnimationFrame(() => {
+            try {
+              router.replace(href);
+            } catch (err) {
+              reportError(err instanceof Error ? err : new Error(String(err)), {
+                area: "bootstrap",
+                action: "authority_gate_replace",
+                extra: { target, pathname, decisionReason: decision.reason },
+              });
+              if (decision.type !== "redirect_gate") {
+                requestAnimationFrame(() => {
+                  try {
+                    router.replace({
+                      pathname: "/(onboarding)/paywall",
+                      params: { mode: "gate" },
+                    });
+                  } catch {
+                    /* swallow */
+                  }
+                });
+              }
+            }
+          });
+        },
       );
-      return;
     }
   }, [
+    appTrialBootstrap,
     authLoading,
-    userId,
-    pathname,
-    insideOnboardingFlow,
-    authRoute,
-    permissionsRoute,
-    indexRoute,
-    protectedAppRoute,
-    resolvedForCurrentUser,
-    status,
+    authStatus,
+    authorityRouting,
+    cachedHasSubscription,
+    decision.reason,
+    decision.target,
+    decision.type,
+    lastKnownAccess.checkedAt,
+    lastKnownAccess.kind,
+    onboardingStatus,
     onboardingStep,
-    resumeTarget,
-    authorityState.kind,
-    router,
+    onboardingWaitExpired,
+    pathname,
+    profileOnboardingCompleted,
+    profileUserId,
+    rcValidationStatus,
+    routeContext.isInOnboardingGroup,
+    routeContext.isInTabsGroup,
+    routeContext.isNotFoundRoute,
+    routeContext.isTrueRootIndex,
+    segmentsKey,
+    serverDerivedOnboardingStatus,
+    trialIsActive,
+    trialIsExpired,
+    userId,
   ]);
 
-  // ── Block-render guards ───────────────────────────────────────────────
-  //
-  // For an authenticated user whose authority status hasn't been confirmed
-  // yet, we cannot let an /(onboarding)/* screen render — they may turn
-  // out to be a fully-onboarded Apple/Google user whose last session was
-  // restored into goal.tsx. Showing onboarding while we wait for the
-  // resolver would visibly contradict the redirect that's about to fire.
-  //
-  // We also block-render at the index route while resolving, because the
-  // simplified IndexScreen is a passive spinner that has no redirect logic
-  // of its own — the gate is the only thing that moves the user away from
-  // /, and we don't want to risk seeing anything else there.
+  // ── Render ──────────────────────────────────────────────────────────────
+  // Always mount `children` (root Stack). Unmounting the navigator during
+  // loading/redirect left Expo Router with no outlet while `router.replace`
+  // ran, which could thrash React Navigation's `useSyncState` → "Maximum
+  // update depth exceeded". Overlays use absolute fill on top instead.
+  const showBlockingOverlay =
+    decision.type === "loading" ||
+    decision.type === "show_error" ||
+    decision.type === "redirect_gate" ||
+    decision.type === "redirect_landing" ||
+    decision.type === "redirect_onboarding" ||
+    decision.type === "redirect_tabs";
 
-  const blockableRoute = insideOnboardingFlow || indexRoute;
-
-  if (userId && blockableRoute && !resolvedForCurrentUser && !authLoading) {
-    return <LoadingOverlay theme={theme} />;
-  }
-
-  if (
-    userId &&
-    blockableRoute &&
-    resolvedForCurrentUser &&
-    status === "error"
-  ) {
-    return <ErrorOverlay theme={theme} onRetry={requestRetry} />;
-  }
-
-  if (
-    userId &&
-    blockableRoute &&
-    resolvedForCurrentUser &&
-    status === "missing"
-  ) {
-    // Resolver hook is creating the row + re-resolving. This is transient.
-    return <LoadingOverlay theme={theme} />;
-  }
-
-  return <>{children}</>;
+  return (
+    <View style={styles.gateRoot} pointerEvents="box-none">
+      {children}
+      {showBlockingOverlay ? (
+        decision.type === "show_error" ? (
+          <ErrorOverlay theme={theme} onRetry={requestRetry} />
+        ) : (
+          <LoadingOverlay theme={theme} />
+        )
+      ) : null}
+    </View>
+  );
 }
 
-// ── Overlays ────────────────────────────────────────────────────────────
+// ── Overlays ──────────────────────────────────────────────────────────────
 
 function LoadingOverlay({
   theme,
@@ -389,52 +687,12 @@ function ErrorOverlay({
   );
 }
 
-// ── Logging ─────────────────────────────────────────────────────────────
-
-function logGateDecision(input: {
-  pathname: string;
-  userId: string | null;
-  authLoading: boolean;
-  authorityKind: string;
-  resolvedForCurrentUser: boolean;
-  insideOnboardingFlow: boolean;
-  protectedAppRoute: boolean;
-  status: string | null;
-  onboardingStep: OnboardingStep | null;
-  action: GateAction;
-  targetRoute: string | null;
-  reason: string;
-}): void {
-  if (__DEV__) {
-    // Single canonical log line per decision. Format mirrors the
-    // [OnboardingState] shape so logs from the resolver and the gate
-    // can be grep-correlated by userId across cold start.
-    console.log("[OnboardingState] route_decision", {
-      authUserId: input.userId,
-      serverUserProfileFound: input.resolvedForCurrentUser,
-      serverOnboardingCompleted:
-        input.status === "complete"
-          ? true
-          : input.status === "incomplete"
-            ? false
-            : null,
-      serverOnboardingStep: input.onboardingStep,
-      pathname: input.pathname,
-      authLoading: input.authLoading,
-      authorityStatus: input.authorityKind,
-      insideOnboardingFlow: input.insideOnboardingFlow,
-      isProtectedAppRoute: input.protectedAppRoute,
-      action: input.action,
-      chosenRoute: input.targetRoute,
-      reason: input.reason,
-    });
-  }
-  logColdStartStep("authority_gate_decision", input);
-}
-
 const styles = StyleSheet.create({
-  overlay: {
+  gateRoot: {
     flex: 1,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,
@@ -453,4 +711,3 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
 });
-

@@ -1,6 +1,5 @@
 /**
- * Caloric App Configuration
- * Vision AI food tracking app
+ * Fork intake profile template (Vision AI food tracking → CalCut)
  */
 
 import { AppProfileConfig } from "../types";
@@ -12,7 +11,7 @@ export const caloricConfig: AppProfileConfig = {
       process.env.EXPO_PUBLIC_SUPABASE_URL ||
       "https://your-caloric-project.supabase.co",
     anonKey:
-      process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "YOUR_SUPABASE_ANON_KEY", // Replace with actual anon key from Supabase dashboard
+      process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "YOUR_SUPABASE_ANON_KEY",
   },
 
   firebase: {
@@ -46,38 +45,36 @@ export const caloricConfig: AppProfileConfig = {
   },
 
   features: {
-    vision: true, // Vision AI enabled for food scanning
+    vision: true,
     water: true,
-    habit: false, // Not needed for caloric
+    habit: false,
     analytics: true,
     growth: false,
     haptics: true,
     notifications: true,
-    firebaseAnalytics: false, // Firebase not installed in caloric
-    crashReporting: false, // Firebase not installed in caloric
-    performanceMonitoring: false, // Firebase not installed in caloric
-    billing: true, // Enable billing system (includes paywall UI)
+    firebaseAnalytics: false,
+    crashReporting: false,
+    performanceMonitoring: false,
+    billing: true,
     i18n: true,
     presence: true,
     activityMonitor: true,
     liveActivity: true,
     maintenance: true,
-    allowUnsafeClientWrites: false, // SECURITY: Use Edge Function for growth ingestion
+    allowUnsafeClientWrites: false,
   },
 
   app: {
-    name: "Caloric",
+    name: "CalCut",
     slug: "caloric",
     bundleIdentifier: "com.calton.caloric",
     androidPackage: "com.calton.caloric",
     version: "1.0.0",
-    scheme: "caloric",
+    scheme: ["calcut", "caloric"],
   },
 
-  // Environment-specific overrides
   environments: {
     dev: {
-      // Supabase config comes from env vars (base config)
       firebase: {
         ios: {
           projectId: "caloric-dev",
@@ -99,25 +96,21 @@ export const caloricConfig: AppProfileConfig = {
       features: {
         analytics: false,
         growth: true,
-        firebaseAnalytics: true, // Keep Firebase Analytics in dev
-        crashReporting: true, // Keep crash reporting
-        performanceMonitoring: false, // Disable perf monitoring in dev
-        billing: false, // Disable billing in dev (use test mode in staging)
+        firebaseAnalytics: true,
+        crashReporting: true,
+        performanceMonitoring: false,
+        billing: false,
       },
       app: {
-        name: "Caloric",
+        name: "CalCut Dev",
         slug: "caloric-dev",
       },
     },
     staging: {
-      // Supabase config comes from env vars (base config)
       app: {
-        name: "Caloric Staging",
+        name: "CalCut Staging",
       },
     },
-    prod: {
-      // Production uses base config by default
-      // Only override if needed
-    },
+    prod: {},
   },
 };

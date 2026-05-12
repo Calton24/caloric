@@ -1,5 +1,5 @@
 /**
- * Caloric - Root Providers
+ * CalCut - Root Providers
  * Combine all providers for easy app setup
  */
 
@@ -10,7 +10,15 @@ import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { getAppConfig } from "./config";
+import { logLastCrashMarkersOnBoot } from "./features/debug/home-crash-markers";
+import {
+  FOOD_LOG_SAFE_MODE,
+  assertFoodLogSafeModeImport,
+} from "./features/debug/safe-mode-flags";
+
+assertFoodLogSafeModeImport("CalCutProviders");
 import { preloadExperimentAssignments } from "./experiments";
+import { DeleteAccountDialogHost } from "./features/account/DeleteAccountDialogHost";
 import { AuthProvider } from "./features/auth/AuthProvider";
 import { useAuth } from "./features/auth/useAuth";
 import { useChallengeStore } from "./features/challenge/challenge.store";
@@ -24,6 +32,9 @@ import { useRetentionStore } from "./features/retention/retention.store";
 import { useShareStore } from "./features/share/share.store";
 import { useStreakStore } from "./features/streak/streak.store";
 import { useSubscriptionStore } from "./features/subscription";
+import { useAppTrialStore } from "./features/subscription/app-trial.store";
+import { useAppTrialSync } from "./features/subscription/use-app-trial-sync";
+import { useLastKnownAccessStore } from "./features/access/last-known-access.store";
 import { useScanCreditsStore } from "./features/subscription/scanCredits.store";
 import { useProgressSync } from "./features/sync/useProgressSync";
 import { useWaterStore } from "./features/water/water.store";
@@ -166,6 +177,8 @@ function useResetStoresOnUserChange() {
       });
       useWaterStore.setState({ intakeByDate: {} });
       useSubscriptionStore.getState().resetSubscription();
+      useAppTrialStore.getState().reset();
+      useLastKnownAccessStore.getState().reset();
       useScanCreditsStore.getState().resetCredits();
       const nutritionAfter = useNutritionStore.getState();
 
@@ -206,42 +219,97 @@ function useResetStoresOnUserChange() {
  * Must be rendered inside <AuthProvider>.
  */
 function BillingGate({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  useAppTrialSync();
   useResetStoresOnUserChange();
   const syncFromEntitlement = useSubscriptionStore(
     (s) => s.syncFromEntitlement
   );
   const syncFromServer = useSubscriptionStore((s) => s.syncFromServer);
+  const setRcValidationStatus = useSubscriptionStore(
+    (s) => s.setRcValidationStatus
+  );
   const hydrateScanCredits = useScanCreditsStore((s) => s.hydrate);
   const hydrateSubscription = useSubscriptionStore((s) => s.hydrate);
+  const hydrateLastKnownAccess = useLastKnownAccessStore((s) => s.hydrate);
 
   // Hydrate persisted stores from storage on mount
   useEffect(() => {
     hydrateScanCredits();
     hydrateSubscription();
-  }, [hydrateScanCredits, hydrateSubscription]);
+    void hydrateLastKnownAccess();
+  }, [hydrateScanCredits, hydrateSubscription, hydrateLastKnownAccess]);
 
-  // Initialise billing SDK once on mount and subscribe to entitlement changes
+  // Initialise billing SDK once on mount and subscribe to entitlement changes.
+  //
+  // rcValidationStatus state machine (owned here):
+  //   "unknown"  → "loading"  : we set this before init starts
+  //   "loading"  → "active"   : syncFromEntitlement sets this when RC confirms
+  //   "loading"  → "inactive" : syncFromEntitlement sets this when RC says no
+  //   "loading"  → "error"    : we set this on any init / getEntitlements failure
+  //
+  // The OnboardingAuthorityGate blocks routing until status leaves "loading".
+  // Fail closed: any error → "error" → gate routes to paywall, never to tabs.
   useEffect(() => {
+    // Signal that the RC check is starting. The gate will show a loading
+    // overlay until this resolves to "active", "inactive", or "error".
+    setRcValidationStatus("loading");
+
     initializeBilling()
       .then(() => {
         const provider = getBillingProvider();
-        // Sync current entitlement state immediately after init
+
+        // NoBillingProvider = billing explicitly disabled.
+        // In production/TestFlight/staging builds this must NEVER bypass the
+        // paywall gate — a misconfigured provider name must not create a free
+        // access hole in a live build. Fail closed to "error" instead.
+        // Only real __DEV__ (Metro JS server) + non-production env allows bypass.
+        if (provider.getProviderName() === "none") {
+          const isBypassAllowed =
+            __DEV__ &&
+            process.env.EXPO_PUBLIC_APP_ENV !== "production" &&
+            process.env.EXPO_PUBLIC_APP_ENV !== "staging";
+
+          if (!isBypassAllowed) {
+            logger.error(
+              "[Billing] Provider is 'none' in a non-dev build — " +
+                "failing closed to prevent accidental premium bypass. " +
+                "Check EXPO_PUBLIC_REVENUECAT_API_KEY and billing config."
+            );
+            setRcValidationStatus("error");
+            return;
+          }
+
+          logger.log("[Billing] Provider is none — dev bypass, granting access");
+          setRcValidationStatus("active");
+          return;
+        }
+
+        // Sync current entitlement state immediately after init.
+        // syncFromEntitlement will set rcValidationStatus to "active" or "inactive".
         provider
           .getEntitlements()
           .then(syncFromEntitlement)
           .catch((err) => {
+            // RC check failed — fail closed: user goes to paywall until next session
+            // resolves cleanly or they restore purchases manually.
+            logger.warn("[Billing] getEntitlements failed — setting error status", err);
+            setRcValidationStatus("error");
             reportError(err, {
               area: "billing",
               action: "getEntitlements_postInit",
               provider: "revenuecat",
             });
           });
-        // Listen for real-time changes (renewals, expirations, new purchases)
+
+        // Listen for real-time changes (renewals, expirations, new purchases).
+        // These also update rcValidationStatus via syncFromEntitlement.
         provider.onEntitlementsChanged(syncFromEntitlement);
       })
       .catch((err) => {
-        logger.warn("[Billing] Init failed:", err);
+        // SDK init failed — fail closed.
+        logger.warn("[Billing] Init failed — setting error status:", err);
+        setRcValidationStatus("error");
         reportError(err, {
           area: "billing",
           action: "initializeBilling",
@@ -258,7 +326,36 @@ function BillingGate({ children }: { children: React.ReactNode }) {
   //   This pull-sync ensures the DB reflects reality on every login.
   useEffect(() => {
     const provider = getBillingProvider();
+    if (authLoading) {
+      if (__DEV__) {
+        console.log("[AuthCleanupDecision]", {
+          area: "billing",
+          authBootstrapReady: false,
+          authLoading: true,
+          hasSession: Boolean(user?.id),
+          userId: user?.id ?? null,
+          didRcLogOut: false,
+          reason: "defer_revenuecat_logOut_until_auth_resolves",
+        });
+      }
+      return;
+    }
+
     if (user?.id) {
+      // Crash isolation: skip every account-hydration side effect (RC.logIn,
+      // sync-entitlement RPC, retry timers) before we touch the network.
+      // The base provider is already initialised in the effect above and the
+      // cached customerInfo carries the entitlement state, so access gating
+      // remains accurate without re-identifying.
+      if (FOOD_LOG_SAFE_MODE) {
+        if (__DEV__) {
+          console.log(
+            "[AccountHydration] disabled_food_log_safe_mode (skip rc.logIn + sync-entitlement)"
+          );
+        }
+        return;
+      }
+
       // Keep a ref to syncFromServer that's stable inside this closure
       const applyServerData = (data: {
         isPro: boolean;
@@ -344,25 +441,48 @@ function BillingGate({ children }: { children: React.ReactNode }) {
             userId: user.id,
           });
         })
-        .finally(invokeSync);
+        .finally(() => {
+          if (FOOD_LOG_SAFE_MODE) {
+            if (__DEV__) {
+              console.log("[AccountHydration] disabled_food_log_safe_mode");
+            }
+            return;
+          }
+          invokeSync();
+        });
     } else {
+      if (__DEV__) {
+        console.log("[AuthCleanupDecision]", {
+          area: "billing",
+          authBootstrapReady: true,
+          authLoading: false,
+          hasSession: false,
+          userId: null,
+          didRcLogOut: true,
+          reason: "signed_out_confirmed_rc_logOut",
+        });
+      }
       provider.logOut?.();
     }
-  }, [user?.id, syncFromServer]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.id, authLoading, syncFromServer]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <>{children}</>;
 }
 
-interface CaloricProvidersProps {
+interface CalCutProvidersProps {
   children: React.ReactNode;
   testID?: string;
 }
 
 /**
- * Root provider that wraps all Caloric providers
- * Use this at the root of your app
+ * Root provider that wraps infrastructure and feature providers.
+ * Use at the root of the app.
  */
-export function CaloricProviders({ children, testID }: CaloricProvidersProps) {
+export function CalCutProviders({ children, testID }: CalCutProvidersProps) {
+  useEffect(() => {
+    void logLastCrashMarkersOnBoot();
+  }, []);
+
   // Initialize cross-cutting infrastructure on mount
   useEffect(() => {
     // Wire up the ErrorReporter singleton to the Sentry SDK that was init'd
@@ -373,11 +493,15 @@ export function CaloricProviders({ children, testID }: CaloricProvidersProps) {
     MaterialCommunityIcons.loadFont().catch(() => {});
 
     initAnalytics();
-    preloadExperimentAssignments();
+    if (!FOOD_LOG_SAFE_MODE) {
+      preloadExperimentAssignments();
+    }
     initGrowth();
     initHaptics();
     initNotifications();
-    rescheduleRemindersIfEnabled();
+    if (!FOOD_LOG_SAFE_MODE) {
+      rescheduleRemindersIfEnabled();
+    }
     initI18n();
     initFoodRegion();
     initPresence();
@@ -385,7 +509,7 @@ export function CaloricProviders({ children, testID }: CaloricProvidersProps) {
     initLiveActivity();
     initMaintenance();
 
-    if (__DEV__) {
+    if (__DEV__ && !FOOD_LOG_SAFE_MODE) {
       const cfg = getAppConfig();
       analytics.track("app_booted", { profile: cfg.profile });
       growth.track("growth_booted", { profile: cfg.profile });
@@ -406,7 +530,10 @@ export function CaloricProviders({ children, testID }: CaloricProvidersProps) {
                         <BottomSheetModalProvider>
                           <BottomSheetProvider isRoot>
                             <NotificationToastProvider>
-                              {children}
+                              <>
+                                {children}
+                                <DeleteAccountDialogHost />
+                              </>
                             </NotificationToastProvider>
                           </BottomSheetProvider>
                         </BottomSheetModalProvider>

@@ -5,3 +5,13 @@ verify_jwt = false
 
 [functions.sync-entitlement]
 verify_jwt = false
+
+# RevenueCat cannot send a Supabase JWT; verify Authorization inside the function.
+#
+# IMPORTANT: Remote projects often keep JWT verification ON until you deploy
+# this function with the CLI flag once. If RevenueCat shows
+# UNAUTHORIZED_INVALID_JWT_FORMAT, run:
+#   npx supabase functions deploy revenuecat-webhook --no-verify-jwt
+# (config.toml + redeploy alone is not always enough for already-published functions.)
+[functions.revenuecat-webhook]
+verify_jwt = false

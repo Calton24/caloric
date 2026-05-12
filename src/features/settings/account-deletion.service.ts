@@ -17,8 +17,8 @@
 
 import { analytics } from "../../infrastructure/analytics";
 import { reportError } from "../../infrastructure/errorReporting";
-import { getStorage } from "../../infrastructure/storage";
 import { getSupabaseClient } from "../../lib/supabase/client";
+import { resetClientStoresAfterAccountDeletion } from "../account/reset-client-stores-after-account-deletion";
 
 /**
  * Delete the user's account and all associated data.
@@ -70,9 +70,7 @@ export async function deleteUserAccount(): Promise<{
       return { success: false, error: error.message };
     }
 
-    // Clear local storage
-    const storage = getStorage();
-    await storage.clear();
+    await resetClientStoresAfterAccountDeletion(user.id);
 
     // Reset analytics
     analytics.reset();

@@ -1,5 +1,5 @@
 {
-  "name": "caloric",
+    "name": "calcut",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
@@ -38,7 +38,8 @@
     "i18n:audit": "node scripts/i18n-audit.js",
     "test:i18n": "jest __tests__/i18n-switching.test.ts __tests__/i18n-runtime-stale.test.ts --no-coverage",
     "prepare": "husky",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "supabase:deploy:revenuecat-webhook": "npx supabase functions deploy revenuecat-webhook --no-verify-jwt"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
@@ -68,6 +69,7 @@
     "expo-device": "~55.0.15",
     "expo-file-system": "~55.0.16",
     "expo-font": "~55.0.6",
+    "expo-glass-effect": "~55.0.10",
     "expo-haptics": "~55.0.14",
     "expo-image": "~55.0.8",
     "expo-image-manipulator": "~55.0.15",

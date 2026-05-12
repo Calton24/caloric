@@ -1,4 +1,4 @@
-# Threat Model: Caloric
+# Threat Model: CalCut
 
 > **Purpose:** Define what attackers want, where they can touch the system, and
 > what "catastrophic" looks like. This is the reference for prioritizing

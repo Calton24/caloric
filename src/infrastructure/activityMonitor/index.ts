@@ -9,7 +9,7 @@ export {
     setActivityMonitorClient
 } from "./activityMonitor";
 
-// ── Bootstrap (called once in CaloricProviders) ──
+// ── Bootstrap (called once in CalCutProviders) ──
 export { initActivityMonitor, resetActivityMonitor } from "./factory";
 
 // ── Store (for dev panels) ──

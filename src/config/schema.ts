@@ -199,7 +199,10 @@ export const AppMetadataSchema = z.object({
   version: z
     .string()
     .regex(/^\d+\.\d+\.\d+$/, "Version must be semver (e.g., 1.0.0)"),
-  scheme: z.string().min(1, "App scheme is required"),
+  scheme: z.union([
+    z.string().min(1, "App scheme is required"),
+    z.array(z.string().min(1)).min(1, "At least one scheme is required"),
+  ]),
 });
 
 export const EnvironmentOverridesSchema = z.object({

@@ -1,75 +1,92 @@
 /**
- * Onboarding Step 11 — Entry Paywall (Day 0)
+ * Paywall Screen — three modes share one production-grade layout.
  *
- * Design: Day 1→21 animated progress track at top,
- * interactive feature showcase, Bevel-style pricing, gradient CTA.
+ *   mode=gate        Hard gate (expired trial / no entitlement). No skip, no X.
+ *   mode=upgrade     Settings → Upgrade. Back arrow + close X. Skippable (user already has app access).
+ *   mode=onboarding  Post-auth onboarding step. No X, no skip. Must pay or restore.
+ *
+ * Layout (all modes):
+ *   - Sticky top bar (back ← upgrade only, close × upgrade/onboarding)
+ *   - Hero glow + mode icon (lock / star / flag)
+ *   - Title + subtitle
+ *   - Five-row value list with checkmarks
+ *   - 3 pricing tiles (Monthly / Yearly[best value] / Weekly)
+ *   - Gradient CTA + cancellation fine print
+ *   - Footer icon row (Restore + Manage Account[gate/upgrade] + Privacy + Terms)
+ *   - Below-fold scroll content: "Why go Premium" tiles, single testimonial,
+ *     Secure & Private + 30-Day Guarantee, payment methods, Manage Account card
+ *
+ * Behaviour kept from prior version:
+ *   - RC purchase + analytics, intro eligibility, fallback dev mode,
+ *     CTA copy experiment (`paywall_cta_default_v1`), markPaywallSeen on success.
+ *   - mode=gate and mode=onboarding hide all dismiss paths; users must subscribe or restore.
  */
 
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Dimensions,
-    Image,
-    Pressable,
-    StyleSheet,
-    View,
+  ActivityIndicator,
+  Dimensions,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
 } from "react-native";
 import Animated, {
-    Easing,
-    FadeIn,
-    FadeInDown,
-    FadeInUp,
-    cancelAnimation,
-    runOnJS,
-    useAnimatedStyle,
-    useSharedValue,
-    withDelay,
-    withSequence,
-    withSpring,
-    withTiming,
+  FadeIn,
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-    getPaywallCtaCopy,
-    trackExperimentClick,
-    trackExperimentConversion,
-    trackExperimentExposure,
-    useExperiment,
+  getPaywallCtaCopy,
+  trackExperimentClick,
+  trackExperimentConversion,
+  trackExperimentExposure,
+  useExperiment,
 } from "../../src/experiments";
 import { useAuth } from "../../src/features/auth/useAuth";
-import { buildNewChallenge } from "../../src/features/challenge/challenge.service";
-import { useChallengeStore } from "../../src/features/challenge/challenge.store";
-import { createChallenge } from "../../src/features/challenge/challenge.sync";
-import type { UserChallenge } from "../../src/features/challenge/challenge.types";
 import { useSubscriptionStore } from "../../src/features/subscription/subscription.store";
+import {
+  parsePaywallRouteMode,
+  type PaywallRouteMode,
+} from "../../src/features/subscription/paywall-mode";
 import { useRevenueCat } from "../../src/features/subscription/useRevenueCat";
-import { reportError } from "../../src/infrastructure/errorReporting";
+import {
+  formatStorefrontPriceLabel,
+  getSubscriptionDisplay,
+} from "../../src/lib/billing/subscription-display";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { logger } from "../../src/logging/logger";
+import { safeRouterBack } from "../../src/navigation/safeBack";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
-import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
-import { OnboardingBackground } from "./_background";
+import { OnboardingBackground } from "../../src/features/onboarding/components/OnboardingBackground";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const PRIVACY_URL = "https://caloric-sage.vercel.app/privacy";
+const TERMS_URL = "https://caloric-sage.vercel.app/terms";
 
 // ── Pricing helpers ────────────────────────────────────────────────────────
 
-type TierKey = "monthly" | "yearly" | "other";
+type TierKey = "weekly" | "monthly" | "yearly" | "other";
+const TIER_ORDER: TierKey[] = ["monthly", "yearly", "weekly"];
 
 function getTierKey(pkg: any): TierKey {
   const id = pkg.identifier ?? "";
   const type = pkg.packageType ?? "";
+  if (type === "WEEKLY" || id === "$rc_weekly") return "weekly";
   if (type === "MONTHLY" || id === "$rc_monthly") return "monthly";
   if (type === "ANNUAL" || id === "$rc_annual") return "yearly";
   return "other";
 }
-
-const TIER_ORDER: TierKey[] = ["monthly", "yearly"];
 
 function getTierLabel(tier: TierKey, t: (key: string) => string): string {
   switch (tier) {
@@ -77,1268 +94,1255 @@ function getTierLabel(tier: TierKey, t: (key: string) => string): string {
       return t("settings.monthly");
     case "yearly":
       return t("settings.yearly");
+    case "weekly":
+      return t("settings.weekly");
     default:
       return t("settings.plan");
   }
 }
 
-// ── Feature showcase data ───────────────────────────────────────────────────
-
-const FEATURES = [
-  {
-    emoji: "📸",
-    titleKey: "paywall.featureSnapLog",
-    subtitleKey: "paywall.featureSnapLogSub",
-    accent: "#34D399",
-  },
-  {
-    emoji: "",
-    icon: "trending-up" as const,
-    titleKey: "paywall.featureSmartTrends",
-    subtitleKey: "paywall.featureSmartTrendsSub",
-    accent: "#60A5FA",
-  },
-  {
-    emoji: "🏆",
-    titleKey: "paywall.feature21Day",
-    subtitleKey: "paywall.feature21DaySub",
-    accent: "#FBBF24",
-  },
-];
-
-// ── Testimonials ───────────────────────────────────────────────────────────
-
-const TESTIMONIALS = [
-  {
-    nameKey: "paywall.testimonial1Author",
-    textKey: "paywall.testimonial1",
-    rating: 5,
-  },
-  {
-    nameKey: "paywall.testimonial2Author",
-    textKey: "paywall.testimonial2",
-    rating: 5,
-  },
-  {
-    nameKey: "paywall.testimonial3Author",
-    textKey: "paywall.testimonial3",
-    rating: 5,
-  },
-  {
-    nameKey: "paywall.testimonial4Author",
-    textKey: "paywall.testimonial4",
-    rating: 5,
-  },
-  {
-    nameKey: "paywall.testimonial5Author",
-    textKey: "paywall.testimonial5",
-    rating: 5,
-  },
-  {
-    nameKey: "paywall.testimonial6Author",
-    textKey: "paywall.testimonial6",
-    rating: 5,
-  },
-];
-
-function TestimonialCarousel({
-  textColor,
-  secondaryColor,
-  primaryColor,
-}: {
-  textColor: string;
-  secondaryColor: string;
-  primaryColor: string;
-}) {
-  const { t } = useAppTranslation();
-  const [activeIdx, setActiveIdx] = useState(0);
-  const opacity = useSharedValue(1);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      opacity.value = withSequence(
-        withTiming(0, { duration: 200 }),
-        withTiming(1, { duration: 300 })
-      );
-      setActiveIdx((prev) => (prev + 1) % TESTIMONIALS.length);
-    }, 4000);
-
-    return () => clearInterval(interval);
-  }, [opacity]);
-
-  const fadeStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
-
-  const testimonial = TESTIMONIALS[activeIdx];
-
-  return (
-    <GlassSurface
-      variant="card"
-      intensity="light"
-      style={{
-        borderRadius: 16,
-        padding: 16,
-        minHeight: 100,
-      }}
-    >
-      <Animated.View style={fadeStyle}>
-        <View style={{ flexDirection: "row", marginBottom: 8 }}>
-          {[...Array(testimonial.rating)].map((_, i) => (
-            <TText key={i} style={{ color: primaryColor, fontSize: 14 }}>
-              ★
-            </TText>
-          ))}
-        </View>
-        <TText
-          style={{
-            fontSize: 14,
-            lineHeight: 20,
-            color: textColor,
-            marginBottom: 8,
-            fontStyle: "italic",
-          }}
-        >
-          {`"${t(testimonial.textKey)}"`}
-        </TText>
-        <TText
-          style={{
-            fontSize: 12,
-            fontWeight: "600",
-            color: secondaryColor,
-          }}
-        >
-          — {t(testimonial.nameKey)}
-        </TText>
-      </Animated.View>
-    </GlassSurface>
-  );
+function getTierSuffix(tier: TierKey, t: (key: string) => string): string {
+  switch (tier) {
+    case "monthly":
+      return t("paywall.monthSuffix");
+    case "yearly":
+      return t("paywall.yearSuffix");
+    case "weekly":
+      return t("paywall.weekSuffix");
+    default:
+      return "";
+  }
 }
 
-// ── Day 1→21 looping progress track ────────────────────────────────────────
+// ── Mode → header config ──────────────────────────────────────────────────
 
-const MILESTONES = [1, 7, 14, 21];
-const TOTAL_DAYS = 21;
-const TRACK_PADDING = 32;
-const MILESTONE_SIZE = 20;
-const MILESTONE_WRAP_WIDTH = 48;
+type ModeConfig = {
+  icon: keyof typeof Ionicons.glyphMap;
+  iconColor: string;
+  iconHaloColor: string;
+  titleKey: string;
+  subtitleKey: string;
+  showBack: boolean;
+  showClose: boolean;
+  showManageAccountFooter: boolean;
+};
 
-function DayProgressTrack({ primaryColor }: { primaryColor: string }) {
-  const { t } = useAppTranslation();
-  const trackWidth = SCREEN_WIDTH - TRACK_PADDING * 2;
-  const fillProgress = useSharedValue(0);
-  const [reachedDay, setReachedDay] = useState(0);
-
-  useEffect(() => {
-    const stops = MILESTONES.map((d) => (d - 1) / (TOTAL_DAYS - 1));
-    const segDurations = [1200, 1400, 1600, 1800];
-
-    const runLoop = () => {
-      fillProgress.value = 0;
-      runOnJS(setReachedDay)(0);
-
-      fillProgress.value = withSequence(
-        withTiming(stops[0], {
-          duration: segDurations[0],
-          easing: Easing.out(Easing.cubic),
-        }),
-        withDelay(
-          300,
-          withTiming(stops[1], {
-            duration: segDurations[1],
-            easing: Easing.inOut(Easing.cubic),
-          })
-        ),
-        withDelay(
-          300,
-          withTiming(stops[2], {
-            duration: segDurations[2],
-            easing: Easing.inOut(Easing.cubic),
-          })
-        ),
-        withDelay(
-          300,
-          withTiming(stops[3], {
-            duration: segDurations[3],
-            easing: Easing.inOut(Easing.cubic),
-          })
-        ),
-        withDelay(
-          1500,
-          withTiming(0, { duration: 600, easing: Easing.in(Easing.cubic) })
-        )
-      );
+function getModeConfig(
+  mode: PaywallRouteMode,
+  primaryColor: string,
+): ModeConfig {
+  if (mode === "gate") {
+    return {
+      icon: "lock-closed",
+      iconColor: primaryColor,
+      iconHaloColor: primaryColor,
+      titleKey: "paywall.headerGate",
+      subtitleKey: "paywall.headerGateSub",
+      showBack: false,
+      showClose: false,
+      showManageAccountFooter: true,
     };
-
-    const startTimer = setTimeout(runLoop, 600);
-    const loopTimer = setInterval(runLoop, 10200);
-
-    return () => {
-      clearTimeout(startTimer);
-      clearInterval(loopTimer);
-      cancelAnimation(fillProgress);
+  }
+  if (mode === "upgrade") {
+    return {
+      icon: "star",
+      iconColor: "#FBBF24",
+      iconHaloColor: "#FBBF24",
+      titleKey: "paywall.headerUpgrade",
+      subtitleKey: "paywall.headerUpgradeSub",
+      showBack: true,
+      showClose: true,
+      showManageAccountFooter: true,
     };
-  }, [fillProgress]);
+  }
+  return {
+    icon: "flag",
+    iconColor: primaryColor,
+    iconHaloColor: primaryColor,
+    titleKey: "paywall.headerOnboarding",
+    subtitleKey: "paywall.headerOnboardingSub",
+    showBack: false,
+    showClose: false,
+    showManageAccountFooter: false,
+  };
+}
 
-  // Track reached milestones for visual feedback
-  useEffect(() => {
-    const stops = MILESTONES.map((d) => (d - 1) / (TOTAL_DAYS - 1));
-    const interval = setInterval(() => {
-      const pct = fillProgress.value;
-      let reached = 0;
-      for (let i = 0; i < stops.length; i++) {
-        if (pct >= stops[i] - 0.01) reached = i + 1;
-      }
-      setReachedDay(reached);
-    }, 100);
-    return () => clearInterval(interval);
-  }, [fillProgress]);
+// ── Subcomponents ─────────────────────────────────────────────────────────
 
-  const fillStyle = useAnimatedStyle(() => ({
-    width: fillProgress.value * trackWidth,
-  }));
-
+function ValueRow({
+  textColor,
+  primaryColor,
+  label,
+}: {
+  textColor: string;
+  primaryColor: string;
+  label: string;
+}) {
   return (
-    <Animated.View entering={FadeIn.duration(600).delay(200)}>
-      <View style={trackStyles.container}>
-        <View
-          style={[
-            trackStyles.track,
-            { backgroundColor: primaryColor + "20", width: trackWidth },
-          ]}
-        >
-          <Animated.View
-            style={[
-              trackStyles.fill,
-              fillStyle,
-              { backgroundColor: primaryColor },
-            ]}
-          />
-          <Animated.View
-            style={[
-              trackStyles.fill,
-              trackStyles.fillGlow,
-              fillStyle,
-              { backgroundColor: primaryColor + "60" },
-            ]}
-          />
-        </View>
-
-        <View style={[trackStyles.markersRow, { width: trackWidth }]}>
-          {MILESTONES.map((day, idx) => {
-            const pct = (day - 1) / (TOTAL_DAYS - 1);
-            const isReached = idx < reachedDay;
-            return (
-              <View
-                key={day}
-                style={[
-                  trackStyles.milestoneWrap,
-                  {
-                    left:
-                      pct * (trackWidth - MILESTONE_SIZE) -
-                      (MILESTONE_WRAP_WIDTH - MILESTONE_SIZE) / 2,
-                  },
-                ]}
-              >
-                <View
-                  style={[
-                    trackStyles.milestoneDot,
-                    {
-                      backgroundColor: isReached
-                        ? primaryColor
-                        : primaryColor + "25",
-                      borderColor: isReached
-                        ? primaryColor
-                        : primaryColor + "40",
-                    },
-                  ]}
-                >
-                  {isReached && (
-                    <Ionicons name="checkmark" size={10} color="#fff" />
-                  )}
-                </View>
-                <TText
-                  style={[
-                    trackStyles.milestoneLabel,
-                    {
-                      color: isReached
-                        ? primaryColor
-                        : "rgba(255,255,255,0.40)",
-                      fontWeight: isReached ? "700" : "500",
-                    },
-                  ]}
-                >
-                  {t("dayJourney.dayBadge", { day })}
-                </TText>
-              </View>
-            );
-          })}
-        </View>
+    <View style={styles.valueRow}>
+      <View
+        style={[
+          styles.valueCheckBubble,
+          { backgroundColor: primaryColor + "1F" },
+        ]}
+      >
+        <Ionicons name="checkmark" size={14} color={primaryColor} />
       </View>
-    </Animated.View>
-  );
-}
-
-const trackStyles = StyleSheet.create({
-  container: { alignItems: "center", paddingVertical: 8 },
-  track: {
-    height: 6,
-    borderRadius: 3,
-    overflow: "hidden",
-    position: "relative",
-  },
-  fill: { position: "absolute", left: 0, top: 0, height: 6, borderRadius: 3 },
-  fillGlow: { top: -2, height: 10, borderRadius: 5, opacity: 0.4 },
-  markersRow: { height: 44, position: "relative", marginTop: 6 },
-  milestoneWrap: {
-    position: "absolute",
-    alignItems: "center",
-    width: MILESTONE_WRAP_WIDTH,
-  },
-  milestoneDot: {
-    width: MILESTONE_SIZE,
-    height: MILESTONE_SIZE,
-    borderRadius: MILESTONE_SIZE / 2,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  milestoneLabel: { fontSize: 10, marginTop: 4, letterSpacing: 0.2 },
-});
-
-// ── Interactive Feature Showcase ───────────────────────────────────────────
-
-function FeatureShowcase({
-  primaryColor,
-  surfaceColor,
-  textColor,
-  secondaryColor,
-  borderColor,
-}: {
-  primaryColor: string;
-  surfaceColor: string;
-  textColor: string;
-  secondaryColor: string;
-  borderColor: string;
-}) {
-  const { t } = useAppTranslation();
-  const [activeIdx, setActiveIdx] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const emojiScale = useSharedValue(1);
-  const textOpacity = useSharedValue(1);
-
-  const startAutoplay = useCallback(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = setInterval(() => {
-      setActiveIdx((prev) => (prev + 1) % FEATURES.length);
-    }, 4000);
-  }, []);
-
-  useEffect(() => {
-    startAutoplay();
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [startAutoplay]);
-
-  // Animate on index change
-  useEffect(() => {
-    emojiScale.value = withSequence(
-      withTiming(0.7, { duration: 120 }),
-      withSpring(1.15, { damping: 6, stiffness: 300 }),
-      withSpring(1, { damping: 10, stiffness: 200 })
-    );
-    textOpacity.value = withSequence(
-      withTiming(0, { duration: 100 }),
-      withTiming(1, { duration: 300 })
-    );
-  }, [activeIdx, emojiScale, textOpacity]);
-
-  const emojiStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: emojiScale.value }],
-  }));
-  const fadeStyle = useAnimatedStyle(() => ({
-    opacity: textOpacity.value,
-  }));
-
-  const feature = FEATURES[activeIdx];
-
-  return (
-    <View
-      style={[
-        showcaseStyles.container,
-        { backgroundColor: "transparent", borderWidth: 0 },
-      ]}
-    >
-      <Animated.View style={[showcaseStyles.emojiWrap, emojiStyle]}>
-        {feature.icon ? (
-          <Ionicons name={feature.icon} size={48} color={feature.accent} />
-        ) : (
-          <TText style={showcaseStyles.emoji}>{feature.emoji}</TText>
-        )}
-      </Animated.View>
-
-      <Animated.View style={fadeStyle}>
-        <TText style={[showcaseStyles.title, { color: textColor }]}>
-          {t(feature.titleKey)}
-        </TText>
-        <TText style={[showcaseStyles.subtitle, { color: secondaryColor }]}>
-          {t(feature.subtitleKey)}
-        </TText>
-      </Animated.View>
+      <TText style={[styles.valueLabel, { color: textColor }]}>{label}</TText>
     </View>
   );
 }
 
-const showcaseStyles = StyleSheet.create({
-  container: {
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    alignItems: "center",
-  },
-  emojiWrap: { marginBottom: 8 },
-  emoji: { fontSize: 36 },
-  dotsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 10,
-  },
-  dot: { height: 8, borderRadius: 4 },
-  title: {
-    fontSize: 16,
-    fontWeight: "700",
-    textAlign: "center",
-    marginBottom: 2,
-  },
-  subtitle: { fontSize: 13, fontWeight: "500", textAlign: "center" },
-});
+function HeroIcon({
+  icon,
+  color,
+  haloColor,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+  haloColor: string;
+}) {
+  const glow = useSharedValue(0.55);
+  useEffect(() => {
+    glow.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 1600 }),
+        withTiming(0.5, { duration: 1600 }),
+      ),
+      -1,
+      true,
+    );
+  }, [glow]);
+  const haloStyle = useAnimatedStyle(() => ({
+    opacity: glow.value,
+    transform: [{ scale: 0.95 + glow.value * 0.1 }],
+  }));
+  return (
+    <View style={styles.heroIconWrap} pointerEvents="none">
+      <Animated.View
+        style={[
+          styles.heroHalo,
+          haloStyle,
+          { backgroundColor: haloColor + "33" },
+        ]}
+      />
+      <Animated.View
+        style={[
+          styles.heroHaloInner,
+          haloStyle,
+          { backgroundColor: haloColor + "1A" },
+        ]}
+      />
+      <View style={[styles.heroIconBubble, { borderColor: color + "55" }]}>
+        <Ionicons name={icon} size={32} color={color} />
+      </View>
+    </View>
+  );
+}
 
-// ── Animated pricing card ──────────────────────────────────────────────────
-
-function SimplePricingButton({
+function PricingTile({
   isSelected,
   onSelect,
   label,
   priceStr,
+  suffix,
   badgeText,
+  caption,
   primaryColor,
-  borderColor,
-  bgColor,
   textColor,
   secondaryColor,
+  borderColor,
 }: {
   isSelected: boolean;
   onSelect: () => void;
   label: string;
   priceStr: string;
+  suffix?: string;
   badgeText?: string;
+  caption?: string;
   primaryColor: string;
-  borderColor: string;
-  bgColor: string;
   textColor: string;
   secondaryColor: string;
+  borderColor: string;
 }) {
   return (
     <Pressable
       onPress={onSelect}
-      style={{
-        flex: 1,
-        height: 80,
-        overflow: "visible",
-      }}
+      style={({ pressed }) => [
+        styles.tile,
+        {
+          borderColor: isSelected ? primaryColor : borderColor + "55",
+          backgroundColor: isSelected
+            ? primaryColor + "12"
+            : "rgba(255,255,255,0.04)",
+          opacity: pressed ? 0.92 : 1,
+        },
+      ]}
+      accessibilityRole="button"
+      accessibilityState={{ selected: isSelected }}
     >
-      {/* Badge OUTSIDE GlassSurface to avoid overflow:hidden clipping */}
-      {badgeText && (
+      {badgeText ? (
         <View
-          style={{
-            position: "absolute",
-            top: -12,
-            left: 0,
-            right: 0,
-            alignItems: "center",
-            zIndex: 20,
-            elevation: 20,
-          }}
+          style={[styles.tileBadge, { backgroundColor: primaryColor }]}
+          pointerEvents="none"
         >
-          <View
-            style={{
-              backgroundColor: primaryColor,
-              paddingHorizontal: 8,
-              paddingVertical: 2,
-              borderRadius: 6,
-            }}
-          >
-            <TText style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>
-              {badgeText}
-            </TText>
-          </View>
+          <TText style={styles.tileBadgeText}>{badgeText}</TText>
         </View>
-      )}
-      <GlassSurface
-        variant="card"
-        intensity={isSelected ? "strong" : "medium"}
-        border={isSelected}
-        style={{
-          flex: 1,
-          borderRadius: 14,
-          borderWidth: isSelected ? 1.5 : 0.5,
-          borderColor: isSelected ? primaryColor : borderColor + "40",
-          paddingHorizontal: 10,
-          paddingVertical: 8,
-          justifyContent: "center",
-        }}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 4,
-          }}
-        >
-          <TText
-            style={{
-              fontSize: 13,
-              fontWeight: "600",
-              color: isSelected ? textColor : secondaryColor,
-            }}
-          >
-            {label}
-          </TText>
-          <Ionicons
-            name={isSelected ? "checkmark-circle" : "ellipse-outline"}
-            size={20}
-            color={isSelected ? primaryColor : secondaryColor + "80"}
-          />
-        </View>
+      ) : null}
+      <View style={styles.tileTopRow}>
         <TText
-          style={{
-            fontSize: 17,
-            fontWeight: "800",
-            color: isSelected ? textColor : secondaryColor,
-          }}
+          style={[
+            styles.tileLabel,
+            { color: isSelected ? textColor : secondaryColor },
+          ]}
+        >
+          {label}
+        </TText>
+        <Ionicons
+          name={isSelected ? "checkmark-circle" : "ellipse-outline"}
+          size={18}
+          color={isSelected ? primaryColor : secondaryColor + "AA"}
+        />
+      </View>
+      <View style={styles.tilePriceRow}>
+        <TText
+          style={[
+            styles.tilePrice,
+            { color: isSelected ? textColor : secondaryColor },
+          ]}
         >
           {priceStr}
         </TText>
-      </GlassSurface>
+        {suffix ? (
+          <TText
+            style={[
+              styles.tileSuffix,
+              { color: isSelected ? secondaryColor : secondaryColor + "AA" },
+            ]}
+          >
+            {suffix}
+          </TText>
+        ) : null}
+      </View>
+      {caption ? (
+        <TText
+          style={[styles.tileCaption, { color: secondaryColor + "CC" }]}
+          numberOfLines={1}
+        >
+          {caption}
+        </TText>
+      ) : null}
     </Pressable>
   );
 }
 
-export default function OnboardingChallengeScreen() {
+function FooterIconButton({
+  icon,
+  label,
+  onPress,
+  color,
+  testID,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+  color: string;
+  testID?: string;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={8}
+      accessibilityRole="link"
+      accessibilityLabel={label}
+      style={styles.footerIconButton}
+      testID={testID}
+    >
+      <Ionicons name={icon} size={18} color={color} />
+      <TText style={[styles.footerIconLabel, { color }]} numberOfLines={2}>
+        {label}
+      </TText>
+    </Pressable>
+  );
+}
+
+function WhyTile({
+  icon,
+  iconColor,
+  title,
+  subtitle,
+  textColor,
+  secondaryColor,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  iconColor: string;
+  title: string;
+  subtitle: string;
+  textColor: string;
+  secondaryColor: string;
+}) {
+  return (
+    <View style={styles.whyRow}>
+      <View
+        style={[styles.whyIconBubble, { backgroundColor: iconColor + "22" }]}
+      >
+        <Ionicons name={icon} size={18} color={iconColor} />
+      </View>
+      <View style={styles.whyTextWrap}>
+        <TText style={[styles.whyTitle, { color: textColor }]}>{title}</TText>
+        <TText style={[styles.whySub, { color: secondaryColor }]}>
+          {subtitle}
+        </TText>
+      </View>
+    </View>
+  );
+}
+
+// ── Main screen ───────────────────────────────────────────────────────────
+
+export default function PaywallScreen() {
   const { theme } = useTheme();
   const { t, language } = useAppTranslation();
   const router = useRouter();
-  const { user } = useAuth();
-  const setChallenge = useChallengeStore((s) => s.setChallenge);
-  const existingChallenge = useChallengeStore((s) => s.challenge);
-  const [isStarting, setIsStarting] = useState(false);
+  const pathname = usePathname();
+  const rawModeParam = useLocalSearchParams<{ mode?: string | string[] }>()
+    .mode;
+
+  const paywallMode = parsePaywallRouteMode(rawModeParam);
+  const isGateMode = paywallMode === "gate";
+  const isUpgradeMode = paywallMode === "upgrade";
+  const isOnboardingMode = paywallMode === "onboarding";
+
+  const modeCfg = useMemo(
+    () => getModeConfig(paywallMode, theme.colors.primary),
+    [paywallMode, theme.colors.primary],
+  );
+
+  const { user: _user } = useAuth();
   const [isPurchasing, setIsPurchasing] = useState(false);
   const {
     restorePurchases,
     packages,
     purchasePackage,
     isLoadingOfferings,
+    fetchOfferings,
     offerings,
     activeOffering,
   } = useRevenueCat();
   const markPaywallSeen = useSubscriptionStore((s) => s.markPaywallSeen);
 
-  const [selectedPkg, setSelectedPkg] = useState<string | null>(null);
-
-  // A/B experiment: paywall CTA copy (ctaDefault only, not ctaYearly)
-  const ctaVariant = useExperiment("paywall_cta_default_v1");
-  const locale = language;
-  const paywallExposureTracked = useRef(false);
-
-  // Track exposure once per component mount (i.e., once per screen visit).
-  // useRef survives rerenders but resets on remount — this is intentional:
-  // navigating away and back counts as a new exposure (standard behavior).
+  // Diagnostics
   useEffect(() => {
-    if (ctaVariant && !paywallExposureTracked.current) {
-      paywallExposureTracked.current = true;
+    if (!__DEV__) return;
+    logger.log("[Paywall] boot", {
+      pathname,
+      paywallMode,
+      pkgs: offerings?.current?.availablePackages?.length ?? null,
+      validation:
+        useSubscriptionStore.getState().rcValidationStatus ?? null,
+    });
+  }, [pathname, paywallMode, offerings?.current?.availablePackages?.length]);
+
+  // CTA experiment exposure
+  const ctaVariant = useExperiment("paywall_cta_default_v1");
+  const exposureTracked = useRef(false);
+  useEffect(() => {
+    if (ctaVariant && !exposureTracked.current) {
+      exposureTracked.current = true;
       trackExperimentExposure({
         experiment: "paywall_cta_default_v1",
         variant: ctaVariant,
-        locale,
+        locale: language,
         screen: "paywall",
       });
     }
-  }, [ctaVariant, locale]);
+  }, [ctaVariant, language]);
 
-  // Get CTA copy: experiment variant for ctaDefault, translation for ctaYearly
-  const getCtaCopy = (tier: TierKey) => {
-    if (tier === "yearly") {
-      return t("paywall.ctaYearly");
-    }
-    return ctaVariant
-      ? getPaywallCtaCopy(locale, ctaVariant)
-      : t("paywall.ctaDefault");
-  };
+  const [selectedPkgId, setSelectedPkgId] = useState<string | null>(null);
 
-  // Sort packages by tier order
-  const sorted = [...(packages ?? [])].sort((a, b) => {
-    const ai = TIER_ORDER.indexOf(getTierKey(a));
-    const bi = TIER_ORDER.indexOf(getTierKey(b));
-    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-  });
-
-  // Auto-select yearly
-  const effectiveSelection =
-    selectedPkg ??
-    sorted.find((p) => getTierKey(p) === "yearly")?.identifier ??
-    sorted[0]?.identifier;
-
-  // Get selected package price for CTA
-  const selectedProduct = sorted.find(
-    (p) => p.identifier === effectiveSelection
+  const sorted = useMemo(
+    () =>
+      [...(packages ?? [])].sort((a: any, b: any) => {
+        const ai = TIER_ORDER.indexOf(getTierKey(a));
+        const bi = TIER_ORDER.indexOf(getTierKey(b));
+        return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+      }),
+    [packages],
   );
-  const selectedPrice = selectedProduct
-    ? ((selectedProduct.product ?? selectedProduct.storeProduct)?.priceString ??
-      "")
-    : "";
-  const selectedTier = selectedProduct ? getTierKey(selectedProduct) : "yearly";
+
+  const effectiveSelection =
+    selectedPkgId ??
+    sorted.find((p: any) => getTierKey(p) === "yearly")?.identifier ??
+    sorted[0]?.identifier;
+  const selectedProduct = sorted.find(
+    (p: any) => p.identifier === effectiveSelection,
+  );
+  const selectedTier: TierKey = selectedProduct
+    ? getTierKey(selectedProduct)
+    : "yearly";
   const hasProducts = (offerings?.current?.availablePackages?.length ?? 0) > 0;
-  const trialUsed = !!existingChallenge;
+
+  // Dev fallback: only allowed in non-prod / non-staging dev builds.
   const allowProdFallback =
+    !isGateMode &&
+    !isUpgradeMode &&
+    __DEV__ &&
+    process.env.EXPO_PUBLIC_APP_ENV !== "production" &&
+    process.env.EXPO_PUBLIC_APP_ENV !== "staging" &&
     process.env.EXPO_PUBLIC_ALLOW_PAYWALL_FALLBACK === "true";
-  const isDevBypass = __DEV__;
-  const isFallbackMode = isDevBypass || (!hasProducts && allowProdFallback);
-  const fallbackTitle = "Finalizing subscriptions";
-  const fallbackSubtitle = "You're early - full access unlocked";
-  const fallbackCta = "Continue";
+  const isFallbackMode = allowProdFallback && !hasProducts;
 
-  useEffect(() => {
-    if (!__DEV__) return;
-    console.log("[Paywall] state", {
-      hasProducts,
-      trialUsed,
-      allowProdFallback,
-      activeOfferingKey:
-        activeOffering?.identifier ?? offerings?.current?.identifier ?? null,
-    });
-    if (isDevBypass) {
-      console.log("[Paywall] DEV bypass activated");
+  /** No packages from RC (after load or on error) — CTA must not stay disabled with misleading copy. */
+  const noPackagesLoaded =
+    !isFallbackMode && sorted.length === 0;
+
+  // Compute fine-print under CTA based on selected tier.
+  const ctaFinePrint = useMemo(() => {
+    if (!selectedProduct) return null;
+    const product = selectedProduct.product ?? selectedProduct.storeProduct;
+    if (selectedTier === "yearly") {
+      const display = getSubscriptionDisplay("yearly", product, {
+        t,
+        locale: language,
+      });
+      const monthly = display.yearlyPlanCardCaption?.replace("/mo", "");
+      if (monthly) {
+        return t("paywall.billedAnnually", { price: monthly });
+      }
+      return display.footerText;
     }
-  }, [
-    activeOffering?.identifier,
-    allowProdFallback,
-    hasProducts,
-    isDevBypass,
-    offerings?.current?.identifier,
-    offerings,
-    trialUsed,
-  ]);
+    if (selectedTier === "weekly") {
+      return t("paywall.billedWeekly", {
+        price: formatStorefrontPriceLabel(product),
+      });
+    }
+    if (selectedTier === "monthly") {
+      return t("paywall.billedMonthly", {
+        price: formatStorefrontPriceLabel(product),
+      });
+    }
+    return getSubscriptionDisplay(
+      selectedTier === "other" ? "yearly" : selectedTier,
+      product,
+      { t, locale: language },
+    ).footerText;
+  }, [language, selectedProduct, selectedTier, t]);
 
-  // ── Subscribe: purchase selected plan via RevenueCat ──
-  const handleSubscribe = async () => {
+  const ctaCopy = useMemo(() => {
+    if (selectedTier === "yearly") return t("paywall.ctaYearly");
+    return ctaVariant
+      ? getPaywallCtaCopy(language, ctaVariant)
+      : t("paywall.ctaDefault");
+  }, [ctaVariant, language, selectedTier, t]);
+
+  // ── Actions ────────────────────────────────────────────────────────────
+
+  const closePaywall = useCallback(() => {
+    if (isOnboardingMode) {
+      router.push("/(onboarding)/complete" as any);
+      return;
+    }
+    safeRouterBack(router, "/(tabs)", "paywall_close");
+  }, [isOnboardingMode, router]);
+
+  const goBack = useCallback(() => {
+    safeRouterBack(router, "/(tabs)", "paywall_back");
+  }, [router]);
+
+  const handleSubscribe = useCallback(async () => {
     if (isPurchasing || !selectedProduct) return;
-
-    // Track experiment click (only for ctaDefault tier, not yearly)
     if (ctaVariant && selectedTier !== "yearly") {
       trackExperimentClick({
         experiment: "paywall_cta_default_v1",
         variant: ctaVariant,
-        locale,
+        locale: language,
         screen: "paywall",
       });
-    }
-
-    setIsPurchasing(true);
-
-    // Track checkout_started BEFORE calling RevenueCat (fires once per attempt)
-    if (ctaVariant && selectedTier !== "yearly") {
       trackExperimentConversion({
         experiment: "paywall_cta_default_v1",
         variant: ctaVariant,
-        locale,
+        locale: language,
         screen: "paywall",
         conversion: "checkout_started",
       });
     }
-
+    setIsPurchasing(true);
     try {
       const result = await purchasePackage(selectedProduct);
       if (result) {
-        // Track experiment conversion (only for ctaDefault tier)
         if (ctaVariant && selectedTier !== "yearly") {
-          // Extract revenue data from the product (catalog price, not transaction)
           const product =
             selectedProduct.product ?? selectedProduct.storeProduct;
-          const revenue = product?.price;
-          const currency = product?.currencyCode;
-
           trackExperimentConversion({
             experiment: "paywall_cta_default_v1",
             variant: ctaVariant,
-            locale,
+            locale: language,
             screen: "paywall",
             conversion: "purchase_completed",
-            revenue,
-            currency,
+            revenue: product?.price,
+            currency: product?.currencyCode,
           });
         }
-        // Purchase succeeded → advance to complete
         markPaywallSeen();
-        router.push("/(onboarding)/complete" as any);
+        if (isUpgradeMode) {
+          router.replace("/(tabs)" as any);
+        } else {
+          router.push("/(onboarding)/complete" as any);
+        }
       }
     } finally {
       setIsPurchasing(false);
     }
-  };
+  }, [
+    ctaVariant,
+    isPurchasing,
+    isUpgradeMode,
+    language,
+    markPaywallSeen,
+    purchasePackage,
+    router,
+    selectedProduct,
+    selectedTier,
+  ]);
 
-  // ── Free 21-day challenge (no purchase) ──
-  const handleStartChallenge = async () => {
-    if (isStarting) return;
-
-    // Track as paywall_skipped — user chose free path over subscription
-    if (ctaVariant) {
-      trackExperimentConversion({
-        experiment: "paywall_cta_default_v1",
-        variant: ctaVariant,
-        locale,
-        screen: "paywall",
-        conversion: "paywall_skipped",
+  const openLegal = useCallback(
+    (url: string, title: string) => {
+      router.push({
+        pathname: "/(modals)/web-viewer",
+        params: {
+          url: encodeURIComponent(url),
+          title: encodeURIComponent(title),
+        },
       });
-    }
+    },
+    [router],
+  );
 
-    setIsStarting(true);
+  const openManageAccount = useCallback(() => {
+    router.push({ pathname: "/(modals)/manage-account" });
+  }, [router]);
 
-    try {
-      if (existingChallenge) {
-        router.push("/(onboarding)/complete" as any);
-        return;
-      }
-
-      const userId = user?.id;
-      const now = new Date().toISOString();
-      const partial = buildNewChallenge(userId ?? "local");
-      const id = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
-        /[xy]/g,
-        (c) => {
-          const r = (Math.random() * 16) | 0;
-          return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
-        }
-      );
-      const challenge: UserChallenge = {
-        ...partial,
-        id,
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      setChallenge(challenge);
-      markPaywallSeen();
-
-      createChallenge(challenge).catch((e) => {
-        logger.warn("[Challenge] Supabase insert failed:", e);
-        reportError(e, {
-          area: "billing",
-          action: "handleStartChallenge_createChallenge",
-          screen: "paywall",
-          provider: "supabase",
-          userId: userId ?? undefined,
-          extra: { challengeId: challenge.id },
-        });
-      });
-
-      router.push("/(onboarding)/complete" as any);
-    } finally {
-      setIsStarting(false);
-    }
-  };
+  // ── Render ─────────────────────────────────────────────────────────────
 
   return (
     <OnboardingBackground>
-      {/* ══ HERO IMAGE ══ */}
-      <View style={styles.heroContainer}>
-        <Image
-          source={require("../../assets/images/paywall-hero.jpg")}
-          style={styles.heroImage}
-          resizeMode="cover"
-        />
-        {/* Gradient overlay for smooth fade */}
-        <LinearGradient
-          colors={[
-            "rgba(0,0,0,0.3)",
-            "rgba(0,0,0,0.5)",
-            "rgba(0,0,0,0.8)",
-            theme.colors.background,
-          ]}
-          style={styles.heroOverlay}
-        />
-      </View>
+      <View style={styles.container}>
+        {/* Sticky top bar */}
+        <SafeAreaView edges={["top"]} style={styles.topBarSafe}>
+          <View style={styles.topBar}>
+            {modeCfg.showBack ? (
+              <Pressable
+                onPress={goBack}
+                hitSlop={12}
+                accessibilityRole="button"
+                accessibilityLabel={t("common.back")}
+                testID="paywall-back"
+              >
+                <Ionicons
+                  name="chevron-back"
+                  size={26}
+                  color={theme.colors.text}
+                />
+              </Pressable>
+            ) : (
+              <View style={styles.topBarSpacer} />
+            )}
+            {modeCfg.showClose ? (
+              <Pressable
+                onPress={closePaywall}
+                hitSlop={12}
+                accessibilityRole="button"
+                accessibilityLabel={t("paywall.skip")}
+                testID="paywall-close"
+              >
+                <Ionicons name="close" size={26} color={theme.colors.text} />
+              </Pressable>
+            ) : (
+              <View style={styles.topBarSpacer} />
+            )}
+          </View>
+        </SafeAreaView>
 
-      {/* ══ TOP — gradient + headline + progress track ══ */}
-      <LinearGradient
-        colors={[
-          theme.colors.primary + "30",
-          theme.colors.accent + "12",
-          theme.colors.background,
-        ]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.topGradient}
-      >
-        <SafeAreaView edges={["top"]}>
-          <Animated.View entering={FadeInDown.duration(600).delay(100)}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          bounces
+        >
+          {/* Hero icon */}
+          <Animated.View entering={FadeIn.duration(500)}>
+            <HeroIcon
+              icon={modeCfg.icon}
+              color={modeCfg.iconColor}
+              haloColor={modeCfg.iconHaloColor}
+            />
+          </Animated.View>
+
+          {/* Title + subtitle */}
+          <Animated.View entering={FadeInDown.duration(500).delay(80)}>
             <TText
               variant="heading"
-              style={[styles.headline, { color: theme.colors.text }]}
+              style={[styles.title, { color: theme.colors.text }]}
             >
-              {t("paywall.challengeHeading")}
+              {t(modeCfg.titleKey)}
             </TText>
             <TText
-              style={[
-                styles.subheadline,
-                { color: theme.colors.textSecondary },
-              ]}
+              style={[styles.subtitle, { color: theme.colors.textSecondary }]}
             >
-              {t("paywall.challengeSubheading")}
+              {t(modeCfg.subtitleKey)}
             </TText>
           </Animated.View>
 
-          <TSpacer size="xs" />
-          <DayProgressTrack primaryColor={theme.colors.primary} />
-          <TSpacer size="xs" />
-        </SafeAreaView>
-      </LinearGradient>
-
-      {/* ══ MIDDLE — challenge → movement (subtle) → testimonial ══ */}
-      <View style={styles.middleArea}>
-        <Animated.View entering={FadeInDown.duration(500).delay(400)}>
-          <FeatureShowcase
-            primaryColor={theme.colors.primary}
-            surfaceColor={theme.colors.surface}
-            textColor={theme.colors.text}
-            secondaryColor={theme.colors.textSecondary}
-            borderColor={theme.colors.border}
-          />
-        </Animated.View>
-
-        <TSpacer size="xs" />
-
-        {/* Testimonial first — social proof before ask */}
-        <Animated.View
-          entering={FadeInDown.duration(500).delay(460)}
-          style={{ width: "100%" }}
-        >
-          <TestimonialCarousel
-            textColor={theme.colors.text}
-            secondaryColor={theme.colors.textSecondary}
-            primaryColor={theme.colors.primary}
-          />
-        </Animated.View>
-
-        <TSpacer size="xs" />
-
-        {/* Movement card — subtle, below social proof */}
-        <Animated.View entering={FadeInDown.duration(500).delay(520)}>
-          <GlassSurface
-            variant="card"
-            intensity="medium"
-            style={styles.movementCard}
+          {/* Value list */}
+          <Animated.View
+            entering={FadeInDown.duration(500).delay(160)}
+            style={[
+              styles.valueCard,
+              { backgroundColor: theme.colors.surfaceSecondary + "AA" },
+            ]}
           >
-            <View style={styles.movementRow}>
-              <TText style={styles.movementFire}>🔥</TText>
-              <View style={styles.movementTextBlock}>
+            <ValueRow
+              label={t("paywall.valueAi")}
+              textColor={theme.colors.text}
+              primaryColor={theme.colors.primary}
+            />
+            <ValueRow
+              label={t("paywall.valueGoals")}
+              textColor={theme.colors.text}
+              primaryColor={theme.colors.primary}
+            />
+            <ValueRow
+              label={t("paywall.valueTrends")}
+              textColor={theme.colors.text}
+              primaryColor={theme.colors.primary}
+            />
+            <ValueRow
+              label={t("paywall.valueStreaks")}
+              textColor={theme.colors.text}
+              primaryColor={theme.colors.primary}
+            />
+            {!isUpgradeMode ? (
+              <ValueRow
+                label={t("paywall.valueSupport")}
+                textColor={theme.colors.text}
+                primaryColor={theme.colors.primary}
+              />
+            ) : null}
+          </Animated.View>
+
+          {/* Pricing tiles */}
+          <Animated.View entering={FadeInDown.duration(500).delay(220)}>
+            {isFallbackMode ? (
+              <View style={styles.fallbackBlock}>
                 <TText
-                  style={[
-                    styles.movementHeadline,
-                    { color: theme.colors.text },
-                  ]}
+                  style={[styles.fallbackTitle, { color: theme.colors.text }]}
                 >
-                  {t("paywall.challengeJoin")}
+                  Finalising subscriptions
                 </TText>
                 <TText
                   style={[
-                    styles.movementSub,
+                    styles.fallbackSub,
                     { color: theme.colors.textSecondary },
                   ]}
                 >
-                  {t("paywall.challengeSocialProof")}
+                  You&apos;re early — full access unlocked.
                 </TText>
               </View>
-            </View>
-            <TText
-              style={[
-                styles.movementHashtag,
-                { color: theme.colors.textMuted },
-              ]}
-            >
-              {t("paywall.shareProgressWith")}{" "}
+            ) : isLoadingOfferings ? (
+              <View style={styles.tilesLoading}>
+                <ActivityIndicator
+                  size="small"
+                  color={theme.colors.primary}
+                />
+              </View>
+            ) : sorted.length === 0 ? (
               <TText
                 style={[
-                  styles.movementHashtagAccent,
-                  { color: theme.colors.primary },
+                  styles.tilesUnavailable,
+                  { color: theme.colors.textSecondary },
                 ]}
               >
-                #21DayCaloric
-              </TText>{" "}
-              {t("paywall.stayAccountable")}
-            </TText>
-          </GlassSurface>
-        </Animated.View>
-      </View>
-
-      {/* ══ BOTTOM — pricing + CTAs + footer (natural height) ══ */}
-      <Animated.View
-        entering={FadeInUp.duration(500).delay(600)}
-        style={styles.bottomArea}
-      >
-        {isFallbackMode ? (
-          <>
-            <TText
-              variant="heading"
-              style={[styles.fallbackTitle, { color: theme.colors.text }]}
-            >
-              {fallbackTitle}
-            </TText>
-            <TText
-              style={[
-                styles.fallbackSubtitle,
-                { color: theme.colors.textSecondary },
-              ]}
-            >
-              {fallbackSubtitle}
-            </TText>
-            <Pressable
-              testID="fallback-continue-cta"
-              onPress={() => router.replace("/(tabs)")}
-              style={({ pressed }) => ({
-                opacity: pressed ? 0.92 : 1,
-                transform: [{ scale: pressed ? 0.98 : 1 }],
-                width: "100%",
-                marginTop: 10,
-              })}
-            >
-              <LinearGradient
-                colors={[theme.colors.primary, theme.colors.accent]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.ctaButton}
-              >
-                <TText style={styles.ctaText}>{fallbackCta}</TText>
-              </LinearGradient>
-            </Pressable>
-          </>
-        ) : (
-          <>
-        {/* Pricing row */}
-        {isLoadingOfferings ? (
-          <ActivityIndicator size="small" color={theme.colors.primary} />
-        ) : sorted.length > 0 ? (
-          <View
-            style={{
-              flexDirection: "row",
-              gap: 10,
-              marginTop: 18,
-              marginBottom: 8,
-              overflow: "visible",
-              paddingTop: 2,
-            }}
-          >
-            {sorted.map((pkg) => {
-              const tier = getTierKey(pkg);
-              const product = pkg.product ?? pkg.storeProduct;
-              const priceStr = product?.priceString ?? product?.price ?? "—";
-              return (
-                <SimplePricingButton
-                  key={pkg.identifier}
-                  isSelected={pkg.identifier === effectiveSelection}
-                  onSelect={() => setSelectedPkg(pkg.identifier)}
-                  label={getTierLabel(tier, t)}
-                  priceStr={priceStr}
-                  badgeText={
-                    tier === "yearly" ? "Best Value ✦ Save 30%" : undefined
-                  }
-                  primaryColor={theme.colors.primary}
-                  borderColor={theme.colors.border}
-                  bgColor={theme.colors.surface}
-                  secondaryColor={theme.colors.textSecondary}
-                  textColor={theme.colors.text}
-                />
-              );
-            })}
-          </View>
-        ) : null}
-
-        {/* Subscribe CTA */}
-        {selectedProduct ? (
-          <Pressable
-            testID="subscribe-cta"
-            onPress={handleSubscribe}
-            disabled={isPurchasing}
-            style={({ pressed }) => ({
-              opacity: pressed || isPurchasing ? 0.9 : 1,
-              transform: [{ scale: pressed ? 0.97 : 1 }],
-              width: "100%",
-              marginTop: 6,
-            })}
-          >
-            <LinearGradient
-              colors={[theme.colors.primary, theme.colors.accent]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.ctaButton}
-            >
-              {isPurchasing ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <TText style={styles.ctaText}>{getCtaCopy(selectedTier)}</TText>
-              )}
-            </LinearGradient>
-          </Pressable>
-        ) : null}
-
-        {/* Billing context */}
-        {effectiveSelection && (
-          <TText
-            style={[styles.billingContext, { color: theme.colors.textMuted }]}
-          >
-            {selectedTier === "yearly"
-              ? (() => {
-                  const product =
-                    selectedProduct?.product ?? selectedProduct?.storeProduct;
-                  const price = product?.price;
-                  if (typeof price === "number" && price > 0) {
-                    const symbol =
-                      product?.currencyCode === "GBP"
-                        ? "£"
-                        : product?.currencyCode === "EUR"
-                          ? "€"
-                          : "$";
-                    return `${symbol}${(price / 12).toFixed(2)}/month — billed annually · Cancel anytime`;
-                  }
-                  return `${selectedPrice} billed annually · Cancel anytime`;
-                })()
-              : `${selectedPrice}/month · Cancel anytime`}
-          </TText>
-        )}
-
-        {/* 21-day challenge CTA */}
-        <Pressable
-          testID="challenge-start"
-          onPress={handleStartChallenge}
-          disabled={isStarting || !!existingChallenge}
-          style={({ pressed }) => ({
-            opacity: pressed || isStarting ? 0.85 : existingChallenge ? 0.4 : 1,
-            transform: [{ scale: pressed ? 0.97 : 1 }],
-            width: "100%",
-            marginTop: 6,
-          })}
-        >
-          <View
-            style={[
-              styles.secondaryCta,
-              {
-                borderColor:
-                  (existingChallenge
-                    ? theme.colors.textMuted
-                    : theme.colors.primary) + "50",
-              },
-            ]}
-          >
-            {isStarting ? (
-              <ActivityIndicator color={theme.colors.primary} />
+                {t("paywall.packagesUnavailable")}
+              </TText>
             ) : (
-              <TText
-                style={[
-                  styles.secondaryCtaText,
+              <View style={styles.tilesRow}>
+                {sorted.map((pkg: any, i: number) => {
+                  const tier = getTierKey(pkg);
+                  const product = pkg.product ?? pkg.storeProduct;
+                  const priceStr = formatStorefrontPriceLabel(product);
+                  const yearlyCaption =
+                    tier === "yearly"
+                      ? getSubscriptionDisplay("yearly", product, {
+                          t,
+                          locale: language,
+                        }).yearlyPlanCardCaption
+                      : undefined;
+                  return (
+                    <PricingTile
+                      key={pkg.identifier ?? `pkg-${i}`}
+                      isSelected={pkg.identifier === effectiveSelection}
+                      onSelect={() => setSelectedPkgId(pkg.identifier)}
+                      label={getTierLabel(tier, t)}
+                      priceStr={priceStr}
+                      suffix={getTierSuffix(tier, t)}
+                      caption={yearlyCaption}
+                      badgeText={
+                        tier === "yearly"
+                          ? t("paywall.bestValueSave", { percent: 30 })
+                          : undefined
+                      }
+                      primaryColor={theme.colors.primary}
+                      textColor={theme.colors.text}
+                      secondaryColor={theme.colors.textSecondary}
+                      borderColor={theme.colors.border}
+                    />
+                  );
+                })}
+              </View>
+            )}
+          </Animated.View>
+
+          {/* CTA */}
+          <Animated.View entering={FadeInDown.duration(500).delay(280)}>
+            {isFallbackMode ? (
+              <Pressable
+                testID="fallback-continue-cta"
+                onPress={() => router.replace("/(tabs)")}
+                style={({ pressed }) => [
+                  styles.ctaPress,
+                  { opacity: pressed ? 0.92 : 1 },
+                ]}
+              >
+                <LinearGradient
+                  colors={[theme.colors.primary, theme.colors.accent]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.ctaButton}
+                >
+                  <TText style={styles.ctaText}>Continue</TText>
+                </LinearGradient>
+              </Pressable>
+            ) : noPackagesLoaded ? (
+              <Pressable
+                testID="paywall-retry-offerings"
+                onPress={() => {
+                  void fetchOfferings();
+                }}
+                disabled={isLoadingOfferings}
+                style={({ pressed }) => [
+                  styles.ctaPress,
                   {
-                    color: existingChallenge
-                      ? theme.colors.textMuted
-                      : theme.colors.primary,
+                    opacity:
+                      pressed || isLoadingOfferings ? 0.92 : 1,
                   },
                 ]}
               >
-                {existingChallenge
-                  ? t("paywall.challengeClaimed")
-                  : t("paywall.challengeStartFree")}
-              </TText>
+                <LinearGradient
+                  colors={[theme.colors.primary, theme.colors.accent]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.ctaButton}
+                >
+                  {isLoadingOfferings ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <TText style={styles.ctaText}>{t("common.retry")}</TText>
+                  )}
+                </LinearGradient>
+              </Pressable>
+            ) : (
+              <Pressable
+                testID="subscribe-cta"
+                onPress={handleSubscribe}
+                disabled={isPurchasing || !selectedProduct}
+                style={({ pressed }) => [
+                  styles.ctaPress,
+                  {
+                    opacity:
+                      pressed || isPurchasing || !selectedProduct ? 0.92 : 1,
+                  },
+                ]}
+              >
+                <LinearGradient
+                  colors={[theme.colors.primary, theme.colors.accent]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.ctaButton}
+                >
+                  {isPurchasing ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <TText style={styles.ctaText}>{ctaCopy}</TText>
+                  )}
+                </LinearGradient>
+              </Pressable>
             )}
-          </View>
-        </Pressable>
+          </Animated.View>
 
-        {/* Footer */}
-        <View style={styles.footerRow}>
-          <Pressable onPress={restorePurchases} hitSlop={12}>
+          {/* Fine print */}
+          {ctaFinePrint ? (
             <TText
-              style={[styles.footerLink, { color: theme.colors.textMuted }]}
+              style={[
+                styles.finePrint,
+                { color: theme.colors.textSecondary },
+              ]}
+              maxFontSizeMultiplier={1.35}
             >
-              {t("settings.restorePurchases")}
+              {ctaFinePrint}
             </TText>
-          </Pressable>
-        </View>
-          </>
-        )}
-      </Animated.View>
+          ) : null}
+
+          {/* Footer icon row */}
+          <Animated.View
+            entering={FadeInDown.duration(400).delay(320)}
+            style={styles.footerIconRow}
+          >
+            <FooterIconButton
+              icon="refresh"
+              label={t("settings.restorePurchases")}
+              color={theme.colors.textSecondary}
+              onPress={restorePurchases}
+              testID="paywall-restore"
+            />
+            {modeCfg.showManageAccountFooter ? (
+              <FooterIconButton
+                icon="person-circle-outline"
+                label={t("settings.manageAccount")}
+                color={theme.colors.textSecondary}
+                onPress={openManageAccount}
+                testID="paywall-manage-account"
+              />
+            ) : null}
+            <FooterIconButton
+              icon="shield-checkmark-outline"
+              label={t("settings.privacyPolicy")}
+              color={theme.colors.textSecondary}
+              onPress={() =>
+                openLegal(PRIVACY_URL, t("settings.privacyPolicy"))
+              }
+              testID="paywall-privacy"
+            />
+            <FooterIconButton
+              icon="document-text-outline"
+              label={t("settings.termsOfService")}
+              color={theme.colors.textSecondary}
+              onPress={() => openLegal(TERMS_URL, t("settings.termsOfService"))}
+              testID="paywall-terms"
+            />
+          </Animated.View>
+
+          {/* ── Below-fold supplementary content ───────────────────────── */}
+
+          <View style={styles.sectionGap} />
+
+          {/* Why go Premium */}
+          <Animated.View entering={FadeIn.duration(400)}>
+            <View
+              style={[
+                styles.whyCard,
+                { backgroundColor: theme.colors.surfaceSecondary + "AA" },
+              ]}
+            >
+              <TText
+                style={[styles.whyHeadline, { color: theme.colors.text }]}
+              >
+                {t("paywall.whyHeadline")}
+              </TText>
+              <WhyTile
+                icon="camera-outline"
+                iconColor={theme.colors.primary}
+                title={t("paywall.whySmarter")}
+                subtitle={t("paywall.whySmarterSub")}
+                textColor={theme.colors.text}
+                secondaryColor={theme.colors.textSecondary}
+              />
+              <WhyTile
+                icon="person-outline"
+                iconColor="#60A5FA"
+                title={t("paywall.whyPersonalized")}
+                subtitle={t("paywall.whyPersonalizedSub")}
+                textColor={theme.colors.text}
+                secondaryColor={theme.colors.textSecondary}
+              />
+              <WhyTile
+                icon="trending-up"
+                iconColor="#A78BFA"
+                title={t("paywall.whySeeProgress")}
+                subtitle={t("paywall.whySeeProgressSub")}
+                textColor={theme.colors.text}
+                secondaryColor={theme.colors.textSecondary}
+              />
+              <WhyTile
+                icon="flame-outline"
+                iconColor="#F97316"
+                title={t("paywall.whyStayMotivated")}
+                subtitle={t("paywall.whyStayMotivatedSub")}
+                textColor={theme.colors.text}
+                secondaryColor={theme.colors.textSecondary}
+              />
+              <WhyTile
+                icon="headset-outline"
+                iconColor="#34D399"
+                title={t("paywall.whyPrioritySupport")}
+                subtitle={t("paywall.whyPrioritySupportSub")}
+                textColor={theme.colors.text}
+                secondaryColor={theme.colors.textSecondary}
+              />
+            </View>
+          </Animated.View>
+
+          <View style={styles.sectionGap} />
+
+          {/* Single testimonial */}
+          <Animated.View entering={FadeIn.duration(400)}>
+            <GlassSurface
+              variant="card"
+              intensity="medium"
+              style={styles.testimonialCard}
+            >
+              <View style={styles.testimonialStars}>
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <Ionicons
+                    key={i}
+                    name="star"
+                    size={14}
+                    color={theme.colors.primary}
+                  />
+                ))}
+              </View>
+              <TText
+                style={[styles.testimonialQuote, { color: theme.colors.text }]}
+              >
+                {`"${t("paywall.testimonial5")}"`}
+              </TText>
+              <TText
+                style={[
+                  styles.testimonialAuthor,
+                  { color: theme.colors.textSecondary },
+                ]}
+              >
+                {`— ${t("paywall.testimonial5Author")}`}
+              </TText>
+            </GlassSurface>
+          </Animated.View>
+
+          <View style={styles.sectionGap} />
+
+          {/* Trust + guarantee */}
+          <Animated.View entering={FadeIn.duration(400)}>
+            <View
+              style={[
+                styles.trustCard,
+                { backgroundColor: theme.colors.surfaceSecondary + "AA" },
+              ]}
+            >
+              <View style={styles.trustRow}>
+                <View
+                  style={[
+                    styles.trustIconBubble,
+                    { backgroundColor: theme.colors.primary + "22" },
+                  ]}
+                >
+                  <Ionicons
+                    name="shield-checkmark"
+                    size={18}
+                    color={theme.colors.primary}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <TText
+                    style={[styles.trustTitle, { color: theme.colors.text }]}
+                  >
+                    {t("paywall.secureTitle")}
+                  </TText>
+                  <TText
+                    style={[
+                      styles.trustSub,
+                      { color: theme.colors.textSecondary },
+                    ]}
+                  >
+                    {t("paywall.secureSub")}
+                  </TText>
+                </View>
+              </View>
+              <View style={styles.trustDivider} />
+              <View style={styles.trustRow}>
+                <View
+                  style={[
+                    styles.trustIconBubble,
+                    { backgroundColor: "#A78BFA22" },
+                  ]}
+                >
+                  <Ionicons name="ribbon-outline" size={18} color="#A78BFA" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <TText
+                    style={[styles.trustTitle, { color: theme.colors.text }]}
+                  >
+                    {t("paywall.guaranteeTitle")}
+                  </TText>
+                  <TText
+                    style={[
+                      styles.trustSub,
+                      { color: theme.colors.textSecondary },
+                    ]}
+                  >
+                    {t("paywall.guaranteeSub")}
+                  </TText>
+                </View>
+              </View>
+              <TText
+                style={[
+                  styles.billedThroughStore,
+                  { color: theme.colors.textMuted },
+                ]}
+              >
+                {t("paywall.billedThroughStore")}
+              </TText>
+            </View>
+          </Animated.View>
+
+          <View style={styles.sectionGap} />
+
+          {/* You're in control — Manage Account CTA */}
+          {modeCfg.showManageAccountFooter ? (
+            <Animated.View entering={FadeIn.duration(400)}>
+              <View
+                style={[
+                  styles.controlCard,
+                  { backgroundColor: theme.colors.surfaceSecondary + "AA" },
+                ]}
+              >
+                <View style={styles.controlTextWrap}>
+                  <TText
+                    style={[
+                      styles.controlTitle,
+                      { color: theme.colors.text },
+                    ]}
+                  >
+                    {t("paywall.controlTitle")}
+                  </TText>
+                  <TText
+                    style={[
+                      styles.controlSub,
+                      { color: theme.colors.textSecondary },
+                    ]}
+                  >
+                    {t("paywall.controlSub")}
+                  </TText>
+                </View>
+                <Pressable
+                  onPress={openManageAccount}
+                  style={({ pressed }) => [
+                    styles.controlCta,
+                    {
+                      backgroundColor: theme.colors.primary,
+                      opacity: pressed ? 0.92 : 1,
+                    },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("settings.manageAccount")}
+                >
+                  <TText style={styles.controlCtaText}>
+                    {t("settings.manageAccount")}
+                  </TText>
+                </Pressable>
+              </View>
+            </Animated.View>
+          ) : null}
+
+          <View style={{ height: 36 }} />
+        </ScrollView>
+      </View>
     </OnboardingBackground>
   );
 }
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
+const HERO_DIAMETER = 96;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "space-between",
   },
-
-  // Hero image
-  heroContainer: {
-    position: "absolute",
-    top: 180, // Position below headline and progress track
-    left: 20,
-    right: 20,
-    height: SCREEN_WIDTH * 0.65, // Slightly smaller for better centering
-    borderRadius: 24,
-    overflow: "hidden",
-    zIndex: 0,
+  topBarSafe: {
+    paddingHorizontal: 16,
   },
-  heroImage: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 24,
-  },
-  heroOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-
-  // Top gradient area
-  topGradient: {
-    paddingBottom: 4,
-  },
-  closeRow: {
+  topBar: {
     flexDirection: "row",
-    justifyContent: "flex-end",
-    paddingHorizontal: 20,
-    paddingTop: 4,
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 8,
   },
-  headline: {
-    fontSize: 24,
+  topBarSpacer: {
+    width: 26,
+    height: 26,
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 24,
+    paddingBottom: 32,
+  },
+
+  // Hero icon
+  heroIconWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+    height: HERO_DIAMETER + 56,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  heroHalo: {
+    position: "absolute",
+    width: HERO_DIAMETER + 56,
+    height: HERO_DIAMETER + 56,
+    borderRadius: (HERO_DIAMETER + 56) / 2,
+  },
+  heroHaloInner: {
+    position: "absolute",
+    width: HERO_DIAMETER + 24,
+    height: HERO_DIAMETER + 24,
+    borderRadius: (HERO_DIAMETER + 24) / 2,
+  },
+  heroIconBubble: {
+    width: HERO_DIAMETER,
+    height: HERO_DIAMETER,
+    borderRadius: HERO_DIAMETER / 2,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.25)",
+    borderWidth: 1,
+  },
+
+  // Title
+  title: {
+    fontSize: 30,
     fontWeight: "800",
     textAlign: "center",
-    lineHeight: 30,
+    lineHeight: 36,
+    marginTop: 4,
   },
-  subheadline: {
+  subtitle: {
     fontSize: 15,
     fontWeight: "500",
     textAlign: "center",
+    marginTop: 6,
+    paddingHorizontal: 8,
   },
 
-  // Content
-  middleArea: {
-    paddingHorizontal: 20,
-    paddingTop: 4,
-  },
-
-  // Pricing (Bevel-style horizontal cards)
-  movementCard: {
+  // Value list
+  valueCard: {
+    marginTop: 18,
     borderRadius: 16,
-    padding: 12,
-    gap: 6,
+    padding: 14,
+    gap: 10,
   },
-  movementRow: {
+  valueRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
   },
-  movementFire: {
-    fontSize: 32,
-    textShadowColor: "rgba(255, 100, 0, 0.6)",
-    textShadowOffset: { width: 0, height: 3 },
-    textShadowRadius: 8,
+  valueCheckBubble: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  movementTextBlock: {
+  valueLabel: {
     flex: 1,
-    gap: 2,
-  },
-  movementHeadline: {
     fontSize: 14,
-    fontWeight: "700",
-    letterSpacing: 0.1,
-  },
-  movementSub: {
-    fontSize: 12,
     fontWeight: "500",
   },
-  movementHashtag: {
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  movementHashtagAccent: {
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  pricingRow: {
+
+  // Pricing tiles
+  tilesRow: {
     flexDirection: "row",
-    gap: 10,
-    marginTop: 4,
-    marginBottom: 8,
+    gap: 8,
+    marginTop: 18,
+    marginBottom: 4,
     overflow: "visible",
   },
-  pricingCardWrapper: {
+  tilesLoading: {
+    paddingVertical: 18,
+    alignItems: "center",
+  },
+  tilesUnavailable: {
+    textAlign: "center",
+    fontSize: 14,
+    fontWeight: "500",
+    paddingHorizontal: 12,
+    paddingVertical: 18,
+  },
+  tile: {
     flex: 1,
+    minHeight: 96,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    paddingHorizontal: 12,
+    paddingTop: 14,
+    paddingBottom: 12,
+    justifyContent: "space-between",
+    overflow: "visible",
     position: "relative",
   },
-  saveBadge: {
+  tileBadge: {
     position: "absolute",
     top: -10,
-    left: 10,
-    zIndex: 1,
-    paddingHorizontal: 8,
+    left: 6,
+    right: 6,
+    paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: 6,
-  },
-  saveBadgeText: {
-    color: "#fff",
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 0.3,
-  },
-  pricingCard: {
-    borderRadius: 14,
-    overflow: "hidden",
-  },
-  pricingCardInner: {
-    paddingTop: 10,
-    paddingBottom: 12,
-    paddingHorizontal: 10,
-    width: "100%",
-  },
-  cardTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 6,
+    zIndex: 2,
   },
-  pricingLabel: {
-    fontSize: 13,
+  tileBadgeText: {
+    color: "#fff",
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.2,
+  },
+  tileTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  tileLabel: {
+    fontSize: 12,
     fontWeight: "600",
   },
-  pricingPrice: {
-    fontSize: 17,
+  tilePriceRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 2,
+    marginTop: 6,
+  },
+  tilePrice: {
+    fontSize: 18,
     fontWeight: "800",
   },
+  tileSuffix: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  tileCaption: {
+    fontSize: 11,
+    fontWeight: "600",
+    marginTop: 4,
+  },
 
-  // Bottom
-  bottomArea: {
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: 24,
-    alignItems: "center",
-    overflow: "visible",
+  // CTA
+  ctaPress: {
+    width: "100%",
+    marginTop: 20,
   },
   ctaButton: {
-    height: 48,
-    borderRadius: 24,
+    height: 52,
+    borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
     width: "100%",
@@ -1349,44 +1353,189 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.3,
   },
-  secondaryCta: {
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1.5,
+  finePrint: {
+    fontSize: 12,
+    fontWeight: "500",
+    textAlign: "center",
+    marginTop: 12,
+    paddingHorizontal: 8,
+    lineHeight: 18,
+  },
+
+  // Footer icons
+  footerIconRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-around",
+    marginTop: 18,
+    paddingHorizontal: 4,
+  },
+  footerIconButton: {
+    flex: 1,
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: 6,
+  },
+  footerIconLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    textAlign: "center",
+    lineHeight: 14,
+    maxWidth: 80,
+  },
+
+  // Section spacing for below-fold content
+  sectionGap: {
+    height: 28,
+  },
+
+  // Why card
+  whyCard: {
+    borderRadius: 16,
+    padding: 16,
+    gap: 14,
+  },
+  whyHeadline: {
+    fontSize: 17,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  whyRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  whyIconBubble: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    width: "100%",
+    marginTop: 2,
   },
-  secondaryCtaText: {
+  whyTextWrap: {
+    flex: 1,
+    gap: 2,
+  },
+  whyTitle: {
     fontSize: 14,
-    fontWeight: "600",
-    letterSpacing: 0.2,
+    fontWeight: "700",
   },
-  billingContext: {
+  whySub: {
     fontSize: 12,
+    fontWeight: "500",
+    lineHeight: 17,
+  },
+
+  // Testimonial
+  testimonialCard: {
+    borderRadius: 16,
+    padding: 16,
+    gap: 8,
+  },
+  testimonialStars: {
+    flexDirection: "row",
+    gap: 2,
+  },
+  testimonialQuote: {
+    fontSize: 14,
+    fontWeight: "500",
+    lineHeight: 20,
+    fontStyle: "italic",
+  },
+  testimonialAuthor: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginTop: 4,
+  },
+
+  // Trust card
+  trustCard: {
+    borderRadius: 16,
+    padding: 16,
+    gap: 12,
+  },
+  trustRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  trustIconBubble: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  trustTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  trustSub: {
+    fontSize: 12,
+    fontWeight: "500",
+    lineHeight: 17,
+    marginTop: 2,
+  },
+  trustDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  billedThroughStore: {
+    fontSize: 11,
     fontWeight: "500",
     textAlign: "center",
     marginTop: 8,
   },
-  footerRow: {
-    flexDirection: "row",
-    alignItems: "center",
+
+  // Control card
+  controlCard: {
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: SCREEN_WIDTH < 360 ? "column" : "row",
+    alignItems: SCREEN_WIDTH < 360 ? "stretch" : "center",
     gap: 12,
-    marginTop: 10,
   },
-  footerLink: {
-    fontSize: 13,
+  controlTextWrap: {
+    flex: 1,
+    gap: 4,
+  },
+  controlTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  controlSub: {
+    fontSize: 12,
     fontWeight: "500",
+    lineHeight: 17,
+  },
+  controlCta: {
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  controlCtaText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  // Fallback (dev only)
+  fallbackBlock: {
+    paddingVertical: 18,
+    alignItems: "center",
   },
   fallbackTitle: {
-    fontSize: 22,
-    fontWeight: "800",
+    fontSize: 18,
+    fontWeight: "700",
     textAlign: "center",
   },
-  fallbackSubtitle: {
-    fontSize: 14,
+  fallbackSub: {
+    fontSize: 13,
     fontWeight: "500",
     textAlign: "center",
-    marginTop: 6,
+    marginTop: 4,
   },
 });

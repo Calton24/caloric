@@ -1,8 +1,8 @@
-# Caloric Architecture Hardening - Summary
+# CalCut Architecture Hardening - Summary
 
 ## Overview
 
-Comprehensive audit and hardening of Caloric UI layer to ensure production-grade quality, correctness, and portability.
+Comprehensive audit and hardening of CalCut UI layer to ensure production-grade quality, correctness, and portability.
 
 ---
 
@@ -296,7 +296,7 @@ export function DevOnly({ children }: DevOnlyProps) {
 
 **What's Exported Now:**
 
-- ✅ Providers (CaloricProviders, ThemeProvider, etc.)
+- ✅ Providers (CalCutProviders, ThemeProvider, etc.)
 - ✅ Hooks (useTheme, useAuth, useBottomSheet)
 - ✅ Theme utilities and types
 - ✅ Public components (GlassSurface, GlassCard, GlassTabBar, primitives)
@@ -331,7 +331,7 @@ export function invariant(
 ): asserts condition {
   if (__DEV__) {
     if (!condition) {
-      throw new Error(`[Caloric] Invariant violation: ${message}`);
+      throw new Error(`[CalCut] Invariant violation: ${message}`);
     }
   }
 }
@@ -357,7 +357,7 @@ if (!context) {
 ```tsx
 invariant(
   context !== undefined,
-  "useTheme must be used within a ThemeProvider. Did you forget to wrap your app with <CaloricProviders>?"
+  "useTheme must be used within a ThemeProvider. Did you forget to wrap your app with <CalCutProviders>?"
 );
 ```
 
@@ -472,7 +472,7 @@ invariant(
 
 ## Conclusion
 
-The Caloric UI layer is now production-hardened with:
+The CalCut UI layer is now production-hardened with:
 
 - **Better performance** through memoization
 - **Better stability** through proper cleanup

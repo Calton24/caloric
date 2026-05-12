@@ -4,16 +4,20 @@
  */
 
 import { toLocalDate } from "../../lib/utils/date";
+import { resolveMealLoggedDateLocal } from "../food-logging/time/create-meal-timestamp-fields";
 import type { MealEntry } from "../nutrition/nutrition.types";
+import { isValidMealLoggedAt } from "../nutrition/meal-normalize";
 
-function mealLocalDate(loggedAt: string): string {
-  return toLocalDate(new Date(loggedAt));
+function mealLocalDate(meal: MealEntry): string | null {
+  if (!isValidMealLoggedAt(meal.loggedAt)) return null;
+  return resolveMealLoggedDateLocal(meal);
 }
 
 export function getLoggedMealDates(meals: MealEntry[]): Set<string> {
   const dates = new Set<string>();
   for (const m of meals) {
-    dates.add(mealLocalDate(m.loggedAt));
+    const d = mealLocalDate(m);
+    if (d) dates.add(d);
   }
   return dates;
 }
@@ -23,7 +27,8 @@ export function getMostRecentLoggedMealDate(meals: MealEntry[]): string | null {
   if (meals.length === 0) return null;
   let max: string | null = null;
   for (const m of meals) {
-    const d = mealLocalDate(m.loggedAt);
+    const d = mealLocalDate(m);
+    if (d == null) continue;
     if (max == null || d > max) max = d;
   }
   return max;

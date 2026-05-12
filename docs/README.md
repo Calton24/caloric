@@ -1,8 +1,8 @@
-# Caloric
+# CalCut
 
 **Production-ready React Native infrastructure** for building authenticated, themed, real-time mobile applications with Expo.
 
-Caloric is a reusable foundation that combines essential infrastructure patterns:
+CalCut is a reusable foundation that combines essential infrastructure patterns:
 
 - 🎨 **Dynamic theming** with brand color customization
 - 🔐 **Authentication** with Supabase (swappable)
@@ -141,12 +141,12 @@ caloric/
 │   │   ├── notes.tsx             # Notes tab (dev-only)
 │   │   ├── auth.tsx              # Auth tab
 │   │   ├── playground.tsx        # Component playground
-│   │   └── caloric.tsx       # Caloric info (dev-only)
+│   │   └── caloric.tsx       # CalCut info (dev-only)
 │   ├── _layout.tsx               # Root layout with providers
 │   └── modal.tsx                 # Example modal
 │
 ├── src/
-│   ├── CaloricProviders.tsx   # Root provider composition
+│   ├── CalCutProviders.tsx   # Root provider composition
 │   │
 │   ├── analytics/                # Analytics abstraction (swappable)
 │   │   ├── analytics.types.ts    # Interface + noop client
@@ -324,7 +324,7 @@ npm start -- --clear  # Clear Metro cache
 
 ## Configuration System
 
-Caloric supports multiple apps from a single codebase.
+CalCut supports multiple apps from a single codebase.
 
 ### App Profiles
 
@@ -338,7 +338,7 @@ Each profile defines:
 
 **Available profiles:**
 
-- `default` - Caloric base configuration
+- `default` - CalCut base configuration
 - `intake` - Example: Food tracking app
 - `proxi` - Example: Social proximity app
 
@@ -368,10 +368,10 @@ See `docs/CONFIGURATION.md` for details.
 Already configured in `app/_layout.tsx`:
 
 ```tsx
-import { CaloricProviders } from "@/src/CaloricProviders";
+import { CalCutProviders } from "@/src/CalCutProviders";
 
 export default function RootLayout() {
-  return <CaloricProviders>{/* Your app */}</CaloricProviders>;
+  return <CalCutProviders>{/* Your app */}</CalCutProviders>;
 }
 ```
 
@@ -577,7 +577,7 @@ See [.github/workflows/ci.yml](.github/workflows/ci.yml) for full pipeline.
 
 ## Notes Validation Harness
 
-**Purpose:** Validates Caloric infrastructure under real pressure.
+**Purpose:** Validates CalCut infrastructure under real pressure.
 
 **What it validates:**
 
@@ -646,7 +646,7 @@ See [.github/workflows/ci.yml](.github/workflows/ci.yml) for full pipeline.
 
 **Fix:**
 
-1. Verify `CaloricProviders` is used in `app/_layout.tsx`
+1. Verify `CalCutProviders` is used in `app/_layout.tsx`
 2. Check `babel.config.js` has `"react-native-reanimated/plugin"` as **last plugin**
 3. Clear cache: `npm start -- --clear`
 

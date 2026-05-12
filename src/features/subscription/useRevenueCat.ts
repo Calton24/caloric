@@ -19,7 +19,18 @@ import { useAppTranslation } from "../../infrastructure/i18n";
 import { getBillingProvider } from "../../lib/billing";
 import { getSupabaseClient } from "../../lib/supabase/client";
 import { logger } from "../../logging/logger";
+import {
+  FOOD_LOG_SAFE_MODE,
+  assertFoodLogSafeModeImport,
+} from "../debug/safe-mode-flags";
+
+assertFoodLogSafeModeImport("billing_offerings");
 import { useChallengeStore } from "../challenge/challenge.store";
+import {
+  trackSubscriptionPurchaseCompleted,
+  trackSubscriptionPurchaseStarted,
+  trackSubscriptionRestoreCompleted,
+} from "./subscription-analytics";
 import { useSubscriptionStore } from "./subscription.store";
 
 // ── Intro eligibility ────────────────────────────────────────────────────
@@ -69,56 +80,53 @@ export function useRevenueCat() {
 
   // Auto-fetch offerings on mount
   useEffect(() => {
+    if (FOOD_LOG_SAFE_MODE) {
+      if (__DEV__) logger.log("[Billing:offers] disabled_food_log_safe_mode");
+      return;
+    }
     fetchOfferings();
   }, [fetchOfferings]);
 
   // ── Offering resolution ─────────────────────────────────────────────────
 
   /**
-   * Select the correct offering based on challenge state:
-   *   - challenge active → "challenge" offering
-   *   - otherwise        → "default" offering
-   *
-   * PurchasesOfferings shape: { all: Record<string, PurchasesOffering>, current }
-   * Named offerings live under `all`, NOT as top-level properties.
-   *
-   * NO silent fallback to `current` — if the expected offering is missing,
-   * we return null so the UI shows a loading/unavailable state instead of
-   * silently charging the wrong price.
+   * Primary storefront offering: named "default" if present, else RevenueCat `current`.
+   * Challenge state does not change which offering is used (no hybrid unlock SKUs).
    */
   const activeOffering = useMemo(() => {
     if (!offerings) return null;
     const all = offerings.all as Record<string, any> | undefined;
-    const expectedName = isChallengeActive ? "challenge" : "default";
-    const resolved = all?.[expectedName] ?? null;
+    const expectedName = "default";
+    const named = all?.[expectedName] ?? null;
+    const resolved = named ?? offerings.current ?? null;
 
     if (__DEV__) {
       if (resolved) {
+        const source = named ? expectedName : "current (fallback)";
         logger.log(
-          `[Billing:offers] Active offering: ${resolved.identifier ?? expectedName}`
+          `[Billing:offers] Active offering (${source}): ${resolved.identifier ?? expectedName}`
         );
         logger.log(
           `[Billing:offers] Packages: ${(resolved.availablePackages ?? []).map((p: any) => p.product?.identifier ?? p.storeProduct?.identifier ?? p.identifier).join(", ")}`
         );
       } else if (all) {
-        // offerings loaded but expected name missing — loud error
         logger.error(
-          `[Billing:offers] Missing expected offering "${expectedName}". ` +
+          `[Billing:offers] Missing expected offering "${expectedName}" and no current offering. ` +
             `Available: [${Object.keys(all).join(", ")}]. ` +
-            `UI will show unavailable state — NOT falling back to wrong offering.`
+            `UI will show unavailable state.`
         );
       }
     }
 
     return resolved;
-  }, [offerings, isChallengeActive]);
+  }, [offerings]);
 
   const packages = activeOffering?.availablePackages ?? [];
 
   // ── Store intro eligibility check ───────────────────────────────────────
 
   useEffect(() => {
-    if (!isChallengeActive || packages.length === 0) {
+    if (subscription.hasActiveSubscription || packages.length === 0) {
       setIntroEligibility("unknown");
       return;
     }
@@ -170,18 +178,33 @@ export function useRevenueCat() {
     return () => {
       cancelled = true;
     };
-  }, [isChallengeActive, packages]);
+  }, [subscription.hasActiveSubscription, packages]);
 
   // ── Purchase ─────────────────────────────────────────────────────────────
 
   const purchasePackage = useCallback(
     async (pkg: any) => {
+      const productId =
+        pkg?.product?.identifier ??
+        pkg?.storeProduct?.identifier ??
+        pkg?.identifier ??
+        null;
       try {
+        trackSubscriptionPurchaseStarted({
+          product_id: productId,
+          package_id: pkg?.identifier ?? null,
+        });
         const provider = getBillingProvider() as any;
         if (typeof provider.purchasePackage === "function") {
-          return await provider.purchasePackage(pkg);
+          const result = await provider.purchasePackage(pkg);
+          if (result) {
+            trackSubscriptionPurchaseCompleted({
+              product_id: productId,
+              package_id: pkg?.identifier ?? null,
+            });
+          }
+          return result;
         }
-        // Fallback: present managed paywall
         await provider.presentPaywall();
         return null;
       } catch {
@@ -247,6 +270,7 @@ export function useRevenueCat() {
           }
         })
         .catch(() => {});
+      trackSubscriptionRestoreCompleted({});
       Alert.alert(t("settings.restored"), t("settings.restoredDesc"));
     } catch {
       Alert.alert(t("common.error"), t("settings.restoreFailed"));
@@ -259,16 +283,10 @@ export function useRevenueCat() {
 
   /**
    * True when we should show intro pricing in the UI.
-   * Three conditions must ALL be true:
-   *   1. Challenge is active
-   *   2. User hasn't already seen the intro paywall moment (UI gate)
-   *   3. Store says eligible (iOS) OR status is unknown (Android — store enforces)
-   *
-   * iOS: only "eligible" passes — Apple eligibility is per subscription group.
-   * Android: "unknown" passes — SDK can't check, store enforces at purchase time.
+   * Non-subscriber + offerings present + optional UI gate + store eligibility.
    */
   const isIntroEligible =
-    isChallengeActive &&
+    !subscription.hasActiveSubscription &&
     !hasSeenIntroMoment &&
     (Platform.OS === "ios"
       ? introEligibility === "eligible"
@@ -283,7 +301,7 @@ export function useRevenueCat() {
     isRestoring,
     /** Raw offerings from RevenueCat (auto-fetched on mount) */
     offerings,
-    /** Resolved offering: challenge or default based on challenge state */
+    /** Resolved primary offering (default / current) */
     activeOffering,
     /** True while offerings are being fetched */
     isLoadingOfferings,
@@ -303,7 +321,7 @@ export function useRevenueCat() {
     introEligibility,
     /**
      * Whether the UI should show intro pricing.
-     * Combines: challenge active + UI gate (hasSeenIntroMoment) + store eligibility.
+     * Combines: not subscribed + intro UI gate + store eligibility.
      */
     isIntroEligible,
   };

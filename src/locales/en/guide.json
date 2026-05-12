@@ -25,7 +25,7 @@
     "iosOnly": "iOS Only",
     "iosOnlyDesc": "Live Activities are only available on iOS devices.",
     "unavailable": "Live Activities Unavailable",
-    "unavailableDesc": "Please enable Live Activities in iOS Settings > Caloric > Live Activities, and make sure you're running iOS 16.2 or later.",
+    "unavailableDesc": "Please enable Live Activities in iOS Settings > CalCut > Live Activities, and make sure you're running iOS 16.2 or later.",
     "continueWithout": "Continue Without",
     "subtitle": "Track your calories in real-time right from your Lock Screen and Dynamic Island.",
     "dynamicIsland": "Dynamic Island",

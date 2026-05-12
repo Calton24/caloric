@@ -25,16 +25,77 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useAuth } from "../auth/useAuth";
 import {
-    createMissingProfileRow,
-    resolveOnboardingStatus,
+  createMissingProfileRow,
+  resolveOnboardingStatus,
+  type OnboardingResolveResult,
 } from "./onboarding-authority";
 import { useOnboardingAuthorityStore } from "./onboarding-authority.store";
+import { finalizeOnboardingResolveWithPaywallHandoff } from "./post-auth-onboarding-handoff";
 
 const RESOLVE_TIMEOUT_MS = 8000;
 
 function logResolverStep(step: string, data: Record<string, unknown> = {}): void {
   if (__DEV__) {
     console.log("[OnboardingAuthorityResolver]", { step, ...data });
+  }
+}
+
+function outcomesDiffer(
+  a: OnboardingResolveResult,
+  b: OnboardingResolveResult,
+): boolean {
+  return (
+    a.status !== b.status ||
+    a.onboardingCompleted !== b.onboardingCompleted ||
+    a.onboardingStep !== b.onboardingStep ||
+    a.updatedAt !== b.updatedAt ||
+    a.error?.message !== b.error?.message
+  );
+}
+
+async function commitResolvedOutcome(id: string, outcome: OnboardingResolveResult) {
+  // Commit the resolver result **immediately** so OnboardingAuthorityGate
+  // stops reporting onboarding_loading while post-auth handoff reads
+  // SecureStorage / runs optional network work. Previously we only called
+  // setResolved after await finalize…, which could strand paid users on the
+  // bootstrap spinner even though resolveOnboardingStatus had already
+  // returned `complete`.
+  useOnboardingAuthorityStore.getState().setResolved(
+    id,
+    outcome.status,
+    outcome.onboardingCompleted,
+    outcome.onboardingStep,
+    outcome.updatedAt,
+    outcome.error?.message,
+  );
+  if (__DEV__) {
+    console.log("[OnboardingAuthorityLifecycle]", {
+      event: "commit",
+      source: "resolver_immediate",
+      userId: id,
+      status: outcome.status,
+    });
+  }
+
+  const finalized = await finalizeOnboardingResolveWithPaywallHandoff(id, outcome);
+  if (!outcomesDiffer(outcome, finalized)) return;
+
+  useOnboardingAuthorityStore.getState().setResolved(
+    id,
+    finalized.status,
+    finalized.onboardingCompleted,
+    finalized.onboardingStep,
+    finalized.updatedAt,
+    finalized.error?.message,
+  );
+  if (__DEV__) {
+    console.log("[OnboardingAuthorityLifecycle]", {
+      event: "commit",
+      source: "post_auth_handoff",
+      userId: id,
+      previousStatus: outcome.status,
+      nextStatus: finalized.status,
+    });
   }
 }
 
@@ -137,16 +198,7 @@ export function useOnboardingAuthority(): { retry: () => void } {
               onboardingStep: second.onboardingStep,
               path: "create_then_resolve",
             });
-            useOnboardingAuthorityStore
-              .getState()
-              .setResolved(
-                id,
-                second.status,
-                second.onboardingCompleted,
-                second.onboardingStep,
-                second.updatedAt,
-                second.error?.message
-              );
+            await commitResolvedOutcome(id, second);
           }
         } else {
           finish();
@@ -184,16 +236,7 @@ export function useOnboardingAuthority(): { retry: () => void } {
           path: "direct",
         });
       }
-      useOnboardingAuthorityStore
-        .getState()
-        .setResolved(
-          id,
-          result.status,
-          result.onboardingCompleted,
-          result.onboardingStep,
-          result.updatedAt,
-          result.error?.message
-        );
+      await commitResolvedOutcome(id, result);
       inFlightForRef.current = null;
     },
     []
@@ -203,6 +246,18 @@ export function useOnboardingAuthority(): { retry: () => void } {
     const previousUserId = lastUserIdRef.current;
     lastUserIdRef.current = userId ?? null;
     if (!userId) {
+      if (authLoading) {
+        if (__DEV__) {
+          console.log("[AuthCleanupDecision]", {
+            area: "onboarding_authority",
+            authBootstrapReady: false,
+            authLoading: true,
+            didReset: false,
+            reason: "defer_authority_reset_until_auth_resolves",
+          });
+        }
+        return;
+      }
       useOnboardingAuthorityStore.getState().reset();
       inFlightForRef.current = null;
       return;
@@ -223,7 +278,7 @@ export function useOnboardingAuthority(): { retry: () => void } {
       inFlightForRef.current = null;
     }
     void resolveFor(userId, retryTickRef.current);
-  }, [userId, resolveFor, retryRequestId]);
+  }, [userId, resolveFor, retryRequestId, authLoading]);
 
   const retry = useCallback(() => {
     if (!userId) return;

@@ -14,17 +14,17 @@ const APP_PROFILES = {
       bundleIdentifier: "com.calton.caloric",
       androidPackage: "com.calton.caloric",
       version: "1.0.0",
-      scheme: "caloric",
+      scheme: ["calcut", "caloric"],
     },
     environments: {
       dev: {
         app: {
-          name: "Caloric Dev",
+          name: "CalCut Dev",
         },
       },
       staging: {
         app: {
-          name: "Caloric Staging",
+          name: "CalCut Staging",
         },
       },
       prod: {},
@@ -38,17 +38,17 @@ const APP_PROFILES = {
       bundleIdentifier: "com.calton.caloric",
       androidPackage: "com.calton.caloric",
       version: "1.0.0",
-      scheme: "caloric",
+      scheme: ["calcut", "caloric"],
     },
     environments: {
       dev: {
         app: {
-          name: "Caloric",
+          name: "CalCut Dev",
         },
       },
       staging: {
         app: {
-          name: "Caloric Staging",
+          name: "CalCut Staging",
         },
       },
       prod: {},

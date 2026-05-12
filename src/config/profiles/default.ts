@@ -1,5 +1,5 @@
 /**
- * Caloric Default Configuration
+ * Default template profile (Stripe example) — CalCut display name
  */
 
 import { AppProfileConfig } from "../types";
@@ -61,9 +61,9 @@ export const defaultConfig: AppProfileConfig = {
     growth: false,
     haptics: true,
     notifications: true,
-    firebaseAnalytics: false, // Firebase not installed in caloric
-    crashReporting: false, // Firebase not installed in caloric
-    performanceMonitoring: false, // Firebase not installed in caloric
+    firebaseAnalytics: false,
+    crashReporting: false,
+    performanceMonitoring: false,
     billing: true, // Enable billing system (includes paywall UI)
     i18n: true,
     presence: true,
@@ -74,12 +74,12 @@ export const defaultConfig: AppProfileConfig = {
   },
 
   app: {
-    name: "Caloric",
+    name: "CalCut",
     slug: "caloric",
     bundleIdentifier: "com.yourcompany.caloric",
     androidPackage: "com.yourcompany.caloric",
     version: "1.0.0",
-    scheme: "caloric",
+    scheme: ["calcut", "caloric"],
   },
 
   // Environment-specific overrides
@@ -112,7 +112,7 @@ export const defaultConfig: AppProfileConfig = {
         billing: false, // Disable billing in dev
       },
       app: {
-        name: "Caloric",
+        name: "CalCut Dev",
         slug: "caloric-dev",
         bundleIdentifier: "com.yourcompany.caloric.dev",
         androidPackage: "com.yourcompany.caloric.dev",
@@ -124,7 +124,7 @@ export const defaultConfig: AppProfileConfig = {
         anonKey: "YOUR_STAGING_ANON_KEY", // Replace with staging anon key
       },
       app: {
-        name: "Caloric Staging",
+        name: "CalCut Staging",
         bundleIdentifier: "com.yourcompany.caloric.staging",
         androidPackage: "com.yourcompany.caloric.staging",
       },

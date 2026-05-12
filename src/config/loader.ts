@@ -77,7 +77,7 @@ function loadAppProfile(): AppProfile {
  * Load app environment from environment
  */
 function loadAppEnvironment(): AppEnvironment {
-  const env = getOptionalEnvVar("APP_ENV", "dev") || "dev"; // Default to dev
+  const env = getEnvVar("APP_ENV");
   return validateConfig(AppEnvironmentSchema, env, "APP_ENV");
 }
 

@@ -1,5 +1,12 @@
-import { toLocalDate } from "../../lib/utils/date";
+import { resolveMealLoggedDateLocal } from "../food-logging/time/create-meal-timestamp-fields";
 import { DailyNutritionSummary, MealEntry } from "./nutrition.types";
+import {
+  getMealCalories,
+  getMealCarbs,
+  getMealFat,
+  getMealProtein,
+  isValidMealLoggedAt,
+} from "./meal-normalize";
 
 /**
  * Get all meals logged on a specific local date (YYYY-MM-DD).
@@ -8,19 +15,18 @@ import { DailyNutritionSummary, MealEntry } from "./nutrition.types";
  */
 export function getMealsForDate(meals: MealEntry[], date: string): MealEntry[] {
   return meals.filter((meal) => {
-    // Convert UTC timestamp to local date (YYYY-MM-DD)
-    const mealLocalDate = toLocalDate(new Date(meal.loggedAt));
-    return mealLocalDate === date;
+    if (!meal || !isValidMealLoggedAt(meal.loggedAt)) return false;
+    return resolveMealLoggedDateLocal(meal) === date;
   });
 }
 
 export function getNutritionTotals(meals: MealEntry[]) {
-  return meals.reduce(
+  return meals.filter(Boolean).reduce(
     (acc, meal) => {
-      acc.calories += meal.calories;
-      acc.protein += meal.protein;
-      acc.carbs += meal.carbs;
-      acc.fat += meal.fat;
+      acc.calories += getMealCalories(meal);
+      acc.protein += getMealProtein(meal);
+      acc.carbs += getMealCarbs(meal);
+      acc.fat += getMealFat(meal);
       return acc;
     },
     {

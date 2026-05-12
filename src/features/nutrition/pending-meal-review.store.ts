@@ -24,7 +24,8 @@ function newId(): string {
 }
 
 function sourceFromDraft(d: MealDraft): PendingMealReviewSource {
-  if (d.rawInput?.trim().startsWith("barcode:")) return "barcode";
+  if (d.source === "barcode" || d.rawInput?.trim().startsWith("barcode:"))
+    return "barcode";
   if (d.source === "voice") return "voice";
   if (d.source === "manual" || d.source === "text") return "manual";
   return "ai_camera";

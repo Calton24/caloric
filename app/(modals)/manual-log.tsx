@@ -20,6 +20,7 @@ import {
 } from "react-native";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { FoodIdentificationFallback } from "../../src/features/food-logging/components/FoodIdentificationFallback";
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
 import { addFoodLoggingBreadcrumb } from "../../src/infrastructure/errorReporting/foodLoggingErrors";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
@@ -44,6 +45,7 @@ function ManualLoggingScreenInner() {
   const pathname = usePathname();
   const [query, setQuery] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showFallback, setShowFallback] = useState(false);
   const { startFromInput } = useLoggingFlow();
 
   useEffect(() => {
@@ -74,11 +76,47 @@ function ManualLoggingScreenInner() {
     });
     setIsProcessing(true);
     try {
-      await startFromInput(query, "manual");
+      const ok = await startFromInput(query, "manual");
+      if (!ok) {
+        addFoodLoggingBreadcrumb("food_logging.manual_no_match");
+        setShowFallback(true);
+      }
     } finally {
       setIsProcessing(false);
     }
   }, [query, startFromInput, isProcessing]);
+
+  const handleFallbackResolve = useCallback(
+    async (
+      typed: string,
+    ): Promise<{ ok: true } | { ok: false; message?: string }> => {
+      const ok = await startFromInput(typed, "manual", {
+        foodIdentificationRecoverySource: "manual",
+      });
+      return ok ? { ok: true } : { ok: false };
+    },
+    [startFromInput],
+  );
+
+  if (showFallback) {
+    return (
+      <FoodIdentificationFallback
+        source="manual"
+        initialQuery={query}
+        errorReason="manual_not_found"
+        onBack={() => setShowFallback(false)}
+        onRetry={() => {
+          setShowFallback(false);
+          void handleLog();
+        }}
+        onAddManually={() => setShowFallback(false)}
+        onResolveQuery={async (typed) => {
+          setQuery(typed);
+          return handleFallbackResolve(typed);
+        }}
+      />
+    );
+  }
 
   return (
     <View

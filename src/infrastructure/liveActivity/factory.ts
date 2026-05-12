@@ -15,6 +15,10 @@
  */
 
 import { getAppConfig } from "../../config";
+import {
+  FOOD_LOG_SAFE_MODE,
+  assertFoodLogSafeModeImport,
+} from "../../features/debug/safe-mode-flags";
 import { logger } from "../../logging/logger";
 import { ExpoWidgetsLiveActivityClient } from "./ExpoWidgetsLiveActivityClient";
 import { NativeLiveActivityClient } from "./NativeLiveActivityClient";
@@ -22,11 +26,14 @@ import { NoopLiveActivityClient } from "./NoopLiveActivityClient";
 import { setLiveActivityClient } from "./liveActivity";
 import type { LiveActivityClient } from "./types";
 
+assertFoodLogSafeModeImport("live_activity");
+
 let initialized = false;
 let resolvedClient: LiveActivityClient = new NoopLiveActivityClient();
 
 type LiveActivityMode =
   | "disabled_by_config"
+  | "disabled_food_log_safe_mode"
   | "disabled_not_ios"
   | "disabled_no_native_module"
   | "enabled_native_activitykit"
@@ -48,6 +55,20 @@ function isIOS(): boolean {
 
 export function initLiveActivity(): LiveActivityClient {
   if (initialized) return resolvedClient;
+
+  if (FOOD_LOG_SAFE_MODE) {
+    resolvedClient = new NoopLiveActivityClient();
+    setLiveActivityClient(resolvedClient);
+    initialized = true;
+    logMode("disabled_food_log_safe_mode");
+    if (__DEV__) {
+      console.log("[SafeModeViolation:guard]", {
+        site: "live_activity.init",
+        action: "noop_returned",
+      });
+    }
+    return resolvedClient;
+  }
 
   const config = getAppConfig();
   const enabled = !!config.features.liveActivity;

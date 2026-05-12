@@ -7,7 +7,7 @@
 
 ## Overview
 
-This document outlines all environment variables and configuration required for production deployment of Caloric to the App Store and Google Play Store.
+This document outlines all environment variables and configuration required for production deployment of CalCut to the App Store and Google Play Store.
 
 ---
 

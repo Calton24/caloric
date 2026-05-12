@@ -28,7 +28,7 @@ If tag filters are not available on your plan, use **Issue search** saved query:
 ## Why email might not fire
 
 - **No DSN in build**: `EXPO_PUBLIC_SENTRY_DSN` must be set for release builds. `Sentry.init` is disabled when DSN is missing.
-- **`initErrorReporting` vs native init**: The app initializes Sentry in `app/_layout.tsx`. The JS reporter wrapper also requires `features.crashReporting` + DSN in `initErrorReporting()` (see `CaloricProviders`). If DSN is set but `crashReporting` is false, some wrapper paths no-op while native SDK may still capture — align config for production.
+- **`initErrorReporting` vs native init**: The app initializes Sentry in `app/_layout.tsx`. The JS reporter wrapper also requires `features.crashReporting` + DSN in `initErrorReporting()` (see `CalCutProviders`). If DSN is set but `crashReporting` is false, some wrapper paths no-op while native SDK may still capture — align config for production.
 - **Quota / spike protection**: Check Sentry **Stats** and **Inbound Filters**.
 - **`beforeSend`**: The app’s `beforeSend` returns the event unchanged (no accidental drops).
 

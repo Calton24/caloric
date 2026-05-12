@@ -7,7 +7,7 @@ export interface HealthKitWeightSample {
   startDate: string;
   /** Weight in pounds */
   value: number;
-  /** Source name (e.g. "Caloric", "Withings", "Apple Watch") */
+  /** Source name (e.g. "CalCut", "Withings", "Apple Watch") */
   sourceName?: string;
 }
 

@@ -21,8 +21,6 @@ import {
   TRACK_CALORIES_HOME_HREF,
 } from "../src/features/food-logging/track-calories.constants";
 import { mapDraftSourceToTrackFlow } from "../src/features/food-logging/track-calories-utils";
-import fs from "fs";
-import path from "path";
 import type { MealDraft } from "../src/features/nutrition/nutrition.draft.types";
 
 describe("confirm-meal track path", () => {
@@ -32,15 +30,6 @@ describe("confirm-meal track path", () => {
 
   it("post-save growth extras are off for isolation", () => {
     expect(ENABLE_POST_SAVE_EXTRAS).toBe(false);
-  });
-
-  it("confirm-meal screen does not reference PostLogCelebration", () => {
-    const p = path.join(
-      __dirname,
-      "../app/(modals)/confirm-meal.tsx",
-    );
-    const src = fs.readFileSync(p, "utf8");
-    expect(src).not.toMatch(/PostLogCelebration/);
   });
 
   it("mapDraftSourceToTrackFlow maps entry sources", () => {

@@ -4,7 +4,7 @@
  *
  * iOS bundleIdentifier and Android package come from `src/config/app-profiles.js`
  * base `app` for each profile. Environment (EXPO_PUBLIC_APP_ENV) must not override
- * bundle IDs — all builds use `com.calton.caloric` for the Caloric profile.
+ * bundle IDs — all builds use `com.calton.caloric` for the `caloric` app profile key.
  */
 
 import { ConfigContext, ExpoConfig } from "expo/config";
@@ -16,8 +16,15 @@ const getConfig = (): any => {
   // Use process.env directly since Constants.expoConfig isn't available yet
   const appProfile =
     process.env.EXPO_PUBLIC_APP_PROFILE || process.env.APP_PROFILE || "caloric";
-  const appEnv =
-    process.env.EXPO_PUBLIC_APP_ENV || process.env.APP_ENV || "dev";
+  const appEnvRaw =
+    process.env.EXPO_PUBLIC_APP_ENV || process.env.APP_ENV || "";
+  const appEnv = String(appEnvRaw).trim();
+  if (!appEnv) {
+    throw new Error(
+      `❌ EXPO_PUBLIC_APP_ENV (or APP_ENV at build time) is required.\n` +
+        `Add EXPO_PUBLIC_APP_ENV=dev to .env locally, or set env in eas.json for EAS builds.`
+    );
+  }
 
   // Import profiles (plain JS file for Node.js compatibility at build time)
   // eslint-disable-next-line
@@ -72,24 +79,26 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       bundleIdentifier: appConfig.bundleIdentifier,
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
+        CFBundleDisplayName: appConfig.name,
+        CFBundleName: appConfig.name,
         NSMotionUsageDescription:
           "This app uses the pedometer to track your steps, distance, and floors climbed for the Live Activity.",
         NSMicrophoneUsageDescription:
-          "Allow Caloric to use the microphone for voice meal logging.",
+          "Allow CalCut to use the microphone for voice meal logging.",
         NSSpeechRecognitionUsageDescription:
-          "Allow Caloric to use speech recognition to convert your voice to food entries.",
+          "Allow CalCut to use speech recognition to convert your voice to food entries.",
         NSCameraUsageDescription:
-          "Allow Caloric to use the camera to scan and identify food for calorie tracking.",
+          "Allow CalCut to use the camera to scan and identify food for calorie tracking.",
         NSPhotoLibraryUsageDescription:
-          "Allow Caloric to access your photo library to select food images for calorie tracking.",
+          "Allow CalCut to access your photo library to select food images for calorie tracking.",
         NSPhotoLibraryAddUsageDescription:
-          "Allow Caloric to save food scan photos to your photo library.",
+          "Allow CalCut to save food scan photos to your photo library.",
         NSLocationWhenInUseUsageDescription:
-          "Allow Caloric to add location data to photos taken with the camera for food logging.",
+          "Allow CalCut to add location data to photos taken with the camera for food logging.",
         NSHealthShareUsageDescription:
-          "Allow Caloric to read your weight data from Apple Health for progress tracking.",
+          "Allow CalCut to read your weight data from Apple Health for progress tracking.",
         NSHealthUpdateUsageDescription:
-          "Allow Caloric to save your meals and weight to Apple Health.",
+          "Allow CalCut to save your meals and weight to Apple Health.",
       },
       entitlements: {
         "com.apple.developer.healthkit": true,
@@ -164,16 +173,16 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         "expo-speech-recognition",
         {
           microphonePermission:
-            "Allow Caloric to use the microphone for voice meal logging.",
+            "Allow CalCut to use the microphone for voice meal logging.",
           speechRecognitionPermission:
-            "Allow Caloric to use speech recognition to convert your voice to food entries.",
+            "Allow CalCut to use speech recognition to convert your voice to food entries.",
         },
       ],
       [
         "react-native-vision-camera",
         {
           cameraPermissionText:
-            "Allow Caloric to use the camera to scan and identify food for calorie tracking.",
+            "Allow CalCut to use the camera to scan and identify food for calorie tracking.",
           enableCodeScanner: true,
         },
       ],

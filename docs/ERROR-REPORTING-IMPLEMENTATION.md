@@ -33,7 +33,7 @@ docs/
 "@sentry/react-native": "~6.5.0"
 ```
 
-### 2. `src/CaloricProviders.tsx`
+### 2. `src/CalCutProviders.tsx`
 
 **Changes:**
 
@@ -188,7 +188,7 @@ npm run lint
 1. **Zero Coupling**: Only `SentryErrorReporter.ts` imports Sentry SDK
 2. **Provider Agnostic**: Interface allows swapping providers (Bugsnag, Rollbar, etc.)
 3. **Safe No-op**: Missing config = no errors, just silent no-op
-4. **Automatic Init**: Called in `CaloricProviders`, no manual setup needed
+4. **Automatic Init**: Called in `CalCutProviders`, no manual setup needed
 5. **Error Boundary**: Catches React errors automatically
 6. **Environment Aware**: Disabled in dev by default, respects `__DEV__`
 

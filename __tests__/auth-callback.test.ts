@@ -21,6 +21,7 @@ import {
     resolveCallbackAction,
     resolveDestination,
 } from "../src/features/auth/callback-logic";
+import { APP_ENTRY_PATH } from "../src/features/navigation/app-entry-href";
 
 // ── Decision Logic ──────────────────────────────────────────────────────────
 
@@ -105,8 +106,8 @@ describe("Auth Callback: resolveDestination", () => {
     expect(resolveDestination(true)).toBe("/auth/reset-password");
   });
 
-  it("routes to /(tabs) when isRecovery is false", () => {
-    expect(resolveDestination(false)).toBe("/(tabs)");
+  it("routes to APP_ENTRY_PATH when isRecovery is false", () => {
+    expect(resolveDestination(false)).toBe(APP_ENTRY_PATH);
   });
 });
 

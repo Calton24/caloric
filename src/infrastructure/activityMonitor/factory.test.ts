@@ -3,6 +3,13 @@
  * Mirrors factory.test.ts pattern from notifications.
  */
 
+// Disable safe-mode in this suite: we want to exercise the real factory
+// paths (InApp client) instead of the SAFE_MODE early-return Noop.
+jest.mock("../../features/debug/safe-mode-flags", () => ({
+  FOOD_LOG_SAFE_MODE: false,
+  assertFoodLogSafeModeImport: jest.fn(),
+}));
+
 import { initActivityMonitor, resetActivityMonitor } from "./factory";
 
 // Mock config gating — default: activityMonitor enabled

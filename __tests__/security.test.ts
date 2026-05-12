@@ -1,5 +1,5 @@
 /**
- * Security Tests for Caloric
+ * Security Tests for CalCut
  *
  * Verifies:
  * - Service role JWTs are rejected

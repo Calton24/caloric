@@ -1,61 +1,43 @@
 /**
+ * Legacy full-screen settings route.
+ * Do not add new settings logic here.
+ * Shared flows must live under `src/features/account` or `src/features/settings`.
+ *
  * Settings Screen
  *
  * Matching the real app layout:
  *   - Pro banner
  *   - General: Voice & Text Input, Units, Body Measurements, Notifications
  *   - Apple Health
- *   - Extensions: Live Activities
+ *   - Extensions: Live Activities (Dynamic Island iPhones only)
  *
  * Every row reads/writes real store state.
  */
 
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
-import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    TextInput,
-    View,
-} from "react-native";
+import React, { useCallback, useMemo } from "react";
+import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from "react-native";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useDeleteAccountDialogStore } from "../../../src/features/account/delete-account-dialog.store";
 import { useAuth } from "../../../src/features/auth/useAuth";
-import { useChallengeStore } from "../../../src/features/challenge/challenge.store";
-import { useGoalsStore } from "../../../src/features/goals/goals.store";
 import {
-  insightTelemetry,
-  useInsightStore,
-} from "../../../src/features/insights";
-import {
-    areLiveActivitiesAvailable,
-    endLiveActivity,
+  areLiveActivitiesAvailable,
+  endLiveActivity,
 } from "../../../src/features/live-activity";
-import { useNutritionStore } from "../../../src/features/nutrition/nutrition.store";
+import { hasDynamicIsland } from "../../../src/platform/ios/hasDynamicIsland";
 import { usePermissionsStore } from "../../../src/features/permissions";
-import { useProfileStore } from "../../../src/features/profile/profile.store";
-import { useProgressStore } from "../../../src/features/progress/progress.store";
-import { useRetentionStore } from "../../../src/features/retention/retention.store";
 import {
     getLanguageLabel,
     useSettingsStore,
 } from "../../../src/features/settings";
-import { useShareStore } from "../../../src/features/share/share.store";
-import { useStreakStore } from "../../../src/features/streak/streak.store";
 import { useSubscriptionStore } from "../../../src/features/subscription";
-import { useScanCreditsStore } from "../../../src/features/subscription/scanCredits.store";
+import { useAppTrialStore } from "../../../src/features/subscription/app-trial.store";
+import { PAYWALL_UPGRADE_HREF } from "../../../src/features/subscription/paywall-mode";
+import { trackUpgradePaywallOpened } from "../../../src/features/subscription/subscription-analytics";
 import { useRevenueCat } from "../../../src/features/subscription/useRevenueCat";
-import { useWaterStore } from "../../../src/features/water/water.store";
 import { useUnits } from "../../../hooks/useUnits";
-
-import { getStorage } from "../../../src/infrastructure/storage";
 import { useAppTranslation } from "../../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../../src/theme/useTheme";
 import { TSpacer } from "../../../src/ui/primitives/TSpacer";
@@ -235,14 +217,8 @@ export default function SettingsScreen() {
   const { theme, toggleMode } = useTheme();
   const { t } = useAppTranslation();
   const router = useRouter();
-  const { user, signOut, deleteAccount } = useAuth();
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [deleteConfirmText, setDeleteConfirmText] = useState("");
-  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
-  const canConfirmDelete = useMemo(
-    () => deleteConfirmText.trim().toUpperCase() === "DELETE",
-    [deleteConfirmText]
-  );
+  const { user, signOut } = useAuth();
+  const openDeleteAccountDialog = useDeleteAccountDialogStore((s) => s.open);
 
   // ── Settings store ──
   const settings = useSettingsStore((s) => s.settings);
@@ -256,25 +232,63 @@ export default function SettingsScreen() {
     (s) => s.setLiveActivitiesEnabled
   );
 
-  // ── Subscription store ──
+  // ── Subscription + app trial ──
   const subscription = useSubscriptionStore((s) => s.subscription);
-  const subscriptionLabel =
-    subscription.plan === null
-      ? t("settings.free")
-      : subscription.trialStarted
-        ? t("settings.challenge")
-        : subscription.plan === "monthly"
-          ? t("settings.monthly")
-          : t("settings.yearly");
+  const trialSnapshot = useAppTrialStore((s) => s.trial);
+  const trialBootstrap = useAppTrialStore((s) => s.bootstrapStatus);
 
   // ── RevenueCat helpers ──
   const {
     isPro,
-    presentPaywall,
     presentCustomerCenter,
     restorePurchases,
     isRestoring,
   } = useRevenueCat();
+
+  const openUpgradePaywall = useCallback(() => {
+    trackUpgradePaywallOpened({ source: "settings" });
+    router.push(PAYWALL_UPGRADE_HREF);
+  }, [router]);
+
+  const subscriptionStatusLabel = useMemo(() => {
+    if (subscription.plan === null) {
+      return t("settings.free");
+    }
+    if (subscription.trialStarted) {
+      return t("settings.challenge");
+    }
+    if (subscription.plan === "monthly") {
+      return t("settings.monthly");
+    }
+    return t("settings.yearly");
+  }, [subscription.plan, subscription.trialStarted, t]);
+
+  const proBannerValue = useMemo(() => {
+    if (isPro) return t("settings.thankYou");
+    if (
+      trialBootstrap === "ready" &&
+      trialSnapshot?.isActive &&
+      trialSnapshot.expiresAt
+    ) {
+      const ms =
+        new Date(trialSnapshot.expiresAt).getTime() - Date.now();
+      const days = Math.ceil(ms / 86400000);
+      if (days <= 0) return t("settings.trialEndsToday");
+      return t("settings.trialEndsInDays", { count: days });
+    }
+    if (trialBootstrap === "ready" && trialSnapshot?.isExpired) {
+      return t("settings.trialExpiredShort");
+    }
+    return subscriptionStatusLabel;
+  }, [
+    isPro,
+    t,
+    trialBootstrap,
+    trialSnapshot?.isActive,
+    trialSnapshot?.isExpired,
+    trialSnapshot?.expiresAt,
+    subscriptionStatusLabel,
+  ]);
 
   // ── Handlers ──
   const handleToggleLiveActivities = useCallback(
@@ -305,107 +319,6 @@ export default function SettingsScreen() {
   const handleDone = useCallback(() => {
     router.back();
   }, [router]);
-
-  const resetClientStoresAfterAccountDeletion = useCallback(async () => {
-    console.log("[DeleteAccount] local cleanup started");
-    useNutritionStore.getState().resetMeals();
-    useGoalsStore.getState().clearPlan();
-    useProgressStore.getState().resetWeightLogs();
-    useProfileStore.getState().resetProfile();
-    useRetentionStore.getState().resetRetention();
-    useChallengeStore.getState().clearChallenge();
-    useShareStore.getState().reset();
-    useStreakStore.getState().resetFreeze();
-    useStreakStore.getState().setStreak({
-      currentStreak: 0,
-      longestStreak: 0,
-      lastLogDate: null,
-      streakStartDate: null,
-    });
-    useWaterStore.setState({ intakeByDate: {} });
-    useSubscriptionStore.getState().resetSubscription();
-    useScanCreditsStore.getState().resetCredits();
-    useInsightStore.getState().reset();
-    insightTelemetry.resetSession();
-    await getStorage().clear();
-    console.log("[DeleteAccount] local cleanup complete");
-  }, []);
-
-  const openDeleteAccountModal = useCallback(() => {
-    console.log("[DeleteAccount] confirmation opened");
-    setDeleteConfirmText("");
-    setDeleteModalVisible(true);
-  }, []);
-
-  const closeDeleteAccountModal = useCallback(() => {
-    if (isDeletingAccount) return;
-    setDeleteModalVisible(false);
-    setDeleteConfirmText("");
-  }, [isDeletingAccount]);
-
-  const confirmDeleteAccount = useCallback(async () => {
-    if (!canConfirmDelete || isDeletingAccount) {
-      console.log("[DeleteAccount] local cleanup skipped", {
-        reason: !canConfirmDelete ? "confirmation-mismatch" : "request-in-flight",
-      });
-      return;
-    }
-
-    console.log("[DeleteAccount] request started", {
-      userId: user?.id ?? null,
-    });
-    setIsDeletingAccount(true);
-
-    try {
-      const { error } = await deleteAccount();
-      if (error) {
-        console.log("[DeleteAccount] local cleanup skipped", {
-          reason: "backend-delete-failed",
-          userId: user?.id ?? null,
-          error: error.message,
-        });
-        console.log("[DeleteAccount] failed", {
-          userId: user?.id ?? null,
-          error: error.message,
-        });
-        Alert.alert("Delete account failed", error.message || t("settings.deleteError"));
-        return;
-      }
-
-      console.log("[DeleteAccount] backend confirmed", {
-        userId: user?.id ?? null,
-      });
-      await signOut();
-      await resetClientStoresAfterAccountDeletion();
-      console.log("[DeleteAccount] success", {
-        userId: user?.id ?? null,
-      });
-      setDeleteModalVisible(false);
-      router.replace("/(onboarding)/landing");
-    } catch (error) {
-      console.log("[DeleteAccount] local cleanup skipped", {
-        reason: "exception-before-backend-confirmation",
-        userId: user?.id ?? null,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      console.log("[DeleteAccount] failed", {
-        userId: user?.id ?? null,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      Alert.alert(t("common.error"), t("settings.deleteError"));
-    } finally {
-      setIsDeletingAccount(false);
-    }
-  }, [
-    canConfirmDelete,
-    isDeletingAccount,
-    user?.id,
-    deleteAccount,
-    signOut,
-    resetClientStoresAfterAccountDeletion,
-    router,
-    t,
-  ]);
 
   return (
     <View
@@ -448,8 +361,8 @@ export default function SettingsScreen() {
                 label={
                   isPro ? t("settings.youArePro") : t("settings.upgradeToPro")
                 }
-                value={isPro ? t("settings.thankYou") : subscriptionLabel}
-                onPress={presentPaywall}
+                value={proBannerValue}
+                onPress={isPro ? undefined : openUpgradePaywall}
                 showChevron
               />
             </View>
@@ -541,8 +454,8 @@ export default function SettingsScreen() {
             </>
           )}
 
-          {/* ── Extensions (iOS only) ── */}
-          {Platform.OS === "ios" && (
+          {/* ── Extensions: Live Activities (Dynamic Island iPhones only) ── */}
+          {hasDynamicIsland() && (
             <>
               <TSpacer size="lg" />
               <Animated.View entering={FadeInDown.duration(400).delay(300)}>
@@ -606,6 +519,46 @@ export default function SettingsScreen() {
                       title: encodeURIComponent("Terms of Service"),
                     },
                   })
+                }
+              />
+            </View>
+          </Animated.View>
+
+          <TSpacer size="lg" />
+
+          {/* ── Social ── */}
+          <Animated.View entering={FadeInDown.duration(400).delay(365)}>
+            <SectionHeader
+              title={t("settings.social", { defaultValue: "SOCIAL" })}
+            />
+            <View
+              style={[
+                styles.section,
+                { backgroundColor: theme.colors.surfaceSecondary },
+              ]}
+            >
+              <SettingsRow
+                icon="logo-instagram"
+                iconColor={theme.colors.textSecondary}
+                label={t("settings.socialInstagram", {
+                  defaultValue: "Instagram (@getcalcut)",
+                })}
+                onPress={() =>
+                  void Linking.openURL(
+                    "https://www.instagram.com/getcalcut/"
+                  ).catch(() => {})
+                }
+              />
+              <SettingsRow
+                icon="logo-tiktok"
+                iconColor={theme.colors.textSecondary}
+                label={t("settings.socialTiktok", {
+                  defaultValue: "TikTok (@getcalcut)",
+                })}
+                onPress={() =>
+                  void Linking.openURL("https://www.tiktok.com/@getcalcut").catch(
+                    () => {}
+                  )
                 }
               />
             </View>
@@ -687,7 +640,7 @@ export default function SettingsScreen() {
                 icon="trash-outline"
                 iconColor={theme.colors.error}
                 label={t("settings.deleteAccount")}
-                onPress={openDeleteAccountModal}
+                onPress={openDeleteAccountDialog}
               />
             </View>
           </Animated.View>
@@ -697,88 +650,6 @@ export default function SettingsScreen() {
           <TSpacer size="xxl" />
         </ScrollView>
       </SafeAreaView>
-
-      <Modal
-        visible={deleteModalVisible}
-        animationType="fade"
-        transparent
-        onRequestClose={closeDeleteAccountModal}
-      >
-        <View style={styles.deleteModalBackdrop}>
-          <View
-            style={[
-              styles.deleteModalCard,
-              { backgroundColor: theme.colors.surfaceSecondary },
-            ]}
-          >
-            <TText style={[styles.deleteModalTitle, { color: theme.colors.text }]}>
-              Delete account permanently?
-            </TText>
-            <TText
-              style={[
-                styles.deleteModalBody,
-                { color: theme.colors.textSecondary },
-              ]}
-            >
-              This will permanently delete your account and remove your meals,
-              progress, and settings according to our data deletion policy. This
-              action cannot be undone.
-            </TText>
-            <TText style={[styles.deleteModalHint, { color: theme.colors.textMuted }]}>
-              Type DELETE to confirm
-            </TText>
-            <TextInput
-              value={deleteConfirmText}
-              onChangeText={setDeleteConfirmText}
-              editable={!isDeletingAccount}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              placeholder="DELETE"
-              placeholderTextColor={theme.colors.textMuted}
-              style={[
-                styles.deleteInput,
-                {
-                  borderColor: theme.colors.border,
-                  color: theme.colors.text,
-                  backgroundColor: theme.colors.background,
-                },
-              ]}
-            />
-            <View style={styles.deleteActions}>
-              <Pressable
-                onPress={closeDeleteAccountModal}
-                disabled={isDeletingAccount}
-                style={[
-                  styles.deleteButton,
-                  { backgroundColor: theme.colors.surface },
-                ]}
-              >
-                <TText style={{ color: theme.colors.text }}>Cancel</TText>
-              </Pressable>
-              <Pressable
-                onPress={confirmDeleteAccount}
-                disabled={!canConfirmDelete || isDeletingAccount}
-                style={[
-                  styles.deleteButton,
-                  styles.deleteButtonDanger,
-                  {
-                    opacity: !canConfirmDelete || isDeletingAccount ? 0.5 : 1,
-                    backgroundColor: theme.colors.error,
-                  },
-                ]}
-              >
-                {isDeletingAccount ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <TText style={{ color: "#fff", fontWeight: "700" }}>
-                    Delete forever
-                  </TText>
-                )}
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -875,56 +746,5 @@ const styles = StyleSheet.create({
   segmentLabel: {
     fontSize: 13,
     fontWeight: "600",
-  },
-  deleteModalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 20,
-  },
-  deleteModalCard: {
-    width: "100%",
-    borderRadius: 16,
-    padding: 18,
-    gap: 10,
-  },
-  deleteModalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  deleteModalBody: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  deleteModalHint: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-  deleteInput: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-  },
-  deleteActions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 10,
-    marginTop: 6,
-  },
-  deleteButton: {
-    minWidth: 110,
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  deleteButtonDanger: {
-    minWidth: 140,
   },
 });

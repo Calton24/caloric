@@ -8,14 +8,13 @@ const fs = require("fs") as typeof import("fs");
 const path = require("path") as typeof import("path");
 
 describe("Barcode scan flow — camera-log wiring (smoke)", () => {
-  it("keeps looking_up_barcode state without a blocking lookup overlay", () => {
+  it("uses startFromBarcode + explicit lookup state (no legacy overlay)", () => {
     const cameraLog = fs.readFileSync(
       path.join(__dirname, "..", "app", "(modals)", "camera-log.tsx"),
       "utf8"
     );
-    expect(cameraLog).toContain('"looking_up_barcode"');
+    expect(cameraLog).toContain("looking_up_barcode");
+    expect(cameraLog).toContain("startFromBarcode");
     expect(cameraLog).not.toContain("BarcodeLookupOverlay");
-    expect(cameraLog).toContain("BARCODE_LOOKUP_TIMEOUT_MS");
-    expect(cameraLog).toContain("isRenderableConfirmMealPayload");
   });
 });

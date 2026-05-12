@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Caloric",
+  title: "CalCut",
   description: "Track your nutrition effortlessly",
 };
 

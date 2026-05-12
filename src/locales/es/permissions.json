@@ -1,7 +1,7 @@
 {
   "permissions": {
     "title": "Permisos necesarios",
-    "description": "Caloric usa tu micrófono y reconocimiento de voz para registrar comidas por voz.",
+    "description": "CalCut usa tu micrófono y reconocimiento de voz para registrar comidas por voz.",
     "microphone": "Micrófono",
     "microphoneDesc": "Escucha tu voz para registrar comidas",
     "speechRecognition": "Reconocimiento de voz",
@@ -13,7 +13,7 @@
   },
   "permissionsSetup": {
     "title": "Permisos requeridos",
-    "subtitle": "Caloric usa tu micrófono y reconocimiento de voz para registrar comidas, y notificaciones para mantenerte al día.",
+    "subtitle": "CalCut usa tu micrófono y reconocimiento de voz para registrar comidas, y notificaciones para mantenerte al día.",
     "microphone": "Micrófono",
     "microphoneDesc": "Escucha tu voz para registrar comidas",
     "speechRecognition": "Reconocimiento de voz",

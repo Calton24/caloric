@@ -103,7 +103,8 @@
       "subtitle": "Maak een account aan om je caloriedoelen, macro's en voortgang op al je apparaten te synchroniseren.",
       "socialProof": "2.400+ gebruikers registreerden zich deze week",
       "privacy": "Je gegevens blijven privé",
-      "speed": "Duurt 5 seconden"
+      "speed": "Duurt 5 seconden",
+      "checkpointSyncFailed": "We couldn't save your place in setup. Check your connection and try signing in again."
     },
     "complete": {
       "heading": "Alles ingesteld!",

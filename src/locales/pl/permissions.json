@@ -1,7 +1,7 @@
 {
   "permissions": {
     "title": "Wymagane uprawnienia",
-    "description": "Caloric używa mikrofonu i rozpoznawania mowy do rejestrowania posiłków głosem.",
+    "description": "CalCut używa mikrofonu i rozpoznawania mowy do rejestrowania posiłków głosem.",
     "microphone": "Mikrofon",
     "microphoneDesc": "Słuchaj głosu, aby rejestrować posiłki",
     "speechRecognition": "Rozpoznawanie mowy",
@@ -13,7 +13,7 @@
   },
   "permissionsSetup": {
     "title": "Wymagane uprawnienia",
-    "subtitle": "Caloric używa mikrofonu i rozpoznawania mowy do rejestrowania posiłków głosem, a powiadomień, aby Cię motywować.",
+    "subtitle": "CalCut używa mikrofonu i rozpoznawania mowy do rejestrowania posiłków głosem, a powiadomień, aby Cię motywować.",
     "microphone": "Mikrofon",
     "microphoneDesc": "Słuchaj głosu do rejestrowania posiłków",
     "speechRecognition": "Rozpoznawanie mowy",

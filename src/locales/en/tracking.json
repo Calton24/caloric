@@ -25,7 +25,7 @@
     "listening": "Listening...",
     "retry": "Retry",
     "guide": "Guide",
-    "guideDesc": "Describe what you ate naturally. Caloric will identify the food items and estimate nutrition.",
+    "guideDesc": "Describe what you ate naturally. CalCut will identify the food items and estimate nutrition.",
     "type": "Type",
     "scan": "Scan",
     "unnamedMeal": "Unnamed Meal",
@@ -38,7 +38,7 @@
     "cameraAccessRequiredDesc": "Please allow camera access in Settings to scan food.",
     "openSettings": "Open Settings",
     "cameraAccessNeeded": "Camera Access Needed",
-    "cameraAccessNeededDesc": "Caloric needs camera access to scan and identify food for calorie tracking.",
+    "cameraAccessNeededDesc": "CalCut needs camera access to scan and identify food for calorie tracking.",
     "enableCamera": "Enable Camera",
     "chooseFromGallery": "Or choose from gallery",
     "noCameraDevice": "No camera device found.",
@@ -61,7 +61,51 @@
     "retake": "Retake",
     "scanHint": "Point at food or scan a barcode",
     "freeScansRemaining": "{{count}} free scan remaining",
-    "freeScansRemaining_plural": "{{count}} free scans remaining"
+    "freeScansRemaining_plural": "{{count}} free scans remaining",
+    "barcodeFoundTitle": "Barcode found",
+    "barcodeLookupSubtitle": "Looking up product details…",
+    "barcodeLookupChecking": "Checking product databases…",
+    "barcodeCodeLabel": "Code: {{code}}",
+    "barcodeScanAgain": "Scan again",
+    "barcodeLookupCancel": "Cancel"
+  },
+  "fallback": {
+    "cameraTitle": "Help us identify this",
+    "cameraTitleHeadline": "Tell us what's in the photo",
+    "cameraSubtitle":
+      "Describe the dish and CalCut will estimate the calories.",
+    "cameraPlaceholder":
+      "e.g. chicken rice bowl with avocado, ~400g",
+    "barcodeTitle": "Product not found",
+    "barcodeTitleHeadline": "We couldn't find this barcode",
+    "barcodeSubtitle":
+      "Type the product name or scan it again.",
+    "barcodePlaceholder":
+      "e.g. Walkers Sensations Thai Sweet Chilli crisps 150g",
+    "barcodeLabel": "Barcode: {{code}}",
+    "manualTitle": "No match found",
+    "manualTitleHeadline": "Try a more specific description",
+    "manualSubtitle": "Add brand, portion size, or ingredients.",
+    "manualPlaceholder": "e.g. homemade pasta with tomato sauce, 1 bowl",
+    "findFood": "Find food",
+    "searching": "Searching…",
+    "retry": "Retry AI scan",
+    "retake": "Retake photo",
+    "scanAgain": "Scan again",
+    "addManually": "Add manually instead",
+    "stillNotFound":
+      "Still couldn't find it. Try adding quantity or brand, e.g. 'Tesco chicken caesar wrap 190g'.",
+    "lookupFailed":
+      "Something went wrong looking that up. Check your connection and try again.",
+    "reasonNetwork":
+      "We hit a network issue while looking that up.",
+    "reasonBarcodeNotFound":
+      "This barcode isn't in our database yet.",
+    "reasonLowConfidence":
+      "Our guess wasn't confident — a description helps a lot.",
+    "suggestionAddBrand": "Add brand",
+    "suggestionAddPortion": "Add portion size",
+    "suggestionDescribeIngredients": "Describe ingredients"
   },
   "mealConfirm": {
     "analysisIncomplete": "Analysis incomplete",
@@ -72,6 +116,8 @@
     "typeItIn": "Type It In",
     "trackCalories": "Track Calories",
     "invalidMealDraft": "We couldn't read this meal properly. Please adjust it before saving.",
+    "saveFailed": "We could not save this food. Please edit the values and try again.",
+    "barcodeNutritionMissing": "Nutrition details are missing for this product — add values before saving.",
     "adjustHint": "Need to adjust calories? Just ask!",
     "moreOptionsA11y": "More options for this meal",
     "reportFood": "Report Food",

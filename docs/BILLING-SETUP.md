@@ -313,6 +313,23 @@ npx husky add .husky/pre-commit "npm test"
 6. [ ] Monitor webhook deliveries
 7. [ ] Set up alerts for failed payments
 
+## RevenueCat webhook (Supabase Edge)
+
+Third-party webhooks hit `https://<project>.supabase.co/functions/v1/revenuecat-webhook` with a **shared secret** in `Authorization`, not a Supabase user JWT. If the Edge gateway has **JWT verification enabled**, Supabase returns `UNAUTHORIZED_INVALID_JWT_FORMAT` and your `index.ts` never runs.
+
+1. Set secrets in Supabase (Dashboard → Edge Functions → Secrets): `REVENUECAT_WEBHOOK_SECRET` (raw token; optional alias `REVENUECAT_WEBHOOK_AUTH`).
+2. Deploy **with JWT verification off** (required at least once for the remote function):
+
+```bash
+npm run supabase:deploy:revenuecat-webhook
+# same as:
+# npx supabase functions deploy revenuecat-webhook --no-verify-jwt
+# If the CLI is not linked to this repo, add: --project-ref uygibfitqadnoycjeuvz
+```
+
+3. In RevenueCat → Integrations → Webhooks, set the same secret in **Authorization** (with or without `Bearer `; the handler normalizes both).
+4. For production traffic, set the webhook to **Sandbox and Production** (not sandbox-only).
+
 ## Support
 
 - Stripe Docs: https://stripe.com/docs

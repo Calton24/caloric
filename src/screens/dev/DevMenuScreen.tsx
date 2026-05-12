@@ -3,9 +3,10 @@
  * Main dev menu with links to all demo screens
  */
 
+import * as Sentry from "@sentry/react-native";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Pressable, ScrollView, StyleSheet } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet } from "react-native";
 import { useAuth } from "../../features/auth/useAuth";
 import { useTheme } from "../../theme/useTheme";
 import { GlassCard } from "../../ui/glass/GlassCard";
@@ -89,7 +90,7 @@ export function DevMenuScreen() {
             marginBottom: theme.spacing.xl,
           }}
         >
-          Caloric UI Components
+          CalCut UI Components
         </TText>
 
         {user && (
@@ -105,6 +106,43 @@ export function DevMenuScreen() {
             <TSpacer size="md" />
           </>
         )}
+
+        {__DEV__ ? (
+          <>
+            <Pressable
+              onPress={async () => {
+                const { sendSentryDevPing } = await import(
+                  "../../infrastructure/errorReporting/sendSentryDevPing"
+                );
+                await sendSentryDevPing();
+              }}
+              style={({ pressed }) => ({
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <GlassCard padding="md">
+                <TText
+                  variant="subheading"
+                  style={{
+                    color: theme.colors.text,
+                    marginBottom: theme.spacing.xs,
+                  }}
+                >
+                  Sentry dev ping
+                </TText>
+                <TText
+                  color="secondary"
+                  style={{
+                    fontSize: theme.typography.fontSize.sm,
+                  }}
+                >
+                  Sends a test error + flush; check Sentry for [SentryDevPing]
+                </TText>
+              </GlassCard>
+            </Pressable>
+            <TSpacer size="sm" />
+          </>
+        ) : null}
 
         {MENU_ITEMS.map((item, index) => (
           <React.Fragment key={item.path}>

@@ -1,6 +1,6 @@
-# Caloric Validation Checklist
+# CalCut Validation Checklist
 
-Complete step-by-step guide to validate all Caloric infrastructure is working correctly.
+Complete step-by-step guide to validate all CalCut infrastructure is working correctly.
 
 ---
 
@@ -133,7 +133,7 @@ npx expo run:android
 - [ ] Home tab visible
 - [ ] Auth tab visible
 - [ ] Playground tab visible (if `SHOW_PLAYGROUND` enabled)
-- [ ] Caloric tab visible (dev mode only)
+- [ ] CalCut tab visible (dev mode only)
 
 ---
 
@@ -229,9 +229,9 @@ npm start -- --clear
 ```
 📱 Loading config for profile: default, environment: dev
 ✅ Config loaded successfully:
-    App: Caloric Dev
+    App: CalCut Dev
     Supabase: https://your-project-id.supabase.co
-🔌 Initializing Supabase client for: Caloric Dev
+🔌 Initializing Supabase client for: CalCut Dev
     Project: https://your-project-id.supabase.co
 ```
 
@@ -795,12 +795,12 @@ const { theme } = useTheme();
 
 ## Validation Complete
 
-If all checkboxes are marked, your Caloric installation is fully validated! 🎉
+If all checkboxes are marked, your CalCut installation is fully validated! 🎉
 
 **Next Steps:**
 
 - Read [ARCHITECTURE.md](./ARCHITECTURE.md) for deep dive
-- Build your own features using Caloric infrastructure
+- Build your own features using CalCut infrastructure
 - Create additional app profiles in `src/config/profiles/`
 
 ---

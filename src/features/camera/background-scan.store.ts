@@ -81,7 +81,7 @@ export type ImageUploadStatus =
  *   - "dismiss" — local job was swiped to `dismissed`; same risk as `save`.
  */
 export interface PendingServerSync {
-  type: "upsert" | "save" | "dismiss";
+  type: "upsert" | "save" | "dismiss" | "save_fk_deferred";
   attempts: number;
   lastAttemptAt?: string;
   reason?: string;

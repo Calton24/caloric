@@ -23,7 +23,7 @@ export function LiveActivityDebugPanel() {
 
   const handleStart = useCallback(() => {
     const result: LAStartResult = liveActivity.start("StatusWidget", {
-      title: "Caloric Demo",
+      title: "CalCut Demo",
       status: "Running",
       progress: 0.3,
     });
@@ -39,7 +39,7 @@ export function LiveActivityDebugPanel() {
       return;
     }
     const result = liveActivity.update(activeId, "StatusWidget", {
-      title: "Caloric Demo",
+      title: "CalCut Demo",
       status: "Updated!",
       progress: 0.75,
     });

@@ -103,7 +103,8 @@
       "subtitle": "Créez un compte pour synchroniser vos objectifs caloriques, macros et progrès sur tous vos appareils.",
       "socialProof": "2 400+ utilisateurs se sont inscrits cette semaine",
       "privacy": "Vos données restent privées",
-      "speed": "Prend 5 secondes"
+      "speed": "Prend 5 secondes",
+      "checkpointSyncFailed": "We couldn't save your place in setup. Check your connection and try signing in again."
     },
     "complete": {
       "heading": "Tout est prêt !",

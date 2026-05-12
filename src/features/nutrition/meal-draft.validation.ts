@@ -12,6 +12,7 @@ const KNOWN_SOURCES = new Set<MealEntry["source"]>([
   "camera",
   "text",
   "image",
+  "barcode",
 ]);
 
 function isFiniteNonNegative(n: unknown): n is number {

@@ -1,6 +1,6 @@
-# Caloric Catalog
+# CalCut Catalog
 
-The **Caloric** tab is a live playground for every UI component in the library. It's structured as a multi-screen catalog so demos stay manageable as the component count grows.
+The **CalCut** tab is a live playground for every UI component in the library. It's structured as a multi-screen catalog so demos stay manageable as the component count grows.
 
 ## Architecture
 

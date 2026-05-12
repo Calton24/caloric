@@ -1,3 +1,10 @@
+// Disable safe-mode in this suite: we want to exercise the real growth factory
+// paths (Noop / Supabase) instead of the SAFE_MODE early-return Noop.
+jest.mock("../../features/debug/safe-mode-flags", () => ({
+  FOOD_LOG_SAFE_MODE: false,
+  assertFoodLogSafeModeImport: jest.fn(),
+}));
+
 import { initGrowth, resetGrowth } from "./factory";
 import { NoopGrowthClient } from "./providers/NoopGrowthClient";
 

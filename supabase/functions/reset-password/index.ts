@@ -34,7 +34,7 @@ serve(async (req: Request) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex,nofollow,noarchive" />
   <meta name="referrer" content="no-referrer" />
-  <title>Reset Password — Caloric</title>
+  <title>Reset Password — CalCut</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -122,7 +122,7 @@ serve(async (req: Request) => {
     <div class="success" id="success-state">
       <div class="check">✅</div>
       <h2>Password Updated!</h2>
-      <p>Your password has been changed successfully.<br />You can now go back to the Caloric app and sign in with your new password.</p>
+      <p>Your password has been changed successfully.<br />You can now go back to the CalCut app and sign in with your new password.</p>
     </div>
 
     <!-- Token Error State -->

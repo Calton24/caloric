@@ -25,12 +25,17 @@ import Animated, {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthCapabilities } from "../../src/features/auth/authCapabilities";
 import { useAuth } from "../../src/features/auth/useAuth";
+import {
+  discardPendingPaywallHandoffMarker,
+  markPendingPaywallHandoffFromSaveProgress,
+  syncPaywallCheckpointAfterSaveProgressAuth,
+} from "../../src/features/onboarding/post-auth-onboarding-handoff";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
-import { OnboardingBackground } from "./_background";
+import { OnboardingBackground } from "../../src/features/onboarding/components/OnboardingBackground";
 import { OnboardingHeader } from "./_progress";
 
 export default function SaveProgressScreen() {
@@ -51,21 +56,41 @@ export default function SaveProgressScreen() {
     router.push("/(onboarding)/paywall" as any);
   };
 
+  const finalizeAuthAndContinue = async (): Promise<boolean> => {
+    const sync = await syncPaywallCheckpointAfterSaveProgressAuth();
+    if (!sync.ok) {
+      Alert.alert(
+        t("common.error"),
+        t("onboarding.saveProgress.checkpointSyncFailed"),
+      );
+      return false;
+    }
+    navigateNext();
+    return true;
+  };
+
   const handleAppleSignIn = async () => {
     if (!AuthCapabilities.apple) {
       Alert.alert(t("auth.comingSoon"), t("auth.appleComingSoon"));
       return;
     }
+    await markPendingPaywallHandoffFromSaveProgress();
     setLoading(true);
     try {
       const { error } = await signInWithAppleNative();
       if (error) {
+        if (
+          error.message === "User cancelled" ||
+          error.message?.includes("canceled")
+        ) {
+          await discardPendingPaywallHandoffMarker();
+        }
         if (error.message !== "User cancelled") {
           Alert.alert("Error", error.message);
         }
         return;
       }
-      navigateNext();
+      await finalizeAuthAndContinue();
     } finally {
       setLoading(false);
     }
@@ -76,16 +101,23 @@ export default function SaveProgressScreen() {
       Alert.alert(t("auth.unavailable"), t("auth.googleUnavailable"));
       return;
     }
+    await markPendingPaywallHandoffFromSaveProgress();
     setLoading(true);
     try {
       const { error } = await signInWithGoogleNative();
       if (error) {
+        if (
+          error.message === "User cancelled" ||
+          error.message?.includes("canceled")
+        ) {
+          await discardPendingPaywallHandoffMarker();
+        }
         if (error.message !== "User cancelled") {
           Alert.alert("Error", error.message);
         }
         return;
       }
-      navigateNext();
+      await finalizeAuthAndContinue();
     } finally {
       setLoading(false);
     }
@@ -108,6 +140,8 @@ export default function SaveProgressScreen() {
       }
     }
 
+    await markPendingPaywallHandoffFromSaveProgress();
+
     setLoading(true);
     try {
       // Try the user's chosen mode first
@@ -116,7 +150,7 @@ export default function SaveProgressScreen() {
         : await signIn(email, password);
 
       if (!primary.error) {
-        navigateNext();
+        await finalizeAuthAndContinue();
         return;
       }
 
@@ -135,7 +169,7 @@ export default function SaveProgressScreen() {
 
         if (!fallback.error) {
           setIsSignUp(!isSignUp); // sync UI state
-          navigateNext();
+          await finalizeAuthAndContinue();
           return;
         }
       }

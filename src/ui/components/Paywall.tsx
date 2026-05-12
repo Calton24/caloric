@@ -288,7 +288,7 @@ function ModalPaywall({
               {t("paywall.choosePlan")}
             </TText>
             <TSpacer size="md" />
-            {isUnavailable ? (
+            {isLoadingOfferings ? (
               <View style={styles.loadingPlans}>
                 <ActivityIndicator size="small" color={theme.colors.primary} />
                 <TSpacer size="sm" />
@@ -299,6 +299,17 @@ function ModalPaywall({
                   ]}
                 >
                   {t("paywall.loadingPlans")}
+                </TText>
+              </View>
+            ) : !offerings ? (
+              <View style={styles.loadingPlans}>
+                <TText
+                  style={[
+                    styles.loadingPlansText,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  Unable to load subscription options. Please try again shortly.
                 </TText>
               </View>
             ) : (

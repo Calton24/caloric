@@ -10,16 +10,25 @@
  */
 
 import { getAppConfig } from "../../config";
+import {
+  FOOD_LOG_SAFE_MODE,
+  assertFoodLogSafeModeImport,
+} from "../../features/debug/safe-mode-flags";
 import { logger } from "../../logging/logger";
 import { AppStatePresenceClient } from "./AppStatePresenceClient";
 import { NoopPresenceClient } from "./NoopPresenceClient";
 import { setPresenceClient } from "./presence";
 import type { PresenceClient } from "./types";
 
+assertFoodLogSafeModeImport("presence");
+
 let initialized = false;
 let resolvedClient: PresenceClient = new NoopPresenceClient();
 
-type PresenceMode = "disabled_by_config" | "enabled_appstate";
+type PresenceMode =
+  | "disabled_by_config"
+  | "disabled_food_log_safe_mode"
+  | "enabled_appstate";
 
 function logMode(mode: PresenceMode): void {
   logger.log(`[Presence] mode=${mode}`);
@@ -27,6 +36,14 @@ function logMode(mode: PresenceMode): void {
 
 export function initPresence(): PresenceClient {
   if (initialized) return resolvedClient;
+
+  if (FOOD_LOG_SAFE_MODE) {
+    resolvedClient = new NoopPresenceClient();
+    setPresenceClient(resolvedClient);
+    initialized = true;
+    logMode("disabled_food_log_safe_mode");
+    return resolvedClient;
+  }
 
   const config = getAppConfig();
   const enabled = !!config.features.presence;

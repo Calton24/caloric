@@ -20,7 +20,7 @@ describe("Config System", () => {
 
       const config = getAppConfig();
 
-      expect(config.app.name).toBe("Caloric");
+      expect(config.app.name).toBe("CalCut");
       expect(config.app.slug).toBe("caloric");
       expect(config.app.bundleIdentifier).toContain("caloric");
     });
@@ -32,7 +32,7 @@ describe("Config System", () => {
 
       const config = getAppConfig();
 
-      expect(config.app.name).toBe("Caloric");
+      expect(config.app.name).toBe("CalCut");
       expect(config.app.slug).toBe("caloric");
       expect(config.app.bundleIdentifier).toContain("caloric");
     });
@@ -50,7 +50,7 @@ describe("Config System", () => {
 
       const config = getAppConfig();
 
-      expect(config.app.name).toBe("Caloric");
+      expect(config.app.name).toBe("CalCut");
     });
   });
 
@@ -238,7 +238,7 @@ describe("Config System", () => {
 
       // Still returns caloric because cached
       expect(config1).toBe(config2);
-      expect(config2.app.name).toBe("Caloric");
+      expect(config2.app.name).toBe("CalCut Dev");
     });
 
     it("should reload config after cache clear", () => {
@@ -251,8 +251,8 @@ describe("Config System", () => {
       const config2 = getAppConfig();
 
       expect(config1).not.toBe(config2);
-      expect(config1.app.name).toBe("Caloric");
-      expect(config2.app.name).toBe("Caloric");
+      expect(config1.app.name).toBe("CalCut Dev");
+      expect(config2.app.name).toBe("CalCut Dev");
     });
   });
 

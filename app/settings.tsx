@@ -16,6 +16,7 @@ import { useRouter } from "expo-router";
 import React from "react";
 import {
     Alert,
+    Linking,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -33,6 +34,7 @@ import {
 } from "../src/features/export/data-export.service";
 import { deleteUserAccount } from "../src/features/settings/account-deletion.service";
 import { openManageSubscriptions } from "../src/features/subscription/manage-subscription";
+import { PAYWALL_UPGRADE_HREF } from "../src/features/subscription/paywall-mode";
 import { useRevenueCat } from "../src/features/subscription/useRevenueCat";
 import { haptics } from "../src/infrastructure/haptics";
 import { useAppTranslation } from "../src/infrastructure/i18n/useAppTranslation";
@@ -44,6 +46,7 @@ import {
     useProgressStore,
     useSubscriptionStore,
 } from "../src/stores";
+import { hasDynamicIsland } from "../src/platform/ios/hasDynamicIsland";
 import { useTheme } from "../src/theme/useTheme";
 import { TSpacer } from "../src/ui/primitives/TSpacer";
 import { TText } from "../src/ui/primitives/TText";
@@ -208,10 +211,13 @@ export default function SettingsScreen() {
   const weightLogs = useProgressStore((s) => s.weightLogs);
   const {
     isPro,
-    presentPaywall,
     restorePurchases,
     isRestoring,
   } = useRevenueCat();
+
+  const openUpgradePaywall = React.useCallback(() => {
+    router.push(PAYWALL_UPGRADE_HREF);
+  }, [router]);
   const [isOpeningManageSubscription, setIsOpeningManageSubscription] =
     React.useState(false);
 
@@ -447,15 +453,17 @@ export default function SettingsScreen() {
                   )
                 }
               />
-              <SettingsToggle
-                icon="phone-portrait-outline"
-                iconColor={theme.colors.primary}
-                label={t("settings.liveActivities")}
-                value={permissions.liveActivitiesEnabled}
-                onToggle={() =>
-                  setLiveActivitiesEnabled(!permissions.liveActivitiesEnabled)
-                }
-              />
+              {hasDynamicIsland() ? (
+                <SettingsToggle
+                  icon="phone-portrait-outline"
+                  iconColor={theme.colors.primary}
+                  label={t("settings.liveActivities")}
+                  value={permissions.liveActivitiesEnabled}
+                  onToggle={() =>
+                    setLiveActivitiesEnabled(!permissions.liveActivitiesEnabled)
+                  }
+                />
+              ) : null}
             </View>
           </Animated.View>
 
@@ -517,7 +525,7 @@ export default function SettingsScreen() {
                 label={
                   isPro ? t("settings.yourePro") : t("settings.upgradeToPro")
                 }
-                onPress={presentPaywall}
+                onPress={isPro ? undefined : openUpgradePaywall}
               />
               <SettingsRow
                 icon="arrow-undo-outline"
@@ -580,6 +588,46 @@ export default function SettingsScreen() {
                       title: encodeURIComponent(t("settings.termsOfService")),
                     },
                   })
+                }
+              />
+            </View>
+          </Animated.View>
+
+          <TSpacer size="lg" />
+
+          {/* ── Social ── */}
+          <Animated.View entering={FadeInDown.duration(400).delay(435)}>
+            <SectionHeader
+              title={t("settings.social", { defaultValue: "SOCIAL" })}
+            />
+            <View
+              style={[
+                styles.section,
+                { backgroundColor: theme.colors.surfaceSecondary },
+              ]}
+            >
+              <SettingsRow
+                icon="logo-instagram"
+                iconColor={theme.colors.textSecondary}
+                label={t("settings.socialInstagram", {
+                  defaultValue: "Instagram (@getcalcut)",
+                })}
+                onPress={() =>
+                  void Linking.openURL(
+                    "https://www.instagram.com/getcalcut/"
+                  ).catch(() => {})
+                }
+              />
+              <SettingsRow
+                icon="logo-tiktok"
+                iconColor={theme.colors.textSecondary}
+                label={t("settings.socialTiktok", {
+                  defaultValue: "TikTok (@getcalcut)",
+                })}
+                onPress={() =>
+                  void Linking.openURL("https://www.tiktok.com/@getcalcut").catch(
+                    () => {}
+                  )
                 }
               />
             </View>

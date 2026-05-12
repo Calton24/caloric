@@ -7,6 +7,9 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "dev"
+      },
       "ios": {
         "image": "sdk-55"
       }
@@ -33,6 +36,23 @@
       "env": {
         "EXPO_PUBLIC_APP_PROFILE": "caloric",
         "EXPO_PUBLIC_APP_ENV": "staging"
+      }
+    },
+
+    "caloric-iap-test": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_APP_PROFILE": "caloric",
+        "EXPO_PUBLIC_APP_ENV": "staging",
+        "EXPO_PUBLIC_AUTH_GOOGLE": "1",
+        "EXPO_PUBLIC_AUTH_APPLE": "1",
+        "SENTRY_ALLOW_FAILURE": "true"
+      },
+      "prebuildCommand": "npx expo prebuild --clean",
+      "ios": {
+        "simulator": false,
+        "autoIncrement": false,
+        "image": "sdk-55"
       }
     },
 
@@ -70,6 +90,9 @@
     "preview": {
       "distribution": "internal",
       "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "staging"
+      },
       "ios": {
         "simulator": true,
         "buildConfiguration": "Release",

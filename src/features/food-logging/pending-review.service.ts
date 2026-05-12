@@ -109,6 +109,27 @@ function classifyPullError(
   return "unknown";
 }
 
+function isSavedMealFkViolation(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const record = error as {
+    code?: unknown;
+    message?: unknown;
+    details?: unknown;
+    constraint?: unknown;
+  };
+  const code = typeof record.code === "string" ? record.code : "";
+  const message = typeof record.message === "string" ? record.message : "";
+  const details = typeof record.details === "string" ? record.details : "";
+  const constraint =
+    typeof record.constraint === "string" ? record.constraint : "";
+  return (
+    code === "23503" &&
+    (constraint.includes("pending_meal_reviews_saved_meal_id_fkey") ||
+      message.includes("pending_meal_reviews_saved_meal_id_fkey") ||
+      details.includes("pending_meal_reviews_saved_meal_id_fkey"))
+  );
+}
+
 // ─── Row mapping ─────────────────────────────────────────────────────────────
 
 interface PendingReviewRow {
@@ -232,9 +253,9 @@ export async function markServerReviewSaved(
 ): Promise<void> {
   const job = useBackgroundScanStore.getState().jobs[jobId];
   if (!job || !job.userId || job.userId === "anon") return;
+  const client = getSupabaseClient();
 
   try {
-    const client = getSupabaseClient();
     // Upsert (not update) so an offline-only `save` for a row whose initial
     // upsert never landed still creates the canonical server record on
     // first connect. The id is namespaced by (id, user_id) via RLS, so an
@@ -254,6 +275,38 @@ export async function markServerReviewSaved(
       saved_meal_id: savedMealId,
     });
   } catch (e) {
+    // If meal_entries row isn't synced yet, FK link can fail even though
+    // we still want the review status to be "saved". Degrade gracefully by
+    // syncing saved status without saved_meal_id linkage.
+    if (isSavedMealFkViolation(e)) {
+      try {
+        const degradedPayload = {
+          ...jobToRow({ ...job, status: "saved", savedMealId: undefined }),
+          saved_meal_id: null,
+        };
+        const { error } = await client
+          .from(TABLE)
+          .upsert(degradedPayload, { onConflict: "id" });
+        if (error) throw error;
+        useBackgroundScanStore.getState().markServerSyncPending(jobId, {
+          type: "save_fk_deferred",
+          attempts: 0,
+          lastAttemptAt: new Date().toISOString(),
+          reason: "saved_meal_fk_deferred",
+        });
+        addFoodLoggingBreadcrumb("food_logging.pending_review_saved", {
+          job_id: jobId,
+          saved_meal_id: "deferred_fk_link",
+        });
+        addFoodLoggingBreadcrumb("[PendingReviewSync] save_fk_deferred", {
+          job_id: jobId,
+        });
+        return;
+      } catch (fallbackErr) {
+        e = fallbackErr;
+      }
+    }
+
     logSyncError("markServerReviewSaved", e);
     const prev =
       useBackgroundScanStore.getState().jobs[jobId]?.pendingServerSync;
@@ -273,6 +326,86 @@ export async function markServerReviewSaved(
       extra: { jobId, savedMealId },
     });
   }
+}
+
+async function tryLinkDeferredSavedMeal(
+  client: ReturnType<typeof getSupabaseClient>,
+  job: BackgroundScanJob,
+  savedMealId: string
+): Promise<"linked" | "missing_meal"> {
+  const { data: mealRow, error: mealErr } = await client
+    .from("meal_entries")
+    .select("id")
+    .eq("id", savedMealId)
+    .eq("user_id", job.userId)
+    .maybeSingle();
+  if (mealErr) throw mealErr;
+  if (!mealRow) return "missing_meal";
+
+  const payload = {
+    ...jobToRow({ ...job, status: "saved", savedMealId }),
+    saved_meal_id: savedMealId,
+  };
+  const { error } = await client.from(TABLE).upsert(payload, { onConflict: "id" });
+  if (error) throw error;
+  return "linked";
+}
+
+export async function reconcileDeferredPendingReviewLinks(
+  knownUserId?: string
+): Promise<void> {
+  const userId = knownUserId ?? (await getUserId());
+  if (!userId || userId === "anon") return;
+
+  const jobs = Object.values(useBackgroundScanStore.getState().jobs).filter(
+    (j) =>
+      j.userId === userId &&
+      j.status === "saved" &&
+      j.savedMealId &&
+      j.pendingServerSync?.type === "save_fk_deferred"
+  );
+  if (jobs.length === 0) return;
+
+  addFoodLoggingBreadcrumb("[PendingReviewSync] reconcile_started", {
+    count: jobs.length,
+  });
+  const client = getSupabaseClient();
+  let linked = 0;
+  let stillMissing = 0;
+  for (const job of jobs) {
+    try {
+      const result = await tryLinkDeferredSavedMeal(
+        client,
+        job,
+        job.savedMealId as string
+      );
+      if (result === "linked") {
+        linked += 1;
+        useBackgroundScanStore.getState().clearServerSyncPending(job.id);
+        addFoodLoggingBreadcrumb("[PendingReviewSync] reconcile_linked", {
+          job_id: job.id,
+        });
+      } else {
+        stillMissing += 1;
+        addFoodLoggingBreadcrumb("[PendingReviewSync] reconcile_still_missing", {
+          job_id: job.id,
+        });
+      }
+    } catch (e) {
+      logSyncError("reconcileDeferredPendingReviewLinks", e);
+      useBackgroundScanStore.getState().markServerSyncPending(job.id, {
+        type: "save_fk_deferred",
+        attempts: (job.pendingServerSync?.attempts ?? 0) + 1,
+        lastAttemptAt: new Date().toISOString(),
+        reason: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
+  addFoodLoggingBreadcrumb("[PendingReviewSync] reconcile_finished", {
+    total: jobs.length,
+    linked,
+    still_missing: stillMissing,
+  });
 }
 
 /**
@@ -436,6 +569,7 @@ export async function restorePendingReviewsFromSupabase(
   // promoted some pending rows we didn't have visibility into).
   if (knownUserId) {
     void replayPendingReviewOutbox(knownUserId);
+    void reconcileDeferredPendingReviewLinks(knownUserId);
   }
 }
 
@@ -496,6 +630,11 @@ export async function replayPendingReviewOutbox(
             // we shouldn't keep retrying forever. Drop to dismiss-equivalent
             // upsert so the row at least reaches the server as `saved`.
             await pushPendingReview(job.id);
+          }
+          break;
+        case "save_fk_deferred":
+          if (job.savedMealId) {
+            await reconcileDeferredPendingReviewLinks(userId);
           }
           break;
         case "dismiss":

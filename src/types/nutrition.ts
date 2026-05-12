@@ -1,5 +1,5 @@
 /**
- * Caloric — Data Models (re-exports)
+ * CalCut — Data Models (re-exports)
  *
  * @deprecated Import directly from src/features/{domain} instead.
  */

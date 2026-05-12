@@ -113,7 +113,7 @@ cd ios && rm -rf build && cd ..
 cd ios
 rm -rf build
 rm -rf Pods
-rm -rf ~/Library/Developer/Xcode/DerivedData/Caloric-*
+rm -rf ~/Library/Developer/Xcode/DerivedData/CalCut-*
 bundle exec pod install --deployment --clean-install
 cd ..
 ```
@@ -170,13 +170,13 @@ npm run lint
 npm run validate
 ```
 
-### Caloric verify (fork gate)
+### CalCut verify (fork gate)
 
 ```bash
 npm run caloric:verify
 ```
 
-### Caloric verify (deep, open handles)
+### CalCut verify (deep, open handles)
 
 ```bash
 npm run caloric:verify:deep

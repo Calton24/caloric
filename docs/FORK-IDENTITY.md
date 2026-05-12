@@ -91,7 +91,7 @@ export const glassIntensity = {
 
 ## Verification
 
-After changing tokens, open the **Caloric** catalog tab to visually verify that all components render correctly with your fork's identity.
+After changing tokens, open the **CalCut** catalog tab to visually verify that all components render correctly with your fork's identity.
 Every Tier A component is showcased there with interactive knobs.
 
 ---

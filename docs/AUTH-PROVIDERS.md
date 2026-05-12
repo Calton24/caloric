@@ -71,7 +71,7 @@ Supabase returns success even if the email doesn't exist (anti-enumeration). **T
 
 ## 2) Google OAuth (Supabase Auth)
 
-### What you see ("Caloric wants to use neumly…supabase.co")
+### What you see ("CalCut wants to use neumly…supabase.co")
 
 That iOS prompt is normal. iOS is saying: "This app is trying to sign you in via a web domain."
 

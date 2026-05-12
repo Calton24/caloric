@@ -11,6 +11,7 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import Constants from "expo-constants";
 import * as Crypto from "expo-crypto";
 import { getAppConfig } from "../../../config";
+import { primaryNativeScheme } from "../../../config/nativeScheme";
 import { getSupabaseClient } from "../../../lib/supabase";
 import type {
     AuthClient,
@@ -146,7 +147,7 @@ export class SupabaseAuthClient implements AuthClient {
     try {
       const supabase = getSupabaseClient();
       const config = getAppConfig();
-      const scheme = config.app.scheme;
+      const scheme = primaryNativeScheme(config.app.scheme);
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${scheme}://auth/reset-password`,
       });
@@ -226,7 +227,7 @@ export class SupabaseAuthClient implements AuthClient {
     try {
       const supabase = getSupabaseClient();
       const config = getAppConfig();
-      const scheme = config.app.scheme;
+      const scheme = primaryNativeScheme(config.app.scheme);
       const redirectTo = `${scheme}://auth/callback`;
 
       const { data, error } = await supabase.auth.signInWithOAuth({

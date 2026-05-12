@@ -137,8 +137,8 @@ export interface AppMetadata {
   androidPackage: string;
   /** App version */
   version: string;
-  /** App scheme for deep linking */
-  scheme: string;
+  /** App scheme(s) for deep linking — first entry is used for OAuth redirects */
+  scheme: string | string[];
 }
 
 export interface EnvironmentOverrides {

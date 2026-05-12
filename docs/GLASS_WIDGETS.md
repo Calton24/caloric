@@ -81,7 +81,7 @@ All values are derived from the existing palette generator (`generatePalette`). 
 
 ## Catalog
 
-The **Caloric** tab includes a full interactive catalog with knobs:
+The **CalCut** tab includes a full interactive catalog with knobs:
 - Glass on/off toggle
 - Blur intensity picker (named + numeric)
 - Reduce Transparency simulation toggle

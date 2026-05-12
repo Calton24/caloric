@@ -13,8 +13,12 @@
  * Do NOT duplicate the MilestoneInsightModel decision logic — delegate to it.
  */
 
-import { useMemo } from "react";
+import { useMemo, useSyncExternalStore } from "react";
+import { assertFoodLogSafeModeImport } from "../debug/safe-mode-flags";
+import { DISABLE_POST_SAVE_COACH_INSIGHT_RECOMPUTE } from "../food-logging/post-save-debug-flags";
 import { getMilestoneInsight } from "../milestone/milestone-insight.service";
+
+assertFoodLogSafeModeImport("coach_insight");
 import { getDailyNutritionSummary } from "../nutrition/nutrition.selectors";
 import { useNutritionStore } from "../nutrition/nutrition.store";
 import { useProgressStore } from "../progress";
@@ -22,6 +26,10 @@ import { useStreakStore } from "../streak/streak.store";
 import { useGoalsStore } from "../goals";
 import type { MilestoneInsightModel } from "../milestone/milestone-insight.types";
 import { toLocalDate } from "../../lib/utils/date";
+import {
+  isPostFoodLogSettling,
+  subscribePostFoodLogSettling,
+} from "../food-logging/post-food-log-settling";
 
 // ── Routes ──────────────────────────────────────────────────────────────────
 
@@ -69,9 +77,27 @@ function daysSince(isoDate: string): number {
   );
 }
 
+/** Stable object when coach recompute is disabled (post-save crash isolation). */
+const COACH_INSIGHT_DEBUG_PLACEHOLDER: CoachInsight = {
+  id: "coach-post-save-debug-off",
+  variant: "on_track",
+  label: "Coach Insight",
+  title: "You're on track",
+  subtitle: "Logging is paused for debugging.",
+  ctaLabel: "View today",
+  route: COACH_ROUTES.today,
+  progress: undefined,
+  milestoneModel: null,
+};
+
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useCoachInsight(): CoachInsight {
+  const settling = useSyncExternalStore(
+    subscribePostFoodLogSettling,
+    isPostFoodLogSettling,
+    () => false
+  );
   const meals = useNutritionStore((s) => s.meals);
   const plan = useGoalsStore((s) => s.plan);
   const currentStreak = useStreakStore((s) => s.currentStreak);
@@ -79,7 +105,23 @@ export function useCoachInsight(): CoachInsight {
   const weightLogs = useProgressStore((s) => s.weightLogs);
 
   return useMemo(() => {
+    if (DISABLE_POST_SAVE_COACH_INSIGHT_RECOMPUTE) {
+      return COACH_INSIGHT_DEBUG_PLACEHOLDER;
+    }
     const today = toLocalDate();
+    if (settling) {
+      return {
+        id: `coach-settling-${today}`,
+        variant: "on_track",
+        label: "Coach Insight",
+        title: "You're on track",
+        subtitle: "Keep logging consistently and review your trend.",
+        ctaLabel: "View today",
+        route: COACH_ROUTES.today,
+        progress: undefined,
+        milestoneModel: null,
+      };
+    }
     const todaySummary = getDailyNutritionSummary(meals, today);
     const mealsToday = todaySummary.meals.length;
     const caloriesToday = todaySummary.totalCalories;
@@ -191,5 +233,5 @@ export function useCoachInsight(): CoachInsight {
     }
 
     return insight;
-  }, [currentStreak, lastLogDate, meals, plan, weightLogs]);
+  }, [currentStreak, lastLogDate, meals, plan, settling, weightLogs]);
 }

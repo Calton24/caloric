@@ -13,7 +13,7 @@ export function invariant(
 ): asserts condition {
   if (__DEV__) {
     if (!condition) {
-      throw new Error(`[Caloric] Invariant violation: ${message}`);
+      throw new Error(`[CalCut] Invariant violation: ${message}`);
     }
   }
 }
@@ -24,7 +24,7 @@ export function invariant(
 export function warning(condition: boolean, message: string): void {
   if (__DEV__) {
     if (!condition) {
-      console.warn(`[Caloric] Warning: ${message}`);
+      console.warn(`[CalCut] Warning: ${message}`);
     }
   }
 }

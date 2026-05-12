@@ -12,6 +12,10 @@
  * here. Until then we render a neutral spinner so the user never sees
  * an unexpected screen flash.
  *
+ * Intentionally does **not** use `useTheme()`: during native/JS mismatch,
+ * Fast Refresh, or ErrorBoundary recovery, this route can render before
+ * `CalCutProviders` re-mounts; hardcoded neutrals avoid a fatal invariant.
+ *
  * Specifically:
  *   - The gate will redirect this route to /(tabs) if status === complete.
  *   - The gate will redirect this route to /(onboarding)/landing if no user.
@@ -23,15 +27,14 @@
  */
 
 import { ActivityIndicator, StyleSheet, View } from "react-native";
-import { useTheme } from "../src/theme/useTheme";
+
+const STUB_BG = "#000000";
+const STUB_SPINNER = "#9CA3AF";
 
 export default function IndexScreen() {
-  const { theme } = useTheme();
   return (
-    <View
-      style={[styles.center, { backgroundColor: theme.colors.background }]}
-    >
-      <ActivityIndicator size="small" color={theme.colors.textSecondary} />
+    <View style={[styles.center, { backgroundColor: STUB_BG }]}>
+      <ActivityIndicator size="small" color={STUB_SPINNER} />
     </View>
   );
 }

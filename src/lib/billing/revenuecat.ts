@@ -277,6 +277,23 @@ export class RevenueCatProvider implements BillingProvider {
     try {
       const RC = getPurchases();
       const offerings = await RC.getOfferings();
+      const current = offerings?.current;
+      const currentPackages = current?.availablePackages ?? [];
+      logger.log(
+        "[RevenueCat] current offering:",
+        current?.identifier ?? null
+      );
+      logger.log(
+        "[RevenueCat] packages:",
+        currentPackages.map((p: any) => ({
+          id: p.identifier,
+          productId:
+            p?.product?.identifier ??
+            p?.storeProduct?.identifier ??
+            p?.product?.productIdentifier,
+          price: p?.product?.priceString ?? p?.storeProduct?.priceString ?? null,
+        }))
+      );
       return offerings;
     } catch (error) {
       // Use warn (not error) to avoid crashing Expo Metro's HMR client under

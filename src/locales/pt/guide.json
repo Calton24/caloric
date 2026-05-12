@@ -25,7 +25,7 @@
     "iosOnly": "Apenas iOS",
     "iosOnlyDesc": "As atividades em tempo real so estao disponiveis em dispositivos iOS.",
     "unavailable": "Atividades em tempo real indisponiveis",
-    "unavailableDesc": "Ative as atividades em tempo real em Definicoes iOS > Caloric > Atividades em tempo real e certifique-se que tem iOS 16.2 ou posterior.",
+    "unavailableDesc": "Ative as atividades em tempo real em Definicoes iOS > CalCut > Atividades em tempo real e certifique-se que tem iOS 16.2 ou posterior.",
     "continueWithout": "Continuar sem",
     "subtitle": "Acompanhe as suas calorias em tempo real diretamente no ecra de bloqueio e Dynamic Island.",
     "notNow": "Agora nao",

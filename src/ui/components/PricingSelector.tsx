@@ -25,11 +25,12 @@ interface PricingSelectorProps {
   heading?: string;
 }
 
-type TierKey = "monthly" | "yearly" | "other";
+type TierKey = "monthly" | "yearly" | "weekly" | "other";
 
 function getTierKey(pkg: any): TierKey {
   const id = pkg.identifier ?? "";
   const type = pkg.packageType ?? "";
+  if (type === "WEEKLY" || id === "$rc_weekly") return "weekly";
   if (type === "MONTHLY" || id === "$rc_monthly") return "monthly";
   if (type === "ANNUAL" || id === "$rc_annual") return "yearly";
   return "other";
@@ -41,6 +42,8 @@ function getTierLabel(tier: TierKey, t: (key: string) => string): string {
       return t("paywall.tierMonthly");
     case "yearly":
       return t("paywall.tierYearly");
+    case "weekly":
+      return t("paywall.tierWeekly");
     default:
       return t("paywall.tierPlan");
   }
@@ -84,8 +87,8 @@ function getTierSubtitle(
   return null;
 }
 
-// Order: yearly (highlighted) → monthly
-const TIER_ORDER: TierKey[] = ["yearly", "monthly"];
+// Order: yearly (highlighted in card UI) → monthly → weekly
+const TIER_ORDER: TierKey[] = ["monthly", "yearly", "weekly"];
 
 export function PricingSelector({
   packages,
@@ -105,7 +108,15 @@ export function PricingSelector({
     );
   }
 
-  if (packages.length === 0) return null;
+  if (packages.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <TText style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
+          Unable to load subscription options. Please try again shortly.
+        </TText>
+      </View>
+    );
+  }
 
   // Sort packages by desired tier order
   const sorted = [...packages].sort((a, b) => {
@@ -248,6 +259,15 @@ const styles = StyleSheet.create({
   loadingContainer: {
     paddingVertical: 24,
     alignItems: "center",
+  },
+  emptyContainer: {
+    paddingVertical: 16,
+    paddingHorizontal: 4,
+  },
+  emptyText: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
   },
   heading: {
     fontSize: 15,

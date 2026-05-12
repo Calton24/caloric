@@ -103,7 +103,10 @@ export function useRetentionEngine(): RetentionEngineResult {
 
   // The "challenge day" is streak + 1 if they haven't logged today yet
   // (they're on the day they need to complete)
-  const challengeDay = hasLoggedToday ? currentStreak : currentStreak + 1;
+  const safeCurrentStreak = Number.isFinite(currentStreak)
+    ? Math.max(0, Math.floor(currentStreak))
+    : 0;
+  const challengeDay = hasLoggedToday ? safeCurrentStreak : safeCurrentStreak + 1;
 
   const dayContent = useMemo(() => getDayContent(challengeDay), [challengeDay]);
   const dayBanner = useMemo(

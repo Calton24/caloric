@@ -20,6 +20,12 @@ export class InMemoryStore implements KeyValueStore {
     this.store.delete(key);
   }
 
+  async multiRemove(keys: string[]): Promise<void> {
+    for (const key of new Set(keys.filter(Boolean))) {
+      this.store.delete(key);
+    }
+  }
+
   async clear(): Promise<void> {
     this.store.clear();
   }

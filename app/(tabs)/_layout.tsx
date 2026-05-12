@@ -7,9 +7,13 @@ import { useTheme } from "@/src/theme/useTheme";
 import { GlassTabBar } from "@/src/ui/tabs/GlassTabBar";
 import { Icon, Label, Redirect, Slot, Tabs, usePathname } from "expo-router";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { Platform, View } from "react-native";
 import "react-native-reanimated";
+import {
+  isPostFoodLogSettling,
+  subscribePostFoodLogSettling,
+} from "@/src/features/food-logging/post-food-log-settling";
 
 /**
  * iOS 26+ gets liquid-glass NativeTabs.
@@ -37,20 +41,26 @@ const TABS = [
 function useTabChangeHaptics() {
   const pathname = usePathname();
   const prevPathname = useRef<string | null>(null);
+  const settling = useSyncExternalStore(
+    subscribePostFoodLogSettling,
+    isPostFoodLogSettling,
+    () => false
+  );
 
   useEffect(() => {
     if (prevPathname.current !== null && pathname !== prevPathname.current) {
-      haptics.impact("light");
+      if (!settling) {
+        haptics.impact("light");
+      }
     }
     prevPathname.current = pathname;
-  }, [pathname]);
+  }, [pathname, settling]);
 }
 
 // ─── Native liquid-glass tabs (iOS 26+) ───────────────────────
 function NativeTabLayout() {
   const { theme } = useTheme();
   const { t } = useAppTranslation();
-  useTabChangeHaptics();
 
   // Use the app's own theme mode (not the device's useColorScheme)
   // so the wrapper background stays in sync with screen content.
@@ -106,6 +116,7 @@ export default function TabLayout() {
   const { user, isLoading } = useAuth();
   const { theme } = useTheme();
   useLiveActivitySync();
+  useTabChangeHaptics();
 
   // Auth guard — redirect unauthenticated users back to the entry point.
   // This handles sign-out, session expiry, and any accidental direct navigation.

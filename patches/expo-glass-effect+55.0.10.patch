@@ -1,0 +1,79 @@
+diff --git a/node_modules/expo-glass-effect/build/GlassContainer.ios.js b/node_modules/expo-glass-effect/build/GlassContainer.ios.js
+index 13fc2a2..6882dd4 100644
+--- a/node_modules/expo-glass-effect/build/GlassContainer.ios.js
++++ b/node_modules/expo-glass-effect/build/GlassContainer.ios.js
+@@ -1,6 +1,13 @@
+ // Copyright © 2024 650 Industries.
+ 'use client';
+ import { requireNativeViewManager } from 'expo-modules-core';
+-const NativeGlassContainer = requireNativeViewManager('ExpoGlassEffect', 'GlassContainer');
++import { View } from 'react-native';
++let NativeGlassContainer;
++try {
++    NativeGlassContainer = requireNativeViewManager('ExpoGlassEffect', 'GlassContainer');
++}
++catch {
++    NativeGlassContainer = View;
++}
+ export default NativeGlassContainer;
+ //# sourceMappingURL=GlassContainer.ios.js.map
+\ No newline at end of file
+diff --git a/node_modules/expo-glass-effect/build/GlassView.ios.js b/node_modules/expo-glass-effect/build/GlassView.ios.js
+index 281fead..8c2ce7e 100644
+--- a/node_modules/expo-glass-effect/build/GlassView.ios.js
++++ b/node_modules/expo-glass-effect/build/GlassView.ios.js
+@@ -1,7 +1,14 @@
+ // Copyright © 2024 650 Industries.
+ 'use client';
+ import { requireNativeViewManager } from 'expo-modules-core';
+-const NativeGlassView = requireNativeViewManager('ExpoGlassEffect', 'GlassView');
++import { View } from 'react-native';
++let NativeGlassView;
++try {
++    NativeGlassView = requireNativeViewManager('ExpoGlassEffect', 'GlassView');
++}
++catch {
++    NativeGlassView = View;
++}
+ const GlassView = (props) => {
+     return <NativeGlassView {...props}/>;
+ };
+diff --git a/node_modules/expo-glass-effect/build/isGlassEffectAPIAvailable.ios.js b/node_modules/expo-glass-effect/build/isGlassEffectAPIAvailable.ios.js
+index 201b180..bf2a778 100644
+--- a/node_modules/expo-glass-effect/build/isGlassEffectAPIAvailable.ios.js
++++ b/node_modules/expo-glass-effect/build/isGlassEffectAPIAvailable.ios.js
+@@ -10,8 +10,13 @@ let IS_GLASS_EFFECT_API_AVAILABLE;
+  */
+ export function isGlassEffectAPIAvailable() {
+     if (IS_GLASS_EFFECT_API_AVAILABLE === undefined) {
+-        IS_GLASS_EFFECT_API_AVAILABLE =
+-            requireNativeModule('ExpoGlassEffect').isGlassEffectAPIAvailable;
++        try {
++            IS_GLASS_EFFECT_API_AVAILABLE =
++                requireNativeModule('ExpoGlassEffect').isGlassEffectAPIAvailable;
++        }
++        catch {
++            IS_GLASS_EFFECT_API_AVAILABLE = false;
++        }
+     }
+     return !!IS_GLASS_EFFECT_API_AVAILABLE;
+ }
+diff --git a/node_modules/expo-glass-effect/build/isLiquidGlassAvailable.ios.js b/node_modules/expo-glass-effect/build/isLiquidGlassAvailable.ios.js
+index 75408fd..312f2df 100644
+--- a/node_modules/expo-glass-effect/build/isLiquidGlassAvailable.ios.js
++++ b/node_modules/expo-glass-effect/build/isLiquidGlassAvailable.ios.js
+@@ -13,7 +13,13 @@ let IS_LIQUID_GLASS_AVAILABLE;
+  */
+ export function isLiquidGlassAvailable() {
+     if (IS_LIQUID_GLASS_AVAILABLE === undefined) {
+-        IS_LIQUID_GLASS_AVAILABLE = requireNativeModule('ExpoGlassEffect').isLiquidGlassAvailable;
++        try {
++            IS_LIQUID_GLASS_AVAILABLE = requireNativeModule('ExpoGlassEffect').isLiquidGlassAvailable;
++        }
++        catch {
++            // Dev client / Expo Go without glass native module (rebuild with expo-glass-effect linked)
++            IS_LIQUID_GLASS_AVAILABLE = false;
++        }
+     }
+     return !!IS_LIQUID_GLASS_AVAILABLE;
+ }

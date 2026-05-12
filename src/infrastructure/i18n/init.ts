@@ -392,7 +392,7 @@ export async function clearPersistedLanguage(): Promise<void> {
  * Bootstrap i18next synchronously with English so the first React render
  * always shows real copy rather than raw keys.
  *
- * Called at module-load time by CaloricProviders (before any useEffect).
+ * Called at module-load time by CalCutProviders (before any useEffect).
  * Idempotent and safe to call multiple times — the async `initI18n()` will
  * later upgrade the language to the correct locale.
  */

@@ -31,7 +31,7 @@ import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslati
 import { useTheme } from "../../src/theme/useTheme";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TText } from "../../src/ui/primitives/TText";
-import { OnboardingBackground } from "./_background";
+import { OnboardingBackground } from "../../src/features/onboarding/components/OnboardingBackground";
 const STEP_KEYS = [
   "onboarding.calculating.step1",
   "onboarding.calculating.step2",

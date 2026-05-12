@@ -34,6 +34,11 @@ import type { InputSource } from "./parsing/food-candidate.schema";
 import { parseNutritionInput } from "./parsing/nutrition-parser.service";
 import { groupFoodPhrases } from "./parsing/phrase-grouper";
 import { cleanTranscript } from "./parsing/transcript-cleaner";
+import type { FoodIdentificationSource } from "../food-logging/food-identification-analytics";
+import {
+  trackFoodIdentificationProviderFailed,
+  trackFoodIdentificationProviderSuccess,
+} from "../food-logging/food-identification-analytics";
 
 // ─── Pipeline Options ────────────────────────────────────────────────────────
 
@@ -65,6 +70,12 @@ export interface PipelineOptions {
    * Default: false
    */
   skipLlmParse?: boolean;
+
+  /**
+   * When set, `food_identification_provider_*` analytics include this so you
+   * can segment primary logging vs. fallback recovery taps ("Find food").
+   */
+  foodIdentificationRecoverySource?: FoodIdentificationSource;
 }
 
 // ─── Main Pipeline ───────────────────────────────────────────────────────────
@@ -89,6 +100,7 @@ export async function runNutritionPipeline(
     matchTimeoutMs = 5000,
     mealTime,
     skipLlmParse = false,
+    foodIdentificationRecoverySource,
   } = options;
   const resolvedMealTime = mealTime ?? detectMealTime();
 
@@ -118,6 +130,15 @@ export async function runNutritionPipeline(
   parsed.items = deduplicateItems(parsed.items);
 
   if (parsed.items.length === 0) {
+    trackFoodIdentificationProviderFailed({
+      surface: "nutrition_pipeline",
+      input_source: source,
+      parse_method: parsed.parseMethod,
+      reason: "no_items_after_parse",
+      ...(foodIdentificationRecoverySource
+        ? { recovery_source: foodIdentificationRecoverySource }
+        : {}),
+    });
     return {
       items: [],
       totals: { calories: 0, protein: 0, carbs: 0, fat: 0 },
@@ -205,6 +226,17 @@ export async function runNutritionPipeline(
     asrConfidence,
     resolvedMealTime
   );
+
+  trackFoodIdentificationProviderSuccess({
+    surface: "nutrition_pipeline",
+    input_source: source,
+    parse_method: estimate.parseMethod,
+    item_count: estimate.items.length,
+    overall_confidence: estimate.overallConfidence,
+    ...(foodIdentificationRecoverySource
+      ? { recovery_source: foodIdentificationRecoverySource }
+      : {}),
+  });
 
   return estimate;
 }

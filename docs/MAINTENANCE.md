@@ -289,9 +289,9 @@ EXPO_PUBLIC_MAINTENANCE_URL=https://status.yourapp.com/maintenance.json
 
 ### Forcing Override in Dev
 
-Open the **Maintenance** panel in the Caloric catalog (`__DEV__` only):
+Open the **Maintenance** panel in the CalCut catalog (`__DEV__` only):
 
-1. Navigate to **Caloric → Maintenance**
+1. Navigate to **CalCut → Maintenance**
 2. Press **Force Degraded / Force Maintenance / Force Read-Only** to set a local override
 3. Press **Clear Override** to remove it
 4. Press **Trigger Health Check** to run a single Supabase ping on demand
@@ -317,7 +317,7 @@ await maintenance.setLocalOverride(null);
 
 ## Dev Debug Panel
 
-The `MaintenanceDebugPanel` is available in the Caloric catalog under `__DEV__` only.
+The `MaintenanceDebugPanel` is available in the CalCut catalog under `__DEV__` only.
 
 Route: `app/(tabs)/caloric/maintenance.tsx`
 Component: `src/ui/dev/MaintenanceDebugPanel.tsx`

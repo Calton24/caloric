@@ -1,7 +1,7 @@
 {
   "permissions": {
     "title": "Berechtigungen erforderlich",
-    "description": "Caloric nutzt dein Mikrofon und die Spracherkennung, um Mahlzeiten per Sprache zu erfassen.",
+    "description": "CalCut nutzt dein Mikrofon und die Spracherkennung, um Mahlzeiten per Sprache zu erfassen.",
     "microphone": "Mikrofon",
     "microphoneDesc": "Höre deine Stimme, um Mahlzeiten zu erfassen",
     "speechRecognition": "Spracherkennung",
@@ -13,7 +13,7 @@
   },
   "permissionsSetup": {
     "title": "Berechtigungen erforderlich",
-    "subtitle": "Caloric nutzt dein Mikrofon und Spracherkennung, um Mahlzeiten per Stimme zu protokollieren, und Benachrichtigungen, um dich auf Kurs zu halten.",
+    "subtitle": "CalCut nutzt dein Mikrofon und Spracherkennung, um Mahlzeiten per Stimme zu protokollieren, und Benachrichtigungen, um dich auf Kurs zu halten.",
     "microphone": "Mikrofon",
     "microphoneDesc": "Höre deine Stimme für die Mahlzeitenprotokollierung",
     "speechRecognition": "Spracherkennung",

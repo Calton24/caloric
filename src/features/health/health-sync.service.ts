@@ -1,7 +1,7 @@
 /**
  * Apple Health — Sync Service
  *
- * Orchestrates bidirectional sync between Caloric and Apple HealthKit:
+ * Orchestrates bidirectional sync between CalCut and Apple HealthKit:
  *   - Import: Read weight samples from HealthKit → progress store
  *   - Export: Write logged meals (calories) to HealthKit
  *
@@ -91,7 +91,12 @@ export async function exportMealsToHealthKit(
     // Each meal is a point-in-time sample
     const endDate = new Date(loggedAt.getTime() + 60_000); // 1 min duration
 
-    await service.writeCalories(meal.calories, loggedAt, endDate);
+    try {
+      await service.writeCalories(meal.calories, loggedAt, endDate);
+    } catch {
+      // Best effort: skip malformed/native-failing meal samples.
+      continue;
+    }
     exported++;
   }
 

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { RedirectBridge } from "./redirect-bridge";
 
 export const metadata: Metadata = {
-  title: "Reset Password — Caloric",
-  description: "Reset your Caloric account password",
+  title: "Reset Password — CalCut",
+  description: "Reset your CalCut account password",
 };
 
 export default async function ResetPage({

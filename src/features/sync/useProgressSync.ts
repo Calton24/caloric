@@ -7,16 +7,29 @@
  *   3. Subscribes to store mutations → pushes changes to Supabase in background
  *   4. Records streak on every meal log
  *
- * Mount once in the app root (CaloricProviders or _layout).
+ * Mount once in the app root (CalCutProviders or _layout).
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppState, type AppStateStatus } from "react-native";
+import {
+  FOOD_LOG_SAFE_MODE,
+  assertFoodLogSafeModeImport,
+} from "../debug/safe-mode-flags";
+
+assertFoodLogSafeModeImport("cloud_hydration");
 import { reportError } from "../../infrastructure/errorReporting";
 import { addFoodLoggingBreadcrumb } from "../../infrastructure/errorReporting/foodLoggingErrors";
 import { logColdStartStep } from "../../infrastructure/tracing/coldStartTrace";
 import { useAuth } from "../auth/useAuth";
-import { replayPendingReviewOutbox } from "../food-logging/pending-review.service";
+import {
+  reconcileDeferredPendingReviewLinks,
+  replayPendingReviewOutbox,
+} from "../food-logging/pending-review.service";
+import {
+  DISABLE_POST_SAVE_CLOUD_SYNC,
+  DISABLE_POST_SAVE_STREAK_RECOMPUTE,
+} from "../food-logging/post-save-debug-flags";
 import { useChallengeStore } from "../challenge/challenge.store";
 import {
     createChallenge,
@@ -28,14 +41,13 @@ import { useNutritionStore } from "../nutrition/nutrition.store";
 import type { MealEntry } from "../nutrition/nutrition.types";
 import { useProfileStore } from "../profile/profile.store";
 import { useProgressStore } from "../progress/progress.store";
-import {
-  computeCurrentStreakFromMeals,
-  getLoggedMealDates,
-  getMostRecentLoggedMealDate,
-  getStreakStartDateForCurrentStreak,
-} from "../streak/streak-from-meals";
+import { computeLocalStreakFromStores } from "../streak/compute-local-streak";
+import { recomputeStreakAfterMealListChange } from "../streak/recompute-streak-after-meal-list-change";
 import { fetchStreak, recordMealLogged } from "../streak/streak.service";
 import { useStreakStore } from "../streak/streak.store";
+import { isPostFoodLogSettling } from "../food-logging/post-food-log-settling";
+import { hydrateNutritionStoreMealsFromLocalRepository } from "../food-logging/meal-store-hydration";
+import { deletePersistedMeal } from "../food-logging/repositories/meal.repository";
 import {
     pushAllToSupabase,
     pushGoals,
@@ -49,80 +61,74 @@ import {
 import { useSyncReadyStore } from "./sync-ready.store";
 import { mealDataSafety } from "./meal-data-safety";
 
-/**
- * Returns YYYY-MM-DD in the device's local timezone.
- * Duplicated here to avoid circular imports with date.ts.
- */
-function toLocalDate(date: Date = new Date()): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
+const deferredMealUploads: { meal: MealEntry; userId: string }[] = [];
+
+/** Bounded automatic retries when `restoreFromSupabase` fails or throws mid-login. */
+const MAX_CLOUD_RESTORE_ATTEMPTS = 8;
 
 /**
- * Extract date from a meal's loggedAt ISO string.
- * On the local device, new meals are stamped with new Date().toISOString()
- * which uses UTC. Meals pulled from Supabase (TIMESTAMPTZ) are also returned
- * as UTC ISO strings. The rest of the app (getMealsForDate, calendar grid)
- * matches meals via `meal.loggedAt.startsWith(date)` where `date` comes from
- * toLocalDate(). In most timezones during the day these agree, but near
- * midnight they can diverge. We use toLocalDate(new Date(iso)) so that the
- * streak date always reflects the user's wall-clock date, matching how
- * toLocalDate() computes "today" in the walk-back.
+ * Meal pushes skipped during post–food-log settling; flush after apply completes.
  */
-
-/**
- * Compute streak from local meal data (no network needed).
- * Always writes the computed value — local meals are the source of truth.
- */
-function computeLocalStreak(): void {
-  const meals = useNutritionStore.getState().meals;
-  const currentInfo = useStreakStore.getState();
-
-  if (meals.length === 0) {
-    useStreakStore.getState().setStreak({
-      currentStreak: 0,
-      longestStreak: currentInfo.longestStreak,
-      lastLogDate: null,
-      streakStartDate: null,
-    });
-    return;
+export function flushDeferredMealUploads(userId: string | null | undefined) {
+  if (!userId) return;
+  const batch = deferredMealUploads.splice(0);
+  const seen = new Set<string>();
+  for (const { meal, userId: uid } of batch) {
+    if (uid !== userId) continue;
+    if (seen.has(meal.id)) continue;
+    seen.add(meal.id);
+    if (!DISABLE_POST_SAVE_CLOUD_SYNC) {
+      pushMeal(meal, uid);
+      recordMealLogged(meal.calories, new Date(meal.loggedAt)).catch(() => {});
+    }
   }
-
-  const loggedDates = getLoggedMealDates(meals);
-  const streak = computeCurrentStreakFromMeals(meals);
-  const lastLoggedDay = getMostRecentLoggedMealDate(meals);
-  const streakStart =
-    streak > 0 ? getStreakStartDateForCurrentStreak(meals, streak) : null;
-
-  if (__DEV__) {
-    const today = toLocalDate();
-    const sortedDates = [...loggedDates].sort();
-    console.warn(
-      `[Streak] computeLocalStreak: today=${today}, totalMeals=${meals.length}, loggedDates=[${sortedDates.join(", ")}], streak=${streak}, lastLog=${lastLoggedDay}`
-    );
-    const samples = meals
-      .slice(0, 8)
-      .map((m) => `${m.loggedAt} → ${toLocalDate(new Date(m.loggedAt))}`);
-    console.warn(`[Streak] meal samples: ${samples.join(" | ")}`);
-  }
-
-  useStreakStore.getState().setStreak({
-    currentStreak: streak,
-    longestStreak: Math.max(streak, currentInfo.longestStreak),
-    lastLogDate: lastLoggedDay,
-    streakStartDate: streakStart,
-  });
 }
 
 export function useProgressSync(): void {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const userId = user?.id;
   const hasRestoredRef = useRef<string | null>(null);
+  const restoreInFlightForUserRef = useRef<string | null>(null);
+  /** Latest signed-in user id — async restore completions must no-op if this moved on. */
+  const latestSignedInUserIdRef = useRef<string | undefined>(undefined);
+  const cloudRestoreFailureStreakRef = useRef(0);
+  const cloudRestoreLastUserIdRef = useRef<string | undefined>(undefined);
+  const [cloudRestoreRetryNonce, setCloudRestoreRetryNonce] = useState(0);
   const isHydratingFromRemoteRef = useRef(false);
   const suppressUploadUntilHydratedRef = useRef(true);
   const lastAppliedRemoteProfileUpdatedAtRef = useRef<string | null>(null);
+
+  /**
+   * Meals are persisted in the meal repository, not in Zustand partialize.
+   * After hot reload the nutrition store rehydrates with meals=[] — reload
+   * from AsyncStorage whenever we have a user id (including when cloud
+   * restore is skipped because hasRestoredRef already matches).
+   */
+  useEffect(() => {
+    if (!userId || authLoading) return;
+    let cancelled = false;
+    const run = async () => {
+      if (!useNutritionStore.persist.hasHydrated()) {
+        await new Promise<void>((resolve) => {
+          const timer = setTimeout(resolve, 2000);
+          useNutritionStore.persist.onFinishHydration(() => {
+            clearTimeout(timer);
+            resolve();
+          });
+        });
+      }
+      if (cancelled) return;
+      try {
+        await hydrateNutritionStoreMealsFromLocalRepository(userId);
+      } catch {
+        /* non-fatal */
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, authLoading]);
 
   // ── Compute streak from local meals ──
   // Wait for BOTH nutrition and streak stores to finish hydrating from
@@ -130,14 +136,36 @@ export function useProgressSync(): void {
   // streak stays in sync when meals are added, removed, or restored from
   // Supabase.
   useEffect(() => {
+    if (FOOD_LOG_SAFE_MODE) return;
     let cancelled = false;
+    let debounceId: ReturnType<typeof setTimeout> | null = null;
+    const STREAK_RECOMPUTE_DEBOUNCE_MS = 150;
 
-    const recompute = () => {
+    const runCompute = () => {
       if (cancelled) return;
       const meals = useNutritionStore.getState().meals;
       if (meals.length > 0) {
-        computeLocalStreak();
+        computeLocalStreakFromStores({ force: true });
       }
+    };
+
+    const scheduleRecompute = () => {
+      if (cancelled || DISABLE_POST_SAVE_STREAK_RECOMPUTE) return;
+      if (debounceId) clearTimeout(debounceId);
+      debounceId = setTimeout(() => {
+        debounceId = null;
+        runCompute();
+      }, STREAK_RECOMPUTE_DEBOUNCE_MS);
+    };
+
+    const recomputeImmediate = () => {
+      if (cancelled || DISABLE_POST_SAVE_STREAK_RECOMPUTE) return;
+      runCompute();
+    };
+
+    const recomputeDebounced = () => {
+      if (cancelled || DISABLE_POST_SAVE_STREAK_RECOMPUTE) return;
+      scheduleRecompute();
     };
 
     // Wait for both persisted stores to finish hydrating.
@@ -152,7 +180,7 @@ export function useProgressSync(): void {
 
     const tryCompute = () => {
       if (nutritionReady && streakReady && !cancelled) {
-        recompute();
+        recomputeImmediate();
       }
     };
 
@@ -172,15 +200,15 @@ export function useProgressSync(): void {
     // If both already hydrated (e.g. hot reload), compute now
     tryCompute();
 
-    // Recompute whenever meals change (restore, add, delete)
-    const unsub = useNutritionStore.subscribe(recompute);
+    // Recompute whenever meals change (restore, add, delete) — debounced
+    const unsub = useNutritionStore.subscribe(recomputeDebounced);
 
-    // Safety-net: recompute after a short delay to catch any
-    // edge case where hydration or merge overwrites the streak.
-    const safetyTimer = setTimeout(recompute, 2000);
+    // Safety-net: one immediate recompute after delay
+    const safetyTimer = setTimeout(recomputeImmediate, 2000);
 
     return () => {
       cancelled = true;
+      if (debounceId) clearTimeout(debounceId);
       unsub();
       clearTimeout(safetyTimer);
     };
@@ -188,13 +216,40 @@ export function useProgressSync(): void {
 
   // ── On login: restore from Supabase + push local data ──
   useEffect(() => {
+    // Bootstrap: session not loaded yet — never run signed-out teardown.
+    if (authLoading && userId == null) {
+      if (__DEV__) {
+        console.log("[AuthCleanupDecision]", {
+          area: "sync",
+          authBootstrapReady: false,
+          authLoading: true,
+          hasSession: false,
+          userId: null,
+          didClear: false,
+          reason: "defer_teardown_until_auth_resolves",
+        });
+      }
+      return;
+    }
+
     if (!userId) {
       hasRestoredRef.current = null;
+      latestSignedInUserIdRef.current = undefined;
+      restoreInFlightForUserRef.current = null;
       isHydratingFromRemoteRef.current = false;
       suppressUploadUntilHydratedRef.current = true;
       mealDataSafety.reset();
       useSyncReadyStore.getState().resetSyncReady();
       if (__DEV__) {
+        console.log("[AuthCleanupDecision]", {
+          area: "sync",
+          authBootstrapReady: true,
+          authLoading: false,
+          hasSession: false,
+          userId: null,
+          didClear: true,
+          reason: "signed_out_confirmed_teardown",
+        });
         console.log("[DataLossAudit] auth-cleared", {
           userId: "anonymous",
           pushAllToSupabaseCalled: false,
@@ -203,17 +258,85 @@ export function useProgressSync(): void {
       return;
     }
 
-    // Only restore once per user session
+    if (FOOD_LOG_SAFE_MODE) {
+      // Safe mode gates dangerous post-log side effects (Apple Health, Live
+      // Activities, analytics, haptics) but must NOT skip cloud restore.
+      // Skipping restore while still calling markSyncRestored creates a false
+      // "restored" signal — the routing gate opens but local stores are empty,
+      // leaving users with 0 meals and wrong weight even though the server has
+      // their data. Cloud restore is read-only and safe to run always.
+      //
+      // If this path is ever reached (FOOD_LOG_SAFE_MODE flipped back on),
+      // fall through to the normal restore path below instead of returning.
+      if (__DEV__) {
+        console.warn(
+          "[CloudHydration] FOOD_LOG_SAFE_MODE is on — cloud restore will still run. " +
+            "Safe mode must not block read-only restore."
+        );
+      }
+      // intentional fall-through: do NOT return here
+    }
+
+    // Reset failure streak when the signed-in account changes.
+    if (cloudRestoreLastUserIdRef.current !== userId) {
+      cloudRestoreFailureStreakRef.current = 0;
+      cloudRestoreLastUserIdRef.current = userId;
+    }
+    latestSignedInUserIdRef.current = userId;
+
+    // Only skip after a *successful* cloud merge for this user. (Previously
+    // we set this ref before the async restore finished, so a failed restore
+    // could never retry and left hydration flags stuck.)
     if (hasRestoredRef.current === userId) return;
-    hasRestoredRef.current = userId;
+
+    // Do not stack duplicate restores for the same user. A restore for another
+    // user may still be in flight; it no-ops on completion via
+    // latestSignedInUserIdRef.
+    if (restoreInFlightForUserRef.current === userId) return;
+
+    restoreInFlightForUserRef.current = userId;
     isHydratingFromRemoteRef.current = true;
     suppressUploadUntilHydratedRef.current = true;
+
+    const restoreForUserId = userId;
+
+    const scheduleCloudRestoreRetry = (reason: string) => {
+      cloudRestoreFailureStreakRef.current += 1;
+      const failures = cloudRestoreFailureStreakRef.current;
+      if (failures >= MAX_CLOUD_RESTORE_ATTEMPTS) {
+        if (__DEV__) {
+          console.warn("[CloudHydration] restore abandoned after max attempts", {
+            userId: restoreForUserId,
+            reason,
+            failures,
+          });
+        }
+        mealDataSafety.reset();
+        isHydratingFromRemoteRef.current = false;
+        suppressUploadUntilHydratedRef.current = false;
+        return;
+      }
+      const delayMs = Math.min(32_000, 800 * 2 ** (failures - 1));
+      if (__DEV__) {
+        console.warn("[CloudHydration] scheduling cloud restore retry", {
+          userId: restoreForUserId,
+          reason,
+          failures,
+          delayMs,
+        });
+      }
+      setTimeout(() => {
+        if (latestSignedInUserIdRef.current !== restoreForUserId) return;
+        if (hasRestoredRef.current === restoreForUserId) return;
+        setCloudRestoreRetryNonce((n) => n + 1);
+      }, delayMs);
+    };
 
     (async () => {
       try {
         if (__DEV__) {
           console.log("[CloudHydration] auth-context", {
-            userIdFromAuthContext: userId,
+            userIdFromAuthContext: restoreForUserId,
           });
         }
         // Wait for AsyncStorage hydration of persisted stores to finish before
@@ -241,15 +364,29 @@ export function useProgressSync(): void {
           });
         }
 
+        if (latestSignedInUserIdRef.current !== restoreForUserId) {
+          return;
+        }
+
         if (__DEV__) {
           console.log("[DataLossAudit] hydration:start", {
-            userId,
+            userId: restoreForUserId,
             trigger: "user-change",
             localMealsBeforeResetAware: useNutritionStore.getState().meals.length,
             deletedMealIdsCount: useNutritionStore.getState().deletedMealIds.length,
             isHydratingFromRemote: true,
             suppressUploadUntilHydrated: true,
           });
+        }
+
+        try {
+          await hydrateNutritionStoreMealsFromLocalRepository(restoreForUserId);
+        } catch {
+          /* non-fatal: restore still runs with whatever is in memory */
+        }
+
+        if (latestSignedInUserIdRef.current !== restoreForUserId) {
+          return;
         }
 
         // ORDER MATTERS. Pull and reconcile first, push second.
@@ -264,21 +401,32 @@ export function useProgressSync(): void {
         // Pass userId directly so restoreFromSupabase doesn't need to
         // re-validate the JWT via supabase.auth.getUser() — avoiding a
         // transient race where getUser() returns null right after sign-in.
-        mealDataSafety.beginCloudRestore(userId);
+        mealDataSafety.beginCloudRestore(restoreForUserId);
         const profileBeforeRestore = useProfileStore.getState().profile;
         logColdStartStep("profile_store_before_restore", {
-          userId,
+          userId: restoreForUserId,
           localProfileId: profileBeforeRestore.id,
           localOnboardingCompleted: profileBeforeRestore.onboardingCompleted,
           localUpdatedAt: profileBeforeRestore.updatedAt,
         });
-        const hydrationResult = await restoreFromSupabase(userId, "login");
+        const hydrationResult = await restoreFromSupabase(
+          restoreForUserId,
+          "login"
+        );
+
+        if (latestSignedInUserIdRef.current !== restoreForUserId) {
+          return;
+        }
+
         if (!hydrationResult.ok) {
           if (__DEV__) {
-            console.warn("[CloudHydration] restore failed; checking local profile ownership", {
-              userId,
-              reason: hydrationResult.reason,
-            });
+            console.warn(
+              "[CloudHydration] restore failed; checking local profile ownership",
+              {
+                userId: restoreForUserId,
+                reason: hydrationResult.reason,
+              }
+            );
           }
           // Restore failed (no user / unexpected exception) — but if the
           // locally persisted profile already belongs to this user, we can
@@ -286,18 +434,21 @@ export function useProgressSync(): void {
           // loading screen while offline.
           const localProfileId = useProfileStore.getState().profile.id;
           const localProfile = useProfileStore.getState().profile;
-          if (localProfileId === userId) {
+          if (localProfileId === restoreForUserId) {
             if (__DEV__) {
-              console.log("[ProfileHydration] restore failed but local profile matches user — allowing routing", {
-                userId,
-                onboardingCompleted: localProfile.onboardingCompleted,
-              });
+              console.log(
+                "[ProfileHydration] restore failed but local profile matches user — allowing routing",
+                {
+                  userId: restoreForUserId,
+                  onboardingCompleted: localProfile.onboardingCompleted,
+                }
+              );
             }
-            useSyncReadyStore.getState().markSyncRestored(userId);
-            useSyncReadyStore.getState().markProfileConfirmed(userId);
+            useSyncReadyStore.getState().markSyncRestored(restoreForUserId);
+            useSyncReadyStore.getState().markProfileConfirmed(restoreForUserId);
           }
           logColdStartStep("profile_store_after_restore", {
-            userId,
+            userId: restoreForUserId,
             localProfileId: localProfile.id,
             localOnboardingCompleted: localProfile.onboardingCompleted,
             localUpdatedAt: localProfile.updatedAt,
@@ -306,13 +457,16 @@ export function useProgressSync(): void {
             hydrationReason: hydrationResult.reason,
             hydrationOk: false,
           });
-          // Deletes remain blocked until next successful restore.
+          mealDataSafety.reset();
+          isHydratingFromRemoteRef.current = false;
+          suppressUploadUntilHydratedRef.current = true;
+          scheduleCloudRestoreRetry(hydrationResult.reason);
           return;
         }
 
         if (__DEV__) {
           console.log("[DataLossAudit] hydration:restore-complete", {
-            userId,
+            userId: restoreForUserId,
             remoteRowsFetchedCount: useNutritionStore.getState().meals.length,
             deletedMealIdsCount: useNutritionStore.getState().deletedMealIds.length,
           });
@@ -322,7 +476,7 @@ export function useProgressSync(): void {
         // app/index.tsx waits for this before routing authenticated users,
         // preventing the onboardingCompleted default (false) from causing
         // a redirect to /(onboarding)/goal before the real profile loads.
-        useSyncReadyStore.getState().markSyncRestored(userId);
+        useSyncReadyStore.getState().markSyncRestored(restoreForUserId);
 
         // Confirm that the profile store now holds data verified for this user.
         // We confirm if EITHER:
@@ -337,14 +491,14 @@ export function useProgressSync(): void {
         // keeps showing the loading state instead of routing to onboarding
         // based on potentially-stale defaults.
         const localProfileIdAfterRestore = useProfileStore.getState().profile.id;
-        const profileBelongsToUser = localProfileIdAfterRestore === userId;
+        const profileBelongsToUser = localProfileIdAfterRestore === restoreForUserId;
         if (hydrationResult.profileResolved || profileBelongsToUser) {
-          useSyncReadyStore.getState().markProfileConfirmed(userId);
+          useSyncReadyStore.getState().markProfileConfirmed(restoreForUserId);
         } else if (__DEV__) {
           console.warn(
             "[ProfileHydration] profile NOT confirmed — fetch errored and local profile.id mismatches",
             {
-              userId,
+              userId: restoreForUserId,
               localProfileId: localProfileIdAfterRestore,
               hydrationResult,
             }
@@ -352,7 +506,7 @@ export function useProgressSync(): void {
         }
         const profileAfterRestore = useProfileStore.getState().profile;
         logColdStartStep("profile_store_after_restore", {
-          userId,
+          userId: restoreForUserId,
           localProfileId: profileAfterRestore.id,
           localOnboardingCompleted: profileAfterRestore.onboardingCompleted,
           localUpdatedAt: profileAfterRestore.updatedAt,
@@ -369,21 +523,30 @@ export function useProgressSync(): void {
         // in pushAllToSupabase prevents overwriting remote data with an
         // empty store.
         await pushAllToSupabase({
-          knownUserId: userId,
+          knownUserId: restoreForUserId,
           suppressMealUpserts: true,
           suppressTombstoneReplay: true,
           reason: "initial_hydration",
         });
+
+        if (latestSignedInUserIdRef.current !== restoreForUserId) {
+          return;
+        }
+
         // Cloud restore + idempotent push completed for this user. Only NOW
         // are explicit user deletes allowed to flow back to Supabase.
-        mealDataSafety.markCloudRestoreComplete(userId);
+        mealDataSafety.markCloudRestoreComplete(restoreForUserId);
+        cloudRestoreFailureStreakRef.current = 0;
+        hasRestoredRef.current = restoreForUserId;
+
         lastAppliedRemoteProfileUpdatedAtRef.current =
           useProfileStore.getState().profile.updatedAt;
         isHydratingFromRemoteRef.current = false;
         suppressUploadUntilHydratedRef.current = false;
+        flushDeferredMealUploads(restoreForUserId);
         // Re-derive streak from the now-merged local+remote meals.
         // Local meals are the authoritative source after restore.
-        computeLocalStreak();
+        computeLocalStreakFromStores({ force: true });
         // Also fetch server streak and call RPC to ensure cloud is up-to-date.
         // If the server knows a higher streak (e.g. from another device), adopt it.
         fetchStreak()
@@ -399,7 +562,7 @@ export function useProgressSync(): void {
               area: "sync",
               action: "useProgressSync_fetchStreak",
               level: "warning",
-              userId,
+              userId: restoreForUserId,
             });
           });
 
@@ -415,17 +578,29 @@ export function useProgressSync(): void {
           }
         }
       } catch (err) {
-        isHydratingFromRemoteRef.current = false;
-        // Keep upload suppression enabled if hydration failed. This prevents
-        // accidental cloud writes from a partially reset local state.
-        suppressUploadUntilHydratedRef.current = true;
-        // If the profile already belongs to this user, unblock routing
-        // so the user isn't stuck on the loading screen during network errors.
-        const localProfileId = useProfileStore.getState().profile.id;
-        if (localProfileId === userId) {
-          useSyncReadyStore.getState().markSyncRestored(userId);
-          useSyncReadyStore.getState().markProfileConfirmed(userId);
+        if (latestSignedInUserIdRef.current !== restoreForUserId) {
+          return;
         }
+        isHydratingFromRemoteRef.current = false;
+        if (hasRestoredRef.current === restoreForUserId) {
+          // Meals/profile were already merged and delete-safety flipped on;
+          // only non-critical follow-up (e.g. challenge) failed.
+          suppressUploadUntilHydratedRef.current = false;
+          reportError(err, {
+            area: "sync",
+            action: "useProgressSync_loginRestore_post_commit",
+            userId: restoreForUserId,
+          });
+          return;
+        }
+        suppressUploadUntilHydratedRef.current = true;
+        const localProfileId = useProfileStore.getState().profile.id;
+        if (localProfileId === restoreForUserId) {
+          useSyncReadyStore.getState().markSyncRestored(restoreForUserId);
+          useSyncReadyStore.getState().markProfileConfirmed(restoreForUserId);
+        }
+        mealDataSafety.reset();
+        scheduleCloudRestoreRetry("exception");
         // Orchestration-level failure during login restore/push.
         // restoreFromSupabase / pushAllToSupabase already report their own
         // canonical failures, so this catch only fires for unexpected throws
@@ -433,14 +608,46 @@ export function useProgressSync(): void {
         reportError(err, {
           area: "sync",
           action: "useProgressSync_loginRestore",
-          userId,
+          userId: restoreForUserId,
         });
+      } finally {
+        if (restoreInFlightForUserRef.current === restoreForUserId) {
+          restoreInFlightForUserRef.current = null;
+        }
       }
     })();
-  }, [userId]);
+  }, [userId, authLoading, cloudRestoreRetryNonce]);
+
+  // If cloud restore never reached `hasRestoredRef` (exhausted retries, flaky
+  // network, or auth race), try again when the app becomes active — throttled
+  // so a misconfigured backend cannot tight-loop.
+  useEffect(() => {
+    if (FOOD_LOG_SAFE_MODE) return;
+    if (!userId || authLoading) return;
+
+    const lastKickAtRef = { current: 0 };
+    const KICK_THROTTLE_MS = 5 * 60 * 1000;
+
+    const sub = AppState.addEventListener("change", (next: AppStateStatus) => {
+      if (next !== "active") return;
+      if (latestSignedInUserIdRef.current !== userId) return;
+      if (hasRestoredRef.current === userId) return;
+      if (restoreInFlightForUserRef.current === userId) return;
+
+      const now = Date.now();
+      if (now - lastKickAtRef.current < KICK_THROTTLE_MS) return;
+      lastKickAtRef.current = now;
+
+      cloudRestoreFailureStreakRef.current = 0;
+      setCloudRestoreRetryNonce((n) => n + 1);
+    });
+
+    return () => sub.remove();
+  }, [userId, authLoading]);
 
   // ── Subscribe to meal changes → push to Supabase ──
   useEffect(() => {
+    if (FOOD_LOG_SAFE_MODE) return;
     if (!userId) return;
 
     let prevMeals = useNutritionStore.getState().meals;
@@ -462,6 +669,26 @@ export function useProgressSync(): void {
             pushAllToSupabaseCalled: false,
           });
         }
+        const prevIdsSuppressed = new Set(prevMeals.map((m) => m.id));
+        const addedDuringSuppress = nextMeals.filter(
+          (m) => !prevIdsSuppressed.has(m.id)
+        );
+        if (!DISABLE_POST_SAVE_CLOUD_SYNC) {
+          for (const meal of addedDuringSuppress) {
+            deferredMealUploads.push({ meal, userId });
+            if (__DEV__) {
+              console.log(
+                "[Sync] pushMeal deferred (upload suppressed during hydration)",
+                { meal_id: meal.id }
+              );
+            }
+          }
+        }
+        if (!DISABLE_POST_SAVE_STREAK_RECOMPUTE) {
+          recomputeStreakAfterMealListChange(
+            "meal_list_changed_while_upload_suppressed"
+          );
+        }
         prevMeals = nextMeals;
         prevDeletedMealIds = state.deletedMealIds;
         return;
@@ -470,19 +697,28 @@ export function useProgressSync(): void {
       // Detect added meals
       const prevIds = new Set(prevMeals.map((m) => m.id));
       const added = nextMeals.filter((m) => !prevIds.has(m.id));
-      for (const meal of added) {
-        addFoodLoggingBreadcrumb("food_logging.remote_sync_started", {
-          meal_id: meal.id,
-        });
-        pushMeal(meal, userId);
-        // Record streak in daily_log_dates (fire-and-forget)
-        recordMealLogged(meal.calories, new Date(meal.loggedAt)).catch(
-          () => {}
-        );
+      if (!DISABLE_POST_SAVE_CLOUD_SYNC) {
+        for (const meal of added) {
+          addFoodLoggingBreadcrumb("food_logging.remote_sync_started", {
+            meal_id: meal.id,
+          });
+          if (isPostFoodLogSettling()) {
+            deferredMealUploads.push({ meal, userId });
+            if (__DEV__) {
+              console.log("[Sync] pushMeal deferred (post-food-log settling)", {
+                meal_id: meal.id,
+              });
+            }
+          } else {
+            pushMeal(meal, userId);
+            recordMealLogged(meal.calories, new Date(meal.loggedAt)).catch(
+              () => {}
+            );
+          }
+        }
       }
-      // Recompute streak from all local meals for accuracy
-      if (added.length > 0) {
-        computeLocalStreak();
+      if (added.length > 0 && !DISABLE_POST_SAVE_STREAK_RECOMPUTE) {
+        computeLocalStreakFromStores({ force: true });
       }
 
       // Detect removed meals locally for streak only. We DO NOT treat
@@ -492,8 +728,8 @@ export function useProgressSync(): void {
       // (`deletedMealIds`) created by removeMeal/clearMealsForDate.
       const nextIds = new Set(nextMeals.map((m) => m.id));
       const removed = prevMeals.filter((m) => !nextIds.has(m.id));
-      if (removed.length > 0) {
-        computeLocalStreak();
+      if (removed.length > 0 && !DISABLE_POST_SAVE_STREAK_RECOMPUTE) {
+        computeLocalStreakFromStores({ force: true });
       }
 
       // Detect newly added tombstones and push only those deletions.
@@ -502,17 +738,24 @@ export function useProgressSync(): void {
         (id) => !prevDeletedSet.has(id)
       );
       for (const mealId of tombstonesAdded) {
-        pushMealDelete(mealId, userId);
+        void deletePersistedMeal(userId, mealId).catch(() => {
+          // Non-fatal: tombstone still prevents resurrection in runtime merges.
+        });
+        if (!DISABLE_POST_SAVE_CLOUD_SYNC) {
+          pushMealDelete(mealId, userId);
+        }
       }
 
       // Detect updated meals
       const prevMap = new Map<string, MealEntry>(
         prevMeals.map((m) => [m.id, m])
       );
-      for (const meal of nextMeals) {
-        const prev = prevMap.get(meal.id);
-        if (prev && prev !== meal) {
-          pushMealUpdate(meal.id, meal, userId);
+      if (!DISABLE_POST_SAVE_CLOUD_SYNC) {
+        for (const meal of nextMeals) {
+          const prev = prevMap.get(meal.id);
+          if (prev && prev !== meal) {
+            pushMealUpdate(meal.id, meal, userId);
+          }
         }
       }
 
@@ -525,6 +768,7 @@ export function useProgressSync(): void {
 
   // ── Subscribe to weight log changes → push to Supabase ──
   useEffect(() => {
+    if (FOOD_LOG_SAFE_MODE) return;
     if (!userId) return;
 
     let prevLogs = useProgressStore.getState().weightLogs;
@@ -556,6 +800,7 @@ export function useProgressSync(): void {
 
   // ── Subscribe to goal changes → push to Supabase ──
   useEffect(() => {
+    if (FOOD_LOG_SAFE_MODE) return;
     if (!userId) return;
 
     let prevPlan = useGoalsStore.getState().plan;
@@ -574,6 +819,7 @@ export function useProgressSync(): void {
 
   // ── Subscribe to profile changes → push to Supabase ──
   useEffect(() => {
+    if (FOOD_LOG_SAFE_MODE) return;
     if (!userId) return;
 
     let prevProfile = useProfileStore.getState().profile;
@@ -637,6 +883,7 @@ export function useProgressSync(): void {
 
   // ── Subscribe to challenge changes → push to Supabase ──
   useEffect(() => {
+    if (FOOD_LOG_SAFE_MODE) return;
     if (!userId) return;
 
     let prevChallenge = useChallengeStore.getState().challenge;
@@ -659,6 +906,7 @@ export function useProgressSync(): void {
   // server. The replay itself is idempotent and bounded (see
   // MAX_OUTBOX_ATTEMPTS in pending-review.service).
   useEffect(() => {
+    if (FOOD_LOG_SAFE_MODE) return;
     if (!userId) return;
 
     let lastReplayAt = 0;
@@ -673,6 +921,14 @@ export function useProgressSync(): void {
         if (__DEV__) {
           console.warn(
             `[PendingReviewOutbox] replay error (trigger=${reason}):`,
+            err
+          );
+        }
+      });
+      void reconcileDeferredPendingReviewLinks(userId).catch((err) => {
+        if (__DEV__) {
+          console.warn(
+            `[PendingReviewSync] reconcile error (trigger=${reason}):`,
             err
           );
         }

@@ -14,7 +14,7 @@ export function useBottomSheet(): BottomSheetContextValue {
   const context = useContext(BottomSheetContext);
   invariant(
     context !== undefined,
-    "useBottomSheet must be used within a BottomSheetProvider. Did you forget to wrap your app with <CaloricProviders>?"
+    "useBottomSheet must be used within a BottomSheetProvider. Did you forget to wrap your app with <CalCutProviders>?"
   );
   return context!;
 }

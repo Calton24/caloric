@@ -26,8 +26,8 @@ import { useTheme } from "../../src/theme/useTheme";
 import { SelectCard } from "../../src/ui/components/SelectCard";
 import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TText } from "../../src/ui/primitives/TText";
-import { OnboardingBackground } from "./_background";
-import { OnboardingCTA } from "./_cta";
+import { OnboardingBackground } from "../../src/features/onboarding/components/OnboardingBackground";
+import { OnboardingCTA } from "../../src/features/onboarding/components/OnboardingCTA";
 import { OnboardingHeader } from "./_progress";
 
 /** Sliding unit toggle (Imperial / Metric) */

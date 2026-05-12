@@ -6,7 +6,7 @@
  * the email link. This screen exchanges the code, then routes to the
  * appropriate destination.
  *
- * Deep link: caloric://auth/callback?code=XXX
+ * Deep link (primary): calcut://auth/callback?code=XXX — legacy scheme caloric:// also registered.
  *
  * Recovery detection: The Supabase SDK stores "codeVerifier/PASSWORD_RECOVERY"
  * during resetPasswordForEmail and returns isRecovery from exchangeCodeForSession.
@@ -105,7 +105,7 @@ export default function AuthCallbackScreen() {
           );
         }
 
-        router.replace(destination);
+        router.replace(destination as never);
       } catch (err) {
         // Unexpected throw (network / module-load). Don't double-report —
         // this catch only fires when the awaited handlers themselves threw,

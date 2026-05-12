@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Caloric"
+    "title": "CalCut"
   },
   "common": {
     "cancel": "Annuler",
@@ -41,7 +41,7 @@
     "notes": "Notes",
     "auth": "Compte",
     "playground": "Bac à sable",
-    "caloric": "Caloric"
+    "caloric": "CalCut"
   },
   "days": {
     "monShort": "L",

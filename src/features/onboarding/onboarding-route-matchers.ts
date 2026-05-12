@@ -1,21 +1,12 @@
 /**
  * Path matchers for OnboardingAuthorityGate.
  *
- * Pure, dependency-free functions extracted from the gate so they can be
- * unit-tested without pulling React, Expo Router, or the rest of the
- * gate's runtime context. The path matchers are the locus of the
- * production bugs we keep hitting (group-stripped pathnames, group-
- * prefixed pathnames, the loop-on-Continue regression), so it's
- * important they're testable in isolation.
- *
- * Why we even have these matchers:
- *   Expo Router's `usePathname()` returns paths with route group
- *   segments (the parenthesised parts) sometimes stripped, sometimes
- *   not. So `/(onboarding)/goal` may arrive as `/goal`, `/(tabs)/index`
- *   may arrive as `/`, etc. We match all forms defensively because some
- *   navigation paths and version differences emit the prefixed form and
- *   some emit the stripped form.
+ * Pure helpers (no React) so the gate logic can be tested in isolation.
+ * `isVoluntaryUpgradePaywallPath` imports `parsePaywallRouteMode` from
+ * subscription so paywall `mode` stays consistent app-wide.
  */
+
+import { parsePaywallRouteMode } from "../subscription/paywall-mode";
 
 /**
  * Names of every screen file inside `app/(onboarding)/` and
@@ -86,6 +77,82 @@ export function isIndexRoute(pathname: string): boolean {
  * the routes that an incomplete or unauthenticated user must NOT be
  * allowed to view, so the gate redirects them away.
  */
+/**
+ * True when the user is on the subscription paywall screen.
+ *
+ * We match all Expo Router forms of the path (group-prefixed, bare,
+ * and the alternate /onboarding/paywall subtree) so that a
+ * complete-but-unpaid user is allowed to stay on the paywall without
+ * the gate redirecting them away.
+ */
+export function isPaywallRoute(pathname: string): boolean {
+  // Match all Expo Router path forms. Strip any search-param suffix
+  // (e.g. "/paywall?mode=gate") before comparing so the gate correctly
+  // identifies the route regardless of the mode param it added.
+  const bare = pathname.split("?")[0];
+  return (
+    bare === "/(onboarding)/paywall" ||
+    bare === "/onboarding/paywall" ||
+    bare === "/paywall"
+  );
+}
+
+/**
+ * Settings / drawer "Upgrade to Pro" — same physical route as onboarding paywall
+ * but must not be treated like the subscription gate when the user has an
+ * active free challenge (gate bounces them off `/paywall`; voluntary upgrade
+ * must stay).
+ */
+export function isVoluntaryUpgradePaywallPath(
+  pathname: string,
+  rawMode: string | string[] | undefined,
+): boolean {
+  if (!isPaywallRoute(pathname)) return false;
+  return parsePaywallRouteMode(rawMode) === "upgrade";
+}
+
+/**
+ * Web viewer modal — used for in-app rendering of Privacy Policy / Terms.
+ * Always allowed under the hard gate so users can read legal pages.
+ */
+export function isWebViewerRoute(pathname: string): boolean {
+  const bare = pathname.split("?")[0];
+  return bare === "/(modals)/web-viewer" || bare === "/web-viewer";
+}
+
+/**
+ * Locked-account "shell" screen. Holds delete-account, sign-out, and account
+ * identity for users gated by the hard paywall — must NOT expose tracking
+ * features. Reachable from the gate paywall footer.
+ */
+export function isManageAccountRoute(pathname: string): boolean {
+  const bare = pathname.split("?")[0];
+  return (
+    bare === "/(modals)/manage-account" ||
+    bare === "/manage-account"
+  );
+}
+
+/**
+ * Routes an EXPIRED-trial / NO-subscription user must always be able to reach
+ * for App Review compliance: subscribe, restore, read legal, delete account,
+ * sign out. Everything else is hard-locked by the gate.
+ */
+export function isGatedAllowedRoute(
+  pathname: string,
+  rawMode: string | string[] | undefined,
+): boolean {
+  return (
+    isPaywallRoute(pathname) ||
+    isWebViewerRoute(pathname) ||
+    isManageAccountRoute(pathname) ||
+    isAuthRoute(pathname) ||
+    // mode=upgrade explicitly allowed too (already a paywall route, but be
+    // defensive against future paywall route renames).
+    isVoluntaryUpgradePaywallPath(pathname, rawMode)
+  );
+}
+
 export function isProtectedAppRoute(pathname: string): boolean {
   return (
     !isInsideOnboardingFlow(pathname) &&

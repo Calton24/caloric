@@ -136,7 +136,7 @@ export function ConsentModal({ visible, onComplete }: ConsentModalProps) {
               icon="analytics-outline"
               iconColor={theme.colors.primary}
               title="Product Analytics"
-              description="Help us improve Caloric by sharing anonymous usage data. No personal information is collected."
+              description="Help us improve CalCut by sharing anonymous usage data. No personal information is collected."
               value={consent.analytics}
               onToggle={(value) =>
                 setConsent((prev) => ({ ...prev, analytics: value }))
@@ -150,7 +150,7 @@ export function ConsentModal({ visible, onComplete }: ConsentModalProps) {
               icon="eye-outline"
               iconColor={theme.colors.info}
               title="Cross-App Tracking"
-              description="Allow Caloric to track your activity across other apps and websites for personalized ads."
+              description="Allow CalCut to track your activity across other apps and websites for personalized ads."
               value={consent.tracking}
               onToggle={(value) =>
                 setConsent((prev) => ({ ...prev, tracking: value }))

@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Caloric"
+    "title": "CalCut"
   },
   "common": {
     "cancel": "Anuluj",
@@ -43,7 +43,7 @@
     "notes": "Notatki",
     "auth": "Konto",
     "playground": "Plac zabaw",
-    "caloric": "Caloric"
+    "caloric": "CalCut"
   },
   "days": {
     "monShort": "P",

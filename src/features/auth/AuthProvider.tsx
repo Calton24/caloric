@@ -3,12 +3,15 @@
  * Manages authentication state and provides auth context
  */
 
-import React, { createContext, useCallback, useEffect, useState } from "react";
+import React, { createContext, useCallback, useEffect, useRef, useState } from "react";
 import { analytics } from "../../infrastructure/analytics";
 import { reportError } from "../../infrastructure/errorReporting";
 import { growth } from "../../infrastructure/growth";
 import { logColdStartStep } from "../../infrastructure/tracing/coldStartTrace";
 import { getSupabaseClient } from "../../lib/supabase/client";
+import {
+  discardPendingPaywallHandoffMarker,
+} from "../onboarding/post-auth-onboarding-handoff";
 import {
     authClient,
     OAuthProvider,
@@ -60,13 +63,43 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
+/**
+ * Hard ceiling on auth bootstrap. If `getSession()` hangs (SecureStore
+ * contention, network) and `onAuthStateChange` doesn't fire fast enough,
+ * we still flip `isLoading` to false so the access gate can route. Real
+ * sessions are picked up by the listener after the timeout.
+ */
+const AUTH_BOOTSTRAP_TIMEOUT_MS = 8_000;
+
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const mountIdRef = useRef(
+    `auth-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+  );
+
+  useEffect(() => {
+    if (!__DEV__) return;
+    const mountId = mountIdRef.current;
+    console.log("[ProviderMount]", { provider: "AuthProvider", mountId });
+    return () => {
+      console.log("[ProviderUnmount]", { provider: "AuthProvider", mountId });
+    };
+  }, []);
 
   // Initialize session on mount
   useEffect(() => {
+    let bootstrapResolved = false;
+    const finishBootstrap = (origin: string) => {
+      if (bootstrapResolved) return;
+      bootstrapResolved = true;
+      setIsLoading(false);
+      if (__DEV__) {
+        console.log("[AuthState] bootstrap_resolved", { origin });
+      }
+    };
+
     authClient
       .getSession()
       .then(async ({ session: initialSession, error: sessionError }) => {
@@ -109,7 +142,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           });
           growth.setUser({ userId: initialSession.user.id });
         }
-        setIsLoading(false);
+        finishBootstrap("getSession");
       })
       .catch((err) => {
         logColdStartStep("auth_session_loaded", {
@@ -124,13 +157,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
           action: "getSession_initial_throw",
           provider: "supabase",
         });
-        setIsLoading(false);
+        finishBootstrap("getSession_threw");
       });
 
     // Subscribe to auth state changes — single choke point for analytics
     // identity. Fires for signIn, signUp, OAuth, deep-link token exchange,
     // and token refresh. This means we don't need manual identify/reset in
     // each handler.
+    //
+    // Critical: this listener ALSO releases the bootstrap loading flag if
+    // it fires before getSession() resolves (e.g. SecureStore contention
+    // delays getSession but onAuthStateChange's INITIAL_SESSION reaches us
+    // first). Without this, the gate would see {user: set, isLoading: true}
+    // and spin forever — see release-blocker fix 2026-05-07.
     const unsubscribe = authClient.onAuthStateChange((newSession) => {
       const prevUser = user;
       setSession(newSession);
@@ -147,9 +186,50 @@ export function AuthProvider({ children }: AuthProviderProps) {
         analytics.reset();
         growth.setUser(null);
       }
+      finishBootstrap("onAuthStateChange");
     });
 
-    return unsubscribe;
+    // Hard timeout safety. If neither getSession() nor onAuthStateChange
+    // resolves within the budget, recover by querying the session directly
+    // and force-resolving the loading flag so the gate isn't stranded.
+    const timeoutId = setTimeout(() => {
+      if (bootstrapResolved) return;
+      if (__DEV__) {
+        console.warn(
+          "[AuthState] bootstrap_timeout — forcing resolve via getSession",
+        );
+      }
+      authClient
+        .getSession()
+        .then(({ session: rescuedSession }) => {
+          if (rescuedSession) {
+            setSession(rescuedSession);
+            setUser(rescuedSession.user);
+          }
+        })
+        .catch(() => {
+          /* swallow — bootstrap will resolve to signedOut below */
+        })
+        .finally(() => {
+          finishBootstrap("bootstrap_timeout");
+          reportError(
+            new Error(
+              "[AuthState] bootstrap timeout — getSession + onAuthStateChange did not resolve within budget",
+            ),
+            {
+              area: "auth",
+              action: "auth_bootstrap_timeout",
+              provider: "supabase",
+              extra: { budgetMs: AUTH_BOOTSTRAP_TIMEOUT_MS },
+            },
+          );
+        });
+    }, AUTH_BOOTSTRAP_TIMEOUT_MS);
+
+    return () => {
+      clearTimeout(timeoutId);
+      unsubscribe();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -194,6 +274,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Always clear local state even if API fails
     setUser(null);
     setSession(null);
+    void discardPendingPaywallHandoffMarker();
     // reset() handled by onAuthStateChange listener
     return { error };
   }, []);

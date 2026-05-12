@@ -10,7 +10,18 @@
  *   1. null → existing user with empty local store cannot delete remote rows.
  *   2. resetMeals followed by tombstone replay is a no-op against the cloud.
  *   3. Explicit user delete after `markCloudRestoreComplete()` is allowed.
+ *
+ * The post-Track-Calories crash bisect hard-codes `FOOD_LOG_SAFE_MODE=true`
+ * which makes every method a no-op. Mock the flag back to `false` here so we
+ * exercise the actual safety state machine.
  */
+
+jest.mock("../debug/safe-mode-flags", () => ({
+  FOOD_LOG_SAFE_MODE: false,
+  FOOD_LOG_RENDER_FAKE_HOME: false,
+  FOOD_LOG_POST_SAVE_NAV_MODE: "replaceTabs",
+  assertFoodLogSafeModeImport: jest.fn(),
+}));
 
 import { mealDataSafety } from "./meal-data-safety";
 

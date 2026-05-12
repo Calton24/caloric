@@ -1,6 +1,6 @@
 # Pre-Submission QA Checklist
 
-**App Name:** Caloric  
+**App Name:** CalCut  
 **Version:** 1.0.0  
 **Build Date:** ****\_****  
 **Tester:** ****\_****  
@@ -372,7 +372,7 @@
 
 #### App Metadata
 
-- [ ] App name: "Caloric" (or approved name)
+- [ ] App name: "CalCut" (or approved name)
 - [ ] Subtitle/tagline written
 - [ ] Description written (4000 char max)
 - [ ] Keywords selected (100 char max)
@@ -425,7 +425,7 @@
 
 #### App Metadata
 
-- [ ] App name: "Caloric"
+- [ ] App name: "CalCut"
 - [ ] Short description (80 char)
 - [ ] Full description (4000 char)
 - [ ] App category selected

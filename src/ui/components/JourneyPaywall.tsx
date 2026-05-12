@@ -10,7 +10,7 @@
  *   Day 21 (strongest) — peak emotional leverage
  *
  * Pricing rules:
- *   - Show monthly equivalent: "£6.58/month billed annually" not "£79/year"
+ *   - Yearly: short per-month caption on the card; CTA line explains annual billing in plain language
  *   - Default selection: yearly with "Best Value" badge
  *   - Lifetime exists to make yearly look cheap
  *
@@ -41,6 +41,7 @@ import Animated, {
 import type { PaywallTrigger } from "../../features/retention/day-journey";
 import { useRevenueCat } from "../../features/subscription/useRevenueCat";
 import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
+import { formatStorefrontPriceLabel, getSubscriptionDisplay } from "../../lib/billing/subscription-display";
 import { useTheme } from "../../theme/useTheme";
 import { TSpacer } from "../primitives/TSpacer";
 import { TText } from "../primitives/TText";
@@ -58,11 +59,12 @@ interface JourneyPaywallProps {
 
 // ── Pricing helpers ──
 
-type TierKey = "monthly" | "yearly" | "other";
+type TierKey = "weekly" | "monthly" | "yearly" | "other";
 
 function getTierKey(pkg: any): TierKey {
   const id = pkg.identifier ?? "";
   const type = pkg.packageType ?? "";
+  if (type === "WEEKLY" || id === "$rc_weekly") return "weekly";
   if (type === "MONTHLY" || id === "$rc_monthly") return "monthly";
   if (type === "ANNUAL" || id === "$rc_annual") return "yearly";
   return "other";
@@ -74,6 +76,8 @@ function getTierLabel(tier: TierKey, t: (key: string) => string): string {
       return t("paywall.tierMonthly");
     case "yearly":
       return t("paywall.tierYearly");
+    case "weekly":
+      return t("paywall.tierWeekly");
     default:
       return t("paywall.tierPlan");
   }
@@ -98,7 +102,7 @@ function getMonthlyEquivalent(product: any): string | null {
   return `${symbol}${(price / 12).toFixed(2)}/month — billed annually`;
 }
 
-const TIER_ORDER: TierKey[] = ["monthly", "yearly"];
+const TIER_ORDER: TierKey[] = ["monthly", "yearly", "weekly"];
 
 // ── Pricing card ──
 
@@ -207,7 +211,7 @@ export function JourneyPaywall({
   streakDay,
 }: JourneyPaywallProps) {
   const { theme } = useTheme();
-  const { t } = useAppTranslation();
+  const { t, language } = useAppTranslation();
   const { packages, isLoadingOfferings, purchasePackage, restorePurchases } =
     useRevenueCat();
   const [selectedPkg, setSelectedPkg] = useState<string | null>(null);
@@ -416,10 +420,14 @@ export function JourneyPaywall({
                 {sorted.map((pkg) => {
                   const tier = getTierKey(pkg);
                   const product = pkg.product ?? pkg.storeProduct;
-                  const priceStr =
-                    product?.priceString ?? product?.price ?? "—";
+                  const priceStr = formatStorefrontPriceLabel(product);
                   const subtitle =
-                    tier === "yearly" ? getMonthlyEquivalent(product) : null;
+                    tier === "yearly"
+                      ? getSubscriptionDisplay("yearly", product, {
+                          t,
+                          locale: language,
+                        }).yearlyPlanCardCaption ?? null
+                      : null;
 
                   return (
                     <PricingCard
@@ -444,26 +452,38 @@ export function JourneyPaywall({
                   );
                 })}
               </View>
-            ) : null}
+            ) : (
+              <TText
+                style={[
+                  styles.unavailableText,
+                  { color: theme.colors.textSecondary },
+                ]}
+              >
+                Unable to load subscription options. Please try again shortly.
+              </TText>
+            )}
           </Animated.View>
 
           {/* ── Billing context ── */}
-          {effectiveSelection && (
+          {effectiveSelection && selectedProduct ? (
             <TText
               style={[styles.billingContext, { color: theme.colors.textMuted }]}
             >
-              {selectedTier === "yearly"
-                ? (() => {
-                    const product =
-                      selectedProduct?.product ?? selectedProduct?.storeProduct;
-                    const equiv = getMonthlyEquivalent(product);
-                    return equiv ?? "Billed annually";
-                  })()
-                : selectedTier === "monthly"
-                  ? "Billed every month · Cancel anytime"
-                  : "One-time payment · Yours forever"}
+              {selectedTier === "other"
+                ? t("paywall.billingFooterLifetime", {
+                    price: formatStorefrontPriceLabel(
+                      selectedProduct.product ??
+                        selectedProduct.storeProduct,
+                    ),
+                  })
+                : getSubscriptionDisplay(
+                    selectedTier,
+                    selectedProduct.product ??
+                      selectedProduct.storeProduct,
+                    { t, locale: language },
+                  ).footerText}
             </TText>
-          )}
+          ) : null}
 
           <TSpacer size="lg" />
 
@@ -591,6 +611,11 @@ const styles = StyleSheet.create({
   // Pricing
   pricingRow: {
     gap: 10,
+  },
+  unavailableText: {
+    textAlign: "center",
+    fontSize: 14,
+    lineHeight: 20,
   },
   pricingCardWrapper: {
     position: "relative",

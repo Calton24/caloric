@@ -27,7 +27,12 @@ import { useProfileStore } from "../profile/profile.store";
 import type { UserProfile } from "../profile/profile.types";
 import { useProgressStore } from "../progress/progress.store";
 import type { WeightLog } from "../progress/progress.types";
+import { recomputeStreakAfterMealListChange } from "../streak/recompute-streak-after-meal-list-change";
 import { mealDataSafety } from "./meal-data-safety";
+import {
+  resolveMealLoggedAtUtc,
+  resolveMealLoggedDateLocal,
+} from "../food-logging/time/create-meal-timestamp-fields";
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -84,11 +89,16 @@ export async function pushMeal(
         protein: meal.protein,
         carbs: meal.carbs,
         fat: meal.fat,
-        logged_at: meal.loggedAt,
+        logged_at: resolveMealLoggedAtUtc(meal),
+        logged_at_utc: resolveMealLoggedAtUtc(meal),
+        logged_at_local: meal.loggedAtLocal ?? null,
+        logged_date_local: meal.loggedDateLocal ?? resolveMealLoggedDateLocal(meal),
+        timezone: meal.timezone ?? null,
+        timezone_offset_minutes: meal.timezoneOffsetMinutes ?? null,
         emoji: meal.emoji ?? null,
         meal_time: meal.mealTime ?? null,
         confidence: meal.confidence ?? null,
-        image_uri: meal.imageUri ?? null,
+        image_uri: meal.imageUri ?? meal.imageUrl ?? null,
         image_path: meal.imagePath ?? null,
         updated_at: new Date().toISOString(),
       },
@@ -101,6 +111,11 @@ export async function pushMeal(
     addFoodLoggingBreadcrumb("food_logging.remote_sync_success", {
       meal_id: meal.id,
     });
+    // Best-effort: now that the meal exists server-side, try to backfill any
+    // deferred pending-review FK links.
+    void import("../food-logging/pending-review.service")
+      .then((m) => m.reconcileDeferredPendingReviewLinks(userId))
+      .catch(() => {});
   } catch (e) {
     logSyncError("pushMeal", e);
     addFoodLoggingBreadcrumb("food_logging.remote_sync_failed", {
@@ -143,6 +158,16 @@ export async function pushMealUpdate(
     if (updates.fat !== undefined) mapped.fat = updates.fat;
     if (updates.emoji !== undefined) mapped.emoji = updates.emoji;
     if (updates.mealTime !== undefined) mapped.meal_time = updates.mealTime;
+    if (updates.loggedAt !== undefined || updates.loggedAtUtc !== undefined) {
+      const loggedAtUtc = resolveMealLoggedAtUtc(updates);
+      mapped.logged_at = loggedAtUtc;
+      mapped.logged_at_utc = loggedAtUtc;
+      mapped.logged_at_local = updates.loggedAtLocal ?? null;
+      mapped.logged_date_local =
+        updates.loggedDateLocal ?? resolveMealLoggedDateLocal(updates);
+      mapped.timezone = updates.timezone ?? null;
+      mapped.timezone_offset_minutes = updates.timezoneOffsetMinutes ?? null;
+    }
 
     await client
       .from("meal_entries")
@@ -227,6 +252,11 @@ type PulledMealRow = {
   carbs: number;
   fat: number;
   logged_at: string;
+  logged_at_utc?: string | null;
+  logged_at_local?: string | null;
+  logged_date_local?: string | null;
+  timezone?: string | null;
+  timezone_offset_minutes?: number | null;
   emoji?: string | null;
   meal_time?: MealEntry["mealTime"] | null;
   confidence?: number | null;
@@ -348,6 +378,11 @@ function mapMealRow(row: {
   carbs: number;
   fat: number;
   logged_at: string;
+  logged_at_utc?: string | null;
+  logged_at_local?: string | null;
+  logged_date_local?: string | null;
+  timezone?: string | null;
+  timezone_offset_minutes?: number | null;
   emoji?: string | null;
   meal_time?: MealEntry["mealTime"] | null;
   confidence?: number | null;
@@ -362,11 +397,18 @@ function mapMealRow(row: {
     protein: row.protein,
     carbs: row.carbs,
     fat: row.fat,
-    loggedAt: row.logged_at,
+    loggedAt: row.logged_at_utc ?? row.logged_at,
+    loggedAtUtc: row.logged_at_utc ?? row.logged_at,
+    loggedAtLocal: row.logged_at_local ?? undefined,
+    loggedDateLocal: row.logged_date_local ?? undefined,
+    timezone: row.timezone ?? undefined,
+    timezoneOffsetMinutes: row.timezone_offset_minutes ?? undefined,
     emoji: row.emoji ?? undefined,
     mealTime: row.meal_time ?? undefined,
     confidence: row.confidence ?? undefined,
     imageUri: row.image_uri ?? undefined,
+    imageUrl: row.image_uri ?? undefined,
+    thumbnailUri: row.image_uri ?? undefined,
     imagePath: row.image_path ?? undefined,
   };
 }
@@ -932,6 +974,34 @@ export async function restoreFromSupabase(
       });
     }
 
+    const afterCommitMeals = useNutritionStore.getState().meals;
+    if (__DEV__ || process.env.EXPO_PUBLIC_ACCOUNT_DATA_AUDIT === "1") {
+      console.log("[CloudHydration] after_commit_store_snapshot", {
+        userId,
+        trigger: triggerLabel,
+        remoteRowsFetchedCount: remoteMeals.length,
+        mealsInStore: afterCommitMeals.length,
+        first10: afterCommitMeals.slice(0, 10).map((m) => ({
+          id: m.id,
+          title: m.title,
+          loggedAt: m.loggedAt,
+          loggedDateLocal: m.loggedDateLocal,
+        })),
+      });
+    }
+    if (
+      __DEV__ &&
+      remoteMeals.length > 0 &&
+      useNutritionStore.getState().meals.length === 0
+    ) {
+      console.error(
+        "[FATAL_RESTORE_BUG] Remote meals fetched but nutrition store is empty after merge",
+        { userId, remoteRowsFetchedCount: remoteMeals.length }
+      );
+    }
+
+    recomputeStreakAfterMealListChange("cloud_restore_complete");
+
     // Drop tombstones for ids the server confirms are gone (either soft-
     // deleted or no longer in the active pull). Prevents `deletedMealIds`
     // from growing unbounded over the lifetime of a device.
@@ -1253,11 +1323,16 @@ export async function pushAllToSupabase(options?: {
         protein: meal.protein,
         carbs: meal.carbs,
         fat: meal.fat,
-        logged_at: meal.loggedAt,
+        logged_at: resolveMealLoggedAtUtc(meal),
+        logged_at_utc: resolveMealLoggedAtUtc(meal),
+        logged_at_local: meal.loggedAtLocal ?? null,
+        logged_date_local: meal.loggedDateLocal ?? resolveMealLoggedDateLocal(meal),
+        timezone: meal.timezone ?? null,
+        timezone_offset_minutes: meal.timezoneOffsetMinutes ?? null,
         emoji: meal.emoji ?? null,
         meal_time: meal.mealTime ?? null,
         confidence: meal.confidence ?? null,
-        image_uri: meal.imageUri ?? null,
+        image_uri: meal.imageUri ?? meal.imageUrl ?? null,
         image_path: meal.imagePath ?? null,
         updated_at: new Date().toISOString(),
       }));

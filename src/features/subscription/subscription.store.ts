@@ -1,15 +1,31 @@
 import { create } from "zustand";
 import { getStorage } from "../../infrastructure/storage";
 import { getPackageType } from "./package-utils";
-import { SubscriptionPlan, SubscriptionState } from "./subscription.types";
+import {
+  type BillingValidationStatus,
+  SubscriptionPlan,
+  SubscriptionState,
+} from "./subscription.types";
 
 const STORAGE_KEY = "caloric:subscription_state";
 
 interface SubscriptionStore {
   subscription: SubscriptionState;
   loaded: boolean;
+  /**
+   * Live RevenueCat validation mirror — not persisted. Server sync must not
+   * downgrade when this reads "active" (see syncFromServer RC-wins guard).
+   */
+  rcValidationStatus: BillingValidationStatus;
   /** Hydrate from persistent storage on app launch */
   hydrate: () => Promise<void>;
+  /**
+   * Set the RC validation status directly.
+   * Called by BillingGate to signal "loading" (before RC init) and
+   * "error" (when init or getEntitlements fails). "active" / "inactive"
+   * are set automatically by syncFromEntitlement and syncFromServer.
+   */
+  setRcValidationStatus: (status: BillingValidationStatus) => void;
   startTrial: (
     plan: Exclude<SubscriptionPlan, null>,
     trialEndsAt: string
@@ -20,6 +36,7 @@ interface SubscriptionStore {
   /**
    * Sync the store from a live RevenueCat (or other billing provider) entitlement.
    * Called automatically by BillingGate on init and whenever RC fires an update.
+   * Sets rcValidationStatus to "active" or "inactive".
    */
   syncFromEntitlement: (entitlement: {
     isActive: boolean;
@@ -29,6 +46,7 @@ interface SubscriptionStore {
    * Sync the store from a server-side entitlement check (sync-entitlement function).
    * Server truth ALWAYS overwrites the local AsyncStorage cache.
    * Called after login, restore, and on the denial recheck path.
+   * Sets rcValidationStatus to "active" or "inactive".
    *
    * lastServerVerifiedAt MUST come from the server response — never mint it
    * client-side. This timestamp drives the fresh/stale/expired trust model.
@@ -66,6 +84,7 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => {
   return {
     subscription: initialSubscription,
     loaded: false,
+    rcValidationStatus: "unknown",
 
     hydrate: async () => {
       try {
@@ -82,6 +101,10 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => {
       } catch {
         set({ loaded: true });
       }
+    },
+
+    setRcValidationStatus: (status) => {
+      set({ rcValidationStatus: status });
     },
 
     startTrial: (plan, trialEndsAt) => {
@@ -120,7 +143,7 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => {
     },
 
     resetSubscription: () => {
-      set({ subscription: initialSubscription });
+      set({ subscription: initialSubscription, rcValidationStatus: "unknown" });
       persist();
     },
 
@@ -128,6 +151,7 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => {
       set((state) => {
         if (!entitlement.isActive) {
           return {
+            rcValidationStatus: "inactive" as const,
             subscription: {
               ...state.subscription,
               hasActiveSubscription: false,
@@ -143,6 +167,7 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => {
               ? "annual"
               : "monthly";
         return {
+          rcValidationStatus: "active" as const,
           subscription: {
             ...state.subscription,
             hasActiveSubscription: true,
@@ -158,12 +183,30 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => {
       status: _status,
       lastServerVerifiedAt: serverTs,
     }) => {
-      // Server truth overwrites the local AsyncStorage cache immediately.
-      // Grace period users (billing recovery) are still treated as premium.
-      // serverTs is the timestamp from the server response — never client-minted.
+      // RC-truth-wins: if the local SDK already says "active", a stale
+      // sync-entitlement `isPro: false` must not revoke access.
       set((state) => {
         if (!isPro) {
+          if (state.rcValidationStatus === "active") {
+            if (__DEV__) {
+              console.warn(
+                "[Billing] sync-entitlement says inactive but RC SDK says active — keeping access (RC wins).",
+                {
+                  serverTs,
+                  cachedHasSubscription:
+                    state.subscription.hasActiveSubscription,
+                }
+              );
+            }
+            return {
+              subscription: {
+                ...state.subscription,
+                lastServerVerifiedAt: serverTs,
+              },
+            };
+          }
           return {
+            rcValidationStatus: "inactive" as const,
             subscription: {
               ...state.subscription,
               hasActiveSubscription: false,
@@ -172,9 +215,8 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => {
             },
           };
         }
-        // Premium — preserve existing plan if we already know it,
-        // otherwise leave it for the RC SDK listener to fill in.
         return {
+          rcValidationStatus: "active" as const,
           subscription: {
             ...state.subscription,
             hasActiveSubscription: true,

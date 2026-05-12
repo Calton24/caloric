@@ -11,11 +11,15 @@ import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import RNSlider from "@react-native-community/slider";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import type { SavedFoodItem } from "../../features/nutrition/estimation/estimation.types";
 import { useNutritionStore } from "../../features/nutrition/nutrition.store";
+import { getMealDisplayImagePath, getMealDisplayImageUri } from "../../features/meals/getMealDisplayImageUri";
+import { useMealImageSource } from "../../features/food-logging/useMealImageSource";
+import { formatMealTimeForDisplay } from "../../features/food-logging/time/create-meal-timestamp-fields";
+import { addFoodLoggingBreadcrumb } from "../../infrastructure/errorReporting/foodLoggingErrors";
 import { formatDateHeader, useAppTranslation } from "../../infrastructure/i18n";
 import { toLocalDateTime } from "../../lib/utils/date";
 import { useTheme } from "../../theme/useTheme";
@@ -35,6 +39,12 @@ export function EditMealSheet({ mealId, onClose }: EditMealSheetProps) {
   const updateMeal = useNutritionStore((s) => s.updateMeal);
   const removeMeal = useNutritionStore((s) => s.removeMeal);
 
+  useEffect(() => {
+    if (!meal) {
+      onClose();
+    }
+  }, [meal, onClose]);
+
   const hasItems = (meal?.items?.length ?? 0) > 0;
 
   const [title, setTitle] = useState(meal?.title ?? "");
@@ -44,6 +54,15 @@ export function EditMealSheet({ mealId, onClose }: EditMealSheetProps) {
   const [fat, setFat] = useState(meal?.fat ?? 0);
   const [items, setItems] = useState<SavedFoodItem[]>(meal?.items ?? []);
   const [loggedAt, setLoggedAt] = useState(meal?.loggedAt ?? "");
+  const [imageFailed, setImageFailed] = useState(false);
+  const localDisplayImageUri = getMealDisplayImageUri(meal);
+  const { uri: displayImageUri } = useMealImageSource({
+    imagePath: getMealDisplayImagePath(meal),
+    imageUri: localDisplayImageUri,
+  });
+  useEffect(() => {
+    setImageFailed(false);
+  }, [meal?.id, displayImageUri]);
 
   const recalcTotals = useCallback((updatedItems: SavedFoodItem[]) => {
     const totals = updatedItems.reduce(
@@ -221,12 +240,26 @@ export function EditMealSheet({ mealId, onClose }: EditMealSheetProps) {
           { backgroundColor: theme.colors.surfaceSecondary },
         ]}
       >
-        {meal.imageUri ? (
+        {displayImageUri && !imageFailed ? (
           <Image
-            source={{ uri: meal.imageUri }}
+            source={{ uri: displayImageUri }}
             style={styles.mealPhoto}
             contentFit="cover"
             transition={300}
+            onLoad={() => {
+              addFoodLoggingBreadcrumb("[EditMealImage] render_image", {
+                meal_id: meal.id,
+                source: meal.source,
+              });
+            }}
+            onError={() => {
+              setImageFailed(true);
+              addFoodLoggingBreadcrumb("[EditMealImage] failed_to_load", {
+                meal_id: meal.id,
+                source: meal.source,
+                image_uri_prefix: displayImageUri.slice(0, 24),
+              });
+            }}
           />
         ) : (
           <TText style={styles.mealIcon}>{meal.emoji ?? "🍽️"}</TText>
@@ -302,7 +335,11 @@ export function EditMealSheet({ mealId, onClose }: EditMealSheetProps) {
             >
               {formatDateHeader(new Date(loggedAt))}
               {" · "}
-              {loggedAt.split("T")[1]?.slice(0, 5)}
+              {formatMealTimeForDisplay({
+                loggedAtUtc: loggedAt,
+                loggedAt,
+                timezone: meal.timezone,
+              })}
             </TText>
           </View>
           <Pressable

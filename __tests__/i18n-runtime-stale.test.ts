@@ -91,19 +91,20 @@ describe("runtime key resolution after language switch", () => {
     const keys = [
       "paywall.tierMonthly",
       "paywall.tierYearly",
+      "paywall.tierWeekly",
       "paywall.tierPlan",
     ];
 
     const en = keys.map((k) => t(k));
-    expect(en).toEqual(["Monthly", "Yearly", "Plan"]);
+    expect(en).toEqual(["Monthly", "Yearly", "Weekly", "Plan"]);
 
     await switchTo("de");
     const de = keys.map((k) => t(k));
-    expect(de).toEqual(["Monatlich", "Jährlich", "Plan"]);
+    expect(de).toEqual(["Monatlich", "Jährlich", "Wöchentlich", "Plan"]);
 
     await switchTo("fr");
     const fr = keys.map((k) => t(k));
-    expect(fr).toEqual(["Mensuel", "Annuel", "Plan"]);
+    expect(fr).toEqual(["Mensuel", "Annuel", "Hebdomadaire", "Plan"]);
   });
 
   it("quick food label keys exist in all languages", async () => {
@@ -157,6 +158,7 @@ describe("key existence across all locales", () => {
     // Paywall tiers
     "paywall.tierMonthly",
     "paywall.tierYearly",
+    "paywall.tierWeekly",
     "paywall.tierPlan",
     // Quick foods
     "manualLog.eggs",
@@ -169,10 +171,40 @@ describe("key existence across all locales", () => {
     "home.dayShort",
     "home.weekShort",
     "home.monthShort",
-    // Insights header
+    // Settings tier labels (onboarding paywall)
+    "settings.weekly",
     "insights.header",
     // Best value badge
     "paywall.bestValueStar",
+    "paywall.gateHeading",
+    "paywall.gateSubheading",
+    "paywall.upgradeHeading",
+    "paywall.upgradeSubheading",
+    "paywall.packagesUnavailable",
+    // Failed-detection fallback (camera/barcode/manual)
+    "fallback.cameraTitle",
+    "fallback.cameraTitleHeadline",
+    "fallback.cameraSubtitle",
+    "fallback.cameraPlaceholder",
+    "fallback.barcodeTitle",
+    "fallback.barcodeTitleHeadline",
+    "fallback.barcodeSubtitle",
+    "fallback.barcodePlaceholder",
+    "fallback.manualTitle",
+    "fallback.manualTitleHeadline",
+    "fallback.manualSubtitle",
+    "fallback.manualPlaceholder",
+    "fallback.findFood",
+    "fallback.searching",
+    "fallback.retry",
+    "fallback.retake",
+    "fallback.scanAgain",
+    "fallback.addManually",
+    "fallback.stillNotFound",
+    "fallback.lookupFailed",
+    "fallback.suggestionAddBrand",
+    "fallback.suggestionAddPortion",
+    "fallback.suggestionDescribeIngredients",
   ];
 
   it.each(RUNTIME_KEYS)("key '%s' exists in all languages", async (key) => {

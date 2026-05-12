@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Caloric"
+    "title": "CalCut"
   },
   "common": {
     "cancel": "Cancelar",
@@ -41,7 +41,7 @@
     "notes": "Notas",
     "auth": "Cuenta",
     "playground": "Pruebas",
-    "caloric": "Caloric"
+    "caloric": "CalCut"
   },
   "days": {
     "monShort": "L",

@@ -27,6 +27,7 @@ import {
     Dimensions,
     InteractionManager,
     type LayoutChangeEvent,
+    Linking,
     Platform,
     Pressable,
     ScrollView,
@@ -49,7 +50,10 @@ import {
 } from "../../hooks/useOverLimitColor";
 import { useUnits } from "../../hooks/useUnits";
 import { useHealthAutoSync } from "../../src/features/health";
+import { runAccountDataAudit } from "../../src/features/debug/run-account-data-audit";
 import { useHomeData } from "../../src/features/home/use-home-data";
+import { HomeRestoreSkeleton } from "../../src/features/home/HomeRestoreSkeleton";
+import { useDeleteAccountDialogStore } from "../../src/features/account/delete-account-dialog.store";
 import { useAuth } from "../../src/features/auth/useAuth";
 import { usePermissionsStore } from "../../src/features/permissions";
 import {
@@ -63,9 +67,11 @@ import {
     mealTimeFromISO,
 } from "../../src/features/nutrition/mealtime";
 import { useNutritionDraftStore } from "../../src/features/nutrition/nutrition.draft.store";
+import { getMealsForDate } from "../../src/features/nutrition/nutrition.selectors";
 import { useNutritionStore } from "../../src/features/nutrition/nutrition.store";
 import { useProfileStore } from "../../src/features/profile/profile.store";
 import { useRetentionEngine } from "../../src/features/retention";
+import { useSyncReadyStore } from "../../src/features/sync/sync-ready.store";
 import { useStreakStore } from "../../src/features/streak/streak.store";
 import { useSubscriptionStore } from "../../src/features/subscription/subscription.store";
 import { useRevenueCat } from "../../src/features/subscription/useRevenueCat";
@@ -76,11 +82,13 @@ import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslati
 import { toISODate } from "../../src/lib/utils/date";
 import { useTheme } from "../../src/theme/useTheme";
 import {
-  areLiveActivitiesAvailable,
-  endLiveActivity,
+    areLiveActivitiesAvailable,
+    endLiveActivity,
 } from "../../src/features/live-activity";
+import { hasDynamicIsland } from "../../src/platform/ios/hasDynamicIsland";
 import { useBackgroundScanStore } from "../../src/features/camera/background-scan.store";
 import { addFoodLoggingBreadcrumb } from "../../src/infrastructure/errorReporting/foodLoggingErrors";
+import { reportError } from "../../src/infrastructure/errorReporting";
 import { CalCutLogo } from "../../src/ui/brand/CalCutLogo";
 import { AnalyzingCard } from "../../src/ui/components/AnalyzingCard";
 import { DaySelector } from "../../src/ui/components/DaySelector";
@@ -103,6 +111,9 @@ import { WeeklyView } from "../../src/ui/components/WeeklyView";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 import { useBottomSheet } from "../../src/ui/sheets/useBottomSheet";
+
+/** Max time Home waits for `syncRestoredFor` before unblocking (local / repo data). */
+const RESTORE_GATE_TIMEOUT_MS = 8000;
 
 /** Animated number display using React state with smooth transitions */
 function AnimatedNumber({ value, style }: { value: number; style?: any }) {
@@ -488,6 +499,7 @@ export default function HomeScreen() {
   const { t } = useAppTranslation();
   const router = useRouter();
   const { signOut, user } = useAuth();
+  const openDeleteAccountDialog = useDeleteAccountDialogStore((s) => s.open);
   const units = useUnits();
   const [viewMode, setViewMode] = useState<ViewMode>("D");
   const [showSwipeTutorial, setShowSwipeTutorial] = useState(false);
@@ -498,6 +510,8 @@ export default function HomeScreen() {
     useState(false);
   const [macroPage, setMacroPage] = useState(0);
   const [macroPagerWidth, setMacroPagerWidth] = useState(0);
+  const [restoreGateTimedOut, setRestoreGateTimedOut] = useState(false);
+  const homeRestoreGateLoggedRef = useRef(false);
   const { open: openSheet, close: closeSheet } = useBottomSheet();
   // Surface a flag when at least one visible pending review exists so we can
   // tighten the spacing above the queue without subscribing to the full list.
@@ -644,7 +658,90 @@ export default function HomeScreen() {
     weekSummary,
   } = useHomeData();
 
+  const syncRestoredFor = useSyncReadyStore((s) => s.syncRestoredFor);
+  const profileConfirmedFor = useSyncReadyStore((s) => s.profileConfirmedFor);
+  /** Initial cloud meal restore finished for this user (do not block Home on profile alone). */
+  const mealsReady = !user?.id || syncRestoredFor === user.id;
+  /** Profile row verified for routing/sync — weight goal trend uses this when available. */
+  const profileReady = !user?.id || profileConfirmedFor === user.id;
+  const homeDataReady = mealsReady || restoreGateTimedOut;
+
+  useEffect(() => {
+    if (!user?.id) {
+      setRestoreGateTimedOut(false);
+      return;
+    }
+    if (syncRestoredFor === user.id) {
+      setRestoreGateTimedOut(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      const snap = useSyncReadyStore.getState();
+      if (__DEV__) {
+        console.warn("[HomeRestoreGate] timed_out", {
+          userId: user.id,
+          syncRestoredFor: snap.syncRestoredFor,
+          profileConfirmedFor: snap.profileConfirmedFor,
+        });
+      }
+      reportError(new Error("Home restore gate timed out"), {
+        area: "sync",
+        action: "home_restore_gate_timed_out",
+        userId: user.id,
+        level: "warning",
+        extra: {
+          syncRestoredFor: snap.syncRestoredFor,
+          profileConfirmedFor: snap.profileConfirmedFor,
+        },
+      });
+      setRestoreGateTimedOut(true);
+    }, RESTORE_GATE_TIMEOUT_MS);
+
+    return () => clearTimeout(timer);
+  }, [user?.id, syncRestoredFor]);
+
+  const shouldRunAccountDataAudit =
+    __DEV__ || process.env.EXPO_PUBLIC_ACCOUNT_DATA_AUDIT === "1";
+
+  useEffect(() => {
+    if (!user?.id || !shouldRunAccountDataAudit || !homeDataReady) return;
+    const meals = useNutritionStore.getState().meals;
+    let weekMealRowTotal = 0;
+    for (const d of weekDays) {
+      weekMealRowTotal += getMealsForDate(meals, d.key).length;
+    }
+    let monthDaysWithMeals = 0;
+    let monthMealRowTotal = 0;
+    for (const cell of monthGrid.days) {
+      if (!cell) continue;
+      const n = getMealsForDate(meals, cell.key).length;
+      monthMealRowTotal += n;
+      if (n > 0) monthDaysWithMeals++;
+    }
+    void runAccountDataAudit(user.id, {
+      viewMode,
+      selectedDate,
+      mealsForSelectedDay: getMealsForDate(meals, selectedDate).length,
+      weekMealRowTotal,
+      monthDaysWithMeals,
+      monthMealRowTotal,
+    }).catch((error) => {
+      console.error("[AccountDataAudit] failed", error);
+    });
+  }, [
+    user?.id,
+    shouldRunAccountDataAudit,
+    homeDataReady,
+    viewMode,
+    selectedDate,
+    weekDays,
+    monthGrid.days,
+  ]);
+
   const removeMeal = useNutritionStore((s) => s.removeMeal);
+  const mealsInStoreCount = useNutritionStore((s) => s.meals.length);
+  const profileForGate = useProfileStore((s) => s.profile);
   const goalWeightLbs = useProfileStore((s) => s.profile.goalWeightLbs);
   const currentStreak = useStreakStore((s) => s.currentStreak);
   const longestStreak = useStreakStore((s) => s.longestStreak);
@@ -652,12 +749,45 @@ export default function HomeScreen() {
   const streakStartDate = useStreakStore((s) => s.streakStartDate);
   const streakFreezeAvailable = useStreakStore((s) => s.streakFreezeAvailable);
 
+  useEffect(() => {
+    if (!user?.id || homeDataReady) {
+      homeRestoreGateLoggedRef.current = false;
+      return;
+    }
+    if (homeRestoreGateLoggedRef.current) return;
+    homeRestoreGateLoggedRef.current = true;
+    console.log("[HomeRestoreGate]", {
+      userId: user?.id ?? null,
+      syncRestoredFor,
+      profileConfirmedFor,
+      mealsInStore: mealsInStoreCount,
+      hasProfile: Boolean(
+        profileForGate?.id && profileForGate.id !== "local-user"
+      ),
+      restoreGateTimedOut,
+      homeDataReady,
+      mealsReady,
+      profileReady,
+    });
+  }, [
+    user?.id,
+    homeDataReady,
+    syncRestoredFor,
+    profileConfirmedFor,
+    mealsInStoreCount,
+    profileForGate?.id,
+    restoreGateTimedOut,
+    mealsReady,
+    profileReady,
+  ]);
+
   const hasActiveSubscription = useSubscriptionStore(
     (s) => s.subscription.hasActiveSubscription
   );
   const {
     isPro,
     presentPaywall,
+    presentCustomerCenter,
     restorePurchases,
     isRestoring,
   } = useRevenueCat();
@@ -704,8 +834,9 @@ export default function HomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Day 0 auto-camera: redirect to camera on first launch with no meals
+  // Day 0 auto-camera: only after home data is trustworthy (avoid empty-state illusion).
   useEffect(() => {
+    if (!homeDataReady) return;
     if (retention.shouldShowCamera) {
       retention.markCameraShown();
       // Small delay to let the home screen render first
@@ -715,7 +846,7 @@ export default function HomeScreen() {
       return () => clearTimeout(timer);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [retention.shouldShowCamera]);
+  }, [retention.shouldShowCamera, homeDataReady]);
 
   const totals = {
     calories: dailySummary.totalCalories,
@@ -724,8 +855,10 @@ export default function HomeScreen() {
     fat: dailySummary.totalFat,
   };
   const targetCalories = calorieBudget;
-
-  // ── Milestone insight (unified coaching card) ──
+  /** Budget ring + macro targets only after profile is confirmed for this session. */
+  const canShowGoals = profileReady && calorieBudget > 0;
+  const ringTargetCalories = canShowGoals ? targetCalories : 0;
+  const calorieProgressForRing = canShowGoals ? calorieProgress : 0;
   const coachInsight = useCoachInsight();
   const milestoneInsight = coachInsight.milestoneModel;
 
@@ -745,8 +878,14 @@ export default function HomeScreen() {
     return groups;
   }, [todayMeals]);
 
-  const displayWeight = latestWeight ?? 0;
-  const weightTrending = (latestWeight ?? 0) <= (goalWeightLbs ?? Infinity);
+  const lw = latestWeight;
+  const hasValidWeight =
+    lw != null && Number.isFinite(lw) && lw > 0;
+  /** Goal-relative trend only when profile is confirmed — avoids wrong arrow during lagging profile pull. */
+  const weightTrending =
+    hasValidWeight &&
+    profileReady &&
+    lw <= (goalWeightLbs ?? Infinity);
   const dayTitle = isToday
     ? t("home.today")
     : dateHeader.replace(/[\s,]*\d+.*$/, "");
@@ -768,7 +907,7 @@ export default function HomeScreen() {
   };
 
   // Over-limit severity color (animated green → yellow → orange → red)
-  const overLimit = useOverLimitColor(calorieProgress);
+  const overLimit = useOverLimitColor(calorieProgressForRing);
 
   // Per-day severity colors for DaySelector progress arcs
   const dayProgressColors = dayProgressRaw.map((p) =>
@@ -1102,7 +1241,11 @@ export default function HomeScreen() {
             key: "upgrade",
             label: isPro ? t("settings.youArePro") : t("settings.upgradeToPro"),
             icon: "star",
-            onPress: presentPaywall,
+            onPress: isPro
+              ? () => {
+                  void presentCustomerCenter();
+                }
+              : presentPaywall,
           },
         ],
       },
@@ -1169,7 +1312,9 @@ export default function HomeScreen() {
           },
         ],
       });
+    }
 
+    if (hasDynamicIsland()) {
       sections.push({
         title: t("settings.extensions"),
         items: [
@@ -1187,6 +1332,30 @@ export default function HomeScreen() {
         ],
       });
     }
+
+    sections.push({
+      title: t("settings.social"),
+      items: [
+        {
+          key: "social-instagram",
+          label: t("settings.socialInstagram"),
+          icon: "logo-instagram",
+          onPress: () =>
+            void Linking.openURL("https://www.instagram.com/getcalcut/").catch(
+              () => {}
+            ),
+        },
+        {
+          key: "social-tiktok",
+          label: t("settings.socialTiktok"),
+          icon: "logo-tiktok",
+          onPress: () =>
+            void Linking.openURL("https://www.tiktok.com/@getcalcut").catch(
+              () => {}
+            ),
+        },
+      ],
+    });
 
     sections.push(
       {
@@ -1278,7 +1447,7 @@ export default function HomeScreen() {
             label: t("settings.deleteAccount"),
             icon: "trash-outline",
             destructive: true,
-            onPress: () => router.push("/(main)/settings" as any),
+            onPress: openDeleteAccountDialog,
           },
         ],
       }
@@ -1289,6 +1458,7 @@ export default function HomeScreen() {
     isPro,
     t,
     presentPaywall,
+    presentCustomerCenter,
     theme.mode,
     toggleMode,
     router,
@@ -1303,7 +1473,12 @@ export default function HomeScreen() {
     unitsAccessory,
     handleToggleLiveActivities,
     liveActivitiesEnabled,
+    openDeleteAccountDialog,
   ]);
+
+  if (user?.id && !homeDataReady) {
+    return <HomeRestoreSkeleton />;
+  }
 
   return (
     <View style={styles.container}>
@@ -1510,9 +1685,16 @@ export default function HomeScreen() {
               </Pressable>
               <Pressable
                 onPress={() => router.push("/progress" as any)}
-                accessibilityLabel={t("home.currentWeightA11y", {
-                  weight: units.format(displayWeight),
-                })}
+                accessibilityLabel={
+                  !hasValidWeight
+                    ? t("home.currentWeightA11yUnset", {
+                        defaultValue:
+                          "Current weight, not set — open progress to add",
+                      })
+                    : t("home.currentWeightA11y", {
+                        weight: units.format(lw),
+                      })
+                }
                 accessibilityRole="button"
                 style={[
                   styles.weightPill,
@@ -1520,17 +1702,43 @@ export default function HomeScreen() {
                 ]}
               >
                 <Ionicons
-                  name={weightTrending ? "trending-down" : "trending-up"}
+                  name={
+                    !hasValidWeight || !profileReady
+                      ? "analytics-outline"
+                      : weightTrending
+                        ? "trending-down"
+                        : "trending-up"
+                  }
                   size={14}
                   color={
-                    weightTrending ? theme.colors.success : theme.colors.warning
+                    !hasValidWeight || !profileReady
+                      ? theme.colors.textMuted
+                      : weightTrending
+                        ? theme.colors.success
+                        : theme.colors.warning
                   }
                 />
-                <AnimatedWeight
-                  currentValue={displayWeight}
-                  units={units}
-                  style={[styles.weightText, { color: theme.colors.text }]}
-                />
+                {!hasValidWeight ? (
+                  <TText
+                    style={[
+                      styles.weightText,
+                      { color: theme.colors.textMuted },
+                    ]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.82}
+                  >
+                    {t("home.weightSetPrompt", {
+                      defaultValue: "Set weight",
+                    })}
+                  </TText>
+                ) : (
+                  <AnimatedWeight
+                    currentValue={lw}
+                    units={units}
+                    style={[styles.weightText, { color: theme.colors.text }]}
+                  />
+                )}
               </Pressable>
               <HamburgerMenu
                 open={profileMenuOpen}
@@ -1625,16 +1833,20 @@ export default function HomeScreen() {
                     <Animated.View style={contentAnimStyle}>
                       <ProgressRing
                         consumed={totals.calories}
-                        target={targetCalories}
+                        target={ringTargetCalories}
                         size={220}
                         strokeWidth={18}
                         color={overLimit.color}
                         dayLabel={
                           isToday ? t("home.today") : dateHeader.split(",")[0]
                         }
-                        subtitle={t("home.calTarget", {
-                          target: targetCalories.toLocaleString(),
-                        })}
+                        subtitle={
+                          canShowGoals
+                            ? t("home.calTarget", {
+                                target: targetCalories.toLocaleString(),
+                              })
+                            : t("common.loading", { defaultValue: "…" })
+                        }
                       />
                     </Animated.View>
 
@@ -1688,7 +1900,7 @@ export default function HomeScreen() {
                         { color: theme.colors.text },
                       ]}
                     >
-                      {targetCalories}
+                      {canShowGoals ? targetCalories : "—"}
                     </TText>
                     <TText
                       style={[
@@ -1731,9 +1943,21 @@ export default function HomeScreen() {
                               model={milestoneInsight}
                               longestStreak={longestStreak ?? 0}
                               caloriesRemaining={
-                                targetCalories - totals.calories
+                                canShowGoals
+                                  ? Math.max(
+                                      0,
+                                      targetCalories - totals.calories
+                                    )
+                                  : 0
                               }
-                              proteinRemaining={proteinTarget - totals.protein}
+                              proteinRemaining={
+                                canShowGoals
+                                  ? Math.max(
+                                      0,
+                                      proteinTarget - totals.protein
+                                    )
+                                  : 0
+                              }
                               onClose={closeSheet}
                               onTrack={() => {
                                 closeSheet();
@@ -1786,21 +2010,21 @@ export default function HomeScreen() {
                         <MacroCard
                           label={t("home.protein")}
                           consumedG={totals.protein}
-                          targetG={proteinTarget}
+                          targetG={canShowGoals ? proteinTarget : 0}
                           color={MACRO_COLORS.protein}
                           icon="🍖"
                         />
                         <MacroCard
                           label={t("home.carbs")}
                           consumedG={totals.carbs}
-                          targetG={carbsTarget}
+                          targetG={canShowGoals ? carbsTarget : 0}
                           color={MACRO_COLORS.carbs}
                           icon="🌾"
                         />
                         <MacroCard
                           label={t("home.fat")}
                           consumedG={totals.fat}
-                          targetG={fatTarget}
+                          targetG={canShowGoals ? fatTarget : 0}
                           color={MACRO_COLORS.fat}
                           icon="🥑"
                         />
@@ -1890,7 +2114,7 @@ export default function HomeScreen() {
                 selectedDate={selectedDate}
                 onSelectDay={handleDaySelect}
                 weekSummary={weekSummary}
-                calorieBudget={calorieBudget}
+                calorieBudget={canShowGoals ? calorieBudget : 0}
                 onPrevWeek={goToPrevWeek}
                 onNextWeek={goToNextWeek}
                 onToday={goToToday}
@@ -2085,6 +2309,7 @@ export default function HomeScreen() {
         visible={showWaterSettings}
         onClose={() => setShowWaterSettings(false)}
       />
+
     </View>
   );
 }

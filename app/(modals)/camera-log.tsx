@@ -11,13 +11,11 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
     Alert,
     type GestureResponderEvent,
     type LayoutChangeEvent,
@@ -25,10 +23,8 @@ import {
     Platform,
     Pressable,
     StyleSheet,
-    TextInput,
     View,
 } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
     Camera,
@@ -41,7 +37,11 @@ import { useAuth } from "../../src/features/auth/useAuth";
 import { useBackgroundScanStore } from "../../src/features/camera/background-scan.store";
 import { computeFocusPoint } from "../../src/features/camera/camera-log.helpers";
 import { runBackgroundScan } from "../../src/features/food-logging/background-scan.service";
+import type { FoodIdentificationErrorReason } from "../../src/features/food-logging/components/FoodIdentificationFallback";
+import { FoodIdentificationFallback } from "../../src/features/food-logging/components/FoodIdentificationFallback";
 import { copyImageToDurableLocation } from "../../src/features/food-logging/meal-image-upload.service";
+import { isRenderableConfirmMealPayload } from "../../src/features/nutrition/meal-normalize";
+import { useNutritionDraftStore } from "../../src/features/nutrition/nutrition.draft.store";
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
 import { useFeatureAccess } from "../../src/features/subscription/useFeatureAccess";
 import { reportError } from "../../src/infrastructure/errorReporting";
@@ -55,7 +55,34 @@ import { TText } from "../../src/ui/primitives/TText";
 import { dismissRootSheet } from "../../src/ui/sheets/BottomSheetProvider";
 import { FoodLoggingErrorBoundary } from "../../src/ui/errors/FoodLoggingErrorBoundary";
 
-type CameraState = "viewfinder" | "error" | "dismissing";
+const BARCODE_LOOKUP_TIMEOUT_MS = 10_000;
+
+type CameraState = "viewfinder" | "error" | "dismissing" | "looking_up_barcode";
+
+function logBarcodeScanFlow(payload: {
+  phase:
+    | "detected"
+    | "lock_acquired"
+    | "lookup_started"
+    | "lookup_success"
+    | "lookup_not_found"
+    | "lookup_error"
+    | "lookup_invalid_payload"
+    | "lookup_timeout"
+    | "navigate_confirm"
+    | "show_fallback"
+    | "unlock"
+    | "stale_ignore";
+  barcode: string;
+  elapsedMs?: number;
+  state?: string;
+  hasProduct?: boolean;
+  hasRenderablePayload?: boolean;
+  gen?: number;
+}) {
+  if (!__DEV__) return;
+  console.log("[BarcodeScanFlow]", JSON.stringify(payload));
+}
 
 function CameraLoggingScreenInner() {
   const { theme } = useTheme();
@@ -92,9 +119,15 @@ function CameraLoggingScreenInner() {
   const [state, setState] = useState<CameraState>("viewfinder");
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [torch, setTorch] = useState<"off" | "on">("off");
-  const [barcodeProcessing, setBarcodeProcessing] = useState(false);
   const [description, setDescription] = useState("");
+  // Preserved across the error → fallback transition so the fallback can
+  // (a) show the actual scanned code, (b) re-attempt the same lookup on
+  // "Retry", and (c) keep "Scan again" semantically distinct from "Retry".
+  const [failedBarcode, setFailedBarcode] = useState<string | null>(null);
+  const [barcodeErrorReason, setBarcodeErrorReason] =
+    useState<FoodIdentificationErrorReason>("barcode_not_found");
   const barcodeLockRef = useRef(false);
+  const barcodeLookupGenRef = useRef(0);
   const [cameraLayout, setCameraLayout] = useState({ width: 0, height: 0 });
   const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(
     null
@@ -104,39 +137,167 @@ function CameraLoggingScreenInner() {
 
   const handleBarcodeScanned = useCallback(
     async (barcode: string, symbology?: string) => {
-      if (barcodeLockRef.current || state !== "viewfinder") return;
+      if (barcodeLockRef.current || state !== "viewfinder") {
+        if (__DEV__ && barcodeLockRef.current) {
+          logBarcodeScanFlow({
+            phase: "stale_ignore",
+            barcode,
+            state,
+          });
+        }
+        return;
+      }
+
       barcodeLockRef.current = true;
+      const myGen = ++barcodeLookupGenRef.current;
+      const t0 = Date.now();
+
+      logBarcodeScanFlow({ phase: "detected", barcode, gen: myGen });
       addFoodLoggingBreadcrumb("food_logging.barcode_detected", {
         symbology: symbology ?? "unknown",
         code_length: barcode.length,
       });
+
       setTorch("off");
-      setBarcodeProcessing(true);
+      setBarcodeErrorReason("barcode_not_found");
+      setState("looking_up_barcode");
+      logBarcodeScanFlow({
+        phase: "lock_acquired",
+        barcode,
+        gen: myGen,
+      });
+
       try {
-        const success = await startFromBarcode(barcode);
-        if (success) {
-          // Deactivate camera before navigating — prevents the scanner from
-          // firing again during the transition and pushing confirm-meal twice.
-          setState("dismissing");
-          setBarcodeProcessing(false);
-          router.push("/(modals)/confirm-meal" as never);
-          return; // Lock stays set — component is transitioning away
+        logBarcodeScanFlow({ phase: "lookup_started", barcode, gen: myGen });
+
+        const raceOutcome = await Promise.race<
+          { kind: "resolved"; ok: boolean } | { kind: "timeout" }
+        >([
+          startFromBarcode(barcode).then((ok) => ({
+            kind: "resolved" as const,
+            ok,
+          })),
+          new Promise<{ kind: "timeout" }>((resolve) =>
+            setTimeout(
+              () => resolve({ kind: "timeout" }),
+              BARCODE_LOOKUP_TIMEOUT_MS
+            )
+          ),
+        ]);
+
+        const elapsedMs = Date.now() - t0;
+
+        if (barcodeLookupGenRef.current !== myGen) {
+          logBarcodeScanFlow({
+            phase: "stale_ignore",
+            barcode,
+            elapsedMs,
+            gen: myGen,
+          });
+          return;
         }
+
+        if (raceOutcome.kind === "timeout") {
+          logBarcodeScanFlow({
+            phase: "lookup_timeout",
+            barcode,
+            elapsedMs,
+            hasProduct: false,
+          });
+          addFoodLoggingBreadcrumb("food_logging.barcode_lookup_failed", {
+            reason: "timeout",
+          });
+          setFailedBarcode(barcode);
+          setBarcodeErrorReason("network_error");
+          setState("error");
+          logBarcodeScanFlow({
+            phase: "show_fallback",
+            barcode,
+            elapsedMs,
+          });
+          return;
+        }
+
+        const ok = raceOutcome.ok;
+        const draft = useNutritionDraftStore.getState().draft;
+        const hasRenderable = isRenderableConfirmMealPayload(draft);
+        const hasProduct = Boolean(ok && draft?.source === "barcode");
+
+        logBarcodeScanFlow({
+          phase: ok ? "lookup_success" : "lookup_not_found",
+          barcode,
+          elapsedMs,
+          hasProduct,
+          hasRenderablePayload: hasRenderable,
+        });
+
+        if (ok && hasRenderable) {
+          logBarcodeScanFlow({
+            phase: "navigate_confirm",
+            barcode,
+            elapsedMs,
+            hasRenderablePayload: true,
+          });
+          setState("dismissing");
+          router.replace("/(modals)/confirm-meal" as never);
+          return;
+        }
+
+        if (ok && !hasRenderable) {
+          logBarcodeScanFlow({
+            phase: "lookup_invalid_payload",
+            barcode,
+            elapsedMs,
+            hasRenderablePayload: false,
+          });
+          setFailedBarcode(barcode);
+          setBarcodeErrorReason("barcode_not_found");
+          setState("error");
+          logBarcodeScanFlow({
+            phase: "show_fallback",
+            barcode,
+            elapsedMs,
+          });
+          return;
+        }
+
+        setFailedBarcode(barcode);
+        setBarcodeErrorReason("barcode_not_found");
         setState("error");
+        logBarcodeScanFlow({
+          phase: "show_fallback",
+          barcode,
+          elapsedMs,
+        });
       } catch (err) {
-        // startFromBarcode already swallows expected lookup misses (returns
-        // false). A throw here means something unexpected blew up — report.
+        const elapsedMs = Date.now() - t0;
         reportError(err, {
           area: "scan",
           action: "handleBarcodeScanned",
           screen: "camera-log",
           extra: { barcodeLength: barcode?.length },
         });
-        setState("error");
+        if (barcodeLookupGenRef.current === myGen) {
+          setFailedBarcode(barcode);
+          setBarcodeErrorReason("unknown");
+          setState("error");
+          logBarcodeScanFlow({
+            phase: "lookup_error",
+            barcode,
+            elapsedMs,
+          });
+        }
+      } finally {
+        if (barcodeLookupGenRef.current === myGen) {
+          barcodeLockRef.current = false;
+          logBarcodeScanFlow({
+            phase: "unlock",
+            barcode,
+            elapsedMs: Date.now() - t0,
+            gen: myGen,
+          });
+        }
       }
-      // Only reached on failure paths — reset for retry
-      setBarcodeProcessing(false);
-      barcodeLockRef.current = false;
     },
     [startFromBarcode, router, state]
   );
@@ -304,25 +465,51 @@ function CameraLoggingScreenInner() {
 
   // ── Describe & retry (user types what the food is) ───────────────────
 
-  const handleDescribeAndRetry = useCallback(async () => {
-    if (!description.trim()) return;
-    try {
-      // Use text pipeline with the description
-      // NOTE: startFromInput already pushes to /(modals)/confirm-meal internally
-      await startFromInput(description.trim(), "camera");
-    } catch (err) {
-      reportError(err, {
-        area: "scan",
-        action: "handleDescribeAndRetry",
-        screen: "camera-log",
-      });
-      setState("error");
-    }
-  }, [description, startFromInput]);
+  const handleDescribeAndRetry = useCallback(
+    async (
+      typed: string,
+    ): Promise<{ ok: true } | { ok: false; message?: string }> => {
+      const trimmed = typed.trim();
+      if (!trimmed) return { ok: false };
+      try {
+        addFoodLoggingBreadcrumb("food_logging.fallback_lookup_started", {
+          length: trimmed.length,
+          source: imageUri ? "camera" : "barcode",
+        });
+        const ok = await startFromInput(trimmed, "camera", {
+          foodIdentificationRecoverySource: imageUri ? "camera" : "barcode",
+        });
+        if (ok) {
+          addFoodLoggingBreadcrumb("food_logging.fallback_lookup_success");
+          return { ok: true };
+        }
+        addFoodLoggingBreadcrumb("food_logging.fallback_lookup_no_match");
+        return { ok: false };
+      } catch (err) {
+        reportError(err, {
+          area: "scan",
+          action: "handleDescribeAndRetry",
+          screen: "camera-log",
+        });
+        return { ok: false };
+      }
+    },
+    [imageUri, startFromInput],
+  );
 
   // ── Close / dismiss ──────────────────────────────────────────────────
 
+  const cancelActiveBarcodeLookup = useCallback(() => {
+    barcodeLookupGenRef.current += 1;
+    barcodeLockRef.current = false;
+    setState("viewfinder");
+  }, []);
+
   const handleClose = useCallback(() => {
+    if (state === "looking_up_barcode") {
+      cancelActiveBarcodeLookup();
+      return;
+    }
     setState("dismissing");
     requestAnimationFrame(() => {
       if (router.canDismiss()) {
@@ -331,7 +518,7 @@ function CameraLoggingScreenInner() {
         router.replace("/(tabs)" as never);
       }
     });
-  }, [router]);
+  }, [router, state, cancelActiveBarcodeLookup]);
 
   // ── Tap-to-focus ─────────────────────────────────────────────────────
 
@@ -366,6 +553,7 @@ function CameraLoggingScreenInner() {
 
   const handleCapture = useCallback(async () => {
     if (!cameraRef.current) return;
+    if (state !== "viewfinder") return;
     if (captureLockRef.current) return;
     captureLockRef.current = true;
     addFoodLoggingBreadcrumb("food_logging.photo_capture_started");
@@ -395,11 +583,12 @@ function CameraLoggingScreenInner() {
       });
       Alert.alert("Error", t("camera.captureError"));
     }
-  }, [enqueueScan, t]);
+  }, [enqueueScan, t, state]);
 
   // ── Pick from gallery ────────────────────────────────────────────────
 
   const pickFromGallery = useCallback(async () => {
+    if (state !== "viewfinder") return;
     try {
       const { status, accessPrivileges } =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -447,7 +636,7 @@ function CameraLoggingScreenInner() {
     } catch {
       Alert.alert("Error", t("camera.pickImageError"));
     }
-  }, [enqueueScan, t]);
+  }, [enqueueScan, t, state]);
 
   // ── No permission state ─────────────────────────────────────────────
 
@@ -605,24 +794,32 @@ function CameraLoggingScreenInner() {
         Unmounting the Camera while it's still active blocks the JS thread
         for several seconds — that was the real source of the 10 s hang.
       */}
-      {(state === "viewfinder" || state === "dismissing") && (
+      {(state === "viewfinder" ||
+        state === "dismissing" ||
+        state === "looking_up_barcode") && (
         <Pressable
           style={styles.viewfinderContainer}
           onPress={state === "viewfinder" ? handleTapToFocus : undefined}
           onLayout={handleCameraLayout}
           // Once we're dismissing, ignore further taps but keep the view in
           // the tree so iOS has something to slide off-screen with.
-          pointerEvents={state === "viewfinder" ? "auto" : "none"}
+          pointerEvents={
+            state === "viewfinder" || state === "looking_up_barcode"
+              ? "auto"
+              : "none"
+          }
         >
           <Camera
             ref={cameraRef}
             style={StyleSheet.absoluteFill}
             device={device}
-            isActive={state === "viewfinder"}
+            isActive={
+              state === "viewfinder" || state === "looking_up_barcode"
+            }
             photo={true}
             photoQualityBalance="speed"
             torch={state === "viewfinder" ? torch : "off"}
-            codeScanner={codeScanner}
+            codeScanner={state === "viewfinder" ? codeScanner : undefined}
           />
 
           {/* Focus ring indicator */}
@@ -713,165 +910,60 @@ function CameraLoggingScreenInner() {
 
       {/* ── Error — analysis failed or no result ──────────────────── */}
       {state === "error" && (
-        <View
-          style={[
-            styles.container,
-            { backgroundColor: theme.colors.background },
-          ]}
-        >
-          <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-            <View style={styles.header}>
-              <Pressable
-                onPress={() => {
-                  setImageUri(null);
+        <FoodIdentificationFallback
+          source={imageUri ? "camera" : "barcode"}
+          imageUri={imageUri}
+          barcode={failedBarcode}
+          initialQuery={description}
+          errorReason={
+            imageUri ? "no_food_detected" : barcodeErrorReason
+          }
+          onBack={() => {
+            setImageUri(null);
+            setDescription("");
+            setFailedBarcode(null);
+            setBarcodeErrorReason("barcode_not_found");
+            setState("viewfinder");
+          }}
+          onRetry={
+            imageUri
+              ? () => {
                   setDescription("");
-                  setState("viewfinder");
-                }}
-                hitSlop={12}
-              >
-                <Ionicons
-                  name="chevron-back"
-                  size={24}
-                  color={theme.colors.text}
-                />
-              </Pressable>
-              <TText
-                variant="heading"
-                style={[styles.headerTitle, { color: theme.colors.text }]}
-              >
-                {t("camera.couldntIdentify")}
-              </TText>
-              <View style={{ width: 24 }} />
-            </View>
-
-            <View style={styles.errorContent}>
-              {/* Show captured image */}
-              {imageUri && (
-                <Animated.View entering={FadeIn.duration(300)}>
-                  <Image
-                    source={{ uri: imageUri }}
-                    style={styles.errorImage}
-                    contentFit="cover"
-                  />
-                </Animated.View>
-              )}
-
-              <TSpacer size="lg" />
-
-              <Ionicons
-                name="alert-circle-outline"
-                size={40}
-                color={theme.colors.warning ?? "#F59E0B"}
-              />
-              <TSpacer size="md" />
-              <TText style={[styles.errorTitle, { color: theme.colors.text }]}>
-                {t("camera.couldntIdentifyTitle")}
-              </TText>
-              <TSpacer size="xs" />
-              <TText
-                style={[
-                  styles.errorSubtitle,
-                  { color: theme.colors.textMuted },
-                ]}
-              >
-                {t("camera.describeHint")}
-              </TText>
-
-              <TSpacer size="lg" />
-
-              {/* Description input */}
-              <TextInput
-                value={description}
-                onChangeText={setDescription}
-                placeholder={t("camera.placeholder")}
-                placeholderTextColor={theme.colors.textMuted}
-                style={[
-                  styles.errorInput,
-                  {
-                    color: theme.colors.text,
-                    backgroundColor: theme.colors.surfaceSecondary,
-                    borderColor: description.trim()
-                      ? theme.colors.primary + "60"
-                      : theme.colors.border,
-                  },
-                ]}
-                multiline
-                numberOfLines={2}
-                autoFocus
-              />
-
-              <TSpacer size="md" />
-
-              {/* Action buttons */}
-              <Pressable
-                onPress={handleDescribeAndRetry}
-                disabled={!description.trim()}
-                style={({ pressed }) => [
-                  styles.errorPrimaryBtn,
-                  {
-                    backgroundColor: theme.colors.primary,
-                    opacity: !description.trim() ? 0.4 : pressed ? 0.9 : 1,
-                  },
-                ]}
-              >
-                <Ionicons name="search" size={18} color="#fff" />
-                <TText style={styles.errorPrimaryBtnText}>
-                  {t("camera.lookItUp")}
-                </TText>
-              </Pressable>
-
-              <TSpacer size="sm" />
-
-              <View style={styles.errorSecondaryRow}>
-                <Pressable
-                  onPress={() => {
-                    if (imageUri) enqueueScan(imageUri);
-                  }}
-                  style={[
-                    styles.errorSecondaryBtn,
-                    { backgroundColor: theme.colors.surfaceSecondary },
-                  ]}
-                >
-                  <Ionicons
-                    name="refresh"
-                    size={16}
-                    color={theme.colors.text}
-                  />
-                  <TText
-                    style={[
-                      styles.errorSecondaryBtnText,
-                      { color: theme.colors.text },
-                    ]}
-                  >
-                    {t("camera.retry")}
-                  </TText>
-                </Pressable>
-
-                <Pressable
-                  onPress={() => {
-                    setImageUri(null);
-                    setDescription("");
+                  enqueueScan(imageUri);
+                }
+              : failedBarcode
+                ? () => {
+                    // Re-attempt the same barcode lookup. Reset the lock so
+                    // handleBarcodeScanned doesn't early-return; force the
+                    // state back to viewfinder so the gate inside passes.
+                    const code = failedBarcode;
+                    barcodeLockRef.current = false;
+                    setFailedBarcode(null);
                     setState("viewfinder");
-                  }}
-                  style={[
-                    styles.errorSecondaryBtn,
-                    { backgroundColor: theme.colors.surfaceSecondary },
-                  ]}
-                >
-                  <Ionicons name="camera" size={16} color={theme.colors.text} />
-                  <TText
-                    style={[
-                      styles.errorSecondaryBtnText,
-                      { color: theme.colors.text },
-                    ]}
-                  >
-                    {t("camera.retake")}
-                  </TText>
-                </Pressable>
-              </View>
-            </View>
-          </SafeAreaView>
-        </View>
+                    requestAnimationFrame(() => {
+                      void handleBarcodeScanned(code, "retry");
+                    });
+                  }
+                : undefined
+          }
+          onRetake={() => {
+            setImageUri(null);
+            setDescription("");
+            setFailedBarcode(null);
+            setBarcodeErrorReason("barcode_not_found");
+            setState("viewfinder");
+          }}
+          onAddManually={() => {
+            setState("dismissing");
+            requestAnimationFrame(() => {
+              router.replace("/(modals)/manual-log" as never);
+            });
+          }}
+          onResolveQuery={async (typed) => {
+            setDescription(typed);
+            return handleDescribeAndRetry(typed);
+          }}
+        />
       )}
 
       {/* ── Camera teardown / navigation hand-off (barcode + photo pipeline) ──
@@ -885,20 +977,6 @@ function CameraLoggingScreenInner() {
           ]}
           pointerEvents="none"
         />
-      )}
-
-      {/* ── Barcode lookup overlay ── */}
-      {barcodeProcessing && (
-        <View
-          style={[
-            StyleSheet.absoluteFillObject,
-            styles.barcodeOverlay,
-            { backgroundColor: theme.colors.overlay },
-          ]}
-          pointerEvents="none"
-        >
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-        </View>
       )}
 
       {/* ── Scan credits gate paywall ── */}
@@ -994,11 +1072,6 @@ const styles = StyleSheet.create({
   galleryAltText: {
     fontSize: 15,
     fontWeight: "600",
-  },
-  barcodeOverlay: {
-    zIndex: 50,
-    alignItems: "center",
-    justifyContent: "center",
   },
   // ── Viewfinder ──
   viewfinderContainer: {
@@ -1149,70 +1222,5 @@ const styles = StyleSheet.create({
     height: 62,
     borderRadius: 31,
     backgroundColor: "#fff",
-  },
-  // ── Error state ──
-  errorContent: {
-    flex: 1,
-    alignItems: "center",
-    paddingHorizontal: 24,
-    paddingTop: 8,
-  },
-  errorImage: {
-    width: 140,
-    height: 140,
-    borderRadius: 20,
-    opacity: 0.7,
-  },
-  errorTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    textAlign: "center",
-  },
-  errorSubtitle: {
-    fontSize: 14,
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  errorInput: {
-    width: "100%",
-    fontSize: 15,
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    minHeight: 56,
-    textAlignVertical: "top",
-  },
-  errorPrimaryBtn: {
-    width: "100%",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 14,
-  },
-  errorPrimaryBtnText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#fff",
-  },
-  errorSecondaryRow: {
-    flexDirection: "row",
-    gap: 12,
-    width: "100%",
-  },
-  errorSecondaryBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  errorSecondaryBtnText: {
-    fontSize: 14,
-    fontWeight: "600",
   },
 });

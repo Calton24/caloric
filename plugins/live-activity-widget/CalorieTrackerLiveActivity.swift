@@ -27,9 +27,9 @@ private let brandGreen = Color(red: 0.298, green: 0.733, blue: 0.459) // hue 141
 
 // MARK: - Deep Link URLs
 
-private let textURL = URL(string: "caloric://tracking/manual")!
-private let voiceURL = URL(string: "caloric://tracking/voice")!
-private let cameraURL = URL(string: "caloric://tracking/camera")!
+private let textURL = URL(string: "calcut://tracking/manual")!
+private let voiceURL = URL(string: "calcut://tracking/voice")!
+private let cameraURL = URL(string: "calcut://tracking/camera")!
 
 // MARK: - App Icon View
 

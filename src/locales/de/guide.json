@@ -25,7 +25,7 @@
     "iosOnly": "Nur iOS",
     "iosOnlyDesc": "Live-Aktivitaeten sind nur auf iOS-Geraeten verfuegbar.",
     "unavailable": "Live-Aktivitaeten nicht verfuegbar",
-    "unavailableDesc": "Bitte aktiviere Live-Aktivitaeten in iOS Einstellungen > Caloric > Live-Aktivitaeten und stelle sicher, dass du iOS 16.2 oder neuer verwendest.",
+    "unavailableDesc": "Bitte aktiviere Live-Aktivitaeten in iOS Einstellungen > CalCut > Live-Aktivitaeten und stelle sicher, dass du iOS 16.2 oder neuer verwendest.",
     "continueWithout": "Ohne fortfahren",
     "subtitle": "Verfolge deine Kalorien in Echtzeit direkt auf deinem Sperrbildschirm und der Dynamic Island.",
     "notNow": "Nicht jetzt",

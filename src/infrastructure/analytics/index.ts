@@ -5,7 +5,7 @@
 // ── Consumer API (feature code uses these) ──
 export { analytics, getAnalyticsClient, setAnalyticsClient } from "./analytics";
 
-// ── Bootstrap (called once in CaloricProviders) ──
+// ── Bootstrap (called once in CalCutProviders) ──
 export { initAnalytics, resetAnalytics } from "./factory";
 
 // ── Hooks ──

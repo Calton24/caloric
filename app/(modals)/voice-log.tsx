@@ -21,6 +21,7 @@ import Animated, {
     withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { FoodIdentificationFallback } from "../../src/features/food-logging/components/FoodIdentificationFallback";
 import { useLoggingFlow } from "../../src/features/nutrition/use-logging-flow";
 import { useVoiceCapture } from "../../src/features/voice";
 import { addFoodLoggingBreadcrumb } from "../../src/infrastructure/errorReporting/foodLoggingErrors";
@@ -38,6 +39,11 @@ function VoiceLoggingScreenInner() {
   const { startFromInput } = useLoggingFlow();
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingError, setProcessingError] = useState<string | null>(null);
+  // When the transcript is intelligible but our food matcher returns nothing,
+  // surface the unified fallback so the user can refine the description and
+  // hit "Find food" again — this replaces the dead-end "Try Again" loop.
+  const [showFallback, setShowFallback] = useState(false);
+  const [failedTranscript, setFailedTranscript] = useState("");
   const {
     status,
     transcript,
@@ -103,7 +109,8 @@ function VoiceLoggingScreenInner() {
             reason: "no_food",
           });
           setIsProcessing(false);
-          setProcessingError(t("voiceLog.noFoodDetected"));
+          setFailedTranscript(transcript);
+          setShowFallback(true);
           hasProcessed.current = false;
         } else {
           addFoodLoggingBreadcrumb("food_logging.voice_transcription_success");
@@ -117,7 +124,7 @@ function VoiceLoggingScreenInner() {
         hasProcessed.current = false;
       }
     })();
-  }, [status, transcript, startFromInput]);
+  }, [status, transcript, startFromInput, t]);
 
   // Derive display state
   const displayState = isProcessing
@@ -181,6 +188,52 @@ function VoiceLoggingScreenInner() {
   const handleStopEarly = useCallback(() => {
     stopListening();
   }, [stopListening]);
+
+  if (showFallback) {
+    return (
+      <FoodIdentificationFallback
+        source="manual"
+        initialQuery={failedTranscript}
+        errorReason="manual_not_found"
+        onBack={() => {
+          setShowFallback(false);
+          handleClose();
+        }}
+        onRetry={() => {
+          setShowFallback(false);
+          setFailedTranscript("");
+          hasProcessed.current = false;
+          retry();
+          setTimeout(() => startListening(), 200);
+        }}
+        onAddManually={() => {
+          setShowFallback(false);
+          requestAnimationFrame(() => {
+            router.replace("/(modals)/manual-log" as never);
+          });
+        }}
+        onResolveQuery={async (typed) => {
+          try {
+            addFoodLoggingBreadcrumb("food_logging.fallback_lookup_started", {
+              length: typed.trim().length,
+              source: "voice",
+            });
+            const ok = await startFromInput(typed, "voice", {
+              foodIdentificationRecoverySource: "manual",
+            });
+            if (ok) {
+              addFoodLoggingBreadcrumb("food_logging.fallback_lookup_success");
+              return { ok: true };
+            }
+            addFoodLoggingBreadcrumb("food_logging.fallback_lookup_no_match");
+            return { ok: false };
+          } catch {
+            return { ok: false };
+          }
+        }}
+      />
+    );
+  }
 
   return (
     <View

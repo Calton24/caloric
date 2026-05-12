@@ -1,11 +1,20 @@
+import {
+  normalizeMealDraftForStorage,
+  normalizeNutrientProfile,
+  toSafePositiveNumber,
+  toSafeString,
+  toSafeNumber,
+} from "./meal-normalize";
 import { MealDraft } from "./nutrition.draft.types";
+import { createMealTimestampFields } from "../food-logging/time/create-meal-timestamp-fields";
 import { MealEntry } from "./nutrition.types";
 
 export function buildMealEntryFromDraft(params: {
   draft: MealDraft;
   loggedAt?: string;
 }): MealEntry {
-  const { draft, loggedAt } = params;
+  const draft = normalizeMealDraftForStorage(params.draft);
+  const { loggedAt } = params;
   // Priority: explicit param > draft.loggedAt > now
   // All timestamps are stored as UTC ISO so that `new Date(loggedAt)` is
   // unambiguous everywhere — local persist, Supabase TIMESTAMPTZ, and date
@@ -40,6 +49,8 @@ export function buildMealEntryFromDraft(params: {
     timestamp = new Date().toISOString();
   }
 
+  const timestampFields = createMealTimestampFields(new Date(timestamp));
+
   const entry: MealEntry = {
     id: `meal_${Date.now()}`,
     title: draft.title,
@@ -49,24 +60,33 @@ export function buildMealEntryFromDraft(params: {
     protein: draft.protein,
     carbs: draft.carbs,
     fat: draft.fat,
-    loggedAt: timestamp,
+    ...timestampFields,
   };
 
   // Carry provenance data from the enhanced pipeline
   if (draft.estimatedItems) {
-    entry.items = draft.estimatedItems.map((item) => ({
-      name: item.parsed?.name ?? item.matchedName ?? "unknown",
-      quantity: item.parsed?.quantity ?? 1,
-      unit: item.parsed?.unit ?? "serving",
-      calories: item.nutrients.calories,
-      protein: item.nutrients.protein,
-      carbs: item.nutrients.carbs,
-      fat: item.nutrients.fat,
-      matchSource: item.matchSource,
-      matchId: item.matchId,
-      confidence: item.confidence,
-      emoji: item.emoji,
-    }));
+    entry.items = draft.estimatedItems.map((item) => {
+      const n = normalizeNutrientProfile(item.nutrients);
+      return {
+        name: toSafeString(
+          item.parsed?.name ?? item.matchedName,
+          "unknown",
+        ),
+        quantity: toSafePositiveNumber(item.parsed?.quantity, 1),
+        unit: toSafeString(item.parsed?.unit, "serving"),
+        calories: n.calories,
+        protein: n.protein,
+        carbs: n.carbs,
+        fat: n.fat,
+        matchSource: item.matchSource,
+        matchId: item.matchId,
+        confidence: Math.min(
+          1,
+          Math.max(0, toSafeNumber(item.confidence, 1)),
+        ),
+        emoji: item.emoji,
+      };
+    });
   }
 
   if (draft.confidence !== undefined) {

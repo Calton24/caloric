@@ -16,6 +16,7 @@
  */
 
 import type { FoodMatch, NutrientProfile } from "./matching.types";
+import { normalizeNutrientProfile, toSafeNumber } from "../meal-normalize";
 
 // ─── Region → OFF country tag mapping ───────────────────────────────────────
 
@@ -255,18 +256,24 @@ function rowToFoodMatch(row: DatasetRow, query: string): FoodMatch {
   const servingG = row.serving_size_g ?? 100;
   const scale = servingG / 100;
 
-  const nutrients: NutrientProfile = {
-    calories: Math.round(row.calories_per_100g * scale),
-    protein: Math.round(row.protein_per_100g * scale * 10) / 10,
-    carbs: Math.round(row.carbs_per_100g * scale * 10) / 10,
-    fat: Math.round(row.fat_per_100g * scale * 10) / 10,
-  };
-  if (row.fiber_per_100g != null)
-    nutrients.fiber = Math.round(row.fiber_per_100g * scale * 10) / 10;
-  if (row.sugar_per_100g != null)
-    nutrients.sugar = Math.round(row.sugar_per_100g * scale * 10) / 10;
-  if (row.sodium_per_100g != null)
-    nutrients.sodium = Math.round(row.sodium_per_100g * scale * 10) / 10;
+  const nutrients: NutrientProfile = normalizeNutrientProfile({
+    calories: Math.round(toSafeNumber(row.calories_per_100g, 0) * scale),
+    protein: Math.round(toSafeNumber(row.protein_per_100g, 0) * scale * 10) / 10,
+    carbs: Math.round(toSafeNumber(row.carbs_per_100g, 0) * scale * 10) / 10,
+    fat: Math.round(toSafeNumber(row.fat_per_100g, 0) * scale * 10) / 10,
+    fiber:
+      row.fiber_per_100g != null
+        ? Math.round(toSafeNumber(row.fiber_per_100g, 0) * scale * 10) / 10
+        : undefined,
+    sugar:
+      row.sugar_per_100g != null
+        ? Math.round(toSafeNumber(row.sugar_per_100g, 0) * scale * 10) / 10
+        : undefined,
+    sodium:
+      row.sodium_per_100g != null
+        ? Math.round(toSafeNumber(row.sodium_per_100g, 0) * scale * 10) / 10
+        : undefined,
+  });
 
   // Score: prefer exact substring matches & gold-quality data
   // Strongly prefer shorter names that closely match the query length.

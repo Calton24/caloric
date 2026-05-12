@@ -11,17 +11,24 @@
  */
 
 import { getAppConfig } from "../../config";
+import {
+  FOOD_LOG_SAFE_MODE,
+  assertFoodLogSafeModeImport,
+} from "../../features/debug/safe-mode-flags";
 import { logger } from "../../logging/logger";
 import { ExpoNotificationsClient } from "./ExpoNotificationsClient";
 import { NoopNotificationsClient } from "./NoopNotificationsClient";
 import { setNotificationsClient } from "./notifications";
 import type { NotificationsClient } from "./types";
 
+assertFoodLogSafeModeImport("notifications");
+
 let initialized = false;
 let resolvedClient: NotificationsClient = new NoopNotificationsClient();
 
 type NotificationsMode =
   | "disabled_by_config"
+  | "disabled_food_log_safe_mode"
   | "sdk_missing_fallback_noop"
   | "expo_initialized";
 
@@ -31,6 +38,20 @@ function logMode(mode: NotificationsMode): void {
 
 export function initNotifications(): NotificationsClient {
   if (initialized) return resolvedClient;
+
+  if (FOOD_LOG_SAFE_MODE) {
+    resolvedClient = new NoopNotificationsClient();
+    setNotificationsClient(resolvedClient);
+    initialized = true;
+    logMode("disabled_food_log_safe_mode");
+    if (__DEV__) {
+      console.log("[SafeModeViolation:guard]", {
+        site: "notifications.init",
+        action: "noop_returned",
+      });
+    }
+    return resolvedClient;
+  }
 
   const config = getAppConfig();
   const enabled = !!config.features.notifications;

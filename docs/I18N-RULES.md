@@ -1,6 +1,6 @@
 # i18n Rules — Non-Negotiable
 
-These rules apply to all UI development in Caloric. No exceptions.
+These rules apply to all UI development in CalCut. No exceptions.
 
 ## 1. No raw strings in components
 

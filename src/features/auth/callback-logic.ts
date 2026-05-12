@@ -20,7 +20,9 @@ export type CallbackDecision =
   | { action: "error"; message: string }
   | { action: "exchange"; code: string };
 
-export type CallbackDestination = "/auth/reset-password" | "/(tabs)";
+import { APP_ENTRY_PATH } from "../navigation/app-entry-href";
+
+export type CallbackDestination = "/auth/reset-password" | typeof APP_ENTRY_PATH;
 
 /**
  * Given the search params from the deep link, decide what the callback
@@ -58,5 +60,5 @@ export function resolveCallbackAction(
  * (it stores "codeVerifier/PASSWORD_RECOVERY" during resetPasswordForEmail).
  */
 export function resolveDestination(isRecovery: boolean): CallbackDestination {
-  return isRecovery ? "/auth/reset-password" : "/(tabs)";
+  return isRecovery ? "/auth/reset-password" : APP_ENTRY_PATH;
 }

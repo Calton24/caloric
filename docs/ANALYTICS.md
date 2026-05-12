@@ -85,7 +85,7 @@ features: {
 }
 ```
 
-That's it. `initAnalytics()` runs automatically in `CaloricProviders`.
+That's it. `initAnalytics()` runs automatically in `CalCutProviders`.
 
 ## Auto screen tracking
 

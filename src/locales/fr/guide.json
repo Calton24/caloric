@@ -25,7 +25,7 @@
     "iosOnly": "iOS uniquement",
     "iosOnlyDesc": "Les activites en direct ne sont disponibles que sur les appareils iOS.",
     "unavailable": "Activites en direct indisponibles",
-    "unavailableDesc": "Veuillez activer les activites en direct dans Reglages iOS > Caloric > Activites en direct, et assurez-vous d'utiliser iOS 16.2 ou ulterieur.",
+    "unavailableDesc": "Veuillez activer les activites en direct dans Reglages iOS > CalCut > Activites en direct, et assurez-vous d'utiliser iOS 16.2 ou ulterieur.",
     "continueWithout": "Continuer sans",
     "subtitle": "Suivez vos calories en temps reel directement depuis votre ecran de verrouillage et Dynamic Island.",
     "notNow": "Pas maintenant",

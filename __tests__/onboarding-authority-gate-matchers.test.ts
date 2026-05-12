@@ -15,10 +15,15 @@
 import {
   ONBOARDING_STEP_NAMES,
   isAuthRoute,
+  isGatedAllowedRoute,
   isIndexRoute,
   isInsideOnboardingFlow,
+  isManageAccountRoute,
+  isPaywallRoute,
   isPermissionsRoute,
   isProtectedAppRoute,
+  isVoluntaryUpgradePaywallPath,
+  isWebViewerRoute,
 } from "../src/features/onboarding/onboarding-route-matchers";
 
 describe("OnboardingAuthorityGate: path matchers", () => {
@@ -58,7 +63,7 @@ describe("OnboardingAuthorityGate: path matchers", () => {
     it("does NOT match non-onboarding paths", () => {
       expect(isInsideOnboardingFlow("/")).toBe(false);
       expect(isInsideOnboardingFlow("/(tabs)")).toBe(false);
-      expect(isInsideOnboardingFlow("/(tabs)/index")).toBe(false);
+      expect(isInsideOnboardingFlow("/(tabs)")).toBe(false);
       expect(isInsideOnboardingFlow("/auth/sign-in")).toBe(false);
       expect(isInsideOnboardingFlow("/settings")).toBe(false);
       expect(isInsideOnboardingFlow("/progress")).toBe(false);
@@ -128,10 +133,124 @@ describe("OnboardingAuthorityGate: path matchers", () => {
     });
   });
 
+  describe("isPaywallRoute", () => {
+    it("matches paywall paths ignoring query strings", () => {
+      expect(isPaywallRoute("/paywall")).toBe(true);
+      expect(isPaywallRoute("/paywall?mode=upgrade")).toBe(true);
+      expect(isPaywallRoute("/paywall?mode=gate")).toBe(true);
+      expect(isPaywallRoute("/paywall?mode=gate&x=1")).toBe(true);
+      expect(isPaywallRoute("/(onboarding)/paywall")).toBe(true);
+      expect(isPaywallRoute("/(onboarding)/paywall?mode=upgrade")).toBe(
+        true,
+      );
+      expect(isPaywallRoute("/onboarding/paywall?mode=gate")).toBe(true);
+    });
+
+    it("does not match other routes", () => {
+      expect(isPaywallRoute("/goal")).toBe(false);
+      expect(isPaywallRoute("/settings")).toBe(false);
+    });
+  });
+
+  describe("isVoluntaryUpgradePaywallPath", () => {
+    it("is true only for paywall with mode=upgrade (global search params)", () => {
+      expect(isVoluntaryUpgradePaywallPath("/paywall", "upgrade")).toBe(true);
+      expect(
+        isVoluntaryUpgradePaywallPath("/paywall", ["upgrade", "gate"]),
+      ).toBe(true);
+      expect(
+        isVoluntaryUpgradePaywallPath("/(onboarding)/paywall", "upgrade"),
+      ).toBe(true);
+    });
+
+    it("is false for gate or onboarding-default paywall", () => {
+      expect(isVoluntaryUpgradePaywallPath("/paywall", "gate")).toBe(false);
+      expect(isVoluntaryUpgradePaywallPath("/paywall", undefined)).toBe(false);
+    });
+
+    it("is false for non-paywall paths", () => {
+      expect(isVoluntaryUpgradePaywallPath("/goal", "upgrade")).toBe(false);
+    });
+  });
+
+  describe("isWebViewerRoute", () => {
+    it("matches both group-prefixed and stripped forms", () => {
+      expect(isWebViewerRoute("/(modals)/web-viewer")).toBe(true);
+      expect(isWebViewerRoute("/web-viewer")).toBe(true);
+      expect(
+        isWebViewerRoute("/web-viewer?url=https%3A%2F%2Fa.com&title=t"),
+      ).toBe(true);
+    });
+    it("does not match other modals", () => {
+      expect(isWebViewerRoute("/(modals)/camera-log")).toBe(false);
+      expect(isWebViewerRoute("/manage-account")).toBe(false);
+    });
+  });
+
+  describe("isManageAccountRoute", () => {
+    it("matches both group-prefixed and stripped forms", () => {
+      expect(isManageAccountRoute("/(modals)/manage-account")).toBe(true);
+      expect(isManageAccountRoute("/manage-account")).toBe(true);
+      expect(isManageAccountRoute("/manage-account?x=1")).toBe(true);
+    });
+    it("does not match settings or other paths", () => {
+      expect(isManageAccountRoute("/(main)/settings")).toBe(false);
+      expect(isManageAccountRoute("/settings")).toBe(false);
+      expect(isManageAccountRoute("/web-viewer")).toBe(false);
+    });
+  });
+
+  describe("isGatedAllowedRoute (App-Review safe allowlist)", () => {
+    it("allows paywall, web-viewer, manage-account and auth routes", () => {
+      expect(isGatedAllowedRoute("/paywall", undefined)).toBe(true);
+      expect(isGatedAllowedRoute("/(onboarding)/paywall", "gate")).toBe(true);
+      expect(isGatedAllowedRoute("/web-viewer", undefined)).toBe(true);
+      expect(isGatedAllowedRoute("/(modals)/web-viewer", undefined)).toBe(true);
+      expect(isGatedAllowedRoute("/manage-account", undefined)).toBe(true);
+      expect(isGatedAllowedRoute("/(modals)/manage-account", undefined)).toBe(
+        true,
+      );
+      expect(isGatedAllowedRoute("/auth/sign-in", undefined)).toBe(true);
+    });
+
+    it("blocks tracking / dashboard / settings / standalone screens", () => {
+      expect(isGatedAllowedRoute("/(tabs)", undefined)).toBe(false);
+      expect(isGatedAllowedRoute("/(tabs)", undefined)).toBe(false);
+      expect(isGatedAllowedRoute("/(modals)/camera-log", undefined)).toBe(
+        false,
+      );
+      expect(isGatedAllowedRoute("/(modals)/manual-log", undefined)).toBe(
+        false,
+      );
+      expect(isGatedAllowedRoute("/(modals)/voice-log", undefined)).toBe(
+        false,
+      );
+      expect(isGatedAllowedRoute("/(modals)/edit-meal", undefined)).toBe(
+        false,
+      );
+      expect(isGatedAllowedRoute("/(modals)/confirm-meal", undefined)).toBe(
+        false,
+      );
+      expect(isGatedAllowedRoute("/(modals)/log-weight", undefined)).toBe(
+        false,
+      );
+      expect(isGatedAllowedRoute("/(modals)/scan-result", undefined)).toBe(
+        false,
+      );
+      expect(isGatedAllowedRoute("/settings", undefined)).toBe(false);
+      expect(isGatedAllowedRoute("/(main)/settings", undefined)).toBe(false);
+      expect(isGatedAllowedRoute("/(main)/home", undefined)).toBe(false);
+      expect(isGatedAllowedRoute("/progress", undefined)).toBe(false);
+      expect(isGatedAllowedRoute("/goals", undefined)).toBe(false);
+      expect(isGatedAllowedRoute("/log-weight", undefined)).toBe(false);
+      expect(isGatedAllowedRoute("/permissions", undefined)).toBe(false);
+    });
+  });
+
   describe("isProtectedAppRoute", () => {
     it("classifies tabs and standalone screens as protected", () => {
       expect(isProtectedAppRoute("/(tabs)")).toBe(true);
-      expect(isProtectedAppRoute("/(tabs)/index")).toBe(true);
+      expect(isProtectedAppRoute("/(tabs)")).toBe(true);
       expect(isProtectedAppRoute("/settings")).toBe(true);
       expect(isProtectedAppRoute("/progress")).toBe(true);
       expect(isProtectedAppRoute("/log-weight")).toBe(true);

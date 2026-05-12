@@ -25,7 +25,7 @@
     "iosOnly": "Apenas iOS",
     "iosOnlyDesc": "As atividades ao vivo so estao disponiveis em dispositivos iOS.",
     "unavailable": "Atividades ao vivo indisponiveis",
-    "unavailableDesc": "Ative as atividades ao vivo em Ajustes iOS > Caloric > Atividades ao vivo e certifique-se de que voce tem iOS 16.2 ou posterior.",
+    "unavailableDesc": "Ative as atividades ao vivo em Ajustes iOS > CalCut > Atividades ao vivo e certifique-se de que voce tem iOS 16.2 ou posterior.",
     "continueWithout": "Continuar sem",
     "subtitle": "Acompanhe suas calorias em tempo real diretamente na tela de bloqueio e Dynamic Island.",
     "notNow": "Agora nao",

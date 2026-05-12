@@ -1,17 +1,19 @@
 /**
  * Food log crash isolation — master switch.
  *
- * When true: minimal boot. Native-risk modules go Noop, cloud hydration is
- * stopped at every entry point, billing/account refresh is suppressed, home
- * side effects are skipped. Local Zustand persistence still works.
+ * Bisect complete: post-Track-Calories crash was in post-save navigation.
+ * FOOD_LOG_POST_SAVE_NAV_MODE is now "dismissAll" (canonical behavior).
  *
- * Hard-coded `true` while we bisect the post-Track-Calories crash.
- * Do not gate on env vars — we already proved that path silently boots
- * with safe mode OFF if the var is missing.
+ * Safe mode must NEVER gate cloud restore, profile restore, goals, or weight
+ * logs. Doing so causes a false `syncRestoredFor` marker while local state
+ * is empty — users see 0 meals and wrong weight even though the backend is fine.
  *
- * To re-enable normal boot, flip to `false` here.
+ * Safe to gate: Apple Health writes, Live Activities, Analytics, Growth,
+ * Haptics, Notifications, Activity Monitor, Presence.
+ *
+ * See src/features/debug/safe-mode-policy.ts for the policy object.
  */
-export const FOOD_LOG_SAFE_MODE = true;
+export const FOOD_LOG_SAFE_MODE = false;
 
 /**
  * Logs an unmissable line proving that the importing site sees the flag.

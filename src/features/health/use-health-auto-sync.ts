@@ -7,8 +7,10 @@
 
 import { useEffect, useRef } from "react";
 import { AppState, type AppStateStatus, Platform } from "react-native";
+import { FOOD_LOG_SAFE_MODE } from "../debug/safe-mode-flags";
 import { usePermissionsStore } from "../permissions";
 import { useSettingsStore } from "../settings";
+import { isPostFoodLogSettling } from "../food-logging/post-food-log-settling";
 import { syncWithHealthKit } from "./health-sync.service";
 
 const MIN_SYNC_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
@@ -17,12 +19,15 @@ export function useHealthAutoSync() {
   const lastSyncRef = useRef<number>(0);
 
   useEffect(() => {
+    if (FOOD_LOG_SAFE_MODE) return;
     if (Platform.OS !== "ios") return;
 
     const subscription = AppState.addEventListener(
       "change",
       async (nextState: AppStateStatus) => {
         if (nextState !== "active") return;
+
+        if (isPostFoodLogSettling()) return;
 
         const { appleHealthSyncEnabled } = useSettingsStore.getState().settings;
         if (!appleHealthSyncEnabled) return;

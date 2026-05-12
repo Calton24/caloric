@@ -74,7 +74,7 @@ export default function LiveActivityIntroScreen() {
             <View style={styles.widgetHeader}>
               <Ionicons name="flame" size={20} color={theme.colors.primary} />
               <TText style={[styles.widgetTitle, { color: theme.colors.text }]}>
-                Caloric
+                CalCut
               </TText>
             </View>
 

@@ -15,6 +15,9 @@ export interface FoodLoggingErrorBoundaryProps {
   /** Route identifier for Sentry (e.g. "/(modals)/tracking"). */
   routeLabel: string;
   children: ReactNode;
+  /** Optional — e.g. jump back to barcode camera from confirm-meal. */
+  onScanAnother?: () => void;
+  scanAnotherLabel?: string;
 }
 
 interface State {
@@ -65,6 +68,18 @@ export class FoodLoggingErrorBoundary extends Component<
     }
   };
 
+  private handleScanAnother = (): void => {
+    try {
+      this.props.onScanAnother?.();
+    } catch (e) {
+      captureFoodLoggingError(e, {
+        flow: "unknown",
+        step: "error_boundary_scan_another",
+        route: this.props.routeLabel,
+      });
+    }
+  };
+
   render(): ReactNode {
     if (this.state.hasError && this.state.error) {
       return (
@@ -76,6 +91,16 @@ export class FoodLoggingErrorBoundary extends Component<
           <Pressable style={styles.btnPrimary} onPress={this.handleRetry}>
             <Text style={styles.btnPrimaryText}>Try again</Text>
           </Pressable>
+          {this.props.onScanAnother ? (
+            <Pressable
+              style={styles.btnSecondary}
+              onPress={this.handleScanAnother}
+            >
+              <Text style={styles.btnSecondaryText}>
+                {this.props.scanAnotherLabel ?? "Scan another barcode"}
+              </Text>
+            </Pressable>
+          ) : null}
           <Pressable style={styles.btnSecondary} onPress={this.handleGoHome}>
             <Text style={styles.btnSecondaryText}>Go Home</Text>
           </Pressable>

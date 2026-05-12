@@ -219,18 +219,35 @@ export class AppleHealthService implements HealthService {
     const hk = getHK();
     if (!hk?.saveFood) return;
 
+    const safeCalories = Number(calories);
+    if (!Number.isFinite(safeCalories) || safeCalories <= 0) return;
+    const safeStartIso = new Date(startDate).toISOString();
+    const safeEndIso = new Date(endDate).toISOString();
+
     return new Promise((resolve, reject) => {
-      hk.saveFood(
-        {
-          foodName: "Caloric Meal",
-          value: calories,
-          startDate: startDate.toISOString(),
-        } as Record<string, unknown>,
-        (err: string, _result: HealthValue) => {
-          if (err) reject(new Error(String(err)));
-          else resolve();
-        }
-      );
+      try {
+        hk.saveFood(
+          {
+            // Native bridge has crashed on nil dictionary values here, so keep
+            // every field strictly non-null primitives.
+            foodName: "Caloric Meal",
+            value: safeCalories,
+            startDate: safeStartIso,
+            endDate: safeEndIso,
+            unit: hk.Constants?.Units?.kilocalorie ?? "kilocalorie",
+          } as Record<string, unknown>,
+          (err: string, _result: HealthValue) => {
+            if (err) reject(new Error(String(err)));
+            else resolve();
+          }
+        );
+      } catch (e) {
+        reject(
+          e instanceof Error
+            ? e
+            : new Error("HealthKit saveFood threw synchronously")
+        );
+      }
     });
   }
 }

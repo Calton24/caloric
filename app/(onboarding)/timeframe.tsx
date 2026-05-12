@@ -19,8 +19,8 @@ import { AnimatedCheck } from "../../src/ui/components/AnimatedCheck";
 import { SelectCard } from "../../src/ui/components/SelectCard";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
-import { OnboardingBackground } from "./_background";
-import { OnboardingCTA } from "./_cta";
+import { OnboardingBackground } from "../../src/features/onboarding/components/OnboardingBackground";
+import { OnboardingCTA } from "../../src/features/onboarding/components/OnboardingCTA";
 import { OnboardingHeader } from "./_progress";
 
 interface TimeframeOption {

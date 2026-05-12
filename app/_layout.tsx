@@ -1,4 +1,4 @@
-import { CaloricProviders } from "@/src/CaloricProviders";
+import { CalCutProviders } from "@/src/CalCutProviders";
 import { useScreenTracking } from "@/src/infrastructure/analytics";
 import { useGrowthScreenTracking } from "@/src/infrastructure/growth";
 import { ErrorBoundary } from "@/src/logging/ErrorBoundary";
@@ -14,13 +14,23 @@ import {
 import Constants from "expo-constants";
 import { useFonts } from "expo-font";
 import { Stack, usePathname, useRouter } from "expo-router";
+import { readRuntimeAppEnv } from "../src/config/runtime-app-env";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useMemo, useRef } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { useShallow } from "zustand/react/shallow";
+import {
+  ActivityIndicator,
+  InteractionManager,
+  View,
+} from "react-native";
 import "react-native-reanimated";
 import * as Sentry from "@sentry/react-native";
 import { triggerFoodLoggingTestError } from "../src/infrastructure/errorReporting/foodLoggingErrors";
 import { useAuth } from "../src/features/auth/useAuth";
+import { assertFoodLogSafeModeImport } from "../src/features/debug/safe-mode-flags";
+import { APP_ENTRY_PATH } from "../src/features/navigation/app-entry-href";
+
+assertFoodLogSafeModeImport("app/_layout");
 import { OnboardingAuthorityGate } from "../src/features/onboarding/OnboardingAuthorityGate";
 import { useOnboardingAuthorityStore } from "../src/features/onboarding/onboarding-authority.store";
 import {
@@ -29,15 +39,27 @@ import {
 } from "../src/features/settings/settings.store";
 
 const sentryDsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
-const sentryEnvironment =
-  process.env.EXPO_PUBLIC_APP_ENV ?? (__DEV__ ? "development" : "production");
+const runtimeAppEnv = readRuntimeAppEnv();
+
+const sentryRelease =
+  Constants.expoConfig?.slug && Constants.expoConfig?.version
+    ? `${Constants.expoConfig.slug}@${Constants.expoConfig.version}`
+    : undefined;
+const sentryDist =
+  Constants.nativeBuildVersion != null
+    ? String(Constants.nativeBuildVersion)
+    : (Constants.expoConfig?.version ?? undefined);
 
 Sentry.init({
   enabled: Boolean(sentryDsn),
   dsn: sentryDsn,
-  environment: sentryEnvironment,
+  environment: runtimeAppEnv,
+  release: sentryRelease,
+  dist: sentryDist,
   tracesSampleRate: __DEV__ ? 1.0 : 0.1,
   debug: __DEV__,
+  attachStacktrace: true,
+  enableAutoSessionTracking: true,
   enableNativeCrashHandling: true,
 });
 
@@ -66,17 +88,33 @@ function RouteSanitizerGate() {
   const hasSeenPermissions = useSettingsStore(
     (state) => state.settings.hasSeenPermissions
   );
-  const authorityState = useOnboardingAuthorityStore((s) => s.state);
+  // Omit `resolvedAt` / full object identity so resolver timestamp-only
+  // writes do not re-run this gate's effects alongside the authority gate.
+  const authorityForSanitizer = useOnboardingAuthorityStore(
+    useShallow((s) => {
+      const st = s.state;
+      if (st.kind === "unknown") return { kind: "unknown" as const };
+      if (st.kind === "resolving") {
+        return { kind: "resolving" as const, userId: st.userId };
+      }
+      return {
+        kind: "resolved" as const,
+        userId: st.userId,
+        status: st.status,
+      };
+    }),
+  );
   const sanitizedThisBootstrap = useRef(false);
+  const pendingSanitizerNavRef = useRef<{ cancel: () => void } | null>(null);
 
   // Authoritative complete signal: the resolver has confirmed THIS user has
   // onboarding_completed=true server-side. Anything else (unknown, resolving,
   // error, stale-user, missing, incomplete) is NOT "stable home state".
   const onboardingComplete =
     !!user &&
-    authorityState.kind === "resolved" &&
-    authorityState.userId === user.id &&
-    authorityState.status === "complete";
+    authorityForSanitizer.kind === "resolved" &&
+    authorityForSanitizer.userId === user.id &&
+    authorityForSanitizer.status === "complete";
 
   const isStableAuthenticatedHomeState = useMemo(() => {
     if (!user) return false;
@@ -95,6 +133,13 @@ function RouteSanitizerGate() {
   }, [user]);
 
   useEffect(() => {
+    return () => {
+      pendingSanitizerNavRef.current?.cancel?.();
+      pendingSanitizerNavRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
     if (sanitizedThisBootstrap.current) return;
     if (!isStableAuthenticatedHomeState) return;
     if (!isTransientModalPath(pathname)) {
@@ -108,11 +153,19 @@ function RouteSanitizerGate() {
     if (__DEV__) {
       console.log("[RouteSanitizer] transient route replaced", {
         from: pathname,
-        to: "/(tabs)",
+        to: APP_ENTRY_PATH,
         userIdPresent: Boolean(user?.id),
       });
     }
-    router.replace("/(tabs)");
+    pendingSanitizerNavRef.current?.cancel?.();
+    pendingSanitizerNavRef.current = InteractionManager.runAfterInteractions(
+      () => {
+        pendingSanitizerNavRef.current = null;
+        requestAnimationFrame(() => {
+          router.replace(APP_ENTRY_PATH as never);
+        });
+      },
+    );
   }, [isStableAuthenticatedHomeState, pathname, router, user?.id]);
 
   return null;
@@ -121,12 +174,15 @@ function RouteSanitizerGate() {
 function RootStack() {
   const { theme } = useTheme();
 
+  const stackScreenOptions = useMemo(
+    () => ({
+      contentStyle: { backgroundColor: theme.colors.background },
+    }),
+    [theme.colors.background],
+  );
+
   return (
-    <Stack
-      screenOptions={{
-        contentStyle: { backgroundColor: theme.colors.background },
-      }}
-    >
+    <Stack screenOptions={stackScreenOptions}>
       {/* ── Entry point ── */}
       <Stack.Screen
         name="index"
@@ -222,36 +278,56 @@ function RootLayout() {
   }, [fontsLoaded, fontError]);
 
   useEffect(() => {
+    const extra = Constants.expoConfig?.extra as
+      | Record<string, unknown>
+      | undefined;
+    const env =
+      process.env.EXPO_PUBLIC_APP_ENV ??
+      (extra?.APP_ENV as string | undefined) ??
+      runtimeAppEnv;
     console.log("[BundleCheck]", {
       bundleIdentifier: Constants.expoConfig?.ios?.bundleIdentifier,
-      env: process.env.EXPO_PUBLIC_APP_ENV,
+      appProfile: extra?.APP_PROFILE,
+      appEnvFromExtra: extra?.APP_ENV,
+      expoPublicAppEnv: process.env.EXPO_PUBLIC_APP_ENV,
+      runtimeAppEnv,
+      env,
+      expoVersion: Constants.expoConfig?.version,
+      nativeAppVersion: Constants.nativeApplicationVersion,
+      nativeBuildVersion: Constants.nativeBuildVersion,
     });
   }, []);
 
   useEffect(() => {
     if (!__DEV__) return;
-    // Dev-only manual test hook: run `globalThis.__triggerSentryTestError?.()`
-    // from JS debugger/console to verify event ingestion.
-    (globalThis as typeof globalThis & {
+    // Dev-only manual test hooks (JS debugger / console) to verify ingestion.
+    const g = globalThis as typeof globalThis & {
       __triggerSentryTestError?: () => void;
+      __triggerSentryPromiseTestError?: () => void;
       __triggerFoodLoggingTestError?: () => void;
-    }).__triggerSentryTestError = () => {
-      Sentry.captureException(new Error("Sentry test error"));
+      __triggerTrackCaloriesTestError?: () => void;
     };
-    (globalThis as typeof globalThis & {
-      __triggerFoodLoggingTestError?: () => void;
-    }).__triggerFoodLoggingTestError = () => {
+    g.__triggerSentryTestError = () => {
+      Sentry.captureException(new Error("Sentry JS test"));
+    };
+    g.__triggerSentryPromiseTestError = () => {
+      void Promise.reject(new Error("Sentry promise test"));
+    };
+    g.__triggerFoodLoggingTestError = () => {
       triggerFoodLoggingTestError();
     };
 
+    g.__triggerTrackCaloriesTestError = () => {
+      Sentry.captureException(
+        new Error("Track Calories global test trigger (confirm_meal)"),
+      );
+    };
+
     return () => {
-      delete (globalThis as typeof globalThis & {
-        __triggerSentryTestError?: () => void;
-        __triggerFoodLoggingTestError?: () => void;
-      }).__triggerSentryTestError;
-      delete (globalThis as typeof globalThis & {
-        __triggerFoodLoggingTestError?: () => void;
-      }).__triggerFoodLoggingTestError;
+      delete g.__triggerSentryTestError;
+      delete g.__triggerSentryPromiseTestError;
+      delete g.__triggerFoodLoggingTestError;
+      delete g.__triggerTrackCaloriesTestError;
     };
   }, []);
 
@@ -275,12 +351,12 @@ function RootLayout() {
 
   return (
     <ErrorBoundary>
-      <CaloricProviders testID="app-ready">
+      <CalCutProviders testID="app-ready">
         <RouteSanitizerGate />
         <OnboardingAuthorityGate>
           <RootStack />
         </OnboardingAuthorityGate>
-      </CaloricProviders>
+      </CalCutProviders>
     </ErrorBoundary>
   );
 }

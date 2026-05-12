@@ -22,8 +22,9 @@
  *                    onboarding.
  */
 
-import { getSupabaseClient } from "../../lib/supabase/client";
 import { logColdStartStep } from "../../infrastructure/tracing/coldStartTrace";
+import { getSupabaseClient } from "../../lib/supabase/client";
+import { ensureAppTrialStarted } from "../subscription/app-trial.service";
 
 export type OnboardingAuthorityStatus =
   | "complete"
@@ -426,6 +427,7 @@ export async function markOnboardingCompleteRemote(
       ok: true,
       updatedAt,
     });
+    await ensureAppTrialStarted();
     return { ok: true, updatedAt };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);

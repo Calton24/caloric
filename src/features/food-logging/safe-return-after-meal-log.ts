@@ -1,4 +1,6 @@
 import type { Router } from "expo-router";
+import { InteractionManager } from "react-native";
+import { reportError } from "../../infrastructure/errorReporting";
 import { addFoodLoggingBreadcrumb } from "../../infrastructure/errorReporting/foodLoggingErrors";
 import { FOOD_LOG_POST_SAVE_NAV_MODE } from "../debug/safe-mode-flags";
 import { DISABLE_TRACK_NAVIGATION_AFTER_SAVE } from "./post-save-debug-flags";
@@ -86,14 +88,37 @@ export function replaceHomeAfterMealLog(
         routeBefore: meta.pathname,
         segmentsBefore: meta.segments.join("/"),
       });
+      if (__DEV__) {
+        console.log("[PostSaveNav] dismiss_to_tabs_started");
+      }
       try {
-        // dismissAll is a modal-stack op; some Expo Router versions throw if
-        // nothing is on the stack. Catch and fall back to replace so we never
-        // leave the user stuck on the confirm screen.
+        // Dismiss directly to tabs when available. If the target route is not
+        // in the current stack, Expo Router will replace to the href.
+        const dismissTo = (router as unknown as {
+          dismissTo?: (href: string) => void;
+        }).dismissTo;
+        if (dismissTo) {
+          dismissTo(TRACK_CALORIES_HOME_HREF);
+          if (__DEV__) {
+            console.log("[PostSaveNav] dismiss_to_tabs_requested");
+          }
+          // Ensure the modal group actually unwinds: some Expo Router + iOS
+          // stacks leave the last modal route mounted after dismissTo alone.
+          queueMicrotask(() => {
+            try {
+              router.replace(TRACK_CALORIES_HOME_HREF as never);
+            } catch {
+              /* ignore */
+            }
+          });
+          return;
+        }
+        // Older router fallback.
         (router as unknown as { dismissAll?: () => void }).dismissAll?.();
       } catch (err) {
         if (__DEV__) {
-          console.warn("[PostSaveNav] dismissAll threw, falling back", err);
+          console.warn("[PostSaveNav] dismissTo threw, falling back", err);
+          console.log("[PostSaveNav] replace_tabs_fallback_started");
         }
         router.replace(TRACK_CALORIES_HOME_HREF as never);
       }
@@ -128,14 +153,72 @@ export function replaceHomeAfterMealLog(
         routeBefore: meta.pathname,
         segmentsBefore: meta.segments.join("/"),
       });
-      router.replace(TRACK_CALORIES_HOME_HREF as never);
+      try {
+        const dismissTo = (router as unknown as {
+          dismissTo?: (href: string) => void;
+        }).dismissTo;
+        if (dismissTo) {
+          if (__DEV__) {
+            console.log("[PostSaveNav] dismiss_to_tabs_started");
+          }
+          dismissTo(TRACK_CALORIES_HOME_HREF);
+          if (__DEV__) {
+            console.log("[PostSaveNav] dismiss_to_tabs_requested");
+          }
+          queueMicrotask(() => {
+            try {
+              router.replace(TRACK_CALORIES_HOME_HREF as never);
+            } catch {
+              /* ignore */
+            }
+          });
+        } else {
+          router.replace(TRACK_CALORIES_HOME_HREF as never);
+        }
+      } catch {
+        if (__DEV__) {
+          console.log("[PostSaveNav] replace_tabs_fallback_started");
+        }
+        router.replace(TRACK_CALORIES_HOME_HREF as never);
+      }
       return;
     }
   }
 }
 
 /**
- * @deprecated alias — same as {@link replaceHomeAfterMealLog}.
+ * Deferred post-save navigation: waits for the next frame and
+ * {@link InteractionManager.runAfterInteractions} before calling {@link replaceHomeAfterMealLog}.
+ */
+export function exitConfirmMealSafely(
+  router: Router,
+  meta: { pathname: string; segments: readonly string[] }
+): void {
+  requestAnimationFrame(() => {
+    InteractionManager.runAfterInteractions(() => {
+      try {
+        replaceHomeAfterMealLog(router, meta);
+      } catch (error) {
+        reportNavFallback(error, router);
+      }
+    });
+  });
+}
+
+function reportNavFallback(error: unknown, router: Router): void {
+  reportError(error, {
+    area: "food_log",
+    action: "safe_exit_failed",
+  });
+  try {
+    router.replace(TRACK_CALORIES_HOME_HREF as never);
+  } catch {
+    /* last resort */
+  }
+}
+
+/**
+ * @deprecated alias — same as {@link replaceHomeAfterMealLog} (immediate; not deferred).
  */
 export function safeReturnToHomeAfterMealLog(
   router: Router,

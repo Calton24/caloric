@@ -332,15 +332,15 @@ export function HamburgerMenu({
         >
           {sections.map((section, sIdx) => (
             <View key={`section-${sIdx}`}>
-              {section.title && (
+              {section.title ? (
                 <TText
                   variant="caption"
                   color="muted"
                   style={styles.sectionTitle}
                 >
-                  {section.title?.toUpperCase()}
+                  {section.title}
                 </TText>
-              )}
+              ) : null}
               {section.items.map((item) => (
                 <Pressable
                   key={item.key}

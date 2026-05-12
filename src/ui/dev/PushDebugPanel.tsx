@@ -106,7 +106,7 @@ export function PushDebugPanel() {
   const handleScheduleLocal = useCallback(async () => {
     await notifications.scheduleLocal({
       title: "Test Notification",
-      body: "This is a local push test from Caloric dev panel.",
+      body: "This is a local push test from CalCut dev panel.",
       data: { source: "push_debug_panel" },
       delaySeconds: 5,
     });

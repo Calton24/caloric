@@ -90,6 +90,10 @@ export default function ModalsLayout() {
               name="web-viewer"
               options={{ presentation: "modal" }}
             />
+            <Stack.Screen
+              name="manage-account"
+              options={{ presentation: "modal" }}
+            />
           </Stack>
         </BottomSheetProvider>
       </BottomSheetModalProvider>

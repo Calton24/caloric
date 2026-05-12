@@ -134,7 +134,7 @@ export function captureFoodLoggingError(
  */
 export function triggerFoodLoggingTestError(): void {
   captureFoodLoggingError(
-    new Error("Caloric dev/QA: food logging pipeline test"),
+    new Error("CalCut dev/QA: food logging pipeline test"),
     {
       flow: "confirm_meal",
       step: "manual_test_trigger",

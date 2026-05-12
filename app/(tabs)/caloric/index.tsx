@@ -164,7 +164,7 @@ export default function CaloricMenu() {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <TText variant="heading">Caloric</TText>
+          <TText variant="heading">CalCut</TText>
           <TText color="muted" style={styles.tagline}>
             UI Construction Kit
           </TText>

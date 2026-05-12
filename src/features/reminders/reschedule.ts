@@ -1,7 +1,7 @@
 /**
  * Reschedule meal reminders on app boot when the setting is enabled.
  *
- * Called once from CaloricProviders after notification init.
+ * Called once from CalCutProviders after notification init.
  * Fire-and-forget — errors are swallowed to avoid blocking boot.
  */
 

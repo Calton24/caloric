@@ -1,8 +1,11 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { getStorage } from "../../infrastructure/storage";
+import { assertFoodLogSafeModeImport } from "../debug/safe-mode-flags";
 import { seedStreakCache } from "./streak.service";
 import type { StreakInfo } from "./streak.types";
+
+assertFoodLogSafeModeImport("streak_store");
 
 interface StreakStore extends StreakInfo {
   /** Whether a streak freeze is available (pro users get one per streak) */
@@ -20,7 +23,7 @@ interface StreakStore extends StreakInfo {
 
 export const useStreakStore = create<StreakStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       currentStreak: 0,
       longestStreak: 0,
       lastLogDate: null,
@@ -29,10 +32,21 @@ export const useStreakStore = create<StreakStore>()(
       streakFreezeUsed: false,
 
       setStreak: (info) => {
+        const prev = get();
+        if (
+          prev.currentStreak === info.currentStreak &&
+          prev.longestStreak === info.longestStreak &&
+          prev.lastLogDate === info.lastLogDate &&
+          prev.streakStartDate === info.streakStartDate
+        ) {
+          if (__DEV__) {
+            console.log("[Streak] unchanged_skip_set");
+          }
+          return;
+        }
         if (__DEV__) {
           console.log(
             `[Streak] setStreak called: current=${info.currentStreak}, longest=${info.longestStreak}, lastLog=${info.lastLogDate}`,
-            new Error().stack?.split("\n").slice(1, 4).join("\n")
           );
         }
         set(info);

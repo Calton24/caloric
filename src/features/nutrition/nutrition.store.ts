@@ -1,5 +1,9 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import {
+  resolveMealLoggedAtUtc,
+  resolveMealLoggedDateLocal,
+} from "../food-logging/time/create-meal-timestamp-fields";
 import { getStorage } from "../../infrastructure/storage";
 import { MealEntry } from "./nutrition.types";
 
@@ -40,6 +44,12 @@ interface NutritionStore {
     serverDeletedIds: ReadonlySet<string>
   ) => void;
   clearMealsForDate: (date: string) => void;
+  /**
+   * Merges repository-backed meal rows into the in-memory list.
+   * Rows win on id collision (authoritative snapshot); meals only in memory
+   * are kept so a not-yet-indexed persist cannot wipe the UI.
+   */
+  mergeMealsFromRepositorySnapshot: (meals: MealEntry[]) => void;
   resetMeals: () => void;
 }
 
@@ -52,25 +62,7 @@ interface NutritionStore {
  * being parsed as local time on the client but stored as UTC on Supabase,
  * causing a 1-hour drift that wrapped meals onto the wrong calendar day.
  */
-const STORAGE_VERSION = 2;
-
-/**
- * Convert a legacy local-time string (no timezone offset) to UTC ISO.
- * Already-UTC strings (containing `Z` or `+HH:MM`/`-HH:MM`) are left alone.
- */
-function normaliseLoggedAt(value: unknown): string {
-  if (typeof value !== "string" || value.length === 0) {
-    return new Date().toISOString();
-  }
-  const hasTimezone = /Z$|[+-]\d{2}:?\d{2}$/.test(value);
-  if (hasTimezone) return value;
-  // Treat the legacy string as local wall-clock time and convert to UTC ISO
-  const local = new Date(value);
-  if (Number.isNaN(local.getTime())) {
-    return new Date().toISOString();
-  }
-  return local.toISOString();
-}
+const STORAGE_VERSION = 3;
 
 export const useNutritionStore = create<NutritionStore>()(
   persist(
@@ -157,12 +149,7 @@ export const useNutritionStore = create<NutritionStore>()(
         set((state) => {
           const removedIds: string[] = [];
           const remaining = state.meals.filter((meal) => {
-            // Compare by UTC-derived local date so this matches getMealsForDate
-            const mealDate = new Date(meal.loggedAt);
-            const localDate = `${mealDate.getFullYear()}-${String(
-              mealDate.getMonth() + 1
-            ).padStart(2, "0")}-${String(mealDate.getDate()).padStart(2, "0")}`;
-            if (localDate === date) {
+            if (resolveMealLoggedDateLocal(meal) === date) {
               removedIds.push(meal.id);
               return false;
             }
@@ -178,6 +165,25 @@ export const useNutritionStore = create<NutritionStore>()(
               (id) => !removedIds.includes(id)
             ),
           };
+        }),
+      mergeMealsFromRepositorySnapshot: (rows) =>
+        set((state) => {
+          const deleted = new Set(state.deletedMealIds);
+          const byId = new Map<string, MealEntry>();
+          for (const m of state.meals) {
+            if (deleted.has(m.id)) continue;
+            byId.set(m.id, m);
+          }
+          for (const m of rows) {
+            if (deleted.has(m.id)) continue;
+            byId.set(m.id, m);
+          }
+          const meals = Array.from(byId.values()).sort(
+            (a, b) =>
+              +new Date(resolveMealLoggedAtUtc(b)) -
+              +new Date(resolveMealLoggedAtUtc(a))
+          );
+          return { meals };
         }),
 
       resetMeals: () =>
@@ -207,32 +213,24 @@ export const useNutritionStore = create<NutritionStore>()(
           ? incoming.deletedMealIds
           : [];
 
-        // v1 (and earlier) stored some loggedAt values as bare local datetimes.
-        // Normalise every meal's timestamp to UTC ISO so date math is stable.
-        const meals = Array.isArray(incoming.meals)
-          ? incoming.meals.map((m) => ({
-              ...m,
-              loggedAt: normaliseLoggedAt(m.loggedAt),
-            }))
-          : [];
-
-        // Treat every existing meal as already synced. They've been pushed
-        // to Supabase across many sessions before this version landed, so
-        // assuming they're known to the server is safer than treating them
-        // as pending push (which would block reconcile from removing them
-        // on the first cross-device delete).
+        // Meals are runtime-only now (persisted separately via repository), so
+        // synced ids can only come from previous synced ids or stay empty.
         const syncedMealIds = Array.isArray(incoming.syncedMealIds)
           ? incoming.syncedMealIds
-          : meals.map((m) => m.id);
+          : [];
 
         if (__DEV__ && version < STORAGE_VERSION) {
           console.log(
-            `[Nutrition] migrate v${version} → v${STORAGE_VERSION}: normalised ${meals.length} meal timestamps, seeded ${syncedMealIds.length} synced ids`
+            `[Nutrition] migrate v${version} → v${STORAGE_VERSION}: meals moved to repository; retained ${syncedMealIds.length} synced ids`
           );
         }
 
-        return { meals, deletedMealIds, syncedMealIds };
+        return { meals: [], deletedMealIds, syncedMealIds };
       },
+      partialize: (state) => ({
+        deletedMealIds: state.deletedMealIds,
+        syncedMealIds: state.syncedMealIds,
+      }),
     }
   )
 );

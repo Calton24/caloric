@@ -1,5 +1,5 @@
 /**
- * Caloric App Configuration
+ * CalCut app configuration (profile key remains `caloric` for env / EAS stability)
  * Vision AI food tracking app
  */
 
@@ -66,12 +66,12 @@ export const caloricConfig: AppProfileConfig = {
   },
 
   app: {
-    name: "Caloric",
+    name: "CalCut",
     slug: "caloric",
     bundleIdentifier: "com.calton.caloric",
     androidPackage: "com.calton.caloric",
     version: "1.0.0",
-    scheme: "caloric",
+    scheme: ["calcut", "caloric"],
   },
 
   // Environment-specific overrides
@@ -105,14 +105,14 @@ export const caloricConfig: AppProfileConfig = {
         billing: true, // Enable billing in dev for RevenueCat testing
       },
       app: {
-        name: "Caloric",
+        name: "CalCut Dev",
         slug: "caloric-dev",
       },
     },
     staging: {
       // Supabase config comes from env vars (base config)
       app: {
-        name: "Caloric Staging",
+        name: "CalCut Staging",
       },
     },
     prod: {

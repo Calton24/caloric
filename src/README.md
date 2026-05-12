@@ -1,4 +1,4 @@
-# Caloric UI
+# CalCut UI
 
 A simple, theme-aware UI layer for React Native with glass morphism effects.
 
@@ -22,13 +22,13 @@ Already included! Just one dependency was added:
 ### 1. Wrap your app with providers
 
 ```tsx
-import { CaloricProviders } from "./src";
+import { CalCutProviders } from "./src";
 
 export default function App() {
   return (
-    <CaloricProviders>
+    <CalCutProviders>
       <YourApp />
-    </CaloricProviders>
+    </CalCutProviders>
   );
 }
 ```
@@ -197,4 +197,4 @@ Run the dev menu to manually test all components:
 
 ## License
 
-Part of Caloric project.
+Part of CalCut project.

@@ -103,7 +103,8 @@
       "subtitle": "Create an account to keep your calorie targets, macros, and progress synced across devices.",
       "socialProof": "2,400+ users signed up this week",
       "privacy": "Your data stays private",
-      "speed": "Takes 5 seconds"
+      "speed": "Takes 5 seconds",
+      "checkpointSyncFailed": "We couldn't save your place in setup. Check your connection and try signing in again."
     },
     "complete": {
       "heading": "You're All Set Up!",

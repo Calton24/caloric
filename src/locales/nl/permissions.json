@@ -1,7 +1,7 @@
 {
   "permissions": {
     "title": "Machtigingen vereist",
-    "description": "Caloric gebruikt je microfoon en spraakherkenning om maaltijden per spraak te registreren.",
+    "description": "CalCut gebruikt je microfoon en spraakherkenning om maaltijden per spraak te registreren.",
     "microphone": "Microfoon",
     "microphoneDesc": "Luister naar je stem om maaltijden te registreren",
     "speechRecognition": "Spraakherkenning",
@@ -13,7 +13,7 @@
   },
   "permissionsSetup": {
     "title": "Machtigingen vereist",
-    "subtitle": "Caloric gebruikt je microfoon en spraakherkenning om maaltijden in te spreken, en meldingen om je op koers te houden.",
+    "subtitle": "CalCut gebruikt je microfoon en spraakherkenning om maaltijden in te spreken, en meldingen om je op koers te houden.",
     "microphone": "Microfoon",
     "microphoneDesc": "Luister naar je stem voor maaltijdregistratie",
     "speechRecognition": "Spraakherkenning",

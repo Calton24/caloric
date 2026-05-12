@@ -19,6 +19,15 @@ export class AsyncStorageProvider implements KeyValueStore {
     await AsyncStorage.removeItem(key);
   }
 
+  async multiRemove(keys: string[]): Promise<void> {
+    const uniq = [...new Set(keys.filter(Boolean))];
+    if (uniq.length === 0) return;
+    const chunkSize = 200;
+    for (let i = 0; i < uniq.length; i += chunkSize) {
+      await AsyncStorage.multiRemove(uniq.slice(i, i + chunkSize));
+    }
+  }
+
   async clear(): Promise<void> {
     await AsyncStorage.clear();
   }

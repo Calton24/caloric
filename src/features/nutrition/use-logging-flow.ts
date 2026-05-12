@@ -5,7 +5,7 @@ import {
   captureFoodLoggingError,
 } from "../../infrastructure/errorReporting/foodLoggingErrors";
 import { useAuth } from "../auth/useAuth";
-import { getHealthService } from "../health";
+import { saveFoodToAppleHealthSafely } from "../health/save-food-to-apple-health-safely";
 import { labelFoodImage } from "../image-analysis/ocr/image-labeling.service";
 import { extractTextFromImage } from "../image-analysis/ocr/text-recognition.service";
 import { analyzeImage } from "../image-analysis/pipeline";
@@ -20,13 +20,23 @@ import { trackMealAndMaybePromptReview } from "../review/review.service";
 import { useSettingsStore } from "../settings";
 import { captionFoodImage } from "./image/image-captioning.service";
 import { lookupBarcode as lookupBarcodeDataset } from "./matching/dataset-lookup.service";
+import {
+  hasUsableBarcodeNutrients,
+  normalizeBarcodeNutrients,
+} from "./matching/barcode-nutrients";
 import { lookupBarcode as lookupBarcodeOFF } from "./matching/openfoodfacts.service";
 import { rebuildFoodMemory } from "./memory/food-memory.service";
 import { parseMealInput } from "./nutrition-parser.service";
 import {
-    mealEstimateToDraft,
-    runNutritionPipeline,
+  mealEstimateToDraft,
+  runNutritionPipeline,
+  type PipelineOptions,
 } from "./nutrition-pipeline";
+import {
+  normalizeMealDraftForStorage,
+} from "./meal-normalize";
+import { replaceHomeAfterMealLog } from "../food-logging/safe-return-after-meal-log";
+import { ENABLE_TRACK_APP_STORE_REVIEW_PROMPT } from "../food-logging/track-calories.constants";
 import { useNutritionDraftStore } from "./nutrition.draft.store";
 import { buildMealEntryFromDraft } from "./nutrition.helpers";
 import { useNutritionStore } from "./nutrition.store";
@@ -36,6 +46,10 @@ import type { InputSource } from "./parsing/food-candidate.schema";
 import { isLocalLlmReady } from "./parsing/local-llm.service";
 import { validateFoodResult } from "./validation/food-validator.service";
 import { validateMealDraft } from "./meal-draft.validation";
+import {
+  trackFoodIdentificationProviderFailed,
+  trackFoodIdentificationProviderSuccess,
+} from "../food-logging/food-identification-analytics";
 
 /**
  * Map old MealSource to new InputSource for the pipeline.
@@ -47,6 +61,8 @@ function toInputSource(source: MealSource): InputSource {
     case "camera":
     case "image":
       return "image";
+    case "barcode":
+      return "text";
     default:
       return "text";
   }
@@ -66,6 +82,7 @@ export function useLoggingFlow() {
   function foodLoggingFlowForSource(source: MealSource) {
     if (source === "voice") return "voice" as const;
     if (source === "camera" || source === "image") return "ai_camera" as const;
+    if (source === "barcode") return "manual" as const;
     return "manual" as const;
   }
 
@@ -78,7 +95,11 @@ export function useLoggingFlow() {
    */
   async function startFromInput(
     input: string,
-    source: MealSource
+    source: MealSource,
+    pipelineOpts?: Pick<
+      PipelineOptions,
+      "foodIdentificationRecoverySource"
+    >
   ): Promise<boolean> {
     const flow = foodLoggingFlowForSource(source);
     const uid = user?.id ?? null;
@@ -95,7 +116,11 @@ export function useLoggingFlow() {
     try {
       // New pipeline: parse → match (USDA/OFF) → estimate
       const inputSource = toInputSource(source);
-      const estimate = await runNutritionPipeline(input, inputSource);
+      const estimate = await runNutritionPipeline(
+        input,
+        inputSource,
+        pipelineOpts ?? {}
+      );
 
       // No food detected — signal caller to prompt retry
       if (estimate.items.length === 0) {
@@ -119,6 +144,16 @@ export function useLoggingFlow() {
     } catch (pipelineErr) {
       // Fallback: old regex parser (always works, no network)
       console.warn("Pipeline failed, using legacy parser");
+      trackFoodIdentificationProviderFailed({
+        surface: "primary_logging_flow",
+        input_source: toInputSource(source),
+        reason: "pipeline_exception",
+        ...(pipelineOpts?.foodIdentificationRecoverySource
+          ? {
+              recovery_source: pipelineOpts.foodIdentificationRecoverySource,
+            }
+          : {}),
+      });
       addFoodLoggingBreadcrumb(
         source === "voice"
           ? "food_logging.voice_parse_failed"
@@ -134,6 +169,17 @@ export function useLoggingFlow() {
       try {
         const parsed = parseMealInput(input, source);
         setDraft(parsed);
+        trackFoodIdentificationProviderSuccess({
+          surface: "legacy_fallback",
+          input_source: toInputSource(source),
+          parse_method: "legacy_heuristic",
+          item_count: 1,
+          ...(pipelineOpts?.foodIdentificationRecoverySource
+            ? {
+                recovery_source: pipelineOpts.foodIdentificationRecoverySource,
+              }
+            : {}),
+        });
         addFoodLoggingBreadcrumb(
           source === "voice"
             ? "food_logging.voice_parse_success"
@@ -141,6 +187,16 @@ export function useLoggingFlow() {
           { flow, via: "legacy_parser" }
         );
       } catch (legacyErr) {
+        trackFoodIdentificationProviderFailed({
+          surface: "primary_logging_flow",
+          input_source: toInputSource(source),
+          reason: "legacy_parse_failed",
+          ...(pipelineOpts?.foodIdentificationRecoverySource
+            ? {
+                recovery_source: pipelineOpts.foodIdentificationRecoverySource,
+              }
+            : {}),
+        });
         captureFoodLoggingError(legacyErr, {
           flow,
           step: "legacy_parse_meal_input",
@@ -191,7 +247,9 @@ export function useLoggingFlow() {
       return false;
     }
 
-    const validated = validateMealDraft(currentDraft);
+    const normalizedDraft = normalizeMealDraftForStorage(currentDraft);
+
+    const validated = validateMealDraft(normalizedDraft);
     if (!validated.ok) {
       captureFoodLoggingError(
         new Error(validated.reason),
@@ -200,8 +258,8 @@ export function useLoggingFlow() {
           step: "validate_draft",
           route: "/(modals)/confirm-meal",
           userId: uid,
-          foodTitle: currentDraft.title,
-          calories: currentDraft.calories,
+          foodTitle: normalizedDraft.title,
+          calories: normalizedDraft.calories,
         },
         { level: "warning" }
       );
@@ -257,15 +315,15 @@ export function useLoggingFlow() {
       appleHealthWriteEnabled &&
       meal.calories > 0
     ) {
-      const healthService = getHealthService();
-      const loggedAt = new Date(meal.loggedAt);
-      healthService
-        .writeCalories(
-          meal.calories,
-          loggedAt,
-          new Date(loggedAt.getTime() + 60_000)
-        )
-        .catch(() => {}); // fire-and-forget, don't block UI
+      void saveFoodToAppleHealthSafely({
+        id: meal.id,
+        title: meal.title,
+        calories: meal.calories,
+        protein: meal.protein,
+        carbs: meal.carbs,
+        fat: meal.fat,
+        loggedAt: meal.loggedAt,
+      });
     }
 
     // Rebuild food memory with updated meal history
@@ -280,8 +338,9 @@ export function useLoggingFlow() {
       });
     }
 
-    // Prompt for App Store review after enough meals (fire-and-forget)
-    trackMealAndMaybePromptReview().catch(() => {});
+    if (ENABLE_TRACK_APP_STORE_REVIEW_PROMPT) {
+      trackMealAndMaybePromptReview().catch(() => {});
+    }
     return true;
   }
 
@@ -289,12 +348,7 @@ export function useLoggingFlow() {
   function navigateAfterSave(): boolean {
     addFoodLoggingBreadcrumb("food_logging.navigation_after_save_started");
     try {
-      // Dismiss all modals — returns to the (tabs) screen that was in the background.
-      // Do NOT call router.replace() immediately after; dispatching two navigation
-      // operations in the same tick causes a navigation invariant crash in Expo Router.
-      if (router.canDismiss()) {
-        router.dismissAll();
-      }
+      replaceHomeAfterMealLog(router, { pathname: "", segments: [] });
       addFoodLoggingBreadcrumb("food_logging.navigation_after_save_success");
     } catch (e) {
       captureFoodLoggingError(e, {
@@ -379,6 +433,7 @@ export function useLoggingFlow() {
           confidence: imageResult.confidence.overall,
           parseMethod: `image-analysis (${imageResult.evidence.route})`,
           imageAnalysis: imageResult,
+          imageUri: imagePath,
         });
 
         addFoodLoggingBreadcrumb("food_logging.ai_scan_success", {
@@ -408,6 +463,7 @@ export function useLoggingFlow() {
           });
           const pipelineDraft = mealEstimateToDraft(estimate);
           pipelineDraft.source = "camera";
+          pipelineDraft.imageUri = pipelineDraft.imageUri ?? imagePath;
           setDraft(pipelineDraft);
           return true;
         }
@@ -446,6 +502,7 @@ export function useLoggingFlow() {
               fat: cloudResult.totals.fat,
               confidence: cloudResult.overallConfidence,
               parseMethod: "cloud-vision (gpt-4o-mini)",
+              imageUri: imagePath,
             });
             console.log(
               "[startFromImage] Stage B.5: draft set, returning true"
@@ -487,6 +544,7 @@ export function useLoggingFlow() {
         );
         if (validation.valid || validation.confidenceMultiplier > 0.3) {
           pipelineDraft.source = "camera";
+          pipelineDraft.imageUri = pipelineDraft.imageUri ?? imagePath;
           pipelineDraft.confidence =
             Math.round(
               (pipelineDraft.confidence ?? 0.5) *
@@ -525,6 +583,7 @@ export function useLoggingFlow() {
             labelOnlyValidation.confidenceMultiplier > 0.3
           ) {
             labelOnlyDraft.source = "camera";
+            labelOnlyDraft.imageUri = labelOnlyDraft.imageUri ?? imagePath;
             labelOnlyDraft.confidence =
               Math.round(
                 (labelOnlyDraft.confidence ?? 0.4) *
@@ -560,6 +619,7 @@ export function useLoggingFlow() {
         );
         if (validation.valid || validation.confidenceMultiplier > 0.3) {
           pipelineDraft.source = "camera";
+          pipelineDraft.imageUri = pipelineDraft.imageUri ?? imagePath;
           pipelineDraft.confidence =
             Math.round(
               (pipelineDraft.confidence ?? 0.5) *
@@ -609,15 +669,32 @@ export function useLoggingFlow() {
     });
     try {
       // Try local dataset first (1.84M branded foods), fall back to OpenFoodFacts
-      let match =
-        (await lookupBarcodeDataset(barcode)) ??
-        (await lookupBarcodeOFF(barcode));
+      let match = await lookupBarcodeDataset(barcode);
+      if (match && !hasUsableBarcodeNutrients(match.nutrients)) {
+        addFoodLoggingBreadcrumb("food_logging.barcode_lookup_fallback", {
+          reason: "dataset_zero_nutrients",
+          barcode_length: barcode?.length ?? 0,
+        });
+        match = null;
+      }
+      if (!match) {
+        match = await lookupBarcodeOFF(barcode);
+      }
 
       // iOS reports UPC-A as EAN-13 with leading '0' — try the 12-digit UPC-A variant
       if (!match && barcode.length === 13 && barcode.startsWith("0")) {
         const upcA = barcode.slice(1);
-        match =
-          (await lookupBarcodeDataset(upcA)) ?? (await lookupBarcodeOFF(upcA));
+        match = await lookupBarcodeDataset(upcA);
+        if (match && !hasUsableBarcodeNutrients(match.nutrients)) {
+          addFoodLoggingBreadcrumb("food_logging.barcode_lookup_fallback", {
+            reason: "dataset_zero_nutrients_upca",
+            barcode_length: upcA?.length ?? 0,
+          });
+          match = null;
+        }
+        if (!match) {
+          match = await lookupBarcodeOFF(upcA);
+        }
       }
 
       if (!match) {
@@ -630,32 +707,54 @@ export function useLoggingFlow() {
       const matchSource =
         match.source === "dataset" ? "dataset" : "openfoodfacts";
 
-      const title = [match.brand, match.name].filter(Boolean).join(" — ");
+      const trimmedBrand = (match.brand ?? "").trim();
+      const trimmedName = (match.name ?? "").trim();
+      const compactBarcode = barcode.replace(/\s+/g, "");
+      const isBarcodePlaceholderName = (() => {
+        if (!trimmedName) return false;
+        const normalized = trimmedName.toLowerCase();
+        const digits = normalized.replace(/\D+/g, "");
+        if (/^product\s+\d{8,}$/.test(normalized)) return true;
+        return digits.length >= 8 && digits.includes(compactBarcode);
+      })();
+      const safeName = isBarcodePlaceholderName ? "" : trimmedName;
+      const title = [trimmedBrand, safeName].filter(Boolean).join(" — ");
+      const fallbackTitle = trimmedBrand || safeName || "Scanned product";
       // Try emoji from full title first (may contain "juice", "sparkling" etc.), then product name
       const emoji =
         getFoodEmoji(title, "beverage") !== "☕"
           ? getFoodEmoji(title, "beverage")
-          : getFoodEmoji(match.name, "beverage");
+          : getFoodEmoji(fallbackTitle, "beverage");
+      const normalizedNutrients = normalizeBarcodeNutrients(match.nutrients);
+      if (
+        normalizedNutrients.calories !== match.nutrients.calories &&
+        normalizedNutrients.calories > 0
+      ) {
+        addFoodLoggingBreadcrumb("food_logging.barcode_lookup_calories_derived", {
+          calories_original: match.nutrients.calories,
+          calories_derived: normalizedNutrients.calories,
+        });
+      }
 
       setDraft({
-        title: title || match.name,
+        title: title || fallbackTitle,
         source: "camera",
         rawInput: `barcode: ${barcode}`,
-        calories: match.nutrients.calories,
-        protein: match.nutrients.protein,
-        carbs: match.nutrients.carbs,
-        fat: match.nutrients.fat,
+        calories: normalizedNutrients.calories,
+        protein: normalizedNutrients.protein,
+        carbs: normalizedNutrients.carbs,
+        fat: normalizedNutrients.fat,
         confidence: 1.0,
         parseMethod: "barcode-lookup",
         emoji,
         estimatedItems: [
           {
-            name: match.name,
-            matchedName: match.name,
+            name: safeName || fallbackTitle,
+            matchedName: safeName || fallbackTitle,
             matchSource: matchSource,
             matchId: barcode,
             estimatedServings: 1,
-            nutrients: match.nutrients,
+            nutrients: normalizedNutrients,
             confidence: 1.0,
             emoji,
           } as never,
@@ -663,7 +762,7 @@ export function useLoggingFlow() {
       });
 
       addFoodLoggingBreadcrumb("food_logging.barcode_lookup_success", {
-        calories: match.nutrients.calories,
+        calories: normalizedNutrients.calories,
       });
       return true;
     } catch (e) {

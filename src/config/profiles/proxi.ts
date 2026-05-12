@@ -59,9 +59,9 @@ export const proxiConfig: AppProfileConfig = {
     growth: false,
     haptics: true,
     notifications: true, // Critical for proximity alerts
-    firebaseAnalytics: false, // Firebase not installed in caloric
-    crashReporting: false, // Firebase not installed in caloric
-    performanceMonitoring: false, // Firebase not installed in caloric
+    firebaseAnalytics: false, // Firebase not installed in fork template
+    crashReporting: false,
+    performanceMonitoring: false,
     billing: true, // Enable billing system (includes paywall UI)
     i18n: true,
     presence: true,
@@ -72,10 +72,10 @@ export const proxiConfig: AppProfileConfig = {
   },
 
   app: {
-    name: "Caloric",
-    slug: "caloric",
-    bundleIdentifier: "com.yourcompany.caloric",
-    androidPackage: "com.yourcompany.caloric",
+    name: "Proxi",
+    slug: "proxi-mobile",
+    bundleIdentifier: "com.yourcompany.proxi",
+    androidPackage: "com.yourcompany.proxi",
     version: "1.0.0",
     scheme: "proxi",
   },
@@ -113,10 +113,10 @@ export const proxiConfig: AppProfileConfig = {
         billing: false, // Disable billing in dev
       },
       app: {
-        name: "Caloric",
-        slug: "caloric-dev",
-        bundleIdentifier: "com.yourcompany.caloric.dev",
-        androidPackage: "com.yourcompany.caloric.dev",
+        name: "Proxi Dev",
+        slug: "proxi-app-dev",
+        bundleIdentifier: "com.yourcompany.proxi.dev",
+        androidPackage: "com.yourcompany.proxi.dev",
       },
     },
     staging: {
@@ -125,9 +125,9 @@ export const proxiConfig: AppProfileConfig = {
         anonKey: "YOUR_STAGING_ANON_KEY", // Replace with staging anon key
       },
       app: {
-        name: "Caloric Staging",
-        bundleIdentifier: "com.yourcompany.caloric.staging",
-        androidPackage: "com.yourcompany.caloric.staging",
+        name: "Proxi Staging",
+        bundleIdentifier: "com.yourcompany.proxi.staging",
+        androidPackage: "com.yourcompany.proxi.staging",
       },
     },
     prod: {

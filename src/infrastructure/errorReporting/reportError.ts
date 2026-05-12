@@ -36,7 +36,10 @@ export type ReportArea =
   | "challenge"
   | "bootstrap"
   | "storage"
-  | "dev";
+  | "dev"
+  | "home"
+  | "food_log"
+  | "food_logging";
 
 export interface ReportContext {
   /** High-level area of the app this error came from. Used as a Sentry tag. */
@@ -169,7 +172,7 @@ function normaliseError(error: unknown): Error {
 function getReporter(): ErrorReporter {
   // initErrorReporting is idempotent (singleton). Calling it here means
   // call sites don't have to worry about init ordering / "Not initialized"
-  // warnings if they fire before CaloricProviders mounts.
+  // warnings if they fire before CalCutProviders mounts.
   return initErrorReporting();
 }
 

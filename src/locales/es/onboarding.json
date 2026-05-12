@@ -103,7 +103,8 @@
       "subtitle": "Crea una cuenta para mantener tus metas calóricas, macros y progreso sincronizados entre dispositivos.",
       "socialProof": "2.400+ usuarios se registraron esta semana",
       "privacy": "Tus datos son privados",
-      "speed": "Tarda 5 segundos"
+      "speed": "Tarda 5 segundos",
+      "checkpointSyncFailed": "We couldn't save your place in setup. Check your connection and try signing in again."
     },
     "complete": {
       "heading": "¡Todo listo!",

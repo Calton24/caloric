@@ -27,6 +27,8 @@ interface ProgressRingProps {
   consumed: number;
   /** Target/budget value */
   target: number;
+  /** When false, dots snap to the target fill with no RAF animation (post–food-log settling). */
+  animateFill?: boolean;
   /** Ring diameter */
   size?: number;
   /** Kept for API compatibility  unused in dot-arc design */
@@ -50,6 +52,7 @@ interface ProgressRingProps {
 export function ProgressRing({
   consumed,
   target,
+  animateFill = true,
   size = 240,
   color,
   trackColor,
@@ -81,6 +84,12 @@ export function ProgressRing({
   useEffect(() => {
     const from = prevProgress.current;
     const to = clampedProgress;
+    if (!animateFill) {
+      cancelAnimationFrame(rafRef.current);
+      prevProgress.current = to;
+      setDisplayProgress(to);
+      return;
+    }
     const duration = 900;
     let startTime: number | null = null;
 
@@ -99,8 +108,7 @@ export function ProgressRing({
     cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-     
-  }, [clampedProgress]);
+  }, [clampedProgress, animateFill]);
 
   //  Dot arc geometry
   const arcRadius = size * 0.41;

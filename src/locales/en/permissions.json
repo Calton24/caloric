@@ -1,7 +1,7 @@
 {
   "permissions": {
     "title": "Permissions Required",
-    "description": "Caloric uses your microphone and speech recognition to log meals by voice.",
+    "description": "CalCut uses your microphone and speech recognition to log meals by voice.",
     "microphone": "Microphone",
     "microphoneDesc": "Listen to your voice to log meals",
     "speechRecognition": "Speech Recognition",
@@ -13,7 +13,7 @@
   },
   "permissionsSetup": {
     "title": "Permissions Required",
-    "subtitle": "Caloric uses your microphone and speech recognition to log meals with your voice, and notifications to keep you on track.",
+    "subtitle": "CalCut uses your microphone and speech recognition to log meals with your voice, and notifications to keep you on track.",
     "microphone": "Microphone",
     "microphoneDesc": "Listen to your voice for meal logging",
     "speechRecognition": "Speech Recognition",

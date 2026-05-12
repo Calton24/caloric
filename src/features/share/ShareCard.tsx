@@ -34,7 +34,7 @@ export const ShareCard = forwardRef<View, ShareCardProps>(function ShareCard(
     <View ref={ref} collapsable={false} style={styles.shotWrapper}>
       <View style={styles.card}>
         {/* Brand */}
-        <TText style={styles.brand}>Caloric</TText>
+        <TText style={styles.brand}>CalCut</TText>
 
         {/* Title */}
         <TText style={styles.title}>21-Day Challenge</TText>
@@ -61,7 +61,7 @@ export const ShareCard = forwardRef<View, ShareCardProps>(function ShareCard(
         <TText style={styles.quote}>&quot;{quote}&quot;</TText>
 
         {/* Hashtag */}
-        <TText style={styles.hashtag}>#21DayCaloric</TText>
+        <TText style={styles.hashtag}>#21DayCalCut</TText>
       </View>
     </View>
   );

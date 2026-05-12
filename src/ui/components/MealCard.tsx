@@ -13,12 +13,19 @@ import { Swipeable } from "react-native-gesture-handler";
 import Animated, { SlideInRight, SlideOutRight } from "react-native-reanimated";
 import { useAppTranslation } from "../../infrastructure/i18n";
 import { formatFoodName } from "../../utils/formatFoodName";
+import { getMealDisplayImagePath, getMealDisplayImageUri } from "../../features/meals/getMealDisplayImageUri";
+import { useMealImageSource } from "../../features/food-logging/useMealImageSource";
 import { useTheme } from "../../theme/useTheme";
 import { TText } from "../primitives/TText";
 
 interface MealCardProps {
   icon?: string;
   imageUri?: string;
+  imagePath?: string;
+  imageUrl?: string;
+  thumbnailUri?: string;
+  photoUri?: string;
+  mediaUri?: string;
   title: string;
   time?: string;
   calories: number;
@@ -32,6 +39,11 @@ interface MealCardProps {
 export function MealCard({
   icon = "🍽",
   imageUri,
+  imagePath,
+  imageUrl,
+  thumbnailUri,
+  photoUri,
+  mediaUri,
   title,
   time,
   calories,
@@ -45,6 +57,17 @@ export function MealCard({
   const { t } = useAppTranslation();
   const swipeRef = useRef<Swipeable>(null);
   const displayTitle = formatFoodName(title);
+  const fallbackImageUri = getMealDisplayImageUri({
+    imageUri,
+    imageUrl,
+    thumbnailUri,
+    photoUri,
+    mediaUri,
+  });
+  const { uri: displayImageUri } = useMealImageSource({
+    imagePath: getMealDisplayImagePath({ imagePath }),
+    imageUri: fallbackImageUri,
+  });
 
   const handleDelete = () => {
     swipeRef.current?.close();
@@ -103,9 +126,9 @@ export function MealCard({
         { backgroundColor: theme.colors.surfaceSecondary },
       ]}
     >
-      {imageUri ? (
+      {displayImageUri ? (
         <Image
-          source={{ uri: imageUri }}
+          source={{ uri: displayImageUri }}
           style={styles.mealImage}
           contentFit="cover"
         />
