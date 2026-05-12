@@ -1,23 +1,21 @@
 /**
  * @jest-environment node
  *
- * FOOD_LOG_SAFE_MODE is currently hard-coded `true` while we bisect the
- * post-Track-Calories crash on device. These tests pin that contract so a
- * future flip back to `false` is a deliberate, reviewed change rather than
- * a silent regression.
- *
- * Current matrix step: Bisect Run 1 — simple meal rows on full RealHome
- *   FOOD_LOG_SAFE_MODE          = true
+ * Post-bisect defaults (post-Track-Calories crash fixed via nav mode):
+ *   FOOD_LOG_SAFE_MODE          = false  (cloud restore must never be skipped)
  *   FOOD_LOG_RENDER_FAKE_HOME   = false
- *   HOME_SAFE_DISABLE_MEAL_LIST = false (others still true → homeBisectUseSimpleMealRows)
  *   FOOD_LOG_POST_SAVE_NAV_MODE = "dismissAll"
+ *
+ * HOME_SAFE_* flags may still be true from bisect; they only affect the shell
+ * when FOOD_LOG_SAFE_MODE is true. Flipping safe mode back on for isolation
+ * should be a deliberate, reviewed change — these tests pin the stable defaults.
  */
 describe("safe-mode-flags", () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const flags = require("../src/features/debug/safe-mode-flags");
 
-  it("FOOD_LOG_SAFE_MODE is hard-coded true", () => {
-    expect(flags.FOOD_LOG_SAFE_MODE).toBe(true);
+  it("FOOD_LOG_SAFE_MODE is off after bisect (do not ship true without cloud-restore policy)", () => {
+    expect(flags.FOOD_LOG_SAFE_MODE).toBe(false);
   });
 
   it("FOOD_LOG_RENDER_FAKE_HOME is false for Run D matrix entry", () => {
@@ -32,8 +30,8 @@ describe("safe-mode-flags", () => {
     expect(flags.HOME_SAFE_DISABLE_MEAL_LIST).toBe(false);
   });
 
-  it("homeBisectUseSimpleMealRows is true under Run 1 flags", () => {
-    expect(flags.homeBisectUseSimpleMealRows()).toBe(true);
+  it("homeBisectUseSimpleMealRows is false when FOOD_LOG_SAFE_MODE is off", () => {
+    expect(flags.homeBisectUseSimpleMealRows()).toBe(false);
   });
 
   it("assertFoodLogSafeModeImport logs the flag value", () => {
