@@ -17,12 +17,17 @@ function hashPayload(p: LiveActivityPayload): string {
 }
 
 /**
- * Check whether Live Activities are supported and enabled on this device.
- * Returns false on Android, iOS < 16.2, Expo Go, or if the user disabled
- * Live Activities for this app in iOS Settings.
+ * True when this build can run Live Activities (iOS 16.2+ native module).
+ * Does not reflect the per-app switch in iOS Settings — use
+ * `areLiveActivitiesSystemAuthorized` for that.
  */
 export function areLiveActivitiesAvailable(): boolean {
   return calorieTrackerActivity.isSupported();
+}
+
+/** True when the user has left Live Activities enabled for this app in iOS Settings. */
+export function areLiveActivitiesSystemAuthorized(): boolean {
+  return calorieTrackerActivity.isActivitiesAuthorized();
 }
 
 /**

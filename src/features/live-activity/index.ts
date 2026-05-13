@@ -2,6 +2,7 @@
 export { mapToLiveActivityPayload } from "./live-activity.mapper";
 export {
   areLiveActivitiesAvailable,
+  areLiveActivitiesSystemAuthorized,
   endLiveActivity,
   isLiveActivityRunning,
   startLiveActivity,

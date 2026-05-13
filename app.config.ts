@@ -7,18 +7,73 @@
  * bundle IDs — all builds use `com.calton.caloric` for the `caloric` app profile key.
  */
 
+import fs from "node:fs";
+import path from "node:path";
 import { ConfigContext, ExpoConfig } from "expo/config";
+
+/**
+ * `expo start` loads .env; raw Node entrypoints (e.g. expo-updates fingerprint during
+ * an Xcode build) do not. Merge project .env / .env.local into process.env without
+ * overwriting vars already set by the shell, EAS, or CI.
+ */
+function parseEnvFile(filePath: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!fs.existsSync(filePath)) return out;
+  let text = fs.readFileSync(filePath, "utf8");
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+  for (const rawLine of text.split(/\r?\n/)) {
+    let line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    if (line.startsWith("export ")) line = line.slice(7).trim();
+    const eq = line.indexOf("=");
+    if (eq === -1) continue;
+    const key = line.slice(0, eq).trim();
+    if (!key) continue;
+    let val = line.slice(eq + 1).trim();
+    if (
+      (val.startsWith('"') && val.endsWith('"')) ||
+      (val.startsWith("'") && val.endsWith("'"))
+    ) {
+      val = val.slice(1, -1);
+    }
+    out[key] = val;
+  }
+  return out;
+}
+
+function hydrateAppConfigEnvFromDisk(): void {
+  const root = process.cwd();
+  const merged = {
+    ...parseEnvFile(path.join(root, ".env")),
+    ...parseEnvFile(path.join(root, ".env.local")),
+  };
+  for (const [k, v] of Object.entries(merged)) {
+    if (process.env[k] === undefined) {
+      process.env[k] = v;
+    }
+  }
+}
 
 // Import config loader
 // Note: This runs at build time, so env vars must be set during prebuild/build
 const getConfig = (): any => {
+  hydrateAppConfigEnvFromDisk();
+
   // During build time, we need to load config differently
   // Use process.env directly since Constants.expoConfig isn't available yet
   const appProfile =
     process.env.EXPO_PUBLIC_APP_PROFILE || process.env.APP_PROFILE || "caloric";
-  const appEnvRaw =
-    process.env.EXPO_PUBLIC_APP_ENV || process.env.APP_ENV || "";
-  const appEnv = String(appEnvRaw).trim();
+  let appEnv = String(
+    process.env.EXPO_PUBLIC_APP_ENV || process.env.APP_ENV || ""
+  ).trim();
+  // Local Xcode / CLI without .env: avoid failing the fingerprint script; EAS/CI must set explicitly.
+  if (
+    !appEnv &&
+    process.env.EAS_BUILD !== "true" &&
+    process.env.CI !== "true"
+  ) {
+    appEnv = "dev";
+  }
   if (!appEnv) {
     throw new Error(
       `❌ EXPO_PUBLIC_APP_ENV (or APP_ENV at build time) is required.\n` +

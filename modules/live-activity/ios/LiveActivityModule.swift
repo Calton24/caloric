@@ -23,8 +23,19 @@ public class LiveActivityModule: Module {
     public func definition() -> ModuleDefinition {
         Name("LiveActivityModule")
 
-        // ── Query: are Live Activities supported on this device? ──
+        // ── Query: can this OS run Live Activities? (NOT the per-app Settings switch.)
+        // `ActivityAuthorizationInfo.areActivitiesEnabled` is false until the user
+        // enables CalCut under Settings → Live Activities — do not use it here or
+        // the in-app toggle can never be turned on first.
         Function("isSupported") { () -> Bool in
+            if #available(iOS 16.2, *) {
+                return true
+            }
+            return false
+        }
+
+        /// Per-app Live Activities switch (Settings → CalCut → Live Activities).
+        Function("areActivitiesAuthorized") { () -> Bool in
             if #available(iOS 16.2, *) {
                 return ActivityAuthorizationInfo().areActivitiesEnabled
             }

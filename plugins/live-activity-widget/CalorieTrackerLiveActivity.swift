@@ -19,6 +19,7 @@
 
 import ActivityKit
 import SwiftUI
+import UIKit
 import WidgetKit
 
 // MARK: - Brand Color
@@ -34,14 +35,20 @@ private let cameraURL = URL(string: "calcut:///(tabs)?foodLog=camera")!
 
 // MARK: - Macro SF Symbols (Live Activity / Dynamic Island)
 
-/// Glyphs readable at ~10–14pt. Fat uses `avocado` + green tint (not a red droplet).
-private enum MacroGlyph {
-    static let protein = "egg.fill"
-    static let carbs = "bolt.fill"
-    static let fat = "avocado.fill"
+/// Picks `primary` when the current OS SF Symbols font includes it; otherwise `fallback`.
+/// Wrong names render as empty space in `Image(systemName:)`, so this keeps older iOS usable.
+private func macroSFSymbol(primary: String, fallback: String) -> String {
+    UIImage(systemName: primary) != nil ? primary : fallback
 }
 
-/// Fat macro accent — pairs with avocado icon (avoids blood-like red on droplet shapes).
+/// Glyphs readable at ~10–14pt. Protein: fish; fat: oil-drop (green tint, not red).
+private enum MacroGlyph {
+    static let protein = macroSFSymbol(primary: "fish.fill", fallback: "fork.knife")
+    static let carbs = "bolt.fill"
+    static let fat = macroSFSymbol(primary: "drop.circle.fill", fallback: "drop.fill")
+}
+
+/// Fat macro accent — pairs with droplet icon (tinted green, not blood-red).
 private let fatMacroAccent = Color(red: 0.30, green: 0.52, blue: 0.28)
 
 // MARK: - App Icon View

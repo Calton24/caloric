@@ -22,7 +22,7 @@ import { DISABLE_POST_SAVE_LIVE_ACTIVITY } from "../food-logging/post-save-debug
 import { FOOD_LOG_SAFE_MODE } from "../debug/safe-mode-flags";
 import { mapToLiveActivityPayload } from "./live-activity.mapper";
 import {
-  areLiveActivitiesAvailable,
+  areLiveActivitiesSystemAuthorized,
   endLiveActivity,
   updateLiveActivity,
 } from "./live-activity.service";
@@ -51,10 +51,9 @@ export function useLiveActivitySync() {
     [plan, dailySummary]
   );
 
-  // On mount, sync the store flag with native availability.
-  // If the user disabled LA in iOS Settings, we turn off the flag.
+  // If the user turned off Live Activities for this app in iOS Settings, clear our flag.
   useEffect(() => {
-    if (liveActivitiesEnabled && !areLiveActivitiesAvailable()) {
+    if (liveActivitiesEnabled && !areLiveActivitiesSystemAuthorized()) {
       usePermissionsStore.getState().setLiveActivitiesEnabled(false);
     }
   }, [liveActivitiesEnabled]);

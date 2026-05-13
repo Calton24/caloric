@@ -9,13 +9,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Alert, Platform, Pressable, StyleSheet, View } from "react-native";
+import { Alert, Linking, Platform, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
     FadeIn,
     FadeInDown,
     FadeInUp,
 } from "react-native-reanimated";
-import { areLiveActivitiesAvailable } from "../../src/features/live-activity";
+import { areLiveActivitiesAvailable, areLiveActivitiesSystemAuthorized } from "../../src/features/live-activity";
 import { usePermissionsStore } from "../../src/features/permissions";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../src/theme/useTheme";
@@ -42,11 +42,31 @@ export default function LiveActivityIntroScreen() {
     const available = areLiveActivitiesAvailable();
 
     if (!available) {
-      // The native module isn't loaded (Expo Go) or user disabled LA in iOS Settings
+      // OS / build cannot run Live Activities (e.g. iOS < 16.2, missing native module).
       Alert.alert(
         t("liveActivity.unavailable"),
         t("liveActivity.unavailableDesc"),
         [
+          {
+            text: t("liveActivity.continueWithout"),
+            onPress: () => router.replace("/(main)/home" as any),
+          },
+        ]
+      );
+      return;
+    }
+
+    if (!areLiveActivitiesSystemAuthorized()) {
+      Alert.alert(
+        t("liveActivity.unavailable"),
+        t("liveActivity.unavailableDesc"),
+        [
+          {
+            text: t("camera.openSettings"),
+            onPress: () => {
+              void Linking.openSettings();
+            },
+          },
           {
             text: t("liveActivity.continueWithout"),
             onPress: () => router.replace("/(main)/home" as any),

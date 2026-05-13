@@ -23,6 +23,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../../src/features/auth/useAuth";
 import {
   areLiveActivitiesAvailable,
+  areLiveActivitiesSystemAuthorized,
   endLiveActivity,
 } from "../../../src/features/live-activity";
 import { iosPhoneHasNotchOrDynamicIsland } from "../../../src/utils/iphoneNotchOrDynamicIsland";
@@ -309,6 +310,22 @@ export default function SettingsScreen() {
           Alert.alert(
             t("settings.liveActivityUnavailable"),
             t("settings.liveActivityUnavailableDesc")
+          );
+          return;
+        }
+        if (!areLiveActivitiesSystemAuthorized()) {
+          Alert.alert(
+            t("settings.liveActivityUnavailable"),
+            t("settings.liveActivityUnavailableDesc"),
+            [
+              { text: t("common.cancel"), style: "cancel" },
+              {
+                text: t("camera.openSettings"),
+                onPress: () => {
+                  void Linking.openSettings();
+                },
+              },
+            ]
           );
           return;
         }

@@ -98,6 +98,7 @@ import { toISODate } from "../../src/lib/utils/date";
 import { useTheme } from "../../src/theme/useTheme";
 import {
     areLiveActivitiesAvailable,
+    areLiveActivitiesSystemAuthorized,
     endLiveActivity,
 } from "../../src/features/live-activity";
 import { iosPhoneHasNotchOrDynamicIsland } from "../../src/utils/iphoneNotchOrDynamicIsland";
@@ -933,6 +934,22 @@ export default function HomeScreen() {
           Alert.alert(
             t("settings.liveActivityUnavailable"),
             t("settings.liveActivityUnavailableDesc")
+          );
+          return;
+        }
+        if (!areLiveActivitiesSystemAuthorized()) {
+          Alert.alert(
+            t("settings.liveActivityUnavailable"),
+            t("settings.liveActivityUnavailableDesc"),
+            [
+              { text: t("common.cancel"), style: "cancel" },
+              {
+                text: t("camera.openSettings"),
+                onPress: () => {
+                  void Linking.openSettings();
+                },
+              },
+            ]
           );
           return;
         }

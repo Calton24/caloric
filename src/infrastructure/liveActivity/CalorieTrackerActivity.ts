@@ -69,6 +69,15 @@ try {
 }
 
 class CalorieTrackerActivityClient {
+  isActivitiesAuthorized(): boolean {
+    if (!moduleAvailable) return false;
+    try {
+      return nativeModule?.areActivitiesAuthorized?.() === true;
+    } catch {
+      return false;
+    }
+  }
+
   isSupported(): boolean {
     if (!moduleAvailable) return false;
     try {
