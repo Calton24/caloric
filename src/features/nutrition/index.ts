@@ -58,7 +58,12 @@ export { buildMealEntryFromDraft } from "./nutrition.helpers";
 export { useLoggingFlow } from "./use-logging-flow";
 
 // ── Storage ──
-export { getMealsForDate, getNutritionTotals } from "./nutrition.selectors";
+export {
+  getDailyNutritionTotalsMap,
+  getMealsForDate,
+  getNutritionTotals,
+} from "./nutrition.selectors";
+export type { DailyNutritionTotals } from "./nutrition.selectors";
 export { useNutritionStore } from "./nutrition.store";
 export type {
     DailyNutritionSummary,

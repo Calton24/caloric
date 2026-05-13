@@ -78,7 +78,7 @@ export default function LogWeightScreen() {
             <TText
               style={[styles.dateText, { color: theme.colors.textSecondary }]}
             >
-              {t("progress.logWeight.today")}, {formatMonthDay(new Date())}
+              {t("logWeight.today")}, {formatMonthDay(new Date())}
             </TText>
           </Animated.View>
 

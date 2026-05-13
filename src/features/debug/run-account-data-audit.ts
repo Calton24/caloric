@@ -26,9 +26,10 @@ export type AccountDataAuditHomeSnapshot = {
 const PULL_WINDOW_DAYS = 3650;
 
 function mealSelectColumns() {
-  // Use only columns that exist in the meal_entries table.
-  // logged_at_utc does NOT exist — the table uses `logged_at` for the UTC timestamp.
-  return "id,title,logged_at,logged_date_local,timezone,user_id,calories,protein,carbs,fat,deleted_at";
+  // Only columns confirmed to exist in meal_entries.
+  // logged_at_utc / logged_at_local / logged_date_local / timezone are not
+  // yet in the schema — omit them to prevent audit query failures.
+  return "id,title,logged_at,user_id,calories,protein,carbs,fat,deleted_at";
 }
 
 export async function runAccountDataAudit(

@@ -1,13 +1,13 @@
 import { buildAppleHealthFoodPayload } from "./apple-health-food.adapter";
 
 describe("buildAppleHealthFoodPayload", () => {
-  it("rejects missing name", () => {
+  it("defaults empty title to Food", () => {
     const result = buildAppleHealthFoodPayload({
       calories: 250,
       loggedAt: new Date().toISOString(),
     });
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).toBe("missing_name");
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.payload.name).toBe("Food");
   });
 
   it("rejects null calories", () => {

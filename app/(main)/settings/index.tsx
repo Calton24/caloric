@@ -9,7 +9,7 @@
  *   - Pro banner
  *   - General: Voice & Text Input, Units, Body Measurements, Notifications
  *   - Apple Health
- *   - Extensions: Live Activities (Dynamic Island iPhones only)
+ *   - Extensions: Live Activities (notch / Dynamic Island iPhones only)
  *
  * Every row reads/writes real store state.
  */
@@ -17,17 +17,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useMemo } from "react";
-import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from "react-native";
+import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useDeleteAccountDialogStore } from "../../../src/features/account/delete-account-dialog.store";
 import { useAuth } from "../../../src/features/auth/useAuth";
 import {
   areLiveActivitiesAvailable,
   endLiveActivity,
 } from "../../../src/features/live-activity";
-import { hasDynamicIsland } from "../../../src/platform/ios/hasDynamicIsland";
+import { iosPhoneHasNotchOrDynamicIsland } from "../../../src/platform/ios/hasDynamicIsland";
 import { usePermissionsStore } from "../../../src/features/permissions";
+import { applyLogReminderEnabled } from "../../../src/features/reminders/apply-log-reminder-enabled";
 import {
     getLanguageLabel,
     useSettingsStore,
@@ -39,7 +39,9 @@ import { trackUpgradePaywallOpened } from "../../../src/features/subscription/su
 import { useRevenueCat } from "../../../src/features/subscription/useRevenueCat";
 import { useUnits } from "../../../hooks/useUnits";
 import { useAppTranslation } from "../../../src/infrastructure/i18n/useAppTranslation";
+import { haptics } from "../../../src/infrastructure/haptics";
 import { useTheme } from "../../../src/theme/useTheme";
+import { GlassToggleSwitch } from "../../../src/ui/components/GlassToggleSwitch";
 import { TSpacer } from "../../../src/ui/primitives/TSpacer";
 import { TText } from "../../../src/ui/primitives/TText";
 
@@ -125,14 +127,9 @@ function SettingsToggle({
         <TText style={[styles.rowLabel, { color: theme.colors.text }]}>
           {label}
         </TText>
-        <Switch
+        <GlassToggleSwitch
           value={value}
-          onValueChange={onToggle}
-          trackColor={{
-            false: theme.colors.surfaceSecondary,
-            true: theme.colors.primary + "88",
-          }}
-          thumbColor={value ? theme.colors.primary : theme.colors.textMuted}
+          onToggle={() => onToggle(!value)}
         />
       </View>
       {description && (
@@ -218,7 +215,10 @@ export default function SettingsScreen() {
   const { t } = useAppTranslation();
   const router = useRouter();
   const { user, signOut } = useAuth();
-  const openDeleteAccountDialog = useDeleteAccountDialogStore((s) => s.open);
+
+  const openDeleteAccount = useCallback(() => {
+    router.push("/(modals)/delete-account" as never);
+  }, [router]);
 
   // ── Settings store ──
   const settings = useSettingsStore((s) => s.settings);
@@ -291,6 +291,11 @@ export default function SettingsScreen() {
   ]);
 
   // ── Handlers ──
+  const handleLogReminderToggle = useCallback(async (value: boolean) => {
+    haptics.impact("light");
+    await applyLogReminderEnabled(value);
+  }, []);
+
   const handleToggleLiveActivities = useCallback(
     async (value: boolean) => {
       if (value) {
@@ -308,12 +313,13 @@ export default function SettingsScreen() {
           return;
         }
       }
+      haptics.impact("light");
       setLiveActivitiesEnabled(value);
       if (!value) {
         endLiveActivity();
       }
     },
-    [setLiveActivitiesEnabled]
+    [setLiveActivitiesEnabled, t]
   );
 
   const handleDone = useCallback(() => {
@@ -418,13 +424,13 @@ export default function SettingsScreen() {
                   router.push("/(main)/settings/body-measurements" as any)
                 }
               />
-              <SettingsRow
+              <SettingsToggle
                 icon="notifications-outline"
                 iconColor={theme.colors.primary}
                 label={t("settings.notifications")}
-                onPress={() =>
-                  router.push("/(main)/settings/notifications" as any)
-                }
+                description={t("settings.logReminderHint")}
+                value={settings.logReminderEnabled}
+                onToggle={handleLogReminderToggle}
               />
             </View>
           </Animated.View>
@@ -454,8 +460,8 @@ export default function SettingsScreen() {
             </>
           )}
 
-          {/* ── Extensions: Live Activities (Dynamic Island iPhones only) ── */}
-          {hasDynamicIsland() && (
+          {/* ── Extensions: Live Activities (notch / Dynamic Island iPhones only) ── */}
+          {iosPhoneHasNotchOrDynamicIsland() && (
             <>
               <TSpacer size="lg" />
               <Animated.View entering={FadeInDown.duration(400).delay(300)}>
@@ -640,7 +646,7 @@ export default function SettingsScreen() {
                 icon="trash-outline"
                 iconColor={theme.colors.error}
                 label={t("settings.deleteAccount")}
-                onPress={openDeleteAccountDialog}
+                onPress={openDeleteAccount}
               />
             </View>
           </Animated.View>

@@ -14,6 +14,7 @@ import type {
     HealthKitNutritionSample,
     HealthKitWeightSample,
     HealthService,
+    WriteDietaryEnergySampleInput,
 } from "./health.types";
 
 // Lazy-load the native module to avoid crashes when not linked.
@@ -210,32 +211,42 @@ export class AppleHealthService implements HealthService {
     }));
   }
 
-  async writeCalories(
-    calories: number,
-    startDate: Date,
-    endDate: Date
-  ): Promise<void> {
+  async writeCalories(input: WriteDietaryEnergySampleInput): Promise<void> {
     await this.ensureInit();
     const hk = getHK();
     if (!hk?.saveFood) return;
 
-    const safeCalories = Number(calories);
-    if (!Number.isFinite(safeCalories) || safeCalories <= 0) return;
-    const safeStartIso = new Date(startDate).toISOString();
-    const safeEndIso = new Date(endDate).toISOString();
+    const foodName = String(input.foodName ?? "").trim() || "Food";
+    const mealType = String(input.mealType ?? "").trim() || "Lunch";
+    const energy = Number(input.energyKcal);
+    if (!Number.isFinite(energy) || energy <= 0) return;
+
+    const when = input.date instanceof Date && !Number.isNaN(input.date.getTime())
+      ? input.date
+      : new Date();
+    const dateIso = when.toISOString();
+
+    // Keys MUST match RCTAppleHealthKit+Methods_Dietary.m `saveFood:`.
+    // Native builds @{ HKMetadataKeyFoodType: foodName, @"HKFoodMeal": mealType }
+    // — both must be non-nil NSString or the app crashes (NSDictionary literal).
+    const nativeInput: Record<string, string | number> = {
+      foodName,
+      mealType,
+      energy,
+      date: dateIso,
+    };
+
+    const p = input.proteinG != null ? Number(input.proteinG) : 0;
+    const c = input.carbohydratesG != null ? Number(input.carbohydratesG) : 0;
+    const f = input.fatG != null ? Number(input.fatG) : 0;
+    if (Number.isFinite(p) && p > 0) nativeInput.protein = p;
+    if (Number.isFinite(c) && c > 0) nativeInput.carbohydrates = c;
+    if (Number.isFinite(f) && f > 0) nativeInput.fatTotal = f;
 
     return new Promise((resolve, reject) => {
       try {
         hk.saveFood(
-          {
-            // Native bridge has crashed on nil dictionary values here, so keep
-            // every field strictly non-null primitives.
-            foodName: "Caloric Meal",
-            value: safeCalories,
-            startDate: safeStartIso,
-            endDate: safeEndIso,
-            unit: hk.Constants?.Units?.kilocalorie ?? "kilocalorie",
-          } as Record<string, unknown>,
+          nativeInput,
           (err: string, _result: HealthValue) => {
             if (err) reject(new Error(String(err)));
             else resolve();

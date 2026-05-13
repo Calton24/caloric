@@ -6,10 +6,11 @@
  */
 
 import React, { memo } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "../../../theme/useTheme";
 import { useAppTranslation } from "../../../infrastructure/i18n/useAppTranslation";
+import { GlassSurface } from "../../glass/GlassSurface";
 import { TText } from "../../primitives/TText";
 import type { DashboardRange } from "../../../features/progress/dashboard.selectors";
 
@@ -22,7 +23,11 @@ interface RangeSelectorProps {
 
 function RangeSelectorImpl({ value, onChange }: RangeSelectorProps) {
   const { theme } = useTheme();
+  const isDark = theme.mode === "dark";
   const { t } = useAppTranslation();
+  const selectedSegmentBg = isDark
+    ? "rgba(255,255,255,0.22)"
+    : "rgba(255,255,255,0.95)";
 
   const labels: Record<DashboardRange, string> = {
     "7d": t("progress.ranges.7d"),
@@ -32,12 +37,7 @@ function RangeSelectorImpl({ value, onChange }: RangeSelectorProps) {
   };
 
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: theme.colors.surfaceSecondary },
-      ]}
-    >
+    <GlassSurface variant="card" intensity="light" style={styles.container}>
       {RANGES.map((r) => {
         const selected = r === value;
         return (
@@ -51,14 +51,7 @@ function RangeSelectorImpl({ value, onChange }: RangeSelectorProps) {
             }}
             style={[
               styles.segment,
-              selected && {
-                backgroundColor: theme.colors.surfaceElevated,
-                shadowColor: theme.colors.glassShadow,
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 1,
-                shadowRadius: 3,
-                elevation: 2,
-              },
+              selected && { backgroundColor: selectedSegmentBg },
             ]}
             accessibilityRole="button"
             accessibilityState={{ selected }}
@@ -77,7 +70,7 @@ function RangeSelectorImpl({ value, onChange }: RangeSelectorProps) {
           </Pressable>
         );
       })}
-    </View>
+    </GlassSurface>
   );
 }
 

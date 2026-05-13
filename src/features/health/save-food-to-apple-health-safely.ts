@@ -1,92 +1,113 @@
-import { reportError } from "../../infrastructure/errorReporting";
-import { addFoodLoggingBreadcrumb } from "../../infrastructure/errorReporting/foodLoggingErrors";
+import {
+  addFoodLoggingBreadcrumb,
+  captureFoodLoggingError,
+} from "../../infrastructure/errorReporting/foodLoggingErrors";
 import { getHealthService } from "./health.factory";
-import { buildAppleHealthFoodPayload } from "./apple-health-food.adapter";
+import {
+  buildWriteDietaryEnergySampleInputFromMeal,
+  type MealForHealthKit,
+} from "./healthkitFoodPayload";
 
-type MealForHealthKit = {
-  id?: string | null;
-  title?: string | null;
-  name?: string | null;
-  calories?: unknown;
-  protein?: unknown;
-  carbs?: unknown;
-  fat?: unknown;
-  loggedAt?: unknown;
-  createdAt?: unknown;
+let healthKitFoodWriteBlockedUntil = 0;
+
+/** Test helper — clears the post-failure write cooldown. */
+export function resetAppleHealthFoodWriteCircuitBreakerForTests(): void {
+  healthKitFoodWriteBlockedUntil = 0;
+}
+
+function isHealthKitFoodWriteBlocked(): boolean {
+  return Date.now() < healthKitFoodWriteBlockedUntil;
+}
+
+function blockHealthKitFoodWritesFromFailure(): void {
+  healthKitFoodWriteBlockedUntil = Date.now() + 10 * 60 * 1000;
+}
+
+/** Opt-in: set `EXPO_PUBLIC_HEALTHKIT_FOOD_WRITE_ENABLED=1` in the build env. */
+export function isHealthKitFoodWriteExplicitlyEnabled(): boolean {
+  return process.env.EXPO_PUBLIC_HEALTHKIT_FOOD_WRITE_ENABLED === "1";
+}
+
+export type SaveFoodToAppleHealthSafelyOptions = {
+  /** Unit tests / dev tools only — bypasses env gate. */
+  forceEnable?: boolean;
+  /** HKFoodMeal string (e.g. Breakfast, Lunch, Dinner, Snacks). */
+  mealType?: string | null;
 };
 
-export const ENABLE_APPLE_HEALTH_FOOD_WRITE = !__DEV__;
+export type SaveFoodToAppleHealthResult =
+  | { ok: true }
+  | { ok: false; skipped: true; reason: string }
+  | { ok: false; error: unknown };
 
+/**
+ * Writes one meal to Apple Health (dietary energy) when enabled.
+ * Never throws — food logging must succeed even when HealthKit fails.
+ */
 export async function saveFoodToAppleHealthSafely(
   meal: MealForHealthKit,
-  opts?: { forceEnable?: boolean }
-): Promise<void> {
-  const writesEnabled = opts?.forceEnable ?? ENABLE_APPLE_HEALTH_FOOD_WRITE;
+  opts?: SaveFoodToAppleHealthSafelyOptions
+): Promise<SaveFoodToAppleHealthResult> {
+  const enabledByEnv = isHealthKitFoodWriteExplicitlyEnabled();
+  const writesEnabled = opts?.forceEnable === true || enabledByEnv;
+
   if (!writesEnabled) {
-    addFoodLoggingBreadcrumb("[AppleHealthFood] skipped_by_flag", {
+    addFoodLoggingBreadcrumb("[AppleHealthFood] skipped_not_enabled", {
       meal_id: meal.id ?? null,
+      env_flag: enabledByEnv,
     });
-    return;
+    return { ok: false, skipped: true, reason: "disabled_by_config" };
   }
 
-  const built = buildAppleHealthFoodPayload(meal);
-  if (!built.ok) {
+  if (isHealthKitFoodWriteBlocked()) {
+    addFoodLoggingBreadcrumb("[AppleHealthFood] skipped_breaker_active", {
+      meal_id: meal.id ?? null,
+    });
+    return { ok: false, skipped: true, reason: "healthkit_blocked" };
+  }
+
+  const writeInput = buildWriteDietaryEnergySampleInputFromMeal(meal, {
+    mealType: opts?.mealType,
+  });
+  if (!writeInput) {
     addFoodLoggingBreadcrumb("[AppleHealthFood] skipped_invalid_payload", {
       meal_id: meal.id ?? null,
-      reason: built.reason,
-      ...built.debug,
     });
-    reportError(new Error(`AppleHealth food skipped: ${built.reason}`), {
-      area: "food_log",
-      action: "apple_health_food_skipped",
-      extra: {
-        mealId: meal.id ?? null,
-        reason: built.reason,
-        debug: built.debug,
-      },
-    });
-    return;
+    return { ok: false, skipped: true, reason: "invalid_payload" };
   }
-
-  const payloadShape = Object.fromEntries(
-    Object.entries(built.payload).map(([key, value]) => [
-      key,
-      {
-        type: typeof value,
-        isNullish: value == null,
-        isFiniteNumber:
-          typeof value === "number" ? Number.isFinite(value) : undefined,
-      },
-    ])
-  );
 
   addFoodLoggingBreadcrumb("[AppleHealthFood] save_started", {
     meal_id: meal.id ?? null,
-    payloadShape,
+    energy_kcal: writeInput.energyKcal,
   });
 
   try {
     const healthService = getHealthService();
-    await healthService.writeCalories(
-      built.payload.calories,
-      new Date(built.payload.startDate),
-      new Date(built.payload.endDate)
-    );
+    await healthService.writeCalories(writeInput);
     addFoodLoggingBreadcrumb("[AppleHealthFood] save_finished", {
       meal_id: meal.id ?? null,
     });
+    return { ok: true };
   } catch (error) {
+    blockHealthKitFoodWritesFromFailure();
     addFoodLoggingBreadcrumb("[AppleHealthFood] save_failed", {
       meal_id: meal.id ?? null,
     });
-    reportError(error, {
-      area: "food_log",
-      action: "apple_health_save_food_failed",
-      extra: {
-        mealId: meal.id ?? null,
-        title: meal.title ?? meal.name ?? null,
+    captureFoodLoggingError(error, {
+      flow: "healthkit",
+      step: "save_food_failed",
+      mealId: meal.id ?? undefined,
+      foodTitle:
+        typeof meal.title === "string"
+          ? meal.title
+          : typeof meal.name === "string"
+            ? meal.name
+            : undefined,
+      extras: {
+        energyKcal: writeInput.energyKcal,
+        mealType: writeInput.mealType,
       },
     });
+    return { ok: false, error };
   }
 }
-

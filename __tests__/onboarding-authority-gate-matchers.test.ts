@@ -18,6 +18,7 @@ import {
   isGatedAllowedRoute,
   isIndexRoute,
   isInsideOnboardingFlow,
+  isDeleteAccountRoute,
   isManageAccountRoute,
   isPaywallRoute,
   isPermissionsRoute,
@@ -200,14 +201,30 @@ describe("OnboardingAuthorityGate: path matchers", () => {
     });
   });
 
+  describe("isDeleteAccountRoute", () => {
+    it("matches both group-prefixed and stripped forms", () => {
+      expect(isDeleteAccountRoute("/(modals)/delete-account")).toBe(true);
+      expect(isDeleteAccountRoute("/delete-account")).toBe(true);
+      expect(isDeleteAccountRoute("/delete-account?x=1")).toBe(true);
+    });
+    it("does not match other modals", () => {
+      expect(isDeleteAccountRoute("/(modals)/manage-account")).toBe(false);
+      expect(isDeleteAccountRoute("/manage-account")).toBe(false);
+    });
+  });
+
   describe("isGatedAllowedRoute (App-Review safe allowlist)", () => {
-    it("allows paywall, web-viewer, manage-account and auth routes", () => {
+    it("allows paywall, web-viewer, manage-account, delete-account and auth routes", () => {
       expect(isGatedAllowedRoute("/paywall", undefined)).toBe(true);
       expect(isGatedAllowedRoute("/(onboarding)/paywall", "gate")).toBe(true);
       expect(isGatedAllowedRoute("/web-viewer", undefined)).toBe(true);
       expect(isGatedAllowedRoute("/(modals)/web-viewer", undefined)).toBe(true);
       expect(isGatedAllowedRoute("/manage-account", undefined)).toBe(true);
       expect(isGatedAllowedRoute("/(modals)/manage-account", undefined)).toBe(
+        true,
+      );
+      expect(isGatedAllowedRoute("/delete-account", undefined)).toBe(true);
+      expect(isGatedAllowedRoute("/(modals)/delete-account", undefined)).toBe(
         true,
       );
       expect(isGatedAllowedRoute("/auth/sign-in", undefined)).toBe(true);

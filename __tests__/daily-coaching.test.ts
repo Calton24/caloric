@@ -254,6 +254,23 @@ describe("buildCoachingCopy", () => {
     expect(copy.text).toContain("45");
   });
 
+  it("interpolates milestone day for protein_priority + milestone_pressure", () => {
+    const copy = buildCoachingCopy(
+      ["protein_priority", "milestone_pressure"],
+      baseInput({
+        proteinRemaining: 128,
+        streak: 1,
+        daysToMilestone: 2,
+        nextMilestone: 3,
+        secured: true,
+      })
+    );
+    expect(copy.text).toMatch(/proteinMilestone/);
+    expect(copy.text).toContain("128");
+    expect(copy.text).toContain("3");
+    expect(copy.text).not.toContain("{{target}}");
+  });
+
   it("combines tight_budget + protein_priority", () => {
     const copy = buildCoachingCopy(
       ["tight_budget", "protein_priority"],

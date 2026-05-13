@@ -9,6 +9,7 @@
     "milestoneContext": "{{count}} jours avant votre jalon du jour {{target}}",
     "milestoneContext_one": "1 jour avant votre jalon du jour {{target}}",
     "progressTarget": "Day {{target}}",
+    "coachInsightsPill": "Conseils coach",
     "dayQuality": {
       "perfect": "Perfect",
       "optimized": "Optimized",

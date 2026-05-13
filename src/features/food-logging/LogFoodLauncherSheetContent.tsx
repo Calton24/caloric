@@ -18,6 +18,7 @@ import type { MealDraft } from "../nutrition/nutrition.draft.types";
 import { ManualLogSheet } from "../../ui/components/ManualLogSheet";
 import { VoiceLogSheet } from "../../ui/components/VoiceLogSheet";
 import { TText } from "../../ui/primitives/TText";
+import type { BottomSheetContextValue } from "../../ui/sheets/BottomSheetProvider";
 import { useBottomSheet } from "../../ui/sheets/useBottomSheet";
 import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
@@ -38,6 +39,33 @@ function memoryToDraft(entry: FoodMemoryEntry): MealDraft {
 }
 
 export type LogFoodLauncherVariant = "home" | "confirm";
+
+export type HomeFoodLogSubSheetMode = "manual" | "voice";
+
+/** Same bottom sheets as the home “+” launcher keyboard / mic row (Live Activity deep links). */
+export function openHomeFoodLogSubSheet(
+  mode: HomeFoodLogSubSheetMode,
+  args: {
+    open: BottomSheetContextValue["open"];
+    close: BottomSheetContextValue["close"];
+    setLogDate: (date: string | null) => void;
+    homeSelectedDate: string;
+    homeIsToday: boolean;
+  },
+): void {
+  const { open, close, setLogDate, homeSelectedDate, homeIsToday } = args;
+  setLogDate(homeIsToday ? null : homeSelectedDate);
+  const sheet =
+    mode === "manual" ? (
+      <ManualLogSheet onClose={close} />
+    ) : (
+      <VoiceLogSheet onClose={close} />
+    );
+  open(sheet, {
+    snapPoints: ["55%"],
+    enablePanDownToClose: true,
+  });
+}
 
 export interface LogFoodLauncherSheetContentProps {
   variant: LogFoodLauncherVariant;

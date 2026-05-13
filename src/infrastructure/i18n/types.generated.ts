@@ -3,7 +3,7 @@
  * Run: node scripts/generate-i18n-types.js
  *
  * Generated from 11 English locale files.
- * Total keys: 1287 (1106 simple, 181 with interpolation)
+ * Total keys: 1299 (1118 simple, 181 with interpolation)
  */
 
 /** All valid translation keys (no interpolation params) */
@@ -912,6 +912,17 @@ export type SimpleTranslationKey =
   | "progress.bmiOverweight"
   | "progress.bmiObese"
   | "progress.bmiNeedsHeight"
+  | "progress.ffmiTitle"
+  | "progress.ffmiNeedsProfile"
+  | "progress.ffmiBodyFatLabel"
+  | "progress.ffmiBodyFatPlaceholder"
+  | "progress.ffmiEnterBodyFat"
+  | "progress.ffmiInvalidBodyFat"
+  | "progress.ffmiBelow"
+  | "progress.ffmiAverage"
+  | "progress.ffmiFit"
+  | "progress.ffmiAthletic"
+  | "progress.ffmiExceptional"
   | "progress.emptyWeightTitle"
   | "progress.emptyWeightSubtitle"
   | "progress.emptyMealsTitle"
@@ -1049,6 +1060,7 @@ export type SimpleTranslationKey =
   | "coaching.thisWeek"
   | "coaching.now"
   | "coaching.personalBest"
+  | "coaching.coachInsightsPill"
   | "coaching.dayQuality.perfect"
   | "coaching.dayQuality.optimized"
   | "coaching.dayQuality.secured"

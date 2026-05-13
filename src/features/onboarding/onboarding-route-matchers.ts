@@ -133,6 +133,14 @@ export function isManageAccountRoute(pathname: string): boolean {
   );
 }
 
+/** Dedicated delete-account flow (modal screen, not nested RN Modal). */
+export function isDeleteAccountRoute(pathname: string): boolean {
+  const bare = pathname.split("?")[0];
+  return (
+    bare === "/(modals)/delete-account" || bare === "/delete-account"
+  );
+}
+
 /**
  * Routes an EXPIRED-trial / NO-subscription user must always be able to reach
  * for App Review compliance: subscribe, restore, read legal, delete account,
@@ -146,6 +154,7 @@ export function isGatedAllowedRoute(
     isPaywallRoute(pathname) ||
     isWebViewerRoute(pathname) ||
     isManageAccountRoute(pathname) ||
+    isDeleteAccountRoute(pathname) ||
     isAuthRoute(pathname) ||
     // mode=upgrade explicitly allowed too (already a paywall route, but be
     // defensive against future paywall route renames).

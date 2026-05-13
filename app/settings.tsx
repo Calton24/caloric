@@ -6,7 +6,7 @@
  *   - Goal Plan (current plan summary, recalculate)
  *   - Permissions (mic, camera, notifications)
  *   - Apple Health (read/write toggles)
- *   - Live Activities (Island toggle)
+ *   - Live Activities (notch / Dynamic Island iPhones only)
  *   - Subscription (current plan, manage)
  *   - About (version, restore purchases)
  */
@@ -32,7 +32,6 @@ import {
     exportMealsCSV,
     exportWeightCSV,
 } from "../src/features/export/data-export.service";
-import { deleteUserAccount } from "../src/features/settings/account-deletion.service";
 import { openManageSubscriptions } from "../src/features/subscription/manage-subscription";
 import { PAYWALL_UPGRADE_HREF } from "../src/features/subscription/paywall-mode";
 import { useRevenueCat } from "../src/features/subscription/useRevenueCat";
@@ -46,7 +45,7 @@ import {
     useProgressStore,
     useSubscriptionStore,
 } from "../src/stores";
-import { hasDynamicIsland } from "../src/platform/ios/hasDynamicIsland";
+import { iosPhoneHasNotchOrDynamicIsland } from "../src/platform/ios/hasDynamicIsland";
 import { useTheme } from "../src/theme/useTheme";
 import { TSpacer } from "../src/ui/primitives/TSpacer";
 import { TText } from "../src/ui/primitives/TText";
@@ -453,7 +452,7 @@ export default function SettingsScreen() {
                   )
                 }
               />
-              {hasDynamicIsland() ? (
+              {iosPhoneHasNotchOrDynamicIsland() ? (
                 <SettingsToggle
                   icon="phone-portrait-outline"
                   iconColor={theme.colors.primary}
@@ -657,30 +656,9 @@ export default function SettingsScreen() {
                 icon="trash-outline"
                 iconColor={theme.colors.error}
                 label={t("settings.deleteAccount")}
-                onPress={() => {
-                  Alert.alert(
-                    t("settings.deleteAccount"),
-                    t("settings.deleteAccountConfirm"),
-                    [
-                      { text: t("common.cancel"), style: "cancel" },
-                      {
-                        text: t("settings.delete"),
-                        style: "destructive",
-                        onPress: async () => {
-                          const result = await deleteUserAccount();
-                          if (result.success) {
-                            router.replace("/(onboarding)/landing");
-                          } else {
-                            Alert.alert(
-                              t("settings.deletionFailed"),
-                              result.error || t("settings.deletionFailedDesc")
-                            );
-                          }
-                        },
-                      },
-                    ]
-                  );
-                }}
+                onPress={() =>
+                  router.push("/(modals)/delete-account" as never)
+                }
               />
               <SettingsRow
                 icon="log-out-outline"

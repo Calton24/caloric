@@ -205,6 +205,11 @@ export function getAccessDecision(input: AccessDecisionInput): AccessDecision {
 
   // 3. Onboarding still loading from server.
   if (onboardingStatus === "loading") {
+    // Paywall / legal / manage-account must stay usable (no blocking overlay)
+    // while server onboarding status resolves.
+    if (routeFlags.isGatedAllowed) {
+      return { type: "allow", reason: "allowed_account_route" };
+    }
     return { type: "loading", reason: "onboarding_loading" };
   }
 
@@ -225,7 +230,8 @@ export function getAccessDecision(input: AccessDecisionInput): AccessDecision {
     if (
       routeFlags.isInsideOnboardingFlow ||
       routeFlags.isAuth ||
-      routeFlags.isPermissions
+      routeFlags.isPermissions ||
+      routeFlags.isGatedAllowed
     ) {
       return { type: "allow", reason: "incomplete_on_onboarding_route" };
     }
@@ -270,6 +276,11 @@ export function getAccessDecision(input: AccessDecisionInput): AccessDecision {
     // even before RC resolves so they can scroll/read pricing while we wait.
     if (routeFlags.isVoluntaryUpgradePaywall) {
       return { type: "allow", reason: "voluntary_upgrade_paywall" };
+    }
+    // Legal + manage-account modals must not sit under the global gate loading
+    // overlay (it covers the whole tree and feels like an auto-dismiss).
+    if (routeFlags.isGatedAllowed) {
+      return { type: "allow", reason: "allowed_account_route" };
     }
     return {
       type: "loading",

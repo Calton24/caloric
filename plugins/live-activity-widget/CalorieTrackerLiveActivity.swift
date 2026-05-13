@@ -27,9 +27,22 @@ private let brandGreen = Color(red: 0.298, green: 0.733, blue: 0.459) // hue 141
 
 // MARK: - Deep Link URLs
 
-private let textURL = URL(string: "calcut://tracking/manual")!
-private let voiceURL = URL(string: "calcut://tracking/voice")!
-private let cameraURL = URL(string: "calcut://tracking/camera")!
+// Live Activity CTAs → home with `foodLog` (same UX as FAB “+” sheets).
+private let textURL = URL(string: "calcut:///(tabs)?foodLog=manual")!
+private let voiceURL = URL(string: "calcut:///(tabs)?foodLog=voice")!
+private let cameraURL = URL(string: "calcut:///(tabs)?foodLog=camera")!
+
+// MARK: - Macro SF Symbols (Live Activity / Dynamic Island)
+
+/// Glyphs readable at ~10–14pt. Fat uses `avocado` + green tint (not a red droplet).
+private enum MacroGlyph {
+    static let protein = "egg.fill"
+    static let carbs = "bolt.fill"
+    static let fat = "avocado.fill"
+}
+
+/// Fat macro accent — pairs with avocado icon (avoids blood-like red on droplet shapes).
+private let fatMacroAccent = Color(red: 0.30, green: 0.52, blue: 0.28)
 
 // MARK: - App Icon View
 
@@ -84,22 +97,22 @@ struct CalorieTrackerLiveActivity: Widget {
                 DynamicIslandExpandedRegion(.trailing) {
                     VStack(alignment: .trailing, spacing: 4) {
                         MacroBarCompact(
-                            label: "P",
+                            icon: MacroGlyph.protein,
                             current: state.proteinConsumed,
                             goal: attrs.proteinGoal,
                             color: .blue
                         )
                         MacroBarCompact(
-                            label: "C",
+                            icon: MacroGlyph.carbs,
                             current: state.carbsConsumed,
                             goal: attrs.carbsGoal,
                             color: .orange
                         )
                         MacroBarCompact(
-                            label: "F",
+                            icon: MacroGlyph.fat,
                             current: state.fatConsumed,
                             goal: attrs.fatGoal,
-                            color: .red
+                            color: fatMacroAccent
                         )
                     }
                     .padding(.trailing, 4)
@@ -196,22 +209,22 @@ private struct TrackerLockScreenView: View {
                 // Macro progress bars
                 VStack(alignment: .trailing, spacing: 6) {
                     MacroProgressRow(
-                        icon: "fish.fill",
+                        icon: MacroGlyph.protein,
                         current: state.proteinConsumed,
                         goal: attrs.proteinGoal,
                         color: .blue
                     )
                     MacroProgressRow(
-                        icon: "leaf.fill",
+                        icon: MacroGlyph.carbs,
                         current: state.carbsConsumed,
                         goal: attrs.carbsGoal,
                         color: .orange
                     )
                     MacroProgressRow(
-                        icon: "oval.fill",
+                        icon: MacroGlyph.fat,
                         current: state.fatConsumed,
                         goal: attrs.fatGoal,
-                        color: .red
+                        color: fatMacroAccent
                     )
                 }
             }
@@ -291,7 +304,7 @@ private struct MacroProgressRow: View {
 // MARK: - Macro Bar Compact (Dynamic Island)
 
 private struct MacroBarCompact: View {
-    let label: String
+    let icon: String
     let current: Int
     let goal: Int
     let color: Color
@@ -308,6 +321,11 @@ private struct MacroBarCompact: View {
                 .monospacedDigit()
                 .foregroundColor(.white)
                 .frame(width: 28, alignment: .trailing)
+
+            Image(systemName: icon)
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundColor(color)
+                .frame(width: 12, height: 12)
 
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: 1.5)

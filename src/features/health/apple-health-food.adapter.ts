@@ -1,3 +1,5 @@
+import type { WriteDietaryEnergySampleInput } from "./health.types";
+
 export type AppleHealthFoodPayload = {
   name: string;
   calories: number;
@@ -24,11 +26,7 @@ export type BuildAppleHealthFoodResult =
   | { ok: true; payload: AppleHealthFoodPayload }
   | {
       ok: false;
-      reason:
-        | "missing_name"
-        | "invalid_calories"
-        | "invalid_date"
-        | "invalid_payload";
+      reason: "invalid_calories" | "invalid_date" | "invalid_payload";
       debug: Record<string, unknown>;
     };
 
@@ -63,14 +61,8 @@ export function buildAppleHealthFoodPayload(
   meal: AppleHealthMealInput
 ): BuildAppleHealthFoodResult {
   const mealId = meal.id ?? null;
-  const name = String(meal.title ?? meal.name ?? "").trim();
-  if (!name) {
-    return {
-      ok: false,
-      reason: "missing_name",
-      debug: { mealId },
-    };
-  }
+  const rawName = String(meal.title ?? meal.name ?? "").trim();
+  const name = rawName || "Food";
 
   const calories = positiveNumber(meal.calories);
   if (calories === null) {
@@ -120,5 +112,29 @@ export function buildAppleHealthFoodPayload(
   }
 
   return { ok: true, payload };
+}
+
+const DEFAULT_HK_MEAL_TYPE = "Lunch";
+
+/**
+ * Maps a validated app payload to the shape expected by
+ * `RCTAppleHealthKit+Methods_Dietary.m` `saveFood:` (react-native-health).
+ */
+export function toWriteDietaryEnergySampleInput(
+  payload: AppleHealthFoodPayload,
+  mealType?: string | null
+): WriteDietaryEnergySampleInput {
+  const when = new Date(payload.startDate);
+  const date = Number.isNaN(when.getTime()) ? new Date() : when;
+  const mt = String(mealType ?? "").trim() || DEFAULT_HK_MEAL_TYPE;
+  return {
+    foodName: payload.name,
+    mealType: mt,
+    energyKcal: payload.calories,
+    date,
+    proteinG: payload.protein,
+    carbohydratesG: payload.carbs,
+    fatG: payload.fat,
+  };
 }
 

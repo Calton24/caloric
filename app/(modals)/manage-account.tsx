@@ -15,22 +15,11 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from "react-native";
+import { useCallback } from "react";
+import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { resetClientStoresAfterAccountDeletion } from "../../src/features/account/reset-client-stores-after-account-deletion";
 import { useAuth } from "../../src/features/auth/useAuth";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
-import { logger } from "../../src/logging/logger";
 import { useTheme } from "../../src/theme/useTheme";
 import { TText } from "../../src/ui/primitives/TText";
 
@@ -41,15 +30,7 @@ export default function ManageAccountModal() {
   const router = useRouter();
   const { theme } = useTheme();
   const { t } = useAppTranslation();
-  const { user, signOut, deleteAccount } = useAuth();
-
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [confirmText, setConfirmText] = useState("");
-  const [isDeleting, setIsDeleting] = useState(false);
-  const canConfirm = useMemo(
-    () => confirmText.trim().toUpperCase() === "DELETE",
-    [confirmText]
-  );
+  const { user, signOut } = useAuth();
 
   const handleClose = useCallback(() => {
     if (router.canGoBack()) {
@@ -76,49 +57,9 @@ export default function ManageAccountModal() {
     ]);
   }, [router, signOut, t]);
 
-  const openDeleteModal = useCallback(() => {
-    setConfirmText("");
-    setDeleteModalVisible(true);
-  }, []);
-
-  const closeDeleteModal = useCallback(() => {
-    if (isDeleting) return;
-    setDeleteModalVisible(false);
-    setConfirmText("");
-  }, [isDeleting]);
-
-  const confirmDelete = useCallback(async () => {
-    if (!canConfirm || isDeleting) return;
-    setIsDeleting(true);
-    const userIdForStorageCleanup = user?.id ?? null;
-    try {
-      const { error } = await deleteAccount();
-      if (error) {
-        Alert.alert(
-          t("settings.deletionFailed"),
-          error.message || t("settings.deleteError")
-        );
-        return;
-      }
-      await signOut();
-      await resetClientStoresAfterAccountDeletion(userIdForStorageCleanup);
-      setDeleteModalVisible(false);
-      router.replace("/(onboarding)/landing");
-    } catch (err) {
-      logger.error("[ManageAccount] delete_failed", err);
-      Alert.alert(t("common.error"), t("settings.deleteError"));
-    } finally {
-      setIsDeleting(false);
-    }
-  }, [
-    canConfirm,
-    deleteAccount,
-    isDeleting,
-    router,
-    signOut,
-    t,
-    user?.id,
-  ]);
+  const openDeleteAccount = useCallback(() => {
+    router.push("/(modals)/delete-account" as never);
+  }, [router]);
 
   const openWebPage = useCallback(
     (url: string, title: string) => {
@@ -234,7 +175,7 @@ export default function ManageAccountModal() {
               />
             </Pressable>
             <Pressable
-              onPress={openDeleteModal}
+              onPress={openDeleteAccount}
               style={[styles.row, styles.rowLast]}
               accessibilityRole="button"
               accessibilityLabel={t("settings.deleteAccount")}
@@ -328,86 +269,6 @@ export default function ManageAccountModal() {
           </View>
         </ScrollView>
       </SafeAreaView>
-
-      <Modal
-        visible={deleteModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={closeDeleteModal}
-      >
-        <View style={styles.modalBackdrop}>
-          <View
-            style={[
-              styles.modalCard,
-              { backgroundColor: theme.colors.surfaceSecondary },
-            ]}
-          >
-            <TText style={[styles.modalTitle, { color: theme.colors.text }]}>
-              {t("settings.deleteAccountTitle")}
-            </TText>
-            <TText
-              style={[styles.modalBody, { color: theme.colors.textSecondary }]}
-            >
-              {t("settings.deleteAccountDescription")}
-            </TText>
-            <TText
-              style={[styles.modalHint, { color: theme.colors.textMuted }]}
-            >
-              {t("settings.deleteTypeHint")}
-            </TText>
-            <TextInput
-              value={confirmText}
-              onChangeText={setConfirmText}
-              editable={!isDeleting}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              placeholder="DELETE"
-              placeholderTextColor={theme.colors.textMuted}
-              style={[
-                styles.modalInput,
-                {
-                  borderColor: theme.colors.border,
-                  color: theme.colors.text,
-                  backgroundColor: theme.colors.background,
-                },
-              ]}
-            />
-            <View style={styles.modalActions}>
-              <Pressable
-                onPress={closeDeleteModal}
-                disabled={isDeleting}
-                style={[
-                  styles.modalButton,
-                  { backgroundColor: theme.colors.surface },
-                ]}
-              >
-                <TText style={{ color: theme.colors.text }}>
-                  {t("settings.cancelCta")}
-                </TText>
-              </Pressable>
-              <Pressable
-                onPress={confirmDelete}
-                disabled={!canConfirm || isDeleting}
-                style={[
-                  styles.modalButton,
-                  {
-                    opacity: !canConfirm || isDeleting ? 0.5 : 1,
-                    backgroundColor: theme.colors.error,
-                  },
-                ]}
-              >
-                {isDeleting ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <TText style={{ color: "#fff", fontWeight: "700" }}>
-                    {t("settings.deleteForeverCta")}
-                  </TText>
-                )}
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -468,52 +329,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     maxWidth: 180,
     textAlign: "right",
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 20,
-  },
-  modalCard: {
-    width: "100%",
-    borderRadius: 16,
-    padding: 18,
-    gap: 10,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  modalBody: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  modalHint: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-  modalInput: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-  },
-  modalActions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 10,
-    marginTop: 6,
-  },
-  modalButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-    minWidth: 100,
-    alignItems: "center",
   },
 });

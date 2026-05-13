@@ -31,8 +31,47 @@ import { recomputeStreakAfterMealListChange } from "../streak/recompute-streak-a
 import { mealDataSafety } from "./meal-data-safety";
 import {
   resolveMealLoggedAtUtc,
-  resolveMealLoggedDateLocal,
 } from "../food-logging/time/create-meal-timestamp-fields";
+import {
+  coerceRemoteMealTime,
+  normaliseMealTime,
+} from "../nutrition/mealtime";
+
+// ── Schema-column circuit breaker ────────────────────────────
+//
+// When Supabase returns PGRST204 ("column not in schema cache") the error
+// will repeat for every pending meal. One bad column → 70+ Sentry events.
+// This breaker silences push attempts for 5 minutes after the first hit,
+// giving the Supabase schema cache time to refresh without spam.
+
+let mealSyncSchemaBlockedUntil = 0;
+
+function isSchemaColumnError(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  const e = error as Record<string, unknown>;
+  const code = String(e.code ?? "");
+  const message = String(e.message ?? "");
+  return (
+    code === "PGRST204" ||
+    message.includes("Could not find the") ||
+    message.includes("schema cache") ||
+    message.includes("column meal_entries.")
+  );
+}
+
+function isMealSyncSchemaBlocked(): boolean {
+  return Date.now() < mealSyncSchemaBlockedUntil;
+}
+
+function activateMealSyncSchemaBreaker(error: unknown): void {
+  mealSyncSchemaBlockedUntil = Date.now() + 5 * 60 * 1000;
+  if (__DEV__) {
+    console.warn("[Sync] schema circuit breaker activated — pushMeal paused 5 min", {
+      error,
+      resumesAt: new Date(mealSyncSchemaBlockedUntil).toISOString(),
+    });
+  }
+}
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -74,6 +113,15 @@ export async function pushMeal(
   meal: MealEntry,
   knownUserId?: string
 ): Promise<void> {
+  if (isMealSyncSchemaBlocked()) {
+    if (__DEV__) {
+      console.warn("[Sync] pushMeal skipped — schema circuit breaker active", {
+        meal_id: meal.id,
+      });
+    }
+    return;
+  }
+
   const userId = knownUserId ?? (await getUserId());
   if (!userId) return;
 
@@ -90,11 +138,8 @@ export async function pushMeal(
         carbs: meal.carbs,
         fat: meal.fat,
         logged_at: resolveMealLoggedAtUtc(meal),
-        logged_at_utc: resolveMealLoggedAtUtc(meal),
-        logged_at_local: meal.loggedAtLocal ?? null,
-        logged_date_local: meal.loggedDateLocal ?? resolveMealLoggedDateLocal(meal),
-        timezone: meal.timezone ?? null,
-        timezone_offset_minutes: meal.timezoneOffsetMinutes ?? null,
+        // logged_at_utc / logged_at_local / logged_date_local / timezone are
+        // not yet in the schema. Omit them all until the DB migration runs.
         emoji: meal.emoji ?? null,
         meal_time: meal.mealTime ?? null,
         confidence: meal.confidence ?? null,
@@ -122,6 +167,13 @@ export async function pushMeal(
       meal_id: meal.id,
       provider: "supabase",
     });
+
+    if (isSchemaColumnError(e)) {
+      // Activate the circuit breaker so subsequent meals don't repeat this
+      // error storm. One Sentry event is enough to know the schema is stale.
+      activateMealSyncSchemaBreaker(e);
+    }
+
     captureFoodLoggingError(
       e,
       {
@@ -149,7 +201,7 @@ export async function pushMealUpdate(
   try {
     const client = getSupabaseClient();
     const mapped: Record<string, unknown> = {
-      updated_at: new Date().toISOString(),
+      updated_at: updates.updatedAt ?? new Date().toISOString(),
     };
     if (updates.title !== undefined) mapped.title = updates.title;
     if (updates.calories !== undefined) mapped.calories = updates.calories;
@@ -157,16 +209,12 @@ export async function pushMealUpdate(
     if (updates.carbs !== undefined) mapped.carbs = updates.carbs;
     if (updates.fat !== undefined) mapped.fat = updates.fat;
     if (updates.emoji !== undefined) mapped.emoji = updates.emoji;
-    if (updates.mealTime !== undefined) mapped.meal_time = updates.mealTime;
+    if (updates.mealTime !== undefined) {
+      mapped.meal_time = normaliseMealTime(updates.mealTime);
+    }
     if (updates.loggedAt !== undefined || updates.loggedAtUtc !== undefined) {
-      const loggedAtUtc = resolveMealLoggedAtUtc(updates);
-      mapped.logged_at = loggedAtUtc;
-      mapped.logged_at_utc = loggedAtUtc;
-      mapped.logged_at_local = updates.loggedAtLocal ?? null;
-      mapped.logged_date_local =
-        updates.loggedDateLocal ?? resolveMealLoggedDateLocal(updates);
-      mapped.timezone = updates.timezone ?? null;
-      mapped.timezone_offset_minutes = updates.timezoneOffsetMinutes ?? null;
+      mapped.logged_at = resolveMealLoggedAtUtc(updates);
+      // logged_at_utc / timezone / logged_at_local omitted — not in schema yet.
     }
 
     await client
@@ -262,6 +310,7 @@ type PulledMealRow = {
   confidence?: number | null;
   image_uri?: string | null;
   image_path?: string | null;
+  updated_at?: string | null;
 };
 
 export async function pullMeals(knownUserId?: string): Promise<MealEntry[]> {
@@ -388,6 +437,7 @@ function mapMealRow(row: {
   confidence?: number | null;
   image_uri?: string | null;
   image_path?: string | null;
+  updated_at?: string | null;
 }): MealEntry {
   return {
     id: row.id,
@@ -404,12 +454,13 @@ function mapMealRow(row: {
     timezone: row.timezone ?? undefined,
     timezoneOffsetMinutes: row.timezone_offset_minutes ?? undefined,
     emoji: row.emoji ?? undefined,
-    mealTime: row.meal_time ?? undefined,
+    mealTime: coerceRemoteMealTime(row.meal_time),
     confidence: row.confidence ?? undefined,
     imageUri: row.image_uri ?? undefined,
     imageUrl: row.image_uri ?? undefined,
     thumbnailUri: row.image_uri ?? undefined,
     imagePath: row.image_path ?? undefined,
+    updatedAt: row.updated_at ?? undefined,
   };
 }
 
@@ -1324,11 +1375,8 @@ export async function pushAllToSupabase(options?: {
         carbs: meal.carbs,
         fat: meal.fat,
         logged_at: resolveMealLoggedAtUtc(meal),
-        logged_at_utc: resolveMealLoggedAtUtc(meal),
-        logged_at_local: meal.loggedAtLocal ?? null,
-        logged_date_local: meal.loggedDateLocal ?? resolveMealLoggedDateLocal(meal),
-        timezone: meal.timezone ?? null,
-        timezone_offset_minutes: meal.timezoneOffsetMinutes ?? null,
+        // logged_at_utc / timezone / logged_at_local / logged_date_local
+        // omitted — these columns are not yet in the schema.
         emoji: meal.emoji ?? null,
         meal_time: meal.mealTime ?? null,
         confidence: meal.confidence ?? null,

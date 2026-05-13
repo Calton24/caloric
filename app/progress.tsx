@@ -15,7 +15,8 @@
  *   5. Calorie + macros        — stacked bars + balance pill + best/worst day
  *   6. Weekly performance      — composite 0–100 score with breakdown
  *   7. BMI                     — value, classification, scale
- *   8. Action row              — Log Weight, Recalculate Plan
+ *   8. FFMI calculator         — body-fat % input, lean-mass index + scale
+ *   9. Action row              — Log Weight, Recalculate Plan
  *
  * All derived signals are computed via pure selectors in
  * `dashboard.selectors.ts`, memoised here, and consumed by stateless cards
@@ -25,7 +26,15 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import { safeBack } from "../src/lib/navigation/safeBack";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Animated, { FadeIn, FadeInDown, Layout } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -63,6 +72,7 @@ import {
 import { useTheme } from "../src/theme/useTheme";
 import { ActionRow } from "../src/ui/components/progress/ActionRow";
 import { BMICard } from "../src/ui/components/progress/BMICard";
+import { FFMICard } from "../src/ui/components/progress/FFMICard";
 import { GoalChartCard } from "../src/ui/components/progress/GoalChartCard";
 import { InsightBanner } from "../src/ui/components/progress/InsightBanner";
 import { MacroTrendsCard } from "../src/ui/components/progress/MacroTrendsCard";
@@ -81,8 +91,27 @@ export default function ProgressScreen() {
   const router = useRouter();
   const units = useUnits();
 
-  // ── Range state ──
+  // ── Range: tab updates immediately; chart `range` updates in a transition
+  //    so the segmented control stays responsive on large meal histories.
   const [range, setRange] = useState<DashboardRange>("30d");
+  const [tabRange, setTabRange] = useState<DashboardRange>("30d");
+  const [, startRangeTransition] = useTransition();
+  const onRangeChange = useCallback((next: DashboardRange) => {
+    setTabRange(next);
+    startRangeTransition(() => setRange(next));
+  }, []);
+
+  // ── Two-phase render: paint header + top cards on frame 1, defer heavy
+  //    chart computations (74 meals × selectors) until frame 2.
+  //    This makes the screen appear instantly on the first frame.
+  const [contentReady, setContentReady] = useState(false);
+  const rafRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null);
+  useEffect(() => {
+    rafRef.current = requestAnimationFrame(() => setContentReady(true));
+    return () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
 
   // ── Domain stores ──
   const profile = useProfileStore((s) => s.profile);
@@ -131,14 +160,17 @@ export default function ProgressScreen() {
     return Math.max(0, Math.floor((today.getTime() - last) / MS_PER_DAY));
   }, [weightLogs]);
 
-  // ── Derived nutrition ──
+  // ── Derived nutrition — deferred so first frame is cheap ──
   const macroPoints = useMemo(
-    () => getMacroBreakdown(meals, range),
-    [meals, range]
+    () => (contentReady ? getMacroBreakdown(meals, range) : []),
+    [contentReady, meals, range]
   );
   const calorieAverages = useMemo(
-    () => getAverageCalories(meals, range),
-    [meals, range]
+    () =>
+      contentReady
+        ? getAverageCalories(meals, range)
+        : { avgCalories: 0, avgMacros: { protein: 0, carbs: 0, fat: 0 } },
+    [contentReady, meals, range]
   );
 
   // % days within ±10% of calorie budget — already captured by existing
@@ -155,7 +187,7 @@ export default function ProgressScreen() {
     return Math.round((onTarget / logged.length) * 100);
   }, [macroPoints, calorieBudget]);
 
-  // ── Streak ──
+  // ── Streak — deferred; streak cards are in phase 1 but getStreakData is fast ──
   const streakSummary = useMemo(
     () => getStreakData(meals, longestStreak),
     [meals, longestStreak]
@@ -256,15 +288,15 @@ export default function ProgressScreen() {
     [macroPoints, calorieBudget, plan?.macros.protein]
   );
 
-  // ── Weekly performance score (always 7d, regardless of `range`) ──
+  // ── Weekly performance score — deferred ──
   const weeklyPerformance = useMemo(
     () =>
       getWeeklyPerformance(
-        meals,
+        contentReady ? meals : [],
         calorieBudget,
         plan?.macros.protein ?? 0
       ),
-    [meals, calorieBudget, plan?.macros.protein]
+    [contentReady, meals, calorieBudget, plan?.macros.protein]
   );
 
   // ── BMI ──
@@ -382,7 +414,7 @@ export default function ProgressScreen() {
       <SafeAreaView style={styles.safe} edges={["top"]}>
         <View style={styles.header}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => safeBack("/(tabs)")}
             hitSlop={12}
             accessibilityRole="button"
           >
@@ -404,7 +436,7 @@ export default function ProgressScreen() {
         >
           {/* 1. Top summary grid */}
           <Animated.View
-            entering={FadeInDown.duration(400)}
+            entering={FadeInDown.duration(220)}
             style={styles.gridRow}
           >
             <WeightSummaryCard
@@ -436,89 +468,108 @@ export default function ProgressScreen() {
           <TSpacer size="md" />
 
           {/* 2. Range selector */}
-          <Animated.View entering={FadeIn.duration(350).delay(80)}>
-            <RangeSelector value={range} onChange={setRange} />
+          <Animated.View entering={FadeIn.duration(200)}>
+            <RangeSelector value={tabRange} onChange={onRangeChange} />
           </Animated.View>
 
           <TSpacer size="md" />
 
-          {/* 3. Goal progress chart */}
-          <Animated.View
-            layout={Layout.springify().damping(20)}
-            entering={FadeInDown.duration(400).delay(120)}
-          >
-            <GoalChartCard
-              trend={weightTrend}
-              goalDisplayValue={goalDisplayValue}
-              unitLabel={units.label}
-              toDisplay={toDisplay}
-              goalProgressPercent={goalProgress.percent}
-              rangeLabel={rangeLabel}
-              trendLabel={trendLabel}
-              onAdjustPlan={onRecalculate}
-              canAdjustPlan={canRecalculate}
-            />
-          </Animated.View>
+          {/* 3–8. Heavy cards — deferred until after the first frame so the
+              header + top summary grid paint instantly. */}
+          {contentReady ? (
+            <>
+              {/* 3. Goal progress chart */}
+              <Animated.View
+                layout={Layout.springify().damping(20)}
+                entering={FadeInDown.duration(300)}
+              >
+                <GoalChartCard
+                  trend={weightTrend}
+                  goalDisplayValue={goalDisplayValue}
+                  unitLabel={units.label}
+                  toDisplay={toDisplay}
+                  goalProgressPercent={goalProgress.percent}
+                  rangeLabel={rangeLabel}
+                  trendLabel={trendLabel}
+                  onAdjustPlan={onRecalculate}
+                  canAdjustPlan={canRecalculate}
+                />
+              </Animated.View>
 
-          <TSpacer size="md" />
+              <TSpacer size="md" />
 
-          {/* 4. Smart insight banner */}
-          <InsightBanner
-            insight={insight}
-            onShown={markInsightShown}
-            onCtaPress={triggerInsightCta}
-            onDismiss={dismissInsight}
-            dismissible={insightDismissible}
-          />
+              {/* 4. Smart insight banner */}
+              <InsightBanner
+                insight={insight}
+                onShown={markInsightShown}
+                onCtaPress={triggerInsightCta}
+                onDismiss={dismissInsight}
+                dismissible={insightDismissible}
+              />
 
-          <TSpacer size="md" />
+              <TSpacer size="md" />
 
-          {/* 5. Calorie + macros */}
-          <Animated.View
-            layout={Layout.springify().damping(20)}
-            entering={FadeInDown.duration(400).delay(160)}
-          >
-            <MacroTrendsCard
-              data={macroPoints}
-              calorieBudget={calorieBudget || null}
-              avgCalories={calorieAverages.avgCalories}
-              avgMacros={calorieAverages.avgMacros}
-              daysOnTargetPercent={daysOnTargetPercent}
-              rangeLabel={rangeLabel}
-              balance={macroBalance}
-              bestDay={bestWorstDay.best}
-              worstDay={bestWorstDay.worst}
-              onImproveToday={onImproveToday}
-            />
-          </Animated.View>
+              {/* 5. Calorie + macros */}
+              <Animated.View
+                layout={Layout.springify().damping(20)}
+                entering={FadeInDown.duration(300).delay(40)}
+              >
+                <MacroTrendsCard
+                  data={macroPoints}
+                  calorieBudget={calorieBudget || null}
+                  avgCalories={calorieAverages.avgCalories}
+                  avgMacros={calorieAverages.avgMacros}
+                  daysOnTargetPercent={daysOnTargetPercent}
+                  rangeLabel={rangeLabel}
+                  balance={macroBalance}
+                  bestDay={bestWorstDay.best}
+                  worstDay={bestWorstDay.worst}
+                  onImproveToday={onImproveToday}
+                />
+              </Animated.View>
 
-          <TSpacer size="md" />
+              <TSpacer size="md" />
 
-          {/* 6. Weekly performance score */}
-          <Animated.View entering={FadeInDown.duration(400).delay(180)}>
-            <WeeklyPerformanceCard
-              performance={weeklyPerformance}
-              onImprove={onImproveScore}
-            />
-          </Animated.View>
+              {/* 6. Weekly performance score */}
+              <Animated.View entering={FadeInDown.duration(300).delay(60)}>
+                <WeeklyPerformanceCard
+                  performance={weeklyPerformance}
+                  onImprove={onImproveScore}
+                />
+              </Animated.View>
 
-          <TSpacer size="md" />
+              <TSpacer size="md" />
 
-          {/* 7. BMI */}
-          <Animated.View entering={FadeInDown.duration(400).delay(200)}>
-            <BMICard bmi={bmi} />
-          </Animated.View>
+              {/* 7. BMI */}
+              <Animated.View entering={FadeInDown.duration(300).delay(80)}>
+                <BMICard bmi={bmi} />
+              </Animated.View>
 
-          <TSpacer size="lg" />
+              <TSpacer size="md" />
 
-          {/* 8. Action row */}
-          <Animated.View entering={FadeIn.duration(400).delay(240)}>
-            <ActionRow
-              canRecalculate={canRecalculate}
-              onLogWeight={onLogWeight}
-              onRecalculate={onRecalculate}
-            />
-          </Animated.View>
+              {/* 8. FFMI calculator */}
+              <Animated.View entering={FadeInDown.duration(300).delay(90)}>
+                <FFMICard
+                  heightCm={profile.heightCm ?? null}
+                  currentWeightLbs={currentWeightLbs ?? null}
+                />
+              </Animated.View>
+
+              <TSpacer size="lg" />
+
+              {/* 9. Action row */}
+              <Animated.View entering={FadeIn.duration(300).delay(100)}>
+                <ActionRow
+                  canRecalculate={canRecalculate}
+                  onLogWeight={onLogWeight}
+                  onRecalculate={onRecalculate}
+                />
+              </Animated.View>
+            </>
+          ) : (
+            /* Phase-1 placeholder — keeps layout stable while heavy cards load */
+            <View style={styles.deferredPlaceholder} />
+          )}
 
           <TSpacer size="xxl" />
         </ScrollView>
@@ -548,6 +599,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 8,
+  },
+  deferredPlaceholder: {
+    height: 400,
   },
   gridRow: {
     flexDirection: "row",

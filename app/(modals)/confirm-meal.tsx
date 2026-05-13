@@ -74,6 +74,7 @@ import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslati
 import { haptics } from "../../src/infrastructure/haptics";
 import { useGoalsStore, useNutritionStore } from "../../src/stores";
 import { useTheme } from "../../src/theme/useTheme";
+import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { MealReviewImage } from "../../src/ui/components/MealReviewImage";
 import { RichText } from "../../src/ui/components/RichText";
 import { ReportFoodSheet } from "../../src/ui/feedback/ReportFoodSheet";
@@ -1139,14 +1140,13 @@ function ConfirmMealScreenInner() {
 
           <TSpacer size="md" />
 
-          {/* Main card */}
-          <Animated.View
-            entering={FadeInDown.duration(400).delay(100)}
-            style={[
-              styles.mainCard,
-              { backgroundColor: theme.colors.surfaceSecondary },
-            ]}
-          >
+          {/* Main card — glass shell (coach / home parity) */}
+          <Animated.View entering={FadeInDown.duration(400).delay(100)}>
+            <GlassSurface
+              variant="card"
+              intensity="light"
+              style={styles.mainCardGlass}
+            >
             {/* Hero calories + info */}
             <View style={styles.heroRow}>
               <TText
@@ -1622,6 +1622,7 @@ function ConfirmMealScreenInner() {
                     : t("mealConfirm.trackCalories")}
               </TText>
             </Pressable>
+            </GlassSurface>
           </Animated.View>
 
           <TSpacer size="lg" />
@@ -1636,51 +1637,54 @@ function ConfirmMealScreenInner() {
               accessibilityLabel={t("mealConfirm.fixWithAI")}
               accessibilityHint={t("mealConfirm.fixWithAISubtitle")}
               style={({ pressed }) => [
-                styles.fixWithAICta,
-                {
-                  backgroundColor: theme.colors.surfaceSecondary,
-                  borderColor: theme.colors.borderSecondary,
-                  opacity: pressed ? 0.85 : 1,
-                  transform: [{ scale: pressed ? 0.99 : 1 }],
+                pressed && {
+                  opacity: 0.92,
+                  transform: [{ scale: 0.99 }],
                 },
               ]}
             >
-              <View
-                style={[
-                  styles.fixWithAIIcon,
-                  { backgroundColor: theme.colors.primary + "1A" },
-                ]}
+              <GlassSurface
+                variant="card"
+                intensity="light"
+                style={styles.fixWithAIGlass}
               >
+                <View
+                  style={[
+                    styles.fixWithAIIcon,
+                    { backgroundColor: theme.colors.primary + "1A" },
+                  ]}
+                >
+                  <Ionicons
+                    name="sparkles"
+                    size={18}
+                    color={theme.colors.primary}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <TText
+                    style={[
+                      styles.fixWithAITitle,
+                      { color: theme.colors.text },
+                    ]}
+                  >
+                    {t("mealConfirm.fixWithAI")}
+                  </TText>
+                  <TText
+                    style={[
+                      styles.fixWithAISubtitle,
+                      { color: theme.colors.textMuted },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {t("mealConfirm.fixWithAISubtitle")}
+                  </TText>
+                </View>
                 <Ionicons
-                  name="sparkles"
+                  name="chevron-forward"
                   size={18}
-                  color={theme.colors.primary}
+                  color={theme.colors.textMuted}
                 />
-              </View>
-              <View style={{ flex: 1 }}>
-                <TText
-                  style={[
-                    styles.fixWithAITitle,
-                    { color: theme.colors.text },
-                  ]}
-                >
-                  {t("mealConfirm.fixWithAI")}
-                </TText>
-                <TText
-                  style={[
-                    styles.fixWithAISubtitle,
-                    { color: theme.colors.textMuted },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {t("mealConfirm.fixWithAISubtitle")}
-                </TText>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={theme.colors.textMuted}
-              />
+              </GlassSurface>
             </Pressable>
           </Animated.View>
 
@@ -1851,9 +1855,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 8,
   },
-  // ── Main card ──
-  mainCard: {
-    borderRadius: 20,
+  // ── Main card (glass) ──
+  mainCardGlass: {
+    borderRadius: 22,
     padding: 20,
   },
   heroRow: {
@@ -2000,16 +2004,14 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingHorizontal: 8,
   },
-  // ── Hint ──
-  fixWithAICta: {
+  // ── Fix with AI (glass row) ──
+  fixWithAIGlass: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
-    marginHorizontal: 20,
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 22,
   },
   fixWithAIIcon: {
     width: 36,

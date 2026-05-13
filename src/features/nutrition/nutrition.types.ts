@@ -45,6 +45,9 @@ export interface MealEntry {
   /** Time-of-day context when meal was logged */
   mealTime?: MealTime;
 
+  /** Last client-side or server-side mutation (ISO). Used for merge / sync ordering. */
+  updatedAt?: string;
+
   /** Local URI of the meal photo (camera scans only) */
   imageUri?: string;
 

@@ -19,6 +19,10 @@ import {
     Session,
     User,
 } from "./authClient";
+import {
+  clearStaleSupabaseAuthStorage,
+  isInvalidRefreshTokenError,
+} from "./auth-session-recovery";
 
 /**
  * Hash an email to a non-reversible identifier for analytics.
@@ -103,21 +107,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
     authClient
       .getSession()
       .then(async ({ session: initialSession, error: sessionError }) => {
+        let clearedStaleRefresh = false;
         if (sessionError) {
-          // Don't surface to the user — they'll just see the sign-in screen.
-          // But we want to know about it: a session error here is often a
-          // SecureStore / token-corruption issue that breaks app boot.
-          reportError(sessionError, {
-            area: "auth",
-            action: "getSession_initial",
-            provider: "supabase",
-          });
+          if (isInvalidRefreshTokenError(sessionError)) {
+            if (__DEV__) {
+              console.warn(
+                "[Auth] invalid refresh token — clearing local Supabase session"
+              );
+            }
+            await clearStaleSupabaseAuthStorage();
+            clearedStaleRefresh = true;
+          } else {
+            // Don't surface to the user — they'll just see the sign-in screen.
+            // But we want to know about it: a session error here is often a
+            // SecureStore / token-corruption issue that breaks app boot.
+            reportError(sessionError, {
+              area: "auth",
+              action: "getSession_initial",
+              provider: "supabase",
+            });
+          }
         }
         // Resolve auth provider from the raw Supabase user metadata for the
         // cold-start trace. Our local `User` type doesn't carry this, so
         // read it directly from the underlying client.
         let provider: string | null = null;
-        if (initialSession) {
+        if (initialSession && !clearedStaleRefresh) {
           try {
             const { data } = await getSupabaseClient().auth.getUser();
             const meta = data.user?.app_metadata as
@@ -129,12 +144,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
           }
         }
         logColdStartStep("auth_session_loaded", {
-          userId: initialSession?.user.id ?? null,
+          userId:
+            clearedStaleRefresh || !initialSession
+              ? null
+              : initialSession.user.id,
           provider,
-          sessionExists: Boolean(initialSession),
+          sessionExists:
+            !clearedStaleRefresh && Boolean(initialSession),
           sessionError: sessionError ? sessionError.message : null,
         });
-        if (initialSession) {
+        if (initialSession && !clearedStaleRefresh) {
           setSession(initialSession);
           setUser(initialSession.user);
           analytics.identify(initialSession.user.id, {
@@ -144,19 +163,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
         finishBootstrap("getSession");
       })
-      .catch((err) => {
-        logColdStartStep("auth_session_loaded", {
-          userId: null,
-          provider: null,
-          sessionExists: false,
-          sessionError: err instanceof Error ? err.message : String(err),
-          threw: true,
-        });
-        reportError(err, {
-          area: "auth",
-          action: "getSession_initial_throw",
-          provider: "supabase",
-        });
+      .catch(async (err) => {
+        if (isInvalidRefreshTokenError(err)) {
+          if (__DEV__) {
+            console.warn(
+              "[Auth] invalid refresh token (getSession threw) — clearing local session"
+            );
+          }
+          await clearStaleSupabaseAuthStorage();
+        } else {
+          logColdStartStep("auth_session_loaded", {
+            userId: null,
+            provider: null,
+            sessionExists: false,
+            sessionError: err instanceof Error ? err.message : String(err),
+            threw: true,
+          });
+          reportError(err, {
+            area: "auth",
+            action: "getSession_initial_throw",
+            provider: "supabase",
+          });
+        }
         finishBootstrap("getSession_threw");
       });
 

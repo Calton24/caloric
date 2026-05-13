@@ -16,6 +16,7 @@ import Animated, {
 } from "react-native-reanimated";
 import Svg, { Circle } from "react-native-svg";
 import { useTheme } from "../../theme/useTheme";
+import { GlassSurface } from "../glass/GlassSurface";
 import { TText } from "../primitives/TText";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -105,92 +106,94 @@ export function MacroCard({
     theme.mode === "dark" ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.07)";
 
   return (
-    <View
-      testID={`macro-${label.toLowerCase()}`}
-      style={[styles.card, { backgroundColor: theme.colors.surface }]}
-    >
-      {/* Number */}
-      <TText
-        style={[
-          styles.number,
-          { color: isOver ? overColor : theme.colors.text },
-        ]}
-      >
-        {isOver && display === "remaining" ? "+" : ""}
-        {Math.round(displayNum).toLocaleString()}
+    <View testID={`macro-${label.toLowerCase()}`} style={styles.cardWrap}>
+      <GlassSurface variant="card" intensity="light" style={styles.card}>
+        {/* Number */}
         <TText
           style={[
-            styles.unitText,
+            styles.number,
             { color: isOver ? overColor : theme.colors.text },
           ]}
         >
-          {unit}
+          {isOver && display === "remaining" ? "+" : ""}
+          {Math.round(displayNum).toLocaleString()}
+          <TText
+            style={[
+              styles.unitText,
+              { color: isOver ? overColor : theme.colors.text },
+            ]}
+          >
+            {unit}
+          </TText>
         </TText>
-      </TText>
 
-      {/* Label */}
-      <TText
-        style={[
-          styles.label,
-          { color: isOver ? overColor : theme.colors.textSecondary },
-        ]}
-      >
-        {label}{" "}
+        {/* Label */}
         <TText
           style={[
-            styles.leftText,
-            { color: isOver ? overColor : theme.colors.textMuted },
+            styles.label,
+            { color: isOver ? overColor : theme.colors.textSecondary },
           ]}
         >
-          {isOver && display === "remaining" ? "over" : "left"}
+          {label}{" "}
+          <TText
+            style={[
+              styles.leftText,
+              { color: isOver ? overColor : theme.colors.textMuted },
+            ]}
+          >
+            {isOver && display === "remaining" ? "over" : "left"}
+          </TText>
         </TText>
-      </TText>
 
-      {/* Arc ring */}
-      <View style={styles.ringWrap}>
-        <Svg width={RING_SIZE} height={RING_SIZE}>
-          {/* Static track arc (270-deg, gap at bottom) */}
-          <Circle
-            cx={RING_SIZE / 2}
-            cy={RING_SIZE / 2}
-            r={RADIUS}
-            strokeDasharray={`${ARC_LEN} ${CIRC - ARC_LEN}`}
-            strokeDashoffset={0}
-            rotation={135}
-            origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
-            stroke={trackColor}
-            strokeWidth={STROKE_W}
-            fill="none"
-            strokeLinecap="round"
-          />
-          {/* Animated progress arc */}
-          <AnimatedCircle
-            cx={RING_SIZE / 2}
-            cy={RING_SIZE / 2}
-            r={RADIUS}
-            strokeDasharray={CIRC}
-            rotation={135}
-            origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
-            stroke={ringColor}
-            strokeWidth={STROKE_W}
-            fill="none"
-            strokeLinecap="round"
-            animatedProps={animatedProps}
-          />
-        </Svg>
+        {/* Arc ring */}
+        <View style={styles.ringWrap}>
+          <Svg width={RING_SIZE} height={RING_SIZE}>
+            {/* Static track arc (270-deg, gap at bottom) */}
+            <Circle
+              cx={RING_SIZE / 2}
+              cy={RING_SIZE / 2}
+              r={RADIUS}
+              strokeDasharray={`${ARC_LEN} ${CIRC - ARC_LEN}`}
+              strokeDashoffset={0}
+              rotation={135}
+              origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
+              stroke={trackColor}
+              strokeWidth={STROKE_W}
+              fill="none"
+              strokeLinecap="round"
+            />
+            {/* Animated progress arc */}
+            <AnimatedCircle
+              cx={RING_SIZE / 2}
+              cy={RING_SIZE / 2}
+              r={RADIUS}
+              strokeDasharray={CIRC}
+              rotation={135}
+              origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
+              stroke={ringColor}
+              strokeWidth={STROKE_W}
+              fill="none"
+              strokeLinecap="round"
+              animatedProps={animatedProps}
+            />
+          </Svg>
 
-        {/* Icon centred in ring */}
-        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-          <View style={styles.iconWrap}>
-            <TText style={styles.icon}>{icon}</TText>
+          {/* Icon centred in ring */}
+          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+            <View style={styles.iconWrap}>
+              <TText style={styles.icon}>{icon}</TText>
+            </View>
           </View>
-        </View>
       </View>
+      </GlassSurface>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  cardWrap: {
+    flex: 1,
+  },
   card: {
     flex: 1,
     borderRadius: 16,

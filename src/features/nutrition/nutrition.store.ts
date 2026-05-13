@@ -5,6 +5,8 @@ import {
   resolveMealLoggedDateLocal,
 } from "../food-logging/time/create-meal-timestamp-fields";
 import { getStorage } from "../../infrastructure/storage";
+import { mergeMealWithRemoteSnapshot } from "./meal-merge";
+import { normaliseMealTime } from "./mealtime";
 import { MealEntry } from "./nutrition.types";
 
 interface NutritionStore {
@@ -80,9 +82,17 @@ export const useNutritionStore = create<NutritionStore>()(
 
       updateMeal: (mealId, updates) =>
         set((state) => ({
-          meals: state.meals.map((meal) =>
-            meal.id === mealId ? { ...meal, ...updates } : meal
-          ),
+          meals: state.meals.map((meal) => {
+            if (meal.id !== mealId) return meal;
+            const merged = { ...meal, ...updates };
+            return {
+              ...merged,
+              ...(merged.mealTime !== undefined
+                ? { mealTime: normaliseMealTime(merged.mealTime) }
+                : {}),
+              updatedAt: updates.updatedAt ?? new Date().toISOString(),
+            } satisfies MealEntry;
+          }),
         })),
 
       removeMeal: (mealId) =>
@@ -176,7 +186,12 @@ export const useNutritionStore = create<NutritionStore>()(
           }
           for (const m of rows) {
             if (deleted.has(m.id)) continue;
-            byId.set(m.id, m);
+            const local = byId.get(m.id);
+            if (local) {
+              byId.set(m.id, mergeMealWithRemoteSnapshot(local, m));
+            } else {
+              byId.set(m.id, m);
+            }
           }
           const meals = Array.from(byId.values()).sort(
             (a, b) =>

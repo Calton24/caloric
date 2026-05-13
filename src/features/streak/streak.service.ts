@@ -189,7 +189,7 @@ export async function fetchStreak(): Promise<StreakInfo> {
       .from("user_streaks")
       .select("*")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
     if (error || !data) return getStreakInfo();
 

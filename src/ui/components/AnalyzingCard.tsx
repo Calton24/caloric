@@ -66,6 +66,7 @@ import { addFoodLoggingBreadcrumb } from "../../infrastructure/errorReporting/fo
 import { reportError } from "../../infrastructure/errorReporting";
 import { useAppTranslation } from "../../infrastructure/i18n";
 import { useTheme } from "../../theme/useTheme";
+import { GlassSurface } from "../glass/GlassSurface";
 import { formatFoodName } from "../../utils/formatFoodName";
 import { TText } from "../primitives/TText";
 import { Skeleton } from "./Skeleton";
@@ -227,13 +228,10 @@ function PendingReviewRow({ job }: PendingReviewRowProps) {
   }, [job.id, t]);
 
   // ── Theme tokens ─────────────────────────────────────────────────────────
-  const cardBg = theme.colors.surface ?? theme.colors.surfaceSecondary;
-  const borderColor = isError
-    ? theme.colors.error + "55"
-    : isComplete
-      ? theme.colors.primary + "66"
-      : theme.colors.border;
-
+  const primaryChipBg = theme.colors.primary + "1A";
+  const primaryChipBorder = theme.colors.primary + "33";
+  const errorChipBg = theme.colors.error + "1A";
+  const errorChipBorder = theme.colors.error + "33";
   const accessibilityLabel = isAnalyzing
     ? `${t("scan.analyzing")}, ${Math.round(job.progress * 100)}%`
     : isComplete && job.resultDraft
@@ -276,7 +274,7 @@ function PendingReviewRow({ job }: PendingReviewRowProps) {
         >
           <TText
             style={[styles.title, { color: theme.colors.text }]}
-            numberOfLines={1}
+            numberOfLines={2}
           >
             {formatFoodName(job.resultDraft.title)}
           </TText>
@@ -330,15 +328,25 @@ function PendingReviewRow({ job }: PendingReviewRowProps) {
             accessibilityLabel={t("scan.review")}
             onPress={handleReview}
             style={({ pressed }) => [
-              styles.primaryBtn,
+              styles.ctaButton,
               {
-                backgroundColor: theme.colors.primary,
+                backgroundColor: primaryChipBg,
+                borderColor: primaryChipBorder,
                 opacity: pressed ? 0.85 : 1,
               },
             ]}
             hitSlop={8}
           >
-            <TText style={styles.primaryBtnText}>{t("scan.review")}</TText>
+            <TText
+              style={[styles.ctaText, { color: theme.colors.primary }]}
+            >
+              {t("scan.review")}
+            </TText>
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={theme.colors.primary}
+            />
           </Pressable>
         </Animated.View>
       );
@@ -354,15 +362,25 @@ function PendingReviewRow({ job }: PendingReviewRowProps) {
             accessibilityLabel={t("scan.retry")}
             onPress={handleRetry}
             style={({ pressed }) => [
-              styles.primaryBtn,
+              styles.ctaButton,
               {
-                backgroundColor: theme.colors.primary,
+                backgroundColor: errorChipBg,
+                borderColor: errorChipBorder,
                 opacity: pressed ? 0.85 : 1,
               },
             ]}
             hitSlop={8}
           >
-            <TText style={styles.primaryBtnText}>{t("scan.retry")}</TText>
+            <TText
+              style={[styles.ctaText, { color: theme.colors.error }]}
+            >
+              {t("scan.retry")}
+            </TText>
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={theme.colors.error}
+            />
           </Pressable>
         </Animated.View>
       );
@@ -396,21 +414,34 @@ function PendingReviewRow({ job }: PendingReviewRowProps) {
 
   // ── Card body ────────────────────────────────────────────────────────────
   const cardContent = (
-    <Animated.View
-      entering={FadeIn.duration(CONTENT_FADE_MS)}
-      exiting={FadeOut.duration(CONTENT_FADE_MS)}
-      style={[styles.card, { backgroundColor: cardBg, borderColor }]}
-      accessible
-      accessibilityLabel={accessibilityLabel}
+    <GlassSurface
+      variant="card"
+      intensity="light"
+      style={[
+        styles.glassCard,
+        isError
+          ? {
+              borderWidth: 1,
+              borderColor: theme.colors.error + "55",
+            }
+          : null,
+      ]}
     >
-      <View style={styles.row}>
-        <View
-          style={[
-            styles.thumbnail,
-            { backgroundColor: theme.colors.surfaceSecondary },
-            isError ? styles.thumbnailDimmed : null,
-          ]}
-        >
+      <Animated.View
+        entering={FadeIn.duration(CONTENT_FADE_MS)}
+        exiting={FadeOut.duration(CONTENT_FADE_MS)}
+        style={styles.cardInner}
+        accessible
+        accessibilityLabel={accessibilityLabel}
+      >
+        <View style={styles.row}>
+          <View
+            style={[
+              styles.thumbnail,
+              { backgroundColor: theme.colors.surfaceSecondary },
+              isError ? styles.thumbnailDimmed : null,
+            ]}
+          >
           {thumbnailUri ? (
             <Image
               source={{ uri: thumbnailUri }}
@@ -483,7 +514,8 @@ function PendingReviewRow({ job }: PendingReviewRowProps) {
           </TText>
         </View>
       ) : null}
-    </Animated.View>
+      </Animated.View>
+    </GlassSurface>
   );
 
   // Wrap in Swipeable for parity with the meal cards below.
@@ -570,20 +602,22 @@ const styles = StyleSheet.create({
     marginBottom: 0,
     marginLeft: 2,
   },
+  glassCard: {
+    borderRadius: 22,
+    overflow: "hidden",
+  },
+  cardInner: {
+    overflow: "hidden",
+  },
   rowOuter: {
     // Lets the swipe action shadow render outside the card.
     overflow: "visible",
   },
-  card: {
-    borderRadius: 24,
-    borderWidth: 1,
-    overflow: "hidden",
-  },
   row: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
     gap: 14,
     minHeight: 130,
   },
@@ -643,6 +677,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 13,
     lineHeight: 16,
+    marginTop: 4,
   },
   subtitleFaded: {
     fontSize: 13,
@@ -653,20 +688,23 @@ const styles = StyleSheet.create({
     gap: 6,
     marginTop: 2,
   },
-  primaryBtn: {
+  ctaButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
     flexShrink: 0,
+    borderWidth: StyleSheet.hairlineWidth,
   },
-  primaryBtnText: {
-    color: "#fff",
+  ctaText: {
     fontSize: 13,
     fontWeight: "600",
   },
   helperRow: {
-    paddingHorizontal: 14,
-    paddingBottom: 12,
+    paddingHorizontal: 18,
+    paddingBottom: 14,
     paddingTop: 4,
   },
   helper: {
@@ -684,7 +722,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: 75,
     height: "100%",
-    borderRadius: 24,
+    borderRadius: 22,
     gap: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },

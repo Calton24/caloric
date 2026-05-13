@@ -38,7 +38,10 @@ export interface CoachingInput {
   targetProtein: number;
   loggedMeals: number;
   streak: number;
+  /** Days until the next streak milestone (from streak psychology). */
   daysToMilestone?: number;
+  /** Next milestone streak length (e.g. 3 for a 3-day milestone) — used for `{{target}}` in copy. */
+  nextMilestone?: number;
   timeOfDay: "morning" | "afternoon" | "evening";
   secured: boolean; // has at least 1 logged meal today
   missedYesterday: boolean;
@@ -178,6 +181,14 @@ function pickText(
   return i18next.t(`coachingText.${keyBase}_v${v}`, params as any) as string;
 }
 
+function milestoneTargetDay(input: CoachingInput): number {
+  if (input.nextMilestone != null) return input.nextMilestone;
+  if (input.daysToMilestone != null) {
+    return input.streak + input.daysToMilestone;
+  }
+  return Math.max(1, input.streak + 1);
+}
+
 function getCoachingText(
   primary: CoachingState,
   states: CoachingState[],
@@ -185,7 +196,8 @@ function getCoachingText(
   pro: number,
   input: CoachingInput
 ): string {
-  const p = { cal, pro, streak: input.streak };
+  const targetDay = milestoneTargetDay(input);
+  const p = { cal, pro, streak: input.streak, target: targetDay };
 
   switch (primary) {
     case "late_critical":

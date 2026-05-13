@@ -9,6 +9,7 @@
     "milestoneContext": "{{count}} dias para o seu marco do dia {{target}}",
     "milestoneContext_one": "1 dia para o seu marco do dia {{target}}",
     "progressTarget": "Day {{target}}",
+    "coachInsightsPill": "Dicas do coach",
     "dayQuality": {
       "perfect": "Perfect",
       "optimized": "Optimized",

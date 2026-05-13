@@ -12,6 +12,7 @@ import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../theme/useTheme";
 import { useAppTranslation } from "../../../infrastructure/i18n/useAppTranslation";
+import { GlassSurface } from "../../glass/GlassSurface";
 import { TText } from "../../primitives/TText";
 
 interface ActionRowProps {
@@ -62,25 +63,24 @@ function ActionRowImpl({
           onRecalculate();
         }}
         style={({ pressed }) => [
-          styles.btn,
-          styles.secondaryBtn,
+          styles.secondaryPressable,
           {
-            backgroundColor: theme.colors.surfaceElevated,
-            borderColor: theme.colors.border,
             opacity: pressed ? 0.85 : canRecalculate ? 1 : 0.55,
           },
         ]}
       >
-        <Ionicons
-          name="refresh-outline"
-          size={18}
-          color={theme.colors.primary}
-        />
-        <TText
-          style={[styles.secondaryText, { color: theme.colors.primary }]}
-        >
-          {t("progress.recalculatePlan")}
-        </TText>
+        <GlassSurface variant="card" intensity="light" style={styles.btn}>
+          <Ionicons
+            name="refresh-outline"
+            size={18}
+            color={theme.colors.primary}
+          />
+          <TText
+            style={[styles.secondaryText, { color: theme.colors.primary }]}
+          >
+            {t("progress.recalculatePlan")}
+          </TText>
+        </GlassSurface>
       </Pressable>
     </View>
   );
@@ -108,8 +108,8 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  secondaryBtn: {
-    borderWidth: StyleSheet.hairlineWidth,
+  secondaryPressable: {
+    flex: 1,
   },
   primaryText: {
     fontSize: 15,

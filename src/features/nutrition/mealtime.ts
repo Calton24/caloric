@@ -14,6 +14,18 @@
 
 export type MealTime = "breakfast" | "lunch" | "dinner" | "snack";
 
+/** Canonical meal-time values (display / sync / grouping). */
+export const MEAL_TIMES: readonly MealTime[] = [
+  "breakfast",
+  "lunch",
+  "dinner",
+  "snack",
+];
+
+function isMealTimeString(value: string): value is MealTime {
+  return (MEAL_TIMES as readonly string[]).includes(value);
+}
+
 /**
  * Detect mealtime from the current hour.
  */
@@ -30,6 +42,40 @@ export function detectMealTime(date: Date = new Date()): MealTime {
  */
 export function mealTimeFromISO(iso: string): MealTime {
   return detectMealTime(new Date(iso));
+}
+
+/**
+ * Coerce any value to a valid `MealTime`. Unknown / null / undefined → snack.
+ * Use when you must always produce a bucket (e.g. hit-testing fallbacks).
+ */
+export function normaliseMealTime(value: unknown): MealTime {
+  if (typeof value === "string" && isMealTimeString(value)) return value;
+  return "snack";
+}
+
+/**
+ * Map Supabase `meal_time` into the local field. `null` / missing → undefined
+ * so the UI can fall back to time-of-day from `loggedAt`. Invalid strings →
+ * `snack` so one bad row cannot break grouping.
+ */
+export function coerceRemoteMealTime(raw: unknown): MealTime | undefined {
+  if (raw === null || raw === undefined) return undefined;
+  if (typeof raw === "string" && isMealTimeString(raw)) return raw;
+  return "snack";
+}
+
+/**
+ * Meal-time section used on Home (grouping + drag source section). Prefer
+ * persisted `mealTime` when set and valid; otherwise infer from `loggedAt`.
+ */
+export function effectiveMealSectionKey(meal: {
+  mealTime?: MealTime | string | null;
+  loggedAt: string;
+}): MealTime {
+  if (meal.mealTime === null || meal.mealTime === undefined || meal.mealTime === "") {
+    return mealTimeFromISO(meal.loggedAt);
+  }
+  return coerceRemoteMealTime(meal.mealTime) ?? mealTimeFromISO(meal.loggedAt);
 }
 
 /**

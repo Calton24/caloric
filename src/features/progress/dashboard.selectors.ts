@@ -11,13 +11,11 @@
 
 import { toLocalDate } from "../../lib/utils/date";
 import type { GoalType, MacroTargets } from "../goals/goals.types";
-import {
-  getMealsForDate,
-  getNutritionTotals,
-} from "../nutrition/nutrition.selectors";
+import { getDailyNutritionTotalsMap } from "../nutrition/nutrition.selectors";
 import type { MealEntry } from "../nutrition/nutrition.types";
 import {
   computeCurrentStreakFromMeals,
+  getLoggedMealDates,
   getMostRecentLoggedMealDate,
 } from "../streak/streak-from-meals";
 import type { WeightLog } from "./progress.types";
@@ -110,6 +108,20 @@ export interface BMIInfo {
   scalePosition: number;
 }
 
+/** Fat-free mass index from weight, height, and body-fat % (calculator input). */
+export interface FFMIInfo {
+  ffmi: number | null;
+  classification:
+    | "below"
+    | "average"
+    | "fit"
+    | "athletic"
+    | "exceptional"
+    | "unknown";
+  /** Position 0..1 across the FFMI reference scale (14..28 clamped). */
+  scalePosition: number;
+}
+
 // ── Internal helpers ───────────────────────────────────────────────────
 
 const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"] as const;
@@ -181,26 +193,25 @@ export function getMacroBreakdown(
   meals: MealEntry[],
   range: DashboardRange
 ): DailyStackPoint[] {
+  const totalsByDay = getDailyNutritionTotalsMap(meals);
   const today = startOfLocalDay(new Date());
   const todayIso = toISO(today);
-  const earliestIso = meals.length
-    ? meals
-        .map((m) => toLocalDate(new Date(m.loggedAt)))
-        .reduce((min, cur) => (cur < min ? cur : min))
-    : todayIso;
-  const startIso = getRangeStartIso(range, earliestIso);
+  let earliestIso = todayIso;
+  for (const k of totalsByDay.keys()) {
+    if (k < earliestIso) earliestIso = k;
+  }
+  const startIso = getRangeStartIso(range, meals.length ? earliestIso : null);
   const dates = buildDateList(startIso, todayIso);
 
   return dates.map((date) => {
-    const dayMeals = getMealsForDate(meals, date);
-    const totals = getNutritionTotals(dayMeals);
+    const totals = totalsByDay.get(date);
     return {
       date,
       label: shortDateLabel(date, range),
-      calories: Math.round(totals.calories),
-      protein: Math.round(totals.protein),
-      carbs: Math.round(totals.carbs),
-      fat: Math.round(totals.fat),
+      calories: Math.round(totals?.calories ?? 0),
+      protein: Math.round(totals?.protein ?? 0),
+      carbs: Math.round(totals?.carbs ?? 0),
+      fat: Math.round(totals?.fat ?? 0),
     };
   });
 }
@@ -326,13 +337,14 @@ export function getStreakData(
   meals: MealEntry[],
   longestStreak: number
 ): StreakSummary {
+  const loggedDates = getLoggedMealDates(meals);
   const today = startOfLocalDay(new Date());
   const todayIso = toISO(today);
   const week: StreakWeekDay[] = [];
   for (let offset = 6; offset >= 0; offset--) {
     const d = new Date(today.getTime() - offset * MS_PER_DAY);
     const iso = toISO(d);
-    const logged = getMealsForDate(meals, iso).length > 0;
+    const logged = loggedDates.has(iso);
     week.push({
       date: iso,
       label: DAY_LABELS[d.getDay()],
@@ -365,9 +377,8 @@ export function getConsistencyScore(
     const prevEnd = new Date(today.getTime() - days * MS_PER_DAY);
     const prevStart = new Date(prevEnd.getTime() - (days - 1) * MS_PER_DAY);
     const prevDates = buildDateList(toISO(prevStart), toISO(prevEnd));
-    const prevLogged = prevDates.filter(
-      (d) => getMealsForDate(meals, d).length > 0
-    ).length;
+    const mealDays = getLoggedMealDates(meals);
+    const prevLogged = prevDates.filter((d) => mealDays.has(d)).length;
     const prevScore = Math.round((prevLogged / Math.max(prevDates.length, 1)) * 100);
     deltaVsPreviousWindow = score - prevScore;
   }
@@ -820,4 +831,42 @@ export function getBMI(
   const clamped = Math.max(15, Math.min(40, bmi));
   const scalePosition = (clamped - 15) / (40 - 15);
   return { bmi, classification, scalePosition };
+}
+
+/**
+ * FFMI (fat-free mass index) = lean body mass (kg) / height (m)².
+ * `bodyFatPercent` is total fat as % of body mass (0–99).
+ */
+export function getFFMI(
+  heightCm: number | null,
+  currentWeightLbs: number | null,
+  bodyFatPercent: number | null
+): FFMIInfo {
+  if (
+    !heightCm ||
+    !currentWeightLbs ||
+    bodyFatPercent == null ||
+    !Number.isFinite(bodyFatPercent)
+  ) {
+    return { ffmi: null, classification: "unknown", scalePosition: 0 };
+  }
+  const bf = Math.min(99, Math.max(0, bodyFatPercent));
+  const kg = currentWeightLbs * 0.453592;
+  const leanKg = kg * (1 - bf / 100);
+  if (!(leanKg > 0)) {
+    return { ffmi: null, classification: "unknown", scalePosition: 0 };
+  }
+  const m = heightCm / 100;
+  const ffmi = +(leanKg / (m * m)).toFixed(1);
+
+  let classification: FFMIInfo["classification"];
+  if (ffmi < 17) classification = "below";
+  else if (ffmi < 18) classification = "average";
+  else if (ffmi < 20) classification = "fit";
+  else if (ffmi < 22) classification = "athletic";
+  else classification = "exceptional";
+
+  const clamped = Math.max(14, Math.min(28, ffmi));
+  const scalePosition = (clamped - 14) / (28 - 14);
+  return { ffmi, classification, scalePosition };
 }

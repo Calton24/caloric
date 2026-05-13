@@ -11,6 +11,10 @@
 
 import { useNutritionStore } from "../nutrition/nutrition.store";
 import { useProgressStore } from "../progress/progress.store";
+import {
+  buildAppleHealthFoodPayload,
+  toWriteDietaryEnergySampleInput,
+} from "./apple-health-food.adapter";
 import { getHealthService } from "./health.factory";
 import type { HealthKitWeightSample } from "./health.types";
 
@@ -87,12 +91,19 @@ export async function exportMealsToHealthKit(
   for (const meal of todayMeals) {
     if (meal.calories <= 0) continue;
 
-    const loggedAt = new Date(meal.loggedAt);
-    // Each meal is a point-in-time sample
-    const endDate = new Date(loggedAt.getTime() + 60_000); // 1 min duration
-
     try {
-      await service.writeCalories(meal.calories, loggedAt, endDate);
+      const built = buildAppleHealthFoodPayload({
+        id: meal.id,
+        title: meal.title,
+        name: meal.title,
+        calories: meal.calories,
+        protein: meal.protein,
+        carbs: meal.carbs,
+        fat: meal.fat,
+        loggedAt: meal.loggedAt,
+      });
+      if (!built.ok) continue;
+      await service.writeCalories(toWriteDietaryEnergySampleInput(built.payload));
     } catch {
       // Best effort: skip malformed/native-failing meal samples.
       continue;

@@ -20,6 +20,22 @@ export interface HealthKitNutritionSample {
   value: number;
 }
 
+/**
+ * Input for HealthKit dietary `saveFood` (react-native-health).
+ * Native code requires non-nil `foodName` and `mealType` in metadata.
+ */
+export interface WriteDietaryEnergySampleInput {
+  foodName: string;
+  /** HKFoodMeal — must never be omitted (native NSDictionary crashes on nil). */
+  mealType: string;
+  energyKcal: number;
+  /** Consumption instant passed to native as `date`. */
+  date: Date;
+  proteinG?: number;
+  carbohydratesG?: number;
+  fatG?: number;
+}
+
 export interface HealthService {
   /** Check if HealthKit is available on this device */
   isAvailable(): Promise<boolean>;
@@ -42,10 +58,10 @@ export interface HealthService {
     endDate: Date
   ): Promise<HealthKitNutritionSample[]>;
 
-  /** Write dietary energy (calories) to HealthKit */
-  writeCalories(
-    calories: number,
-    startDate: Date,
-    endDate: Date
-  ): Promise<void>;
+  /**
+   * Write dietary energy (and optional macros) via react-native-health
+   * `saveFood`. Keys must match the native bridge (`foodName`, `mealType`,
+   * `energy`, `date`, optional macro keys).
+   */
+  writeCalories(input: WriteDietaryEnergySampleInput): Promise<void>;
 }

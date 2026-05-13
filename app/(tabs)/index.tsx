@@ -12,7 +12,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import {
+  useFocusEffect,
+  useGlobalSearchParams,
+  useLocalSearchParams,
+  useRouter,
+  useUnstableGlobalHref,
+} from "expo-router";
 import { CircleUserRound } from "lucide-react-native";
 import React, {
     useCallback,
@@ -21,6 +27,7 @@ import React, {
     useMemo,
     useRef,
     useState,
+    useTransition,
 } from "react";
 import {
     Alert,
@@ -53,23 +60,31 @@ import { useHealthAutoSync } from "../../src/features/health";
 import { runAccountDataAudit } from "../../src/features/debug/run-account-data-audit";
 import { useHomeData } from "../../src/features/home/use-home-data";
 import { HomeRestoreSkeleton } from "../../src/features/home/HomeRestoreSkeleton";
-import { useDeleteAccountDialogStore } from "../../src/features/account/delete-account-dialog.store";
+import {
+  MealTimeDragOverlay,
+  type MealSectionRect,
+} from "../../src/features/home/MealTimeDragOverlay";
 import { useAuth } from "../../src/features/auth/useAuth";
 import { usePermissionsStore } from "../../src/features/permissions";
 import {
   COACH_ROUTES,
   useCoachInsight,
 } from "../../src/features/retention/useCoachInsight";
+import type { MealEntry } from "../../src/features/nutrition/nutrition.types";
 import type { MealTime } from "../../src/features/nutrition/mealtime";
 import {
     MEALTIME_ICONS,
     MEALTIME_LABELS,
-    mealTimeFromISO,
+    effectiveMealSectionKey,
+    normaliseMealTime,
 } from "../../src/features/nutrition/mealtime";
 import { useNutritionDraftStore } from "../../src/features/nutrition/nutrition.draft.store";
-import { getMealsForDate } from "../../src/features/nutrition/nutrition.selectors";
+import { resolveMealLoggedDateLocal } from "../../src/features/food-logging/time/create-meal-timestamp-fields";
+import { isValidMealLoggedAt } from "../../src/features/nutrition/meal-normalize";
 import { useNutritionStore } from "../../src/features/nutrition/nutrition.store";
 import { useProfileStore } from "../../src/features/profile/profile.store";
+import { useSettingsStore } from "../../src/features/settings";
+import { applyLogReminderEnabled } from "../../src/features/reminders/apply-log-reminder-enabled";
 import { useRetentionEngine } from "../../src/features/retention";
 import { useSyncReadyStore } from "../../src/features/sync/sync-ready.store";
 import { useStreakStore } from "../../src/features/streak/streak.store";
@@ -85,26 +100,32 @@ import {
     areLiveActivitiesAvailable,
     endLiveActivity,
 } from "../../src/features/live-activity";
-import { hasDynamicIsland } from "../../src/platform/ios/hasDynamicIsland";
+import { iosPhoneHasNotchOrDynamicIsland } from "../../src/platform/ios/hasDynamicIsland";
 import { useBackgroundScanStore } from "../../src/features/camera/background-scan.store";
 import { addFoodLoggingBreadcrumb } from "../../src/infrastructure/errorReporting/foodLoggingErrors";
 import { reportError } from "../../src/infrastructure/errorReporting";
 import { CalCutLogo } from "../../src/ui/brand/CalCutLogo";
 import { AnalyzingCard } from "../../src/ui/components/AnalyzingCard";
 import { DaySelector } from "../../src/ui/components/DaySelector";
+import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { EditMealSheet } from "../../src/ui/components/EditMealSheet";
 import {
   HamburgerMenu,
   type MenuSection,
 } from "../../src/ui/components/HamburgerMenu";
 import { MacroCard } from "../../src/ui/components/MacroCard";
-import { LogFoodLauncherSheetContent } from "../../src/features/food-logging/LogFoodLauncherSheetContent";
+import { CAMERA_LOG_ROUTE } from "../../src/features/food-logging/food-logging-routes";
+import {
+  LogFoodLauncherSheetContent,
+  openHomeFoodLogSubSheet,
+} from "../../src/features/food-logging/LogFoodLauncherSheetContent";
 import { MealCard } from "../../src/ui/components/MealCard";
 import { MilestoneInsightCard } from "../../src/ui/components/MilestoneInsightCard";
 import { MonthlyView } from "../../src/ui/components/MonthlyView";
 import { PerformanceSheet } from "../../src/ui/components/PerformanceSheet";
 import { ProgressRing } from "../../src/ui/components/ProgressRing";
 import { StreakModal } from "../../src/ui/components/StreakModal";
+import { GlassToggleSwitch } from "../../src/ui/components/GlassToggleSwitch";
 import { WaterCard } from "../../src/ui/components/WaterCard";
 import { WaterSettingsModal } from "../../src/ui/components/WaterSettingsModal";
 import { WeeklyView } from "../../src/ui/components/WeeklyView";
@@ -114,6 +135,36 @@ import { useBottomSheet } from "../../src/ui/sheets/useBottomSheet";
 
 /** Max time Home waits for `syncRestoredFor` before unblocking (local / repo data). */
 const RESTORE_GATE_TIMEOUT_MS = 8000;
+
+type LiveActivityFoodLogIntent = "manual" | "voice" | "camera";
+
+function parseFoodLogQueryFromHref(href: string): LiveActivityFoodLogIntent | null {
+  const noHash = href.split("#")[0];
+  const qIdx = noHash.indexOf("?");
+  if (qIdx === -1) return null;
+  const v = new URLSearchParams(noHash.slice(qIdx + 1)).get("foodLog");
+  return v === "manual" || v === "voice" || v === "camera" ? v : null;
+}
+
+function normalizeFoodLogParam(
+  raw: string | string[] | undefined,
+): LiveActivityFoodLogIntent | null {
+  if (raw == null) return null;
+  const v = Array.isArray(raw) ? raw[0] : raw;
+  return v === "manual" || v === "voice" || v === "camera" ? v : null;
+}
+
+function resolveLiveActivityFoodLogIntent(params: {
+  unstableHref: string;
+  globalFoodLog?: string | string[];
+  localFoodLog?: string | string[];
+}): LiveActivityFoodLogIntent | null {
+  return (
+    parseFoodLogQueryFromHref(params.unstableHref) ??
+    normalizeFoodLogParam(params.localFoodLog) ??
+    normalizeFoodLogParam(params.globalFoodLog)
+  );
+}
 
 /** Animated number display using React state with smooth transitions */
 function AnimatedNumber({ value, style }: { value: number; style?: any }) {
@@ -251,9 +302,7 @@ function ViewModeToggle({
     transform: [{ translateX: translateX.value }],
   }));
 
-  // Theme-aware colors
-  const trackBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)";
-  const trackBorder = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.10)";
+  // Theme-aware colors (track is glass; indicator floats on top)
   const indicatorBg = isDark
     ? "rgba(255,255,255,0.22)"
     : "rgba(255,255,255,0.95)";
@@ -263,13 +312,12 @@ function ViewModeToggle({
     : theme.colors.textSecondary;
 
   return (
-    <View
+    <GlassSurface
+      variant="card"
+      intensity="light"
       style={{
         flexDirection: "row",
-        backgroundColor: trackBg,
         borderRadius: 16,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: trackBorder,
         padding: TOGGLE_PAD,
       }}
     >
@@ -320,7 +368,7 @@ function ViewModeToggle({
           </Pressable>
         );
       })}
-    </View>
+    </GlassSurface>
   );
 }
 
@@ -494,14 +542,71 @@ function SwipeTutorialOverlay({
   );
 }
 
+const HOME_MEAL_ORDER: MealTime[] = ["breakfast", "lunch", "dinner", "snack"];
+
 export default function HomeScreen() {
   const { theme, toggleMode } = useTheme();
   const { t } = useAppTranslation();
   const router = useRouter();
+  const unstableHref = useUnstableGlobalHref() ?? "";
+  const localSearchParams = useLocalSearchParams<{
+    foodLog?: string | string[];
+  }>();
+  const globalSearchParams = useGlobalSearchParams<{
+    foodLog?: string | string[];
+  }>();
+  const liveActivityFoodLog = useMemo(
+    () =>
+      resolveLiveActivityFoodLogIntent({
+        unstableHref,
+        globalFoodLog: globalSearchParams.foodLog,
+        localFoodLog: localSearchParams.foodLog,
+      }),
+    [
+      unstableHref,
+      globalSearchParams.foodLog,
+      localSearchParams.foodLog,
+    ],
+  );
+
+  // Prevent duplicate /progress pushes when the kg pill is tapped rapidly.
+  // The ref resets each time Home re-focuses so back-navigation always works.
+  const progressNavInFlightRef = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      progressNavInFlightRef.current = false;
+    }, [])
+  );
+  const openProgress = useCallback(() => {
+    if (progressNavInFlightRef.current) return;
+    progressNavInFlightRef.current = true;
+    queueMicrotask(() => {
+      router.push("/progress" as any);
+    });
+  }, [router]);
+
   const { signOut, user } = useAuth();
-  const openDeleteAccountDialog = useDeleteAccountDialogStore((s) => s.open);
+  const openDeleteAccountFromMenu = useCallback(() => {
+    if (__DEV__) {
+      console.warn("[DeleteAccount] hamburger_press");
+    }
+    requestAnimationFrame(() => {
+      if (__DEV__) {
+        console.warn("[DeleteAccount] navigating_to_delete_modal", {
+          canGoBack: router.canGoBack(),
+        });
+      }
+      router.push("/(modals)/delete-account" as never);
+    });
+  }, [router]);
   const units = useUnits();
   const [viewMode, setViewMode] = useState<ViewMode>("D");
+  const [tabViewMode, setTabViewMode] = useState<ViewMode>("D");
+  const [, startViewModeTransition] = useTransition();
+  const onViewModeChange = useCallback((next: ViewMode) => {
+    setTabViewMode(next);
+    startViewModeTransition(() => setViewMode(next));
+  }, []);
   const [showSwipeTutorial, setShowSwipeTutorial] = useState(false);
   const [showStreakModal, setShowStreakModal] = useState(false);
   const [showWaterSettings, setShowWaterSettings] = useState(false);
@@ -513,6 +618,11 @@ export default function HomeScreen() {
   const [restoreGateTimedOut, setRestoreGateTimedOut] = useState(false);
   const homeRestoreGateLoggedRef = useRef(false);
   const { open: openSheet, close: closeSheet } = useBottomSheet();
+  const logSheetOpenRef = useRef(openSheet);
+  const logSheetCloseRef = useRef(closeSheet);
+  logSheetOpenRef.current = openSheet;
+  logSheetCloseRef.current = closeSheet;
+  const liveActivityFoodLogHandledRef = useRef<string | null>(null);
   // Surface a flag when at least one visible pending review exists so we can
   // tighten the spacing above the queue without subscribing to the full list.
   const hasPendingReview = useBackgroundScanStore((s) => {
@@ -707,22 +817,34 @@ export default function HomeScreen() {
   useEffect(() => {
     if (!user?.id || !shouldRunAccountDataAudit || !homeDataReady) return;
     const meals = useNutritionStore.getState().meals;
+    const weekKeySet = new Set(weekDays.map((d) => d.key));
+    const monthKeySet = new Set(
+      monthGrid.days.filter(Boolean).map((c) => c!.key)
+    );
+    const monthDaysSeen = new Set<string>();
     let weekMealRowTotal = 0;
-    for (const d of weekDays) {
-      weekMealRowTotal += getMealsForDate(meals, d.key).length;
-    }
-    let monthDaysWithMeals = 0;
     let monthMealRowTotal = 0;
-    for (const cell of monthGrid.days) {
-      if (!cell) continue;
-      const n = getMealsForDate(meals, cell.key).length;
-      monthMealRowTotal += n;
-      if (n > 0) monthDaysWithMeals++;
+    let mealsForSelectedDay = 0;
+    for (const m of meals) {
+      if (!m || !isValidMealLoggedAt(m.loggedAt)) continue;
+      let k: string;
+      try {
+        k = resolveMealLoggedDateLocal(m);
+      } catch {
+        continue;
+      }
+      if (k === selectedDate) mealsForSelectedDay++;
+      if (weekKeySet.has(k)) weekMealRowTotal++;
+      if (monthKeySet.has(k)) {
+        monthMealRowTotal++;
+        monthDaysSeen.add(k);
+      }
     }
+    const monthDaysWithMeals = monthDaysSeen.size;
     void runAccountDataAudit(user.id, {
       viewMode,
       selectedDate,
-      mealsForSelectedDay: getMealsForDate(meals, selectedDate).length,
+      mealsForSelectedDay,
       weekMealRowTotal,
       monthDaysWithMeals,
       monthMealRowTotal,
@@ -740,6 +862,7 @@ export default function HomeScreen() {
   ]);
 
   const removeMeal = useNutritionStore((s) => s.removeMeal);
+  const updateMeal = useNutritionStore((s) => s.updateMeal);
   const mealsInStoreCount = useNutritionStore((s) => s.meals.length);
   const profileForGate = useProfileStore((s) => s.profile);
   const goalWeightLbs = useProfileStore((s) => s.profile.goalWeightLbs);
@@ -814,11 +937,21 @@ export default function HomeScreen() {
           return;
         }
       }
+      haptics.impact("light");
       setLiveActivitiesEnabled(value);
       if (!value) endLiveActivity();
     },
     [setLiveActivitiesEnabled, t]
   );
+
+  const logReminderEnabled = useSettingsStore(
+    (s) => s.settings.logReminderEnabled
+  );
+
+  const handleLogReminderToggle = useCallback(async () => {
+    haptics.impact("light");
+    await applyLogReminderEnabled(!logReminderEnabled);
+  }, [logReminderEnabled]);
 
   const todayMeals = dailySummary.meals;
 
@@ -841,7 +974,7 @@ export default function HomeScreen() {
       retention.markCameraShown();
       // Small delay to let the home screen render first
       const timer = setTimeout(() => {
-        router.push("/tracking/camera" as any);
+        router.push(CAMERA_LOG_ROUTE as never);
       }, 600);
       return () => clearTimeout(timer);
     }
@@ -863,7 +996,6 @@ export default function HomeScreen() {
   const milestoneInsight = coachInsight.milestoneModel;
 
   // Group meals by category in display order
-  const MEAL_ORDER: MealTime[] = ["breakfast", "lunch", "dinner", "snack"];
   const groupedMeals = useMemo(() => {
     const groups: Record<MealTime, typeof todayMeals> = {
       breakfast: [],
@@ -872,11 +1004,117 @@ export default function HomeScreen() {
       snack: [],
     };
     for (const meal of todayMeals) {
-      const mt = meal.mealTime ?? mealTimeFromISO(meal.loggedAt);
+      const mt = effectiveMealSectionKey(meal);
       groups[mt].push(meal);
     }
     return groups;
   }, [todayMeals]);
+
+  const mealSectionRefs = useRef<Partial<Record<MealTime, View | null>>>({});
+  const [mealDragSession, setMealDragSession] = useState<{
+    meal: MealEntry;
+    sourceMealTime: MealTime;
+    cardRect: { x: number; y: number; width: number; height: number };
+    finger: { pageX: number; pageY: number };
+    sectionRects: Partial<Record<MealTime, MealSectionRect>>;
+  } | null>(null);
+  const [isMealDragging, setIsMealDragging] = useState(false);
+  const mealDragSessionRef = useRef(mealDragSession);
+  mealDragSessionRef.current = mealDragSession;
+  const dragLockRef = useRef(false);
+
+  const visibleMealSectionCount = useMemo(
+    () => HOME_MEAL_ORDER.filter((mt) => groupedMeals[mt].length > 0).length,
+    [groupedMeals]
+  );
+
+  const beginMealTimeDrag = useCallback(
+    async (
+      meal: MealEntry,
+      sourceMealTime: MealTime,
+      layout: { x: number; y: number; width: number; height: number },
+      finger: { pageX: number; pageY: number }
+    ) => {
+      if (dragLockRef.current || mealDragSessionRef.current) return;
+      const sections = HOME_MEAL_ORDER.filter(
+        (mt) => mealSectionRefs.current[mt]
+      );
+      if (sections.length < 2) return;
+      setIsMealDragging(true);
+      dragLockRef.current = true;
+      try {
+        const rects: Partial<Record<MealTime, MealSectionRect>> = {};
+        await Promise.all(
+          sections.map(
+            (mt) =>
+              new Promise<void>((resolve) => {
+                const node = mealSectionRefs.current[mt];
+                if (!node) {
+                  resolve();
+                  return;
+                }
+                node.measureInWindow((x, y, w, h) => {
+                  rects[mt] = { x, y, width: w, height: h };
+                  resolve();
+                });
+              })
+          )
+        );
+        await haptics.selection();
+        if (__DEV__) {
+          console.log("[MealTimeDrag] start", meal.id, sourceMealTime);
+        }
+        setMealDragSession({
+          meal,
+          sourceMealTime,
+          cardRect: layout,
+          finger,
+          sectionRects: rects,
+        });
+      } catch (e) {
+        if (__DEV__) {
+          console.warn("[MealTimeDrag] begin failed", e);
+        }
+        setIsMealDragging(false);
+      } finally {
+        requestAnimationFrame(() => {
+          dragLockRef.current = false;
+        });
+      }
+    },
+    []
+  );
+
+  const finishMealTimeDrag = useCallback(
+    (target: MealTime | null) => {
+      setMealDragSession((session) => {
+        if (!session) {
+          return null;
+        }
+        if (!target) {
+          if (__DEV__) console.log("[MealTimeDrag] cancelled");
+          void haptics.selection();
+          return null;
+        }
+        const nextMt = normaliseMealTime(target);
+        if (nextMt === session.sourceMealTime) {
+          if (__DEV__) console.log("[MealTimeDrag] cancelled same_section");
+          void haptics.selection();
+          return null;
+        }
+        updateMeal(session.meal.id, { mealTime: nextMt });
+        if (__DEV__) {
+          console.log("[MealTimeDrag] dropped", session.meal.id, nextMt);
+          console.log("[MealTimeDrag] persisted_local", session.meal.id, nextMt);
+        }
+        void haptics.notification("success");
+        return null;
+      });
+      setIsMealDragging(false);
+      dragLockRef.current = false;
+    },
+    [updateMeal]
+  );
 
   const lw = latestWeight;
   const hasValidWeight =
@@ -1045,6 +1283,70 @@ export default function HomeScreen() {
     }
   }, [coachInsight.route, openLogSheet, router]);
 
+  // Dynamic Island / Live Activity CTAs → same sheets as Home “+” (not legacy /tracking/*).
+  useEffect(() => {
+    if (!liveActivityFoodLog) {
+      liveActivityFoodLogHandledRef.current = null;
+      return;
+    }
+    if (
+      liveActivityFoodLog !== "manual" &&
+      liveActivityFoodLog !== "voice" &&
+      liveActivityFoodLog !== "camera"
+    ) {
+      return;
+    }
+    if (!homeDataReady || !user?.id) return;
+    if (liveActivityFoodLogHandledRef.current === liveActivityFoodLog) {
+      return;
+    }
+
+    liveActivityFoodLogHandledRef.current = liveActivityFoodLog;
+    const intent = liveActivityFoodLog;
+
+    let cancelled = false;
+    const job = InteractionManager.runAfterInteractions(() => {
+      if (cancelled) return;
+      if (intent === "camera") {
+        haptics.impact("light");
+        router.replace("/(tabs)" as never);
+        setLogDate(isToday ? null : selectedDate);
+        router.push(CAMERA_LOG_ROUTE as never);
+        return;
+      }
+      haptics.impact("light");
+      openHomeFoodLogSubSheet(intent, {
+        open: logSheetOpenRef.current,
+        close: logSheetCloseRef.current,
+        setLogDate,
+        homeSelectedDate: selectedDate,
+        homeIsToday: isToday,
+      });
+      queueMicrotask(() => {
+        try {
+          router.setParams({ foodLog: undefined } as never);
+        } catch {
+          /* noop */
+        }
+      });
+    });
+    return () => {
+      cancelled = true;
+      job.cancel();
+      if (liveActivityFoodLogHandledRef.current === intent) {
+        liveActivityFoodLogHandledRef.current = null;
+      }
+    };
+  }, [
+    liveActivityFoodLog,
+    homeDataReady,
+    user?.id,
+    router,
+    setLogDate,
+    isToday,
+    selectedDate,
+  ]);
+
   const contentSwipe = Gesture.Pan()
     .activeOffsetX([-15, 15])
     .failOffsetY([-10, 10])
@@ -1107,46 +1409,11 @@ export default function HomeScreen() {
     opacity: contentOpacity.value,
   }));
 
-  const glassToggleTrack = useMemo(
-    () => ({
-      width: 44,
-      height: 26,
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      backgroundColor:
-        theme.mode === "dark"
-          ? "rgba(255,255,255,0.10)"
-          : "rgba(255,255,255,0.55)",
-      padding: 2,
-      justifyContent: "center" as const,
-    }),
-    [theme]
-  );
-
   const renderGlassSwitch = useCallback(
     (value: boolean, onToggle: () => void) => (
-      <Pressable
-        onPress={onToggle}
-        hitSlop={8}
-        accessibilityRole="switch"
-        accessibilityState={{ checked: value }}
-        style={glassToggleTrack}
-      >
-        <View
-          style={[
-            {
-              width: 20,
-              height: 20,
-              borderRadius: 10,
-              backgroundColor: value ? theme.colors.primary : theme.colors.textMuted,
-              transform: [{ translateX: value ? 18 : 0 }],
-            },
-          ]}
-        />
-      </Pressable>
+      <GlassToggleSwitch value={value} onToggle={onToggle} />
     ),
-    [glassToggleTrack, theme.colors.primary, theme.colors.textMuted]
+    []
   );
 
   const unitsAccessory = useMemo(() => {
@@ -1293,8 +1560,16 @@ export default function HomeScreen() {
             key: "notifications",
             label: t("settings.notifications"),
             icon: "notifications-outline",
-            onPress: () =>
-              router.push("/(main)/settings/notifications" as any),
+            keepOpenOnPress: true,
+            onPress: () => {
+              void handleLogReminderToggle();
+            },
+            rightAccessory: renderGlassSwitch(
+              logReminderEnabled,
+              () => {
+                void handleLogReminderToggle();
+              }
+            ),
           },
         ],
       },
@@ -1314,7 +1589,7 @@ export default function HomeScreen() {
       });
     }
 
-    if (hasDynamicIsland()) {
+    if (iosPhoneHasNotchOrDynamicIsland()) {
       sections.push({
         title: t("settings.extensions"),
         items: [
@@ -1447,7 +1722,7 @@ export default function HomeScreen() {
             label: t("settings.deleteAccount"),
             icon: "trash-outline",
             destructive: true,
-            onPress: openDeleteAccountDialog,
+            onPress: openDeleteAccountFromMenu,
           },
         ],
       }
@@ -1472,8 +1747,10 @@ export default function HomeScreen() {
     units,
     unitsAccessory,
     handleToggleLiveActivities,
+    logReminderEnabled,
+    handleLogReminderToggle,
     liveActivitiesEnabled,
-    openDeleteAccountDialog,
+    openDeleteAccountFromMenu,
   ]);
 
   if (user?.id && !homeDataReady) {
@@ -1645,7 +1922,7 @@ export default function HomeScreen() {
         <View testID="home-header" style={styles.header}>
           <View style={styles.headerTopRow}>
             <View style={styles.brandPill}>
-              <CalCutLogo size={30} color={theme.colors.text} />
+              <CalCutLogo size={40} color={theme.colors.text} />
               <TText style={[styles.brandText, { color: theme.colors.text }]}>
                 {t("home.brandName")}
               </TText>
@@ -1684,7 +1961,7 @@ export default function HomeScreen() {
                 />
               </Pressable>
               <Pressable
-                onPress={() => router.push("/progress" as any)}
+                onPress={openProgress}
                 accessibilityLabel={
                   !hasValidWeight
                     ? t("home.currentWeightA11yUnset", {
@@ -1696,49 +1973,48 @@ export default function HomeScreen() {
                       })
                 }
                 accessibilityRole="button"
-                style={[
-                  styles.weightPill,
-                  { backgroundColor: theme.colors.surfaceSecondary },
-                ]}
+                style={({ pressed }) => [pressed && styles.weightPillPressed]}
               >
-                <Ionicons
-                  name={
-                    !hasValidWeight || !profileReady
-                      ? "analytics-outline"
-                      : weightTrending
-                        ? "trending-down"
-                        : "trending-up"
-                  }
-                  size={14}
-                  color={
-                    !hasValidWeight || !profileReady
-                      ? theme.colors.textMuted
-                      : weightTrending
-                        ? theme.colors.success
-                        : theme.colors.warning
-                  }
-                />
-                {!hasValidWeight ? (
-                  <TText
-                    style={[
-                      styles.weightText,
-                      { color: theme.colors.textMuted },
-                    ]}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.82}
-                  >
-                    {t("home.weightSetPrompt", {
-                      defaultValue: "Set weight",
-                    })}
-                  </TText>
-                ) : (
-                  <AnimatedWeight
-                    currentValue={lw}
-                    units={units}
-                    style={[styles.weightText, { color: theme.colors.text }]}
+                <GlassSurface variant="card" intensity="light" style={styles.weightPill}>
+                  <Ionicons
+                    name={
+                      !hasValidWeight || !profileReady
+                        ? "analytics-outline"
+                        : weightTrending
+                          ? "trending-down"
+                          : "trending-up"
+                    }
+                    size={14}
+                    color={
+                      !hasValidWeight || !profileReady
+                        ? theme.colors.textMuted
+                        : weightTrending
+                          ? theme.colors.success
+                          : theme.colors.warning
+                    }
                   />
-                )}
+                  {!hasValidWeight ? (
+                    <TText
+                      style={[
+                        styles.weightText,
+                        { color: theme.colors.textMuted },
+                      ]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.82}
+                    >
+                      {t("home.weightSetPrompt", {
+                        defaultValue: "Set weight",
+                      })}
+                    </TText>
+                  ) : (
+                    <AnimatedWeight
+                      currentValue={lw}
+                      units={units}
+                      style={[styles.weightText, { color: theme.colors.text }]}
+                    />
+                  )}
+                </GlassSurface>
               </Pressable>
               <HamburgerMenu
                 open={profileMenuOpen}
@@ -1765,6 +2041,7 @@ export default function HomeScreen() {
         <ScrollView
           ref={homeScrollRef}
           testID="home-scroll"
+          scrollEnabled={!isMealDragging}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
@@ -1788,7 +2065,7 @@ export default function HomeScreen() {
               {dayTitle}
             </TText>
             <View style={styles.segmentToggle}>
-              <ViewModeToggle value={viewMode} onChange={setViewMode} />
+              <ViewModeToggle value={tabViewMode} onChange={onViewModeChange} />
             </View>
           </View>
 
@@ -1867,50 +2144,60 @@ export default function HomeScreen() {
 
                 <TSpacer size="sm" />
 
-                {/* Consumed / Budget footer */}
+                {/* Consumed / Budget — glass pill (matches macro cards / weight pill) */}
                 <View testID="consumed-budget" style={styles.ringFooter}>
-                  <View style={styles.ringFooterItem}>
-                    <TText
+                  <GlassSurface
+                    variant="pill"
+                    intensity="light"
+                    style={styles.consumedBudgetPill}
+                  >
+                    <View style={styles.ringFooterItem}>
+                      <TText
+                        style={[
+                          styles.ringFooterValue,
+                          {
+                            color: canShowGoals
+                              ? overLimit.color
+                              : theme.colors.text,
+                          },
+                        ]}
+                      >
+                        {Math.round(totals.calories)}
+                      </TText>
+                      <TText
+                        style={[
+                          styles.ringFooterLabel,
+                          { color: theme.colors.textMuted },
+                        ]}
+                      >
+                        {t("home.consumed")}
+                      </TText>
+                    </View>
+                    <View
                       style={[
-                        styles.ringFooterValue,
-                        { color: theme.colors.text },
+                        styles.ringDivider,
+                        { backgroundColor: theme.colors.border },
                       ]}
-                    >
-                      {Math.round(totals.calories)}
-                    </TText>
-                    <TText
-                      style={[
-                        styles.ringFooterLabel,
-                        { color: theme.colors.textMuted },
-                      ]}
-                    >
-                      {t("home.consumed")}
-                    </TText>
-                  </View>
-                  <View
-                    style={[
-                      styles.ringDivider,
-                      { backgroundColor: theme.colors.border },
-                    ]}
-                  />
-                  <View style={styles.ringFooterItem}>
-                    <TText
-                      style={[
-                        styles.ringFooterValue,
-                        { color: theme.colors.text },
-                      ]}
-                    >
-                      {canShowGoals ? targetCalories : "—"}
-                    </TText>
-                    <TText
-                      style={[
-                        styles.ringFooterLabel,
-                        { color: theme.colors.textMuted },
-                      ]}
-                    >
-                      {t("home.budget")}
-                    </TText>
-                  </View>
+                    />
+                    <View style={styles.ringFooterItem}>
+                      <TText
+                        style={[
+                          styles.ringFooterValue,
+                          { color: theme.colors.text },
+                        ]}
+                      >
+                        {canShowGoals ? targetCalories : "—"}
+                      </TText>
+                      <TText
+                        style={[
+                          styles.ringFooterLabel,
+                          { color: theme.colors.textMuted },
+                        ]}
+                      >
+                        {t("home.budget")}
+                      </TText>
+                    </View>
+                  </GlassSurface>
                 </View>
               </View>
               {/* end calorieCard */}
@@ -1989,6 +2276,7 @@ export default function HomeScreen() {
                     <ScrollView
                       horizontal
                       pagingEnabled
+                      scrollEnabled={!isMealDragging}
                       showsHorizontalScrollIndicator={false}
                       bounces={false}
                       scrollEventThrottle={200}
@@ -2201,9 +2489,15 @@ export default function HomeScreen() {
                   </TText>
                 </View>
               ) : (
-                MEAL_ORDER.filter((mt) => groupedMeals[mt].length > 0).map(
+                HOME_MEAL_ORDER.filter((mt) => groupedMeals[mt].length > 0).map(
                   (mt) => (
-                    <View key={mt} style={styles.mealGroup}>
+                    <View
+                      key={mt}
+                      ref={(r) => {
+                        mealSectionRefs.current[mt] = r;
+                      }}
+                      style={styles.mealGroup}
+                    >
                       <View style={styles.mealGroupHeader}>
                         <Ionicons
                           name={MEALTIME_ICONS[mt] as any}
@@ -2219,32 +2513,57 @@ export default function HomeScreen() {
                           {MEALTIME_LABELS[mt]}
                         </TText>
                       </View>
-                      {groupedMeals[mt].map((meal) => (
-                        <MealCard
-                          key={meal.id}
-                          icon={meal.emoji}
-                          imageUri={meal.imageUri}
-                          title={meal.title}
-                          time={meal.loggedAt.split("T")[1]?.slice(0, 5)}
-                          calories={meal.calories}
-                          protein={meal.protein}
-                          carbs={meal.carbs}
-                          fat={meal.fat}
-                          onPress={() =>
-                            openSheet(
-                              <EditMealSheet
-                                mealId={meal.id}
-                                onClose={closeSheet}
-                              />,
-                              {
-                                snapPoints: ["92%"],
-                                enablePanDownToClose: true,
+                      {groupedMeals[mt].map((meal) => {
+                        const isDragSource =
+                          mealDragSession?.meal.id === meal.id;
+                        return (
+                          <View
+                            key={meal.id}
+                            collapsable={false}
+                            style={
+                              isDragSource
+                                ? { opacity: 0, pointerEvents: "none" }
+                                : undefined
+                            }
+                          >
+                            <MealCard
+                              icon={meal.emoji}
+                              imageUri={meal.imageUri}
+                              title={meal.title}
+                              time={meal.loggedAt.split("T")[1]?.slice(0, 5)}
+                              calories={meal.calories}
+                              protein={meal.protein}
+                              carbs={meal.carbs}
+                              fat={meal.fat}
+                              onPress={() =>
+                                openSheet(
+                                  <EditMealSheet
+                                    mealId={meal.id}
+                                    onClose={closeSheet}
+                                  />,
+                                  {
+                                    snapPoints: ["92%"],
+                                    enablePanDownToClose: true,
+                                  }
+                                )
                               }
-                            )
-                          }
-                          onDelete={() => removeMeal(meal.id)}
-                        />
-                      ))}
+                              onDelete={() => removeMeal(meal.id)}
+                              onLongPressMoveStart={
+                                visibleMealSectionCount > 1
+                                  ? (layout, finger) => {
+                                      void beginMealTimeDrag(
+                                        meal,
+                                        mt,
+                                        layout,
+                                        finger
+                                      );
+                                    }
+                                  : undefined
+                              }
+                            />
+                          </View>
+                        );
+                      })}
                     </View>
                   )
                 )
@@ -2309,6 +2628,19 @@ export default function HomeScreen() {
         visible={showWaterSettings}
         onClose={() => setShowWaterSettings(false)}
       />
+
+      {mealDragSession ? (
+        <MealTimeDragOverlay
+          visible
+          meal={mealDragSession.meal}
+          sourceMealTime={mealDragSession.sourceMealTime}
+          cardRect={mealDragSession.cardRect}
+          finger={mealDragSession.finger}
+          sectionRects={mealDragSession.sectionRects}
+          mealOrder={HOME_MEAL_ORDER}
+          onFinish={finishMealTimeDrag}
+        />
+      ) : null}
 
     </View>
   );
@@ -2412,6 +2744,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 20,
   },
+  weightPillPressed: {
+    opacity: 0.65,
+    transform: [{ scale: 0.97 }],
+  },
   weightText: {
     fontSize: 14,
     fontWeight: "600",
@@ -2478,10 +2814,15 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   ringFooter: {
+    alignItems: "center",
+    marginTop: 8,
+  },
+  consumedBudgetPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 24,
-    marginTop: 8,
+    gap: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 22,
   },
   ringFooterItem: {
     alignItems: "center",

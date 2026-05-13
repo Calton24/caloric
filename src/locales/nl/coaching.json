@@ -9,6 +9,7 @@
     "milestoneContext": "{{count}} dagen tot je dag-{{target}}-mijlpaal",
     "milestoneContext_one": "1 dag tot je dag-{{target}}-mijlpaal",
     "progressTarget": "Day {{target}}",
+    "coachInsightsPill": "Coachinzichten",
     "dayQuality": {
       "perfect": "Perfect",
       "optimized": "Optimized",

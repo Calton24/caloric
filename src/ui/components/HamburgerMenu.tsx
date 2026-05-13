@@ -58,6 +58,13 @@ export interface MenuItem {
   destructive?: boolean;
   /** Keep drawer open after item press (useful for inline toggles). */
   keepOpenOnPress?: boolean;
+  /**
+   * How long to wait after starting the drawer close before calling `onPress`.
+   * Default 100ms is enough for taps that navigate. Use ~350ms when `onPress`
+   * opens another React Native `Modal` (nested modals while the drawer is
+   * still visible often fail or crash on iOS/Android).
+   */
+  onPressDelayMs?: number;
   /** Optional right-side accessory (toggle, segmented control, etc.). */
   rightAccessory?: React.ReactNode;
 }
@@ -230,8 +237,9 @@ export function HamburgerMenu({
         return;
       }
       onToggle(false);
-      // Delay action until drawer close animation starts
-      setTimeout(() => item.onPress?.(), 100);
+      const delayMs = item.onPressDelayMs ?? 100;
+      // Drawer Modal stays `visible` until exit animation finishes (~DRAWER_TIMING.duration).
+      setTimeout(() => item.onPress?.(), delayMs);
     },
     [onToggle]
   );

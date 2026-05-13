@@ -16,13 +16,25 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Alert, Pressable, StyleSheet, TextInput, View } from "react-native";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
 import Animated, {
     FadeIn,
     FadeInDown,
     FadeInUp,
 } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { AuthCapabilities } from "../../src/features/auth/authCapabilities";
 import { useAuth } from "../../src/features/auth/useAuth";
 import {
@@ -41,6 +53,7 @@ import { OnboardingHeader } from "./_progress";
 export default function SaveProgressScreen() {
   const { theme } = useTheme();
   const { t } = useAppTranslation();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { signIn, signUp, signInWithAppleNative, signInWithGoogleNative } =
     useAuth();
@@ -187,207 +200,234 @@ export default function SaveProgressScreen() {
   return (
     <OnboardingBackground>
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        {/* ── Header: Back + Progress ── */}
-        <OnboardingHeader step={7} total={7} theme={theme} />
-
-        {/* ── Heading ── */}
-        <Animated.View
-          entering={FadeInDown.duration(600).delay(100)}
-          style={styles.headingArea}
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
-          <TText
-            variant="heading"
-            style={[styles.heading, { color: theme.colors.text }]}
+          <ScrollView
+            style={styles.flex}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: Math.max(insets.bottom, 16) + 24 },
+            ]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
-            {t("onboarding.saveProgress.heading")}
-          </TText>
-          <TSpacer size="sm" />
-          <TText color="secondary" style={styles.subheading}>
-            {t("onboarding.saveProgress.subtitle")}
-          </TText>
-        </Animated.View>
+            {/* ── Header: Back + Progress ── */}
+            <OnboardingHeader step={7} total={7} theme={theme} />
 
-        {/* ── Social proof + trust signals ── */}
-        <Animated.View
-          entering={FadeInDown.duration(500).delay(250)}
-          style={styles.proofArea}
-        >
-          <GlassSurface
-            intensity="light"
-            variant="pill"
-            style={[styles.proofPill]}
-          >
-            <Ionicons name="people" size={16} color={theme.colors.primary} />
-            <TText style={[styles.proofText, { color: theme.colors.primary }]}>
-              {t("onboarding.saveProgress.socialProof")}
-            </TText>
-          </GlassSurface>
-          <GlassSurface
-            intensity="light"
-            variant="pill"
-            style={styles.trustBadge}
-          >
-            <View style={styles.trustRow}>
-              <View style={styles.trustItem}>
-                <Ionicons
-                  name="lock-closed"
-                  size={14}
-                  color={theme.colors.textMuted}
-                />
-                <TText
-                  style={[styles.trustText, { color: theme.colors.textMuted }]}
-                >
-                  {t("onboarding.saveProgress.privacy")}
-                </TText>
-              </View>
-              <View style={styles.trustDot} />
-              <View style={styles.trustItem}>
-                <Ionicons
-                  name="flash"
-                  size={14}
-                  color={theme.colors.textMuted}
-                />
-                <TText
-                  style={[styles.trustText, { color: theme.colors.textMuted }]}
-                >
-                  {t("onboarding.saveProgress.speed")}
-                </TText>
-              </View>
-            </View>
-          </GlassSurface>
-        </Animated.View>
-
-        {/* ── Spacer pushes buttons to center-ish ── */}
-        <View style={styles.spacer} />
-
-        {/* ── Auth buttons ── */}
-        <Animated.View
-          entering={FadeInUp.duration(600).delay(300)}
-          style={styles.buttonsArea}
-        >
-          {/* Sign in with Apple */}
-          <Pressable
-            testID="save-progress-apple"
-            onPress={handleAppleSignIn}
-            disabled={loading}
-            style={({ pressed }) => ({
-              opacity: pressed || loading ? 0.8 : 1,
-              transform: [{ scale: pressed ? 0.97 : 1 }],
-            })}
-          >
-            <View
-              style={[
-                styles.oauthButton,
-                {
-                  backgroundColor: theme.colors.text,
-                },
-              ]}
+            {/* ── Heading ── */}
+            <Animated.View
+              entering={FadeInDown.duration(600).delay(100)}
+              style={styles.headingArea}
             >
-              <Ionicons
-                name="logo-apple"
-                size={24}
-                color={theme.colors.background}
-              />
               <TText
-                style={[styles.oauthLabel, { color: theme.colors.background }]}
+                variant="heading"
+                style={[styles.heading, { color: theme.colors.text }]}
               >
-                {t("auth.signInWithApple")}
+                {t("onboarding.saveProgress.heading")}
               </TText>
-            </View>
-          </Pressable>
-
-          <TSpacer size="md" />
-
-          {/* Sign in with Google */}
-          <Pressable
-            testID="save-progress-google"
-            onPress={handleGoogleSignIn}
-            disabled={loading}
-            style={({ pressed }) => ({
-              opacity: pressed || loading ? 0.8 : 1,
-              transform: [{ scale: pressed ? 0.97 : 1 }],
-            })}
-          >
-            <View
-              style={[
-                styles.oauthButton,
-                {
-                  backgroundColor: "transparent",
-                  borderWidth: 1.5,
-                  borderColor: theme.colors.text,
-                },
-              ]}
-            >
-              <Ionicons
-                name="logo-google"
-                size={22}
-                color={theme.colors.text}
-              />
-              <TText style={[styles.oauthLabel, { color: theme.colors.text }]}>
-                {t("auth.signInWithGoogle")}
+              <TSpacer size="sm" />
+              <TText color="secondary" style={styles.subheading}>
+                {t("onboarding.saveProgress.subtitle")}
               </TText>
-            </View>
-          </Pressable>
+            </Animated.View>
 
-          <TSpacer size="md" />
-
-          {/* Email sign in / sign up toggle */}
-          {!showEmailForm && (
-            <Pressable
-              testID="save-progress-email"
-              onPress={() => setShowEmailForm(true)}
-              style={({ pressed }) => ({
-                opacity: pressed ? 0.7 : 1,
-              })}
+            {/* ── Social proof + trust signals ── */}
+            <Animated.View
+              entering={FadeInDown.duration(500).delay(250)}
+              style={styles.proofArea}
             >
-              <View
-                style={[
-                  styles.oauthButton,
-                  {
-                    backgroundColor: "transparent",
-                    borderWidth: 1.5,
-                    borderColor: theme.colors.border,
-                  },
-                ]}
+              <GlassSurface
+                intensity="light"
+                variant="pill"
+                style={[styles.proofPill]}
               >
-                <Ionicons
-                  name="mail-outline"
-                  size={22}
-                  color={theme.colors.text}
-                />
-                <TText
-                  style={[styles.oauthLabel, { color: theme.colors.text }]}
-                >
-                  {t("auth.continueWithEmail")}
+                <Ionicons name="people" size={16} color={theme.colors.primary} />
+                <TText style={[styles.proofText, { color: theme.colors.primary }]}>
+                  {t("onboarding.saveProgress.socialProof")}
                 </TText>
-              </View>
-            </Pressable>
-          )}
+              </GlassSurface>
+              <GlassSurface
+                intensity="light"
+                variant="pill"
+                style={styles.trustBadge}
+              >
+                <View style={styles.trustRow}>
+                  <View style={styles.trustItem}>
+                    <Ionicons
+                      name="lock-closed"
+                      size={14}
+                      color={theme.colors.textMuted}
+                    />
+                    <TText
+                      style={[
+                        styles.trustText,
+                        { color: theme.colors.textMuted },
+                      ]}
+                    >
+                      {t("onboarding.saveProgress.privacy")}
+                    </TText>
+                  </View>
+                  <View style={styles.trustDot} />
+                  <View style={styles.trustItem}>
+                    <Ionicons
+                      name="flash"
+                      size={14}
+                      color={theme.colors.textMuted}
+                    />
+                    <TText
+                      style={[
+                        styles.trustText,
+                        { color: theme.colors.textMuted },
+                      ]}
+                    >
+                      {t("onboarding.saveProgress.speed")}
+                    </TText>
+                  </View>
+                </View>
+              </GlassSurface>
+            </Animated.View>
 
-          {/* Inline email form */}
-          {showEmailForm && (
-            <EmailForm
-              theme={theme}
-              t={t}
-              isSignUp={isSignUp}
-              email={email}
-              password={password}
-              confirmPassword={confirmPassword}
-              setEmail={setEmail}
-              setPassword={setPassword}
-              setConfirmPassword={setConfirmPassword}
-              loading={loading}
-              onSubmit={handleEmailAuth}
-              onToggleMode={() => {
-                setIsSignUp(!isSignUp);
-                setConfirmPassword("");
-              }}
+            {/* ── Spacer: keep OAuth centered until email form opens ── */}
+            <View
+              style={
+                showEmailForm ? styles.spacerCompact : styles.spacerFlexible
+              }
             />
-          )}
-        </Animated.View>
 
-        {/* ── Bottom spacer ── */}
-        <View style={styles.bottomSpacer} />
+            {/* ── Auth buttons ── */}
+            <Animated.View
+              entering={FadeInUp.duration(600).delay(300)}
+              style={styles.buttonsArea}
+            >
+              {/* Sign in with Apple */}
+              <Pressable
+                testID="save-progress-apple"
+                onPress={handleAppleSignIn}
+                disabled={loading}
+                style={({ pressed }) => ({
+                  opacity: pressed || loading ? 0.8 : 1,
+                  transform: [{ scale: pressed ? 0.97 : 1 }],
+                })}
+              >
+                <View
+                  style={[
+                    styles.oauthButton,
+                    {
+                      backgroundColor: theme.colors.text,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name="logo-apple"
+                    size={24}
+                    color={theme.colors.background}
+                  />
+                  <TText
+                    style={[
+                      styles.oauthLabel,
+                      { color: theme.colors.background },
+                    ]}
+                  >
+                    {t("auth.signInWithApple")}
+                  </TText>
+                </View>
+              </Pressable>
+
+              <TSpacer size="md" />
+
+              {/* Sign in with Google */}
+              <Pressable
+                testID="save-progress-google"
+                onPress={handleGoogleSignIn}
+                disabled={loading}
+                style={({ pressed }) => ({
+                  opacity: pressed || loading ? 0.8 : 1,
+                  transform: [{ scale: pressed ? 0.97 : 1 }],
+                })}
+              >
+                <View
+                  style={[
+                    styles.oauthButton,
+                    {
+                      backgroundColor: "transparent",
+                      borderWidth: 1.5,
+                      borderColor: theme.colors.text,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name="logo-google"
+                    size={22}
+                    color={theme.colors.text}
+                  />
+                  <TText
+                    style={[styles.oauthLabel, { color: theme.colors.text }]}
+                  >
+                    {t("auth.signInWithGoogle")}
+                  </TText>
+                </View>
+              </Pressable>
+
+              <TSpacer size="md" />
+
+              {/* Email sign in / sign up toggle */}
+              {!showEmailForm && (
+                <Pressable
+                  testID="save-progress-email"
+                  onPress={() => setShowEmailForm(true)}
+                  style={({ pressed }) => ({
+                    opacity: pressed ? 0.7 : 1,
+                  })}
+                >
+                  <View
+                    style={[
+                      styles.oauthButton,
+                      {
+                        backgroundColor: "transparent",
+                        borderWidth: 1.5,
+                        borderColor: theme.colors.border,
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="mail-outline"
+                      size={22}
+                      color={theme.colors.text}
+                    />
+                    <TText
+                      style={[styles.oauthLabel, { color: theme.colors.text }]}
+                    >
+                      {t("auth.continueWithEmail")}
+                    </TText>
+                  </View>
+                </Pressable>
+              )}
+
+              {/* Inline email form */}
+              {showEmailForm && (
+                <EmailForm
+                  theme={theme}
+                  t={t}
+                  isSignUp={isSignUp}
+                  email={email}
+                  password={password}
+                  confirmPassword={confirmPassword}
+                  setEmail={setEmail}
+                  setPassword={setPassword}
+                  setConfirmPassword={setConfirmPassword}
+                  loading={loading}
+                  onSubmit={handleEmailAuth}
+                  onToggleMode={() => {
+                    setIsSignUp(!isSignUp);
+                    setConfirmPassword("");
+                  }}
+                />
+              )}
+            </Animated.View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </OnboardingBackground>
   );
@@ -504,6 +544,10 @@ function EmailForm({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   safe: { flex: 1 },
+  flex: { flex: 1 },
+  scrollContent: {
+    flexGrow: 1,
+  },
 
   headingArea: {
     paddingHorizontal: 24,
@@ -558,8 +602,14 @@ const styles = StyleSheet.create({
     borderRadius: 1.5,
     backgroundColor: "#999",
   },
-  spacer: {
-    flex: 1,
+  /** Fills remaining scroll height so OAuth buttons sit lower when form is hidden */
+  spacerFlexible: {
+    flexGrow: 1,
+    minHeight: 24,
+  },
+  /** When typing email/password, avoid a huge gap so fields sit higher and scroll cleanly */
+  spacerCompact: {
+    height: 12,
   },
   buttonsArea: {
     paddingHorizontal: 24,
@@ -575,9 +625,6 @@ const styles = StyleSheet.create({
   oauthLabel: {
     fontSize: 17,
     fontWeight: "600",
-  },
-  bottomSpacer: {
-    flex: 0.6,
   },
   emailForm: {
     gap: 12,

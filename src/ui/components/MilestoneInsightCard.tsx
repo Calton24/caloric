@@ -6,12 +6,13 @@
  *
  * Architecture:
  *   - ONE stable visual shell
- *   - Adaptive content (title, subtitle, chip, progress, CTA)
+ *   - Adaptive content (title, subtitle, progress, CTA)
+ *   - Fixed coach insights pill (bulb + label) in the meta row
  *   - Accent color shifts by state, not layout
  *   - No chatbot styling, no alert banners
  *
  * Visual anatomy:
- *   Row 1: Icon badge (left) + Chip (right)
+ *   Row 1: Icon badge (left) + Coach insights pill (bulb icon + label, right)
  *   Row 2: Title + Subtitle
  *   Row 3: Progress bar (optional)
  *   Row 4: CTA or chevron (optional)
@@ -26,6 +27,7 @@ import type {
     MilestoneInsightIcon,
     MilestoneInsightModel,
 } from "../../features/milestone/milestone-insight.types";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { useTheme } from "../../theme/useTheme";
 import { GlassSurface } from "../glass/GlassSurface";
 import { TText } from "../primitives/TText";
@@ -106,8 +108,10 @@ export function MilestoneInsightCard({
   onCTA,
 }: MilestoneInsightCardProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const colors = useAccentColors(model.accent);
   const isRisk = model.state === "risk" || model.state === "recovery";
+  const coachInsightsPill = t("coaching.coachInsightsPill");
 
   const showProgress =
     model.progress != null && model.progress.target > 0 && !isRisk;
@@ -118,7 +122,7 @@ export function MilestoneInsightCard({
         onPress={onPress}
         disabled={!onPress}
         accessibilityRole={onPress ? "button" : "text"}
-        accessibilityLabel={`${model.title}. ${model.subtitle}`}
+        accessibilityLabel={`${coachInsightsPill}. ${model.title}. ${model.subtitle}`}
         style={({ pressed }) => [
           pressed &&
             onPress && { opacity: 0.96, transform: [{ scale: 0.985 }] },
@@ -136,7 +140,7 @@ export function MilestoneInsightCard({
             },
           ]}
         >
-          {/* Row 1: Meta row — icon badge + chip */}
+          {/* Row 1: Meta row — icon badge + coach insights pill */}
           <Animated.View
             entering={FadeInDown.delay(80).duration(280)}
             style={styles.metaRow}
@@ -151,13 +155,29 @@ export function MilestoneInsightCard({
               />
             </View>
 
-            {model.chip ? (
-              <View style={[styles.chip, { backgroundColor: colors.chipBg }]}>
-                <TText style={[styles.chipText, { color: colors.primary }]}>
-                  {model.chip}
+            <View
+              style={[
+                styles.chip,
+                {
+                  backgroundColor: colors.chipBg,
+                  borderColor: colors.primary + "33",
+                },
+              ]}
+            >
+              <View style={styles.chipInner}>
+                <Ionicons
+                  name="bulb-outline"
+                  size={15}
+                  color={colors.primary}
+                />
+                <TText
+                  style={[styles.chipLabel, { color: colors.primary }]}
+                  numberOfLines={1}
+                >
+                  {t("coaching.coachInsightsPill")}
                 </TText>
               </View>
-            ) : null}
+            </View>
           </Animated.View>
 
           {/* Row 2: Content — title + subtitle */}
@@ -255,6 +275,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: 10,
     marginBottom: 14,
   },
   iconBadge: {
@@ -265,15 +286,29 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   chip: {
-    height: 26,
-    paddingHorizontal: 11,
-    borderRadius: 13,
+    flexShrink: 1,
+    maxWidth: "72%",
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
     alignItems: "center",
     justifyContent: "center",
   },
-  chipText: {
+  /** Tight row so label never stretches to pill width (avoids lopsided padding). */
+  chipInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    maxWidth: "100%",
+  },
+  chipLabel: {
     fontSize: 12,
     fontWeight: "600",
+    lineHeight: 15,
+    flexShrink: 1,
+    includeFontPadding: false,
   },
 
   // Row 2: Content

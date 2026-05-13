@@ -26,6 +26,7 @@ import { useProfileStore, useProgressStore } from "../../src/stores";
 import { useTheme } from "../../src/theme/useTheme";
 import { SegmentedControl } from "../../src/ui/components/SegmentedControl";
 import { WeightChart } from "../../src/ui/components/WeightChart";
+import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { TSpacer } from "../../src/ui/primitives/TSpacer";
 import { TText } from "../../src/ui/primitives/TText";
 
@@ -116,56 +117,47 @@ export default function ProgressScreen() {
           <TSpacer size="md" />
 
           {/* Weight Chart */}
-          <Animated.View
-            entering={FadeInDown.duration(500).delay(200)}
-            style={[
-              styles.chartCard,
-              { backgroundColor: theme.colors.surfaceSecondary },
-            ]}
-          >
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.chartScroll}
-            >
-              <WeightChart
-                data={chartData}
-                goalWeight={goalWeight ?? undefined}
-                height={200}
-              />
-            </ScrollView>
-
-            {/* Goal line legend */}
-            <View style={styles.legendRow}>
-              <View
-                style={[
-                  styles.legendDash,
-                  { backgroundColor: theme.colors.success },
-                ]}
-              />
-              <TText
-                style={[styles.legendText, { color: theme.colors.textMuted }]}
+          <Animated.View entering={FadeInDown.duration(500).delay(200)}>
+            <GlassSurface variant="card" intensity="light" style={styles.chartCard}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.chartScroll}
               >
-                {t("progress.goalLabel", {
-                  weight: units.display(goalWeight),
-                  unit: units.label,
-                })}
-              </TText>
-            </View>
+                <WeightChart
+                  data={chartData}
+                  goalWeight={goalWeight ?? undefined}
+                  height={200}
+                />
+              </ScrollView>
+
+              {/* Goal line legend */}
+              <View style={styles.legendRow}>
+                <View
+                  style={[
+                    styles.legendDash,
+                    { backgroundColor: theme.colors.success },
+                  ]}
+                />
+                <TText
+                  style={[styles.legendText, { color: theme.colors.textMuted }]}
+                >
+                  {t("progress.goalLabel", {
+                    weight: units.display(goalWeight),
+                    unit: units.label,
+                  })}
+                </TText>
+              </View>
+            </GlassSurface>
           </Animated.View>
 
           <TSpacer size="md" />
 
           {/* Weight Summary Card */}
-          <Animated.View
-            entering={FadeInUp.duration(500).delay(300)}
-            style={[
-              styles.summaryCard,
-              { backgroundColor: theme.colors.surfaceSecondary },
-            ]}
-          >
-            <View style={styles.summaryRow}>
-              <View style={styles.summaryItem}>
+          <Animated.View entering={FadeInUp.duration(500).delay(300)}>
+            <GlassSurface variant="card" intensity="light" style={styles.summaryCard}>
+              <View style={styles.summaryRow}>
+                <View style={styles.summaryItem}>
                 <TText
                   style={[styles.summaryValue, { color: theme.colors.text }]}
                 >
@@ -226,7 +218,8 @@ export default function ProgressScreen() {
                   {t("progress.toGoal", { unit: units.label })}
                 </TText>
               </View>
-            </View>
+              </View>
+            </GlassSurface>
           </Animated.View>
 
           <TSpacer size="lg" />
@@ -238,21 +231,23 @@ export default function ProgressScreen() {
           >
             <Pressable
               onPress={() => router.push("/(modals)/log-weight" as any)}
-              style={[
-                styles.actionBtn,
-                { backgroundColor: theme.colors.surfaceSecondary },
+              style={({ pressed }) => [
+                styles.actionPressable,
+                { opacity: pressed ? 0.92 : 1 },
               ]}
             >
-              <Ionicons
-                name="scale-outline"
-                size={20}
-                color={theme.colors.primary}
-              />
-              <TText
-                style={[styles.actionText, { color: theme.colors.primary }]}
-              >
-                {t("progress.logWeight")}
-              </TText>
+              <GlassSurface variant="card" intensity="light" style={styles.actionGlass}>
+                <Ionicons
+                  name="scale-outline"
+                  size={20}
+                  color={theme.colors.primary}
+                />
+                <TText
+                  style={[styles.actionText, { color: theme.colors.primary }]}
+                >
+                  {t("progress.logWeight")}
+                </TText>
+              </GlassSurface>
             </Pressable>
 
             <Pressable
@@ -272,21 +267,25 @@ export default function ProgressScreen() {
                   })
                 );
               }}
-              style={[
-                styles.actionBtn,
-                { backgroundColor: theme.colors.surfaceSecondary },
+              style={({ pressed }) => [
+                styles.actionPressable,
+                {
+                  opacity: pressed ? 0.92 : !canRecalculate ? 0.55 : 1,
+                },
               ]}
             >
-              <Ionicons
-                name="refresh-outline"
-                size={20}
-                color={theme.colors.primary}
-              />
-              <TText
-                style={[styles.actionText, { color: theme.colors.primary }]}
-              >
-                {t("progress.recalculatePlan")}
-              </TText>
+              <GlassSurface variant="card" intensity="light" style={styles.actionGlass}>
+                <Ionicons
+                  name="refresh-outline"
+                  size={20}
+                  color={theme.colors.primary}
+                />
+                <TText
+                  style={[styles.actionText, { color: theme.colors.primary }]}
+                >
+                  {t("progress.recalculatePlan")}
+                </TText>
+              </GlassSurface>
             </Pressable>
           </Animated.View>
 
@@ -374,7 +373,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
   },
-  actionBtn: {
+  actionPressable: {
+    flex: 1,
+  },
+  actionGlass: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",

@@ -13,6 +13,10 @@ import * as Crypto from "expo-crypto";
 import { getAppConfig } from "../../../config";
 import { primaryNativeScheme } from "../../../config/nativeScheme";
 import { getSupabaseClient } from "../../../lib/supabase";
+import {
+  clearStaleSupabaseAuthStorage,
+  isInvalidRefreshTokenError,
+} from "../auth-session-recovery";
 import type {
     AuthClient,
     AuthResponse,
@@ -382,7 +386,11 @@ export class SupabaseAuthClient implements AuthClient {
       const { data, error } = await supabase.auth.getSession();
 
       if (error) {
-        return { session: null, error: new Error(error.message) };
+        const wrapped = new Error(error.message);
+        if (isInvalidRefreshTokenError(wrapped)) {
+          await clearStaleSupabaseAuthStorage();
+        }
+        return { session: null, error: wrapped };
       }
 
       if (!data.session) {
@@ -393,6 +401,9 @@ export class SupabaseAuthClient implements AuthClient {
       const session = mapSession(user, data.session);
       return { session, error: null };
     } catch (err) {
+      if (isInvalidRefreshTokenError(err)) {
+        await clearStaleSupabaseAuthStorage();
+      }
       return {
         session: null,
         error: err instanceof Error ? err : new Error("Get session failed"),

@@ -5,7 +5,7 @@
  * All methods are safe no-ops that never throw.
  */
 
-import type { HealthService } from "./health.types";
+import type { HealthService, WriteDietaryEnergySampleInput } from "./health.types";
 
 export class NoopHealthService implements HealthService {
   async isAvailable(): Promise<boolean> {
@@ -26,5 +26,5 @@ export class NoopHealthService implements HealthService {
     return [];
   }
 
-  async writeCalories(): Promise<void> {}
+  async writeCalories(_input: WriteDietaryEnergySampleInput): Promise<void> {}
 }

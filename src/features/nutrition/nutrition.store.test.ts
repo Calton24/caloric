@@ -48,3 +48,75 @@ describe("nutrition store tombstones", () => {
   });
 });
 
+describe("mealTime updates (drag / sync)", () => {
+  beforeEach(() => {
+    useNutritionStore.setState({
+      meals: [],
+      deletedMealIds: [],
+      syncedMealIds: [],
+    });
+  });
+
+  it("updateMeal moves snack -> dinner locally", () => {
+    const m = { ...meal("m1"), mealTime: "snack" as const };
+    useNutritionStore.setState({
+      meals: [m],
+      deletedMealIds: [],
+      syncedMealIds: [],
+    });
+    useNutritionStore.getState().updateMeal("m1", { mealTime: "dinner" });
+    const updated = useNutritionStore.getState().meals[0];
+    expect(updated.mealTime).toBe("dinner");
+    expect(updated.updatedAt).toBeDefined();
+    expect(typeof updated.updatedAt).toBe("string");
+  });
+
+  it("mergeMealsFromRepositorySnapshot prefers remote mealTime when remote updatedAt is newer", () => {
+    useNutritionStore.setState({
+      meals: [
+        {
+          ...meal("m1"),
+          mealTime: "snack",
+          updatedAt: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+      deletedMealIds: [],
+      syncedMealIds: [],
+    });
+    useNutritionStore.getState().mergeMealsFromRepositorySnapshot([
+      {
+        ...meal("m1"),
+        mealTime: "dinner",
+        updatedAt: "2026-06-01T00:00:00.000Z",
+      },
+    ]);
+    expect(useNutritionStore.getState().meals.find((x) => x.id === "m1")?.mealTime).toBe(
+      "dinner"
+    );
+  });
+
+  it("mergeMealsFromRepositorySnapshot keeps local mealTime when local updatedAt is newer", () => {
+    useNutritionStore.setState({
+      meals: [
+        {
+          ...meal("m1"),
+          mealTime: "dinner",
+          updatedAt: "2026-06-02T00:00:00.000Z",
+        },
+      ],
+      deletedMealIds: [],
+      syncedMealIds: [],
+    });
+    useNutritionStore.getState().mergeMealsFromRepositorySnapshot([
+      {
+        ...meal("m1"),
+        mealTime: "snack",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+    ]);
+    expect(useNutritionStore.getState().meals.find((x) => x.id === "m1")?.mealTime).toBe(
+      "dinner"
+    );
+  });
+});
+

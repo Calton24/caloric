@@ -21,6 +21,7 @@ import { useShallow } from "zustand/react/shallow";
 import {
   ActivityIndicator,
   InteractionManager,
+  LogBox,
   View,
 } from "react-native";
 import "react-native-reanimated";
@@ -64,6 +65,15 @@ Sentry.init({
 });
 
 SplashScreen.preventAutoHideAsync();
+
+if (__DEV__) {
+  // Supabase GoTrue logs this to console before our handler clears storage;
+  // it is expected after token rotation / revoke and would spam LogBox.
+  LogBox.ignoreLogs([
+    /AuthApiError.*Invalid Refresh Token/i,
+    /Refresh Token Not Found/i,
+  ]);
+}
 
 const TRANSIENT_MODAL_PATHS = new Set([
   "/(modals)/tracking",
@@ -239,6 +249,7 @@ function RootStack() {
       />
 
       {/* ── Standalone screens (custom headers) ── */}
+      <Stack.Screen name="tracking" options={{ headerShown: false }} />
       <Stack.Screen name="progress" options={{ headerShown: false }} />
       <Stack.Screen name="goals" options={{ headerShown: false }} />
       <Stack.Screen name="settings" options={{ headerShown: false }} />

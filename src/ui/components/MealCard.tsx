@@ -8,7 +8,13 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import React, { useRef } from "react";
-import { Alert, Pressable, StyleSheet, View } from "react-native";
+import {
+  Alert,
+  Pressable,
+  StyleSheet,
+  View,
+  type GestureResponderEvent,
+} from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import Animated, { SlideInRight, SlideOutRight } from "react-native-reanimated";
 import { useAppTranslation } from "../../infrastructure/i18n";
@@ -16,7 +22,11 @@ import { formatFoodName } from "../../utils/formatFoodName";
 import { getMealDisplayImagePath, getMealDisplayImageUri } from "../../features/meals/getMealDisplayImageUri";
 import { useMealImageSource } from "../../features/food-logging/useMealImageSource";
 import { useTheme } from "../../theme/useTheme";
+import { GlassSurface } from "../glass/GlassSurface";
 import { TText } from "../primitives/TText";
+
+/** Long-press before “move meal” drag on Home; avoids accidental activation while scrolling. */
+const MEAL_DRAG_LONG_PRESS_MS = 450;
 
 interface MealCardProps {
   icon?: string;
@@ -34,6 +44,11 @@ interface MealCardProps {
   fat: number;
   onPress?: () => void;
   onDelete?: () => void;
+  /** Long-press to begin moving the meal to another meal-time section (home). */
+  onLongPressMoveStart?: (
+    layout: { x: number; y: number; width: number; height: number },
+    finger: { pageX: number; pageY: number }
+  ) => void;
 }
 
 export function MealCard({
@@ -52,10 +67,12 @@ export function MealCard({
   fat,
   onPress,
   onDelete,
+  onLongPressMoveStart,
 }: MealCardProps) {
   const { theme } = useTheme();
   const { t } = useAppTranslation();
   const swipeRef = useRef<Swipeable>(null);
+  const outerRef = useRef<View>(null);
   const displayTitle = formatFoodName(title);
   const fallbackImageUri = getMealDisplayImageUri({
     imageUri,
@@ -117,76 +134,97 @@ export function MealCard({
 
   const accessibilityLabel = `${displayTitle}, ${calories} calories, protein ${Math.round(protein)}g, carbs ${Math.round(carbs)}g, fat ${Math.round(fat)}g`;
 
+  const handleLongPressMove = (e: GestureResponderEvent) => {
+    if (!onLongPressMoveStart) return;
+    outerRef.current?.measureInWindow((x, y, w, h) => {
+      onLongPressMoveStart(
+        { x, y, width: w, height: h },
+        { pageX: e.nativeEvent.pageX, pageY: e.nativeEvent.pageY }
+      );
+    });
+  };
+
   const cardContent = (
     <View
+      ref={outerRef}
+      collapsable={false}
       accessible
       accessibilityLabel={accessibilityLabel}
-      style={[
-        styles.container,
-        { backgroundColor: theme.colors.surfaceSecondary },
-      ]}
+      style={styles.cardOuter}
     >
-      {displayImageUri ? (
-        <Image
-          source={{ uri: displayImageUri }}
-          style={styles.mealImage}
-          contentFit="cover"
-        />
-      ) : (
-        <View style={styles.iconContainer}>
-          <TText style={styles.emoji}>{icon}</TText>
-        </View>
-      )}
-      <View style={styles.content}>
-        <TText
-          style={[styles.title, { color: theme.colors.text }]}
-          numberOfLines={1}
+      <GlassSurface variant="card" intensity="light" style={styles.container}>
+        {displayImageUri ? (
+          <Image
+            source={{ uri: displayImageUri }}
+            style={styles.mealImage}
+            contentFit="cover"
+          />
+        ) : (
+        <View
+          style={[
+            styles.iconContainer,
+            {
+              backgroundColor:
+                theme.mode === "dark"
+                  ? "rgba(255,255,255,0.08)"
+                  : "rgba(0,0,0,0.06)",
+            },
+          ]}
         >
-          {displayTitle}
-        </TText>
-        <TText style={[styles.time, { color: theme.colors.textMuted }]}>
-          {time}
-        </TText>
-        <View style={styles.macroRow}>
+            <TText style={styles.emoji}>{icon}</TText>
+          </View>
+        )}
+        <View style={styles.content}>
           <TText
-            style={[styles.macroText, { color: theme.colors.textSecondary }]}
+            style={[styles.title, { color: theme.colors.text }]}
+            numberOfLines={1}
           >
-            P {Math.round(protein * 10) / 10}g
+            {displayTitle}
           </TText>
-          <TText style={[styles.macroDot, { color: theme.colors.textMuted }]}>
-            ·
+          <TText style={[styles.time, { color: theme.colors.textMuted }]}>
+            {time}
           </TText>
-          <TText
-            style={[styles.macroText, { color: theme.colors.textSecondary }]}
-          >
-            C {Math.round(carbs * 10) / 10}g
+          <View style={styles.macroRow}>
+            <TText
+              style={[styles.macroText, { color: theme.colors.textSecondary }]}
+            >
+              P {Math.round(protein * 10) / 10}g
+            </TText>
+            <TText style={[styles.macroDot, { color: theme.colors.textMuted }]}>
+              ·
+            </TText>
+            <TText
+              style={[styles.macroText, { color: theme.colors.textSecondary }]}
+            >
+              C {Math.round(carbs * 10) / 10}g
+            </TText>
+            <TText style={[styles.macroDot, { color: theme.colors.textMuted }]}>
+              ·
+            </TText>
+            <TText
+              style={[styles.macroText, { color: theme.colors.textSecondary }]}
+            >
+              F {Math.round(fat * 10) / 10}g
+            </TText>
+          </View>
+        </View>
+        <View style={styles.calContainer}>
+          <TText style={[styles.calories, { color: theme.colors.text }]}>
+            {calories}
           </TText>
-          <TText style={[styles.macroDot, { color: theme.colors.textMuted }]}>
-            ·
-          </TText>
-          <TText
-            style={[styles.macroText, { color: theme.colors.textSecondary }]}
-          >
-            F {Math.round(fat * 10) / 10}g
+          <TText style={[styles.calLabel, { color: theme.colors.textMuted }]}>
+            {t("tracking.cal")}
           </TText>
         </View>
-      </View>
-      <View style={styles.calContainer}>
-        <TText style={[styles.calories, { color: theme.colors.text }]}>
-          {calories}
-        </TText>
-        <TText style={[styles.calLabel, { color: theme.colors.textMuted }]}>
-          {t("tracking.cal")}
-        </TText>
-      </View>
-      {onPress && (
-        <Ionicons
-          name="chevron-forward"
-          size={16}
-          color={theme.colors.textMuted}
-          style={styles.chevron}
-        />
-      )}
+        {onPress && (
+          <Ionicons
+            name="chevron-forward"
+            size={16}
+            color={theme.colors.textMuted}
+            style={styles.chevron}
+          />
+        )}
+      </GlassSurface>
     </View>
   );
 
@@ -209,6 +247,8 @@ export function MealCard({
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               onPress();
             }}
+            onLongPress={onLongPressMoveStart ? handleLongPressMove : undefined}
+            delayLongPress={onLongPressMoveStart ? MEAL_DRAG_LONG_PRESS_MS : undefined}
             style={({ pressed }) => [
               {
                 opacity: pressed ? 0.85 : 1,
@@ -233,6 +273,8 @@ export function MealCard({
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           onPress();
         }}
+        onLongPress={onLongPressMoveStart ? handleLongPressMove : undefined}
+        delayLongPress={onLongPressMoveStart ? MEAL_DRAG_LONG_PRESS_MS : undefined}
         style={({ pressed }) => [
           {
             opacity: pressed ? 0.85 : 1,
@@ -249,6 +291,9 @@ export function MealCard({
 }
 
 const styles = StyleSheet.create({
+  cardOuter: {
+    width: "100%",
+  },
   container: {
     flexDirection: "row",
     alignItems: "center",
@@ -260,7 +305,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.06)",
     alignItems: "center",
     justifyContent: "center",
   },

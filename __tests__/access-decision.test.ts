@@ -132,6 +132,46 @@ describe("getAccessDecision — never gates while loading", () => {
     expect(d.reason).toBe("rc_loading");
   });
 
+  it("onboarding loading on gated route → allow (no overlay on modals)", () => {
+    const d = getAccessDecision(
+      input({
+        onboardingStatus: "loading",
+        currentPathname: "/(modals)/web-viewer",
+        routeFlags: MANAGE_ACCOUNT_ROUTE_FLAGS,
+      }),
+    );
+    expect(d.type).toBe("allow");
+    expect(d.reason).toBe("allowed_account_route");
+  });
+
+  it("RC unknown on gated route → allow (no overlay on modals)", () => {
+    const d = getAccessDecision(
+      input({
+        rcValidationStatus: "unknown",
+        trialBootstrapStatus: "ready",
+        trialIsExpired: true,
+        currentPathname: "/(modals)/manage-account",
+        routeFlags: MANAGE_ACCOUNT_ROUTE_FLAGS,
+      }),
+    );
+    expect(d.type).toBe("allow");
+    expect(d.reason).toBe("allowed_account_route");
+  });
+
+  it("RC loading on gated route → allow (no overlay on modals)", () => {
+    const d = getAccessDecision(
+      input({
+        rcValidationStatus: "loading",
+        trialBootstrapStatus: "ready",
+        trialIsExpired: true,
+        currentPathname: "/(modals)/web-viewer",
+        routeFlags: MANAGE_ACCOUNT_ROUTE_FLAGS,
+      }),
+    );
+    expect(d.type).toBe("allow");
+    expect(d.reason).toBe("allowed_account_route");
+  });
+
   it("RC inactive + trial idle → loading (never gate before trial bootstrap)", () => {
     const d = getAccessDecision(
       input({
@@ -197,6 +237,20 @@ describe("getAccessDecision — allows access", () => {
         trialBootstrapStatus: "ready",
         trialIsExpired: true,
         currentPathname: "/(modals)/manage-account",
+        routeFlags: MANAGE_ACCOUNT_ROUTE_FLAGS,
+      }),
+    );
+    expect(d.type).toBe("allow");
+    expect(d.reason).toBe("allowed_account_route");
+  });
+
+  it("expired user on delete-account → allow (gated allowlist)", () => {
+    const d = getAccessDecision(
+      input({
+        rcValidationStatus: "inactive",
+        trialBootstrapStatus: "ready",
+        trialIsExpired: true,
+        currentPathname: "/(modals)/delete-account",
         routeFlags: MANAGE_ACCOUNT_ROUTE_FLAGS,
       }),
     );

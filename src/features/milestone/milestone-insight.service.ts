@@ -112,6 +112,7 @@ export function buildMilestoneInsightModel(
           loggedMeals: input.dailySummary?.loggedMeals ?? 0,
           streak: ctx.streakCount,
           daysToMilestone: ctx.daysToNextMilestone,
+          nextMilestone: ctx.nextMilestone,
           timeOfDay: ctx.timeOfDay,
           secured: ctx.hasLoggedToday,
           missedYesterday: ctx.state === "recovery",

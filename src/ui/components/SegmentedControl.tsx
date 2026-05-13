@@ -4,8 +4,9 @@
  */
 
 import React from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
 import { useTheme } from "../../theme/useTheme";
+import { GlassSurface } from "../glass/GlassSurface";
 import { TText } from "../primitives/TText";
 
 interface SegmentedControlProps {
@@ -20,14 +21,13 @@ export function SegmentedControl({
   onSelect,
 }: SegmentedControlProps) {
   const { theme } = useTheme();
+  const isDark = theme.mode === "dark";
+  const selectedSegmentBg = isDark
+    ? "rgba(255,255,255,0.22)"
+    : "rgba(255,255,255,0.95)";
 
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: theme.colors.surfaceSecondary },
-      ]}
-    >
+    <GlassSurface variant="card" intensity="light" style={styles.container}>
       {segments.map((segment, i) => {
         const isSelected = i === selectedIndex;
         return (
@@ -36,9 +36,7 @@ export function SegmentedControl({
             onPress={() => onSelect(i)}
             style={[
               styles.segment,
-              isSelected && {
-                backgroundColor: theme.colors.surfaceElevated,
-              },
+              isSelected && { backgroundColor: selectedSegmentBg },
             ]}
           >
             <TText
@@ -57,7 +55,7 @@ export function SegmentedControl({
           </Pressable>
         );
       })}
-    </View>
+    </GlassSurface>
   );
 }
 

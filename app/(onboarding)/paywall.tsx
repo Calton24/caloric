@@ -9,12 +9,12 @@
  *   - Sticky top bar (back ← upgrade only, close × upgrade/onboarding)
  *   - Hero glow + mode icon (lock / star / flag)
  *   - Title + subtitle
- *   - Five-row value list with checkmarks
+ *   - Four-row value list with checkmarks
  *   - 3 pricing tiles (Monthly / Yearly[best value] / Weekly)
  *   - Gradient CTA + cancellation fine print
- *   - Footer icon row (Restore + Manage Account[gate/upgrade] + Privacy + Terms)
+ *   - Footer icon row (Restore + Manage Account + Privacy + Terms)
  *   - Below-fold scroll content: "Why go Premium" tiles, single testimonial,
- *     Secure & Private + 30-Day Guarantee, payment methods, Manage Account card
+ *     Secure & Private trust note, payment methods, Manage Account card
  *
  * Behaviour kept from prior version:
  *   - RC purchase + analytics, intro eligibility, fallback dev mode,
@@ -24,7 +24,12 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
+import {
+  useLocalSearchParams,
+  usePathname,
+  useRouter,
+  useSegments,
+} from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -62,6 +67,7 @@ import {
   formatStorefrontPriceLabel,
   getSubscriptionDisplay,
 } from "../../src/lib/billing/subscription-display";
+import { tracedPushHref } from "../../src/infrastructure/navigation/navTrace";
 import { useAppTranslation } from "../../src/infrastructure/i18n/useAppTranslation";
 import { logger } from "../../src/logging/logger";
 import { safeRouterBack } from "../../src/navigation/safeBack";
@@ -163,7 +169,7 @@ function getModeConfig(
     subtitleKey: "paywall.headerOnboardingSub",
     showBack: false,
     showClose: false,
-    showManageAccountFooter: false,
+    showManageAccountFooter: true,
   };
 }
 
@@ -342,20 +348,23 @@ function FooterIconButton({
   onPress,
   color,
   testID,
+  disabled,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
   color: string;
   testID?: string;
+  disabled?: boolean;
 }) {
   return (
     <Pressable
+      disabled={disabled}
       onPress={onPress}
       hitSlop={8}
       accessibilityRole="link"
       accessibilityLabel={label}
-      style={styles.footerIconButton}
+      style={[styles.footerIconButton, disabled && { opacity: 0.45 }]}
       testID={testID}
     >
       <Ionicons name={icon} size={18} color={color} />
@@ -405,6 +414,7 @@ export default function PaywallScreen() {
   const { t, language } = useAppTranslation();
   const router = useRouter();
   const pathname = usePathname();
+  const segments = useSegments();
   const rawModeParam = useLocalSearchParams<{ mode?: string | string[] }>()
     .mode;
 
@@ -420,6 +430,9 @@ export default function PaywallScreen() {
 
   const { user: _user } = useAuth();
   const [isPurchasing, setIsPurchasing] = useState(false);
+  const [openingModal, setOpeningModal] = useState<
+    null | "manage-account" | "privacy" | "terms"
+  >(null);
   const {
     restorePurchases,
     packages,
@@ -606,21 +619,45 @@ export default function PaywallScreen() {
   ]);
 
   const openLegal = useCallback(
-    (url: string, title: string) => {
-      router.push({
-        pathname: "/(modals)/web-viewer",
-        params: {
-          url: encodeURIComponent(url),
-          title: encodeURIComponent(title),
-        },
+    (url: string, title: string, traceKind: "privacy" | "terms") => {
+      if (openingModal) return;
+      setOpeningModal(traceKind);
+      requestAnimationFrame(() => {
+        tracedPushHref(
+          {
+            pathname: "/(modals)/web-viewer",
+            params: {
+              url: encodeURIComponent(url),
+              title: encodeURIComponent(title),
+            },
+          },
+          {
+            source: `paywall.${traceKind}_cta`,
+            pathname,
+            segments,
+          },
+        );
+        setTimeout(() => setOpeningModal(null), 800);
       });
     },
-    [router],
+    [openingModal, pathname, segments],
   );
 
   const openManageAccount = useCallback(() => {
-    router.push({ pathname: "/(modals)/manage-account" });
-  }, [router]);
+    if (openingModal) return;
+    setOpeningModal("manage-account");
+    requestAnimationFrame(() => {
+      tracedPushHref(
+        { pathname: "/(modals)/manage-account" },
+        {
+          source: "paywall.manage_account_cta",
+          pathname,
+          segments,
+        },
+      );
+      setTimeout(() => setOpeningModal(null), 800);
+    });
+  }, [openingModal, pathname, segments]);
 
   // ── Render ─────────────────────────────────────────────────────────────
 
@@ -721,13 +758,6 @@ export default function PaywallScreen() {
               textColor={theme.colors.text}
               primaryColor={theme.colors.primary}
             />
-            {!isUpgradeMode ? (
-              <ValueRow
-                label={t("paywall.valueSupport")}
-                textColor={theme.colors.text}
-                primaryColor={theme.colors.primary}
-              />
-            ) : null}
           </Animated.View>
 
           {/* Pricing tiles */}
@@ -903,6 +933,7 @@ export default function PaywallScreen() {
               color={theme.colors.textSecondary}
               onPress={restorePurchases}
               testID="paywall-restore"
+              disabled={openingModal !== null}
             />
             {modeCfg.showManageAccountFooter ? (
               <FooterIconButton
@@ -911,6 +942,7 @@ export default function PaywallScreen() {
                 color={theme.colors.textSecondary}
                 onPress={openManageAccount}
                 testID="paywall-manage-account"
+                disabled={openingModal !== null}
               />
             ) : null}
             <FooterIconButton
@@ -918,16 +950,20 @@ export default function PaywallScreen() {
               label={t("settings.privacyPolicy")}
               color={theme.colors.textSecondary}
               onPress={() =>
-                openLegal(PRIVACY_URL, t("settings.privacyPolicy"))
+                openLegal(PRIVACY_URL, t("settings.privacyPolicy"), "privacy")
               }
               testID="paywall-privacy"
+              disabled={openingModal !== null}
             />
             <FooterIconButton
               icon="document-text-outline"
               label={t("settings.termsOfService")}
               color={theme.colors.textSecondary}
-              onPress={() => openLegal(TERMS_URL, t("settings.termsOfService"))}
+              onPress={() =>
+                openLegal(TERMS_URL, t("settings.termsOfService"), "terms")
+              }
               testID="paywall-terms"
+              disabled={openingModal !== null}
             />
           </Animated.View>
 
@@ -980,14 +1016,6 @@ export default function PaywallScreen() {
                 textColor={theme.colors.text}
                 secondaryColor={theme.colors.textSecondary}
               />
-              <WhyTile
-                icon="headset-outline"
-                iconColor="#34D399"
-                title={t("paywall.whyPrioritySupport")}
-                subtitle={t("paywall.whyPrioritySupportSub")}
-                textColor={theme.colors.text}
-                secondaryColor={theme.colors.textSecondary}
-              />
             </View>
           </Animated.View>
 
@@ -1028,7 +1056,7 @@ export default function PaywallScreen() {
 
           <View style={styles.sectionGap} />
 
-          {/* Trust + guarantee */}
+          {/* Trust — secure & private */}
           <Animated.View entering={FadeIn.duration(400)}>
             <View
               style={[
@@ -1062,32 +1090,6 @@ export default function PaywallScreen() {
                     ]}
                   >
                     {t("paywall.secureSub")}
-                  </TText>
-                </View>
-              </View>
-              <View style={styles.trustDivider} />
-              <View style={styles.trustRow}>
-                <View
-                  style={[
-                    styles.trustIconBubble,
-                    { backgroundColor: "#A78BFA22" },
-                  ]}
-                >
-                  <Ionicons name="ribbon-outline" size={18} color="#A78BFA" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <TText
-                    style={[styles.trustTitle, { color: theme.colors.text }]}
-                  >
-                    {t("paywall.guaranteeTitle")}
-                  </TText>
-                  <TText
-                    style={[
-                      styles.trustSub,
-                      { color: theme.colors.textSecondary },
-                    ]}
-                  >
-                    {t("paywall.guaranteeSub")}
                   </TText>
                 </View>
               </View>
@@ -1132,12 +1134,18 @@ export default function PaywallScreen() {
                   </TText>
                 </View>
                 <Pressable
+                  disabled={openingModal !== null}
                   onPress={openManageAccount}
                   style={({ pressed }) => [
                     styles.controlCta,
                     {
                       backgroundColor: theme.colors.primary,
-                      opacity: pressed ? 0.92 : 1,
+                      opacity:
+                        openingModal !== null
+                          ? 0.45
+                          : pressed
+                            ? 0.92
+                            : 1,
                     },
                   ]}
                   accessibilityRole="button"
@@ -1476,10 +1484,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     lineHeight: 17,
     marginTop: 2,
-  },
-  trustDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(255,255,255,0.08)",
   },
   billedThroughStore: {
     fontSize: 11,

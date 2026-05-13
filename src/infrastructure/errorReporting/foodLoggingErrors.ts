@@ -15,6 +15,7 @@ export type FoodLoggingFlow =
   | "quick_add"
   | "confirm_meal"
   | "sync"
+  | "healthkit"
   | "scan_result"
   | "unknown";
 
@@ -33,9 +34,55 @@ export type FoodLoggingContext = {
   extras?: Record<string, unknown>;
 };
 
-function normaliseError(error: unknown): Error {
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function safeJson(value: unknown): string {
+  try {
+    return JSON.stringify(value, (_k, v) => {
+      if (typeof v === "bigint") return v.toString();
+      if (typeof v === "function") return "[Function]";
+      if (v instanceof Error) return { name: v.name, message: v.message };
+      return v;
+    });
+  } catch {
+    return Object.prototype.toString.call(value);
+  }
+}
+
+/**
+ * Convert any thrown value (including Supabase's plain error objects) into a
+ * proper `Error` so Sentry shows a useful message instead of `[object Object]`.
+ *
+ * Supabase client throws plain objects like:
+ *   { message: "Could not find column...", code: "PGRST204", details: null }
+ *
+ * `String(error)` on those gives "[object Object]" because they don't override
+ * `toString()`. We must read `.message` explicitly.
+ */
+function normaliseError(error: unknown): Error & { originalError?: unknown } {
   if (error instanceof Error) return error;
+
   if (typeof error === "string") return new Error(error);
+
+  if (isPlainRecord(error)) {
+    const msg =
+      typeof error.message === "string" && error.message.trim()
+        ? error.message
+        : safeJson(error);
+
+    const err = Object.assign(new Error(msg), {
+      name:
+        typeof error.name === "string" && error.name.trim()
+          ? error.name
+          : "NonErrorObject",
+      originalError: error,
+    });
+
+    return err;
+  }
+
   return new Error(String(error));
 }
 
@@ -118,10 +165,18 @@ export function captureFoodLoggingError(
     if (context.route) tags.route = context.route;
     if (options?.test) tags.test = "true";
 
+    const extra: Record<string, unknown> = { ...foodLoggingExtra(context) };
+
+    // When the thrown value is a plain object (e.g. Supabase error), attach its
+    // full structure so Sentry shows code/details/hint alongside the message.
+    if (isPlainRecord(error)) {
+      extra.originalError = safeJson(error);
+    }
+
     getErrorReporter().captureException(err, {
       tags,
       level: options?.level ?? "error",
-      extra: foodLoggingExtra(context),
+      extra,
     });
   } catch {
     // ignore

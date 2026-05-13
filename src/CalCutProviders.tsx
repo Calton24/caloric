@@ -18,7 +18,6 @@ import {
 
 assertFoodLogSafeModeImport("CalCutProviders");
 import { preloadExperimentAssignments } from "./experiments";
-import { DeleteAccountDialogHost } from "./features/account/DeleteAccountDialogHost";
 import { AuthProvider } from "./features/auth/AuthProvider";
 import { useAuth } from "./features/auth/useAuth";
 import { useChallengeStore } from "./features/challenge/challenge.store";
@@ -532,7 +531,6 @@ export function CalCutProviders({ children, testID }: CalCutProvidersProps) {
                             <NotificationToastProvider>
                               <>
                                 {children}
-                                <DeleteAccountDialogHost />
                               </>
                             </NotificationToastProvider>
                           </BottomSheetProvider>

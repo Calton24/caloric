@@ -1,14 +1,12 @@
 /**
  * DashboardCard
  *
- * The base "Liquid Glass" card primitive used across the Progress dashboard.
- * Single source of truth for: radius (2xl), padding, soft border, shadow,
- * matte tint, and inner spacing slots.
+ * Base card shell for the Progress dashboard — matches home coach / macro
+ * glass (BlurView + tint on iOS, translucent fallback elsewhere).
  *
  * Variants:
- *   - "default" (matte surface)
- *   - "tinted"  (subtle brand tint — used for hero / insight banners)
- *   - "glass"   (translucent — used for top summary cards)
+ *   - "default" | "glass" — standard frosted card
+ *   - "tinted" — extra brand-tint wash for insight / hero emphasis
  */
 
 import React from "react";
@@ -17,14 +15,14 @@ import {
   StyleProp,
   StyleSheet,
   View,
-  ViewProps,
   ViewStyle,
 } from "react-native";
 import { useTheme } from "../../../theme/useTheme";
+import { GlassSurface } from "../../glass/GlassSurface";
 
 type Variant = "default" | "tinted" | "glass";
 
-interface DashboardCardProps extends ViewProps {
+interface DashboardCardProps {
   variant?: Variant;
   padding?: number;
   radius?: number;
@@ -40,51 +38,41 @@ export function DashboardCard({
   borderColor,
   style,
   children,
-  ...rest
 }: DashboardCardProps) {
   const { theme } = useTheme();
 
-  const bg =
-    variant === "tinted"
-      ? theme.colors.glassSelected
-      : variant === "glass"
-        ? theme.colors.glassBackground
-        : theme.colors.surfaceElevated;
-
-  const border =
+  const resolvedBorder =
     borderColor ??
-    (variant === "tinted"
-      ? theme.colors.glassSelectedBorder
-      : variant === "glass"
-        ? theme.colors.glassBorderHighlight
-        : theme.colors.border);
+    (variant === "tinted" ? theme.colors.glassSelectedBorder : undefined);
+
+  const showTintedWash = variant === "tinted";
 
   return (
-    <View
+    <GlassSurface
+      variant="card"
+      intensity="light"
       style={[
-        styles.card,
         {
-          backgroundColor: bg,
           borderRadius: radius,
-          borderColor: border,
           padding,
-          shadowColor: theme.colors.glassShadow,
         },
+        resolvedBorder != null ? { borderColor: resolvedBorder } : null,
         style,
       ]}
-      {...rest}
     >
+      {showTintedWash ? (
+        <View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              borderRadius: radius,
+              backgroundColor: theme.colors.glassSelected,
+            },
+          ]}
+        />
+      ) : null}
       {children}
-    </View>
+    </GlassSurface>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    borderWidth: StyleSheet.hairlineWidth,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 1,
-    shadowRadius: 14,
-    elevation: 3,
-  },
-});

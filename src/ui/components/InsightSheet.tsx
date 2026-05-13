@@ -19,6 +19,7 @@ import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import type { MilestoneInsightModel } from "../../features/milestone/milestone-insight.types";
 import { getMealsForDate } from "../../features/nutrition/nutrition.selectors";
 import { useNutritionStore } from "../../features/nutrition/nutrition.store";
+import { useAppTranslation } from "../../infrastructure/i18n/useAppTranslation";
 import { toISODate } from "../../lib/utils/date";
 import { useTheme } from "../../theme/useTheme";
 import { TSpacer } from "../primitives/TSpacer";
@@ -88,7 +89,9 @@ function useAccentColor(model: MilestoneInsightModel) {
 
 export function InsightSheet({ model, onClose, onTrack }: InsightSheetProps) {
   const { theme } = useTheme();
+  const { t } = useAppTranslation();
   const accentColor = useAccentColor(model);
+  const coachInsightsPill = t("coaching.coachInsightsPill");
   const meals = useNutritionStore((s) => s.meals);
 
   const recentDays = useMemo(() => getRecentDays(5), []);
@@ -127,18 +130,29 @@ export function InsightSheet({ model, onClose, onTrack }: InsightSheetProps) {
           <TText style={[styles.streakNumber, { color: theme.colors.text }]}>
             Day {model.streakCount}
           </TText>
-          {model.chip && (
-            <View
-              style={[
-                styles.chipInline,
-                { backgroundColor: accentColor + "1A" },
-              ]}
-            >
-              <TText style={[styles.chipText, { color: accentColor }]}>
-                {model.chip}
+          <View
+            style={[
+              styles.chipInline,
+              {
+                backgroundColor: accentColor + "1A",
+                borderColor: accentColor + "33",
+              },
+            ]}
+          >
+            <View style={styles.chipInner}>
+              <Ionicons
+                name="bulb-outline"
+                size={15}
+                color={accentColor}
+              />
+              <TText
+                style={[styles.chipLabel, { color: accentColor }]}
+                numberOfLines={1}
+              >
+                {coachInsightsPill}
               </TText>
             </View>
-          )}
+          </View>
         </View>
       </Animated.View>
 
@@ -289,13 +303,28 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   chipInline: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    flexShrink: 1,
+    maxWidth: "58%",
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  chipText: {
+  chipInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    maxWidth: "100%",
+  },
+  chipLabel: {
     fontSize: 12,
     fontWeight: "600",
+    lineHeight: 15,
+    flexShrink: 1,
+    includeFontPadding: false,
   },
 
   // Content

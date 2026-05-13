@@ -9,6 +9,7 @@
     "milestoneContext": "{{count}} dni do Twojego kamienia milowego dnia {{target}}",
     "milestoneContext_one": "1 dzień do Twojego kamienia milowego dnia {{target}}",
     "progressTarget": "Day {{target}}",
+    "coachInsightsPill": "Wskazówki trenera",
     "dayQuality": {
       "perfect": "Perfect",
       "optimized": "Optimized",

@@ -12,12 +12,12 @@
 import { toLocalDate } from "../../lib/utils/date";
 import type { GoalPlan, GoalType } from "../goals/goals.types";
 import {
-  getMealsForDate,
-  getNutritionTotals,
+  getDailyNutritionTotalsMap,
 } from "../nutrition/nutrition.selectors";
 import type { MealEntry } from "../nutrition/nutrition.types";
 import type { UserProfile } from "../profile/profile.types";
 import type { WeightLog } from "../progress/progress.types";
+import { getLoggedMealDates } from "../streak/streak-from-meals";
 import { derivePersona, deriveToneVariant } from "./insight.persona";
 import type { InsightContext } from "./insight.types";
 
@@ -102,6 +102,11 @@ export function buildInsightContext(i: BuildContextInputs): InsightContext {
     (a, b) =>
       new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime()
   );
+  const dailyTotalsMap = getDailyNutritionTotalsMap(i.meals);
+  const loggedMealDates = getLoggedMealDates(i.meals);
+  const dayCalories = (iso: string) => dailyTotalsMap.get(iso)?.calories ?? 0;
+  const dayProtein = (iso: string) => dailyTotalsMap.get(iso)?.protein ?? 0;
+
   const lastMealAtIso = sortedByLogged[0]?.loggedAt ?? null;
   const lastMealDate = lastMealAtIso ? new Date(lastMealAtIso) : null;
   const hoursSinceLastMeal = lastMealDate
@@ -121,19 +126,14 @@ export function buildInsightContext(i: BuildContextInputs): InsightContext {
       )
     : 0;
 
-  const todayMeals = getMealsForDate(i.meals, todayIso);
-  const loggedToday = todayMeals.length > 0;
+  const loggedToday = loggedMealDates.has(todayIso);
 
   // ── Calorie windows ──
   const last7Dates = dateListEndingToday(7, todayStart);
   const last30Dates = dateListEndingToday(30, todayStart);
 
-  const last7Daily = last7Dates.map(
-    (d) => getNutritionTotals(getMealsForDate(i.meals, d)).calories
-  );
-  const last30Daily = last30Dates.map(
-    (d) => getNutritionTotals(getMealsForDate(i.meals, d)).calories
-  );
+  const last7Daily = last7Dates.map((d) => dayCalories(d));
+  const last30Daily = last30Dates.map((d) => dayCalories(d));
 
   const todayCals = last7Daily[last7Daily.length - 1] ?? 0;
 
@@ -159,7 +159,7 @@ export function buildInsightContext(i: BuildContextInputs): InsightContext {
     const weekday: number[] = [];
     for (const iso of last14) {
       const d = new Date(`${iso}T12:00:00`);
-      const cals = getNutritionTotals(getMealsForDate(i.meals, iso)).calories;
+      const cals = dayCalories(iso);
       if (cals === 0) continue;
       const dow = d.getDay();
       if (dow === 0 || dow === 6) weekend.push(cals);
@@ -174,9 +174,7 @@ export function buildInsightContext(i: BuildContextInputs): InsightContext {
   // ── Adherence ──
   const adh7 = adherencePct(last7Daily, budget);
   const prev7Dates = dateListEndingToday(14, todayStart).slice(0, 7);
-  const prev7Daily = prev7Dates.map(
-    (d) => getNutritionTotals(getMealsForDate(i.meals, d)).calories
-  );
+  const prev7Daily = prev7Dates.map((d) => dayCalories(d));
   const adhPrev7 = adherencePct(prev7Daily, budget);
 
   const isBestWeekEver =
@@ -184,9 +182,7 @@ export function buildInsightContext(i: BuildContextInputs): InsightContext {
 
   // ── Macros ──
   const proteinTarget = i.plan?.macros.protein ?? null;
-  const last7DailyProtein = last7Dates.map(
-    (d) => getNutritionTotals(getMealsForDate(i.meals, d)).protein
-  );
+  const last7DailyProtein = last7Dates.map((d) => dayProtein(d));
   const last5DailyProtein = last7DailyProtein.slice(-5);
   const proteinAvg7 = avgPositive(last7DailyProtein);
   const proteinAvg5 = avgPositive(last5DailyProtein);

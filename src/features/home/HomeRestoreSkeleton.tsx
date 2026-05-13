@@ -20,7 +20,7 @@ export function HomeRestoreSkeleton() {
       edges={["top", "left", "right"]}
     >
       <View style={styles.inner}>
-        <CalCutLogo size={36} color={theme.colors.text} />
+        <CalCutLogo size={70} color={theme.colors.text} />
         <ActivityIndicator
           size="large"
           color={theme.colors.primary}
@@ -32,7 +32,7 @@ export function HomeRestoreSkeleton() {
           style={styles.message}
         >
           {t("home.restoringData", {
-            defaultValue: "Restoring your data…",
+            defaultValue: "Loading your data…",
           })}
         </TText>
       </View>

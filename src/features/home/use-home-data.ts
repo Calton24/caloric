@@ -15,7 +15,7 @@ import { buildGoalPlan } from "../goals/goal-calculation.service";
 import { useGoalsStore } from "../goals/goals.store";
 import {
     getDailyNutritionSummary,
-    getMealsForDate,
+    getDailyNutritionTotalsMap,
 } from "../nutrition/nutrition.selectors";
 import { useNutritionStore } from "../nutrition/nutrition.store";
 import { useProfileStore } from "../profile/profile.store";
@@ -23,6 +23,7 @@ import { subscribeFoodLogCommitted } from "../food-logging/events/food-log-event
 import { listMeals } from "../food-logging/repositories/meal.repository";
 import { FOOD_LOG_DISABLE_POST_SAVE_HOME_REFRESH } from "../food-logging/post-save-debug-flags";
 import { recomputeStreakAfterMealListChange } from "../streak/recompute-streak-after-meal-list-change";
+import { getLoggedMealDates } from "../streak/streak-from-meals";
 import { createHomeNutritionSummary } from "./selectors/create-home-nutrition-summary";
 import { getLatestWeight } from "../progress/progress.selectors";
 import { useProgressStore } from "../progress/progress.store";
@@ -108,6 +109,12 @@ export function useHomeData() {
   const setPlan = useGoalsStore((state) => state.setPlan);
   const meals = useNutritionStore((state) => state.meals);
   const weightLogs = useProgressStore((state) => state.weightLogs);
+
+  /** One pass per meals change — avoids O(days × meals) on Home D/W/M. */
+  const mealDayTotals = useMemo(
+    () => getDailyNutritionTotalsMap(meals),
+    [meals]
+  );
 
   // Auto-recover: if onboarding completed but plan is missing, recalculate
   const recovered = useRef(false);
@@ -199,14 +206,12 @@ export function useHomeData() {
     setSelectedDate(today);
   }, [today]);
 
-  // Which days in this week have meal data
+  // Which days in this week have meal data (O(meals) via logged-date set).
   const activeDays = useMemo(() => {
+    const logged = getLoggedMealDates(meals);
     const indices: number[] = [];
     for (let i = 0; i < weekDays.length; i++) {
-      const dayMeals = getMealsForDate(meals, weekDays[i].key);
-      if (dayMeals.length > 0) {
-        indices.push(i);
-      }
+      if (logged.has(weekDays[i].key)) indices.push(i);
     }
     return indices;
   }, [meals, weekDays]);
@@ -244,11 +249,11 @@ export function useHomeData() {
     if (budget <= 0) return weekPages.map((page) => page.map(() => 0));
     return weekPages.map((page) =>
       page.map((day) => {
-        const s = getDailyNutritionSummary(meals, day.key);
-        return Math.min(s.totalCalories / budget, 1);
+        const cals = mealDayTotals.get(day.key)?.calories ?? 0;
+        return Math.min(cals / budget, 1);
       })
     );
-  }, [meals, weekPages, plan?.calorieBudget]);
+  }, [mealDayTotals, weekPages, plan?.calorieBudget]);
 
   const dayProgress = weekPagesProgress[1]; // current week
 
@@ -256,11 +261,11 @@ export function useHomeData() {
   const dayProgressRaw = useMemo(() => {
     const budget = plan?.calorieBudget ?? 0;
     return weekPages[1].map((day) => {
-      const s = getDailyNutritionSummary(meals, day.key);
+      const cals = mealDayTotals.get(day.key)?.calories ?? 0;
       if (budget <= 0) return 0;
-      return s.totalCalories / budget;
+      return cals / budget;
     });
-  }, [meals, weekPages, plan?.calorieBudget]);
+  }, [mealDayTotals, weekPages, plan?.calorieBudget]);
 
   const caloriesRemaining = calorieBudget - homeNutritionSummary.totalCalories;
   const calorieProgress =
@@ -289,13 +294,13 @@ export function useHomeData() {
     const progressMap = new Map<string, number>();
     for (const day of monthGrid.days) {
       if (!day) continue;
-      const s = getDailyNutritionSummary(meals, day.key);
-      if (s.totalCalories > 0) {
-        progressMap.set(day.key, Math.min(s.totalCalories / budget, 1));
+      const cals = mealDayTotals.get(day.key)?.calories ?? 0;
+      if (cals > 0) {
+        progressMap.set(day.key, Math.min(cals / budget, 1));
       }
     }
     return progressMap;
-  }, [meals, monthGrid, plan?.calorieBudget]);
+  }, [mealDayTotals, monthGrid, plan?.calorieBudget]);
 
   // Uncapped monthly ratios for over-limit color mapping
   const monthProgressRaw = useMemo(() => {
@@ -304,13 +309,13 @@ export function useHomeData() {
     const rawMap = new Map<string, number>();
     for (const day of monthGrid.days) {
       if (!day) continue;
-      const s = getDailyNutritionSummary(meals, day.key);
-      if (s.totalCalories > 0) {
-        rawMap.set(day.key, s.totalCalories / budget);
+      const cals = mealDayTotals.get(day.key)?.calories ?? 0;
+      if (cals > 0) {
+        rawMap.set(day.key, cals / budget);
       }
     }
     return rawMap;
-  }, [meals, monthGrid, plan?.calorieBudget]);
+  }, [mealDayTotals, monthGrid, plan?.calorieBudget]);
 
   // Weekly summary totals
   const weekSummary = useMemo(() => {
@@ -320,17 +325,16 @@ export function useHomeData() {
     let fat = 0;
     let daysWithData = 0;
     for (const day of weekDays) {
-      const s = getDailyNutritionSummary(meals, day.key);
-      if (s.totalCalories > 0) {
-        calories += s.totalCalories;
-        protein += s.totalProtein;
-        carbs += s.totalCarbs;
-        fat += s.totalFat;
-        daysWithData++;
-      }
+      const t = mealDayTotals.get(day.key);
+      if (!t || t.calories <= 0) continue;
+      calories += t.calories;
+      protein += t.protein;
+      carbs += t.carbs;
+      fat += t.fat;
+      daysWithData++;
     }
     return { calories, protein, carbs, fat, daysWithData };
-  }, [meals, weekDays]);
+  }, [mealDayTotals, weekDays]);
 
   return {
     // Date selection

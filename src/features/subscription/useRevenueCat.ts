@@ -33,6 +33,9 @@ import {
 } from "./subscription-analytics";
 import { useSubscriptionStore } from "./subscription.store";
 
+/** Stable fallback so `?? []` does not allocate a new array every render. */
+const EMPTY_PACKAGES: readonly any[] = [];
+
 // ── Intro eligibility ────────────────────────────────────────────────────
 
 /**
@@ -121,13 +124,21 @@ export function useRevenueCat() {
     return resolved;
   }, [offerings]);
 
-  const packages = activeOffering?.availablePackages ?? [];
+  const packages = activeOffering?.availablePackages ?? EMPTY_PACKAGES;
+
+  const introEligibilityPackagesKey = useMemo(() => {
+    if (!packages.length) return "";
+    return packages
+      .map((pkg: any) => pkg?.identifier ?? "")
+      .sort()
+      .join("|");
+  }, [packages]);
 
   // ── Store intro eligibility check ───────────────────────────────────────
 
   useEffect(() => {
     if (subscription.hasActiveSubscription || packages.length === 0) {
-      setIntroEligibility("unknown");
+      setIntroEligibility((v) => (v === "unknown" ? v : "unknown"));
       return;
     }
 
@@ -178,7 +189,11 @@ export function useRevenueCat() {
     return () => {
       cancelled = true;
     };
-  }, [subscription.hasActiveSubscription, packages]);
+  }, [
+    subscription.hasActiveSubscription,
+    introEligibilityPackagesKey,
+    activeOffering,
+  ]);
 
   // ── Purchase ─────────────────────────────────────────────────────────────
 

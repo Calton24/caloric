@@ -38,6 +38,7 @@ import { useTheme } from "../../src/theme/useTheme";
 import { ChallengeCompletionCard } from "../../src/ui/components/ChallengeCompletionCard";
 import { DailyInsightsCard } from "../../src/ui/components/DailyInsightsCard";
 import { DaySelector } from "../../src/ui/components/DaySelector";
+import { GlassSurface } from "../../src/ui/glass/GlassSurface";
 import { EditMealSheet } from "../../src/ui/components/EditMealSheet";
 import { MacroCard } from "../../src/ui/components/MacroCard";
 import { MealCard } from "../../src/ui/components/MealCard";
@@ -194,21 +195,19 @@ export default function HomeScreen() {
             {isPro && (
               <Pressable
                 onPress={() => router.push("/(main)/progress" as any)}
-                style={[
-                  styles.weightPill,
-                  { backgroundColor: theme.colors.surfaceSecondary },
-                ]}
               >
-                <Ionicons
-                  name="trending-down"
-                  size={14}
-                  color={theme.colors.success}
-                />
-                <TText
-                  style={[styles.weightText, { color: theme.colors.text }]}
-                >
-                  {displayWeight} {t("home.lbs")}
-                </TText>
+                <GlassSurface variant="card" intensity="light" style={styles.weightPill}>
+                  <Ionicons
+                    name="trending-down"
+                    size={14}
+                    color={theme.colors.success}
+                  />
+                  <TText
+                    style={[styles.weightText, { color: theme.colors.text }]}
+                  >
+                    {displayWeight} {t("home.lbs")}
+                  </TText>
+                </GlassSurface>
               </Pressable>
             )}
             <Pressable
