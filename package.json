@@ -39,7 +39,8 @@
     "test:i18n": "jest __tests__/i18n-switching.test.ts __tests__/i18n-runtime-stale.test.ts --no-coverage",
     "prepare": "husky",
     "postinstall": "patch-package",
-    "supabase:deploy:revenuecat-webhook": "npx supabase functions deploy revenuecat-webhook --no-verify-jwt"
+    "supabase:deploy:revenuecat-webhook": "npx supabase functions deploy revenuecat-webhook --no-verify-jwt",
+    "eas:submit:ios": "EXPO_PUBLIC_APP_PROFILE=caloric EXPO_PUBLIC_APP_ENV=prod eas submit -p ios --profile caloric-store --latest"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
