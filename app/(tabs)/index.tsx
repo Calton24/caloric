@@ -100,7 +100,7 @@ import {
     areLiveActivitiesAvailable,
     endLiveActivity,
 } from "../../src/features/live-activity";
-import { iosPhoneHasNotchOrDynamicIsland } from "../../src/platform/ios/hasDynamicIsland";
+import { iosPhoneHasNotchOrDynamicIsland } from "../../src/utils/iphoneNotchOrDynamicIsland";
 import { useBackgroundScanStore } from "../../src/features/camera/background-scan.store";
 import { addFoodLoggingBreadcrumb } from "../../src/infrastructure/errorReporting/foodLoggingErrors";
 import { reportError } from "../../src/infrastructure/errorReporting";

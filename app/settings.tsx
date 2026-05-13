@@ -45,7 +45,7 @@ import {
     useProgressStore,
     useSubscriptionStore,
 } from "../src/stores";
-import { iosPhoneHasNotchOrDynamicIsland } from "../src/platform/ios/hasDynamicIsland";
+import { iosPhoneHasNotchOrDynamicIsland } from "../src/utils/iphoneNotchOrDynamicIsland";
 import { useTheme } from "../src/theme/useTheme";
 import { TSpacer } from "../src/ui/primitives/TSpacer";
 import { TText } from "../src/ui/primitives/TText";

@@ -25,7 +25,7 @@ import {
   areLiveActivitiesAvailable,
   endLiveActivity,
 } from "../../../src/features/live-activity";
-import { iosPhoneHasNotchOrDynamicIsland } from "../../../src/platform/ios/hasDynamicIsland";
+import { iosPhoneHasNotchOrDynamicIsland } from "../../../src/utils/iphoneNotchOrDynamicIsland";
 import { usePermissionsStore } from "../../../src/features/permissions";
 import { applyLogReminderEnabled } from "../../../src/features/reminders/apply-log-reminder-enabled";
 import {
