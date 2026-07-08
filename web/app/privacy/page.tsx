@@ -1,33 +1,17 @@
 import type { Metadata } from "next";
+import { LegalPageShell } from "@/components/LegalPageShell";
 
 export const metadata: Metadata = {
   title: "Privacy Policy - CalCut",
   description: "Privacy Policy for CalCut app",
 };
 
-export default function PrivacyPolicy() {
+export default function Page() {
   return (
-    <main
-      style={{
-        maxWidth: "800px",
-        margin: "0 auto",
-        padding: "2rem",
-        fontFamily: "system-ui, -apple-system, sans-serif",
-        lineHeight: "1.6",
-        background: "#fff",
-        color: "#111",
-        minHeight: "100vh",
-      }}
-    >
-      <h1 style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>
-        Privacy Policy
-      </h1>
-      <p style={{ color: "#666", marginBottom: "2rem" }}>
-        Last Updated: April 11, 2026
-      </p>
+    <LegalPageShell title="Privacy Policy" updatedAt="April 11, 2026">
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           1. Introduction
         </h2>
         <p>
@@ -39,21 +23,16 @@ export default function PrivacyPolicy() {
         </p>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           2. Information We Collect
         </h2>
 
         <h3
-          style={{
-            fontSize: "1.25rem",
-            marginTop: "1rem",
-            marginBottom: "0.5rem",
-          }}
         >
           2.1 Information You Provide
         </h3>
-        <ul style={{ marginLeft: "1.5rem" }}>
+        <ul>
           <li>
             <strong>Account Information:</strong> Email address, name
             (optional), password
@@ -81,15 +60,10 @@ export default function PrivacyPolicy() {
         </ul>
 
         <h3
-          style={{
-            fontSize: "1.25rem",
-            marginTop: "1rem",
-            marginBottom: "0.5rem",
-          }}
         >
           2.2 Automatically Collected Information
         </h3>
-        <ul style={{ marginLeft: "1.5rem" }}>
+        <ul>
           <li>
             <strong>Device Information:</strong> Device type, operating system,
             unique device identifiers
@@ -108,11 +82,11 @@ export default function PrivacyPolicy() {
         </ul>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           3. How We Use Your Information
         </h2>
-        <ul style={{ marginLeft: "1.5rem" }}>
+        <ul>
           <li>Provide and maintain the App's core functionality</li>
           <li>
             Calculate your personalized nutrition goals and recommendations
@@ -127,8 +101,8 @@ export default function PrivacyPolicy() {
         </ul>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           4. How We Share Your Information
         </h2>
         <p>
@@ -136,15 +110,10 @@ export default function PrivacyPolicy() {
         </p>
 
         <h3
-          style={{
-            fontSize: "1.25rem",
-            marginTop: "1rem",
-            marginBottom: "0.5rem",
-          }}
         >
           Service Providers
         </h3>
-        <ul style={{ marginLeft: "1.5rem" }}>
+        <ul>
           <li>
             <strong>Supabase:</strong> Backend database and authentication
           </li>
@@ -167,11 +136,6 @@ export default function PrivacyPolicy() {
         </ul>
 
         <h3
-          style={{
-            fontSize: "1.25rem",
-            marginTop: "1rem",
-            marginBottom: "0.5rem",
-          }}
         >
           Legal Requirements
         </h3>
@@ -181,11 +145,11 @@ export default function PrivacyPolicy() {
         </p>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           5. Data Retention
         </h2>
-        <ul style={{ marginLeft: "1.5rem" }}>
+        <ul>
           <li>
             Account and nutrition data: Retained until you delete your account
           </li>
@@ -198,17 +162,12 @@ export default function PrivacyPolicy() {
         </ul>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           6. Your Rights and Choices
         </h2>
 
         <h3
-          style={{
-            fontSize: "1.25rem",
-            marginTop: "1rem",
-            marginBottom: "0.5rem",
-          }}
         >
           Access and Portability
         </h3>
@@ -218,11 +177,6 @@ export default function PrivacyPolicy() {
         </p>
 
         <h3
-          style={{
-            fontSize: "1.25rem",
-            marginTop: "1rem",
-            marginBottom: "0.5rem",
-          }}
         >
           Delete Your Account
         </h3>
@@ -233,15 +187,10 @@ export default function PrivacyPolicy() {
         </p>
 
         <h3
-          style={{
-            fontSize: "1.25rem",
-            marginTop: "1rem",
-            marginBottom: "0.5rem",
-          }}
         >
           Manage Consent
         </h3>
-        <ul style={{ marginLeft: "1.5rem" }}>
+        <ul>
           <li>Analytics: Opt-in/out in Settings → Privacy</li>
           <li>
             Cross-app tracking (iOS): Manage in iOS Settings → Privacy →
@@ -252,16 +201,11 @@ export default function PrivacyPolicy() {
         </ul>
 
         <h3
-          style={{
-            fontSize: "1.25rem",
-            marginTop: "1rem",
-            marginBottom: "0.5rem",
-          }}
         >
           GDPR Rights (EU Users)
         </h3>
         <p>If you are in the European Union, you have the right to:</p>
-        <ul style={{ marginLeft: "1.5rem" }}>
+        <ul>
           <li>Access your personal data</li>
           <li>Rectify inaccurate data</li>
           <li>Delete your data ("right to be forgotten")</li>
@@ -271,16 +215,11 @@ export default function PrivacyPolicy() {
         </ul>
 
         <h3
-          style={{
-            fontSize: "1.25rem",
-            marginTop: "1rem",
-            marginBottom: "0.5rem",
-          }}
         >
           CCPA Rights (California Users)
         </h3>
         <p>If you are a California resident, you have the right to:</p>
-        <ul style={{ marginLeft: "1.5rem" }}>
+        <ul>
           <li>Know what personal information we collect</li>
           <li>Know if we sell or share personal information (we do NOT)</li>
           <li>Access your personal information</li>
@@ -289,27 +228,27 @@ export default function PrivacyPolicy() {
         </ul>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           7. Data Security
         </h2>
         <p>We implement industry-standard security measures:</p>
-        <ul style={{ marginLeft: "1.5rem" }}>
+        <ul>
           <li>Encryption in transit (HTTPS/TLS)</li>
           <li>Encryption at rest (database encryption)</li>
           <li>Secure authentication (OAuth, password hashing)</li>
           <li>Row-level security policies in database</li>
           <li>Regular security audits and monitoring</li>
         </ul>
-        <p style={{ marginTop: "1rem" }}>
+        <p>
           However, no method of transmission over the internet is 100% secure.
           While we strive to protect your data, we cannot guarantee absolute
           security.
         </p>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           8. Children's Privacy
         </h2>
         <p>
@@ -320,8 +259,8 @@ export default function PrivacyPolicy() {
         </p>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           9. International Data Transfers
         </h2>
         <p>
@@ -332,8 +271,8 @@ export default function PrivacyPolicy() {
         </p>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           10. Changes to This Policy
         </h2>
         <p>
@@ -344,15 +283,15 @@ export default function PrivacyPolicy() {
         </p>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           11. Contact Us
         </h2>
         <p>
           If you have questions about this Privacy Policy or want to exercise
           your rights, please contact us:
         </p>
-        <ul style={{ marginLeft: "1.5rem", listStyle: "none" }}>
+        <ul>
           <li>
             <strong>Email:</strong> support@calcutapp.com
           </li>
@@ -362,8 +301,8 @@ export default function PrivacyPolicy() {
         </ul>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           12. Third-Party Links
         </h2>
         <p>
@@ -373,11 +312,11 @@ export default function PrivacyPolicy() {
         </p>
       </section>
 
-      <hr style={{ margin: "3rem 0", borderColor: "#e0e0e0" }} />
+      <hr />
 
-      <p style={{ color: "#666", fontSize: "0.875rem" }}>
-        This Privacy Policy is effective as of April 11, 2026.
+      <p className="legal-note">
+          This Privacy Policy is effective as of April 11, 2026.
       </p>
-    </main>
+    </LegalPageShell>
   );
 }

@@ -1,33 +1,17 @@
 import type { Metadata } from "next";
+import { LegalPageShell } from "@/components/LegalPageShell";
 
 export const metadata: Metadata = {
   title: "Terms of Service - CalCut",
   description: "Terms of Service for CalCut app",
 };
 
-export default function TermsOfService() {
+export default function Page() {
   return (
-    <main
-      style={{
-        maxWidth: "800px",
-        margin: "0 auto",
-        padding: "2rem",
-        fontFamily: "system-ui, -apple-system, sans-serif",
-        lineHeight: "1.6",
-        background: "#fff",
-        color: "#111",
-        minHeight: "100vh",
-      }}
-    >
-      <h1 style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>
-        Terms of Service
-      </h1>
-      <p style={{ color: "#666", marginBottom: "2rem" }}>
-        Last Updated: April 11, 2026
-      </p>
+    <LegalPageShell title="Terms of Service" updatedAt="April 11, 2026">
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           1. Acceptance of Terms
         </h2>
         <p>
@@ -37,8 +21,8 @@ export default function TermsOfService() {
         </p>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           2. Description of Service
         </h2>
         <p>
@@ -46,7 +30,7 @@ export default function TermsOfService() {
           users monitor their caloric intake, track meals, set dietary goals,
           and analyze nutrition data. The App includes features such as:
         </p>
-        <ul style={{ marginLeft: "1.5rem" }}>
+        <ul>
           <li>Manual meal logging</li>
           <li>Camera-based food recognition</li>
           <li>Voice-based meal logging</li>
@@ -57,17 +41,12 @@ export default function TermsOfService() {
         </ul>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           3. User Accounts
         </h2>
 
         <h3
-          style={{
-            fontSize: "1.25rem",
-            marginTop: "1rem",
-            marginBottom: "0.5rem",
-          }}
         >
           3.1 Registration
         </h3>
@@ -75,7 +54,7 @@ export default function TermsOfService() {
           To use certain features of the App, you must create an account. You
           agree to:
         </p>
-        <ul style={{ marginLeft: "1.5rem" }}>
+        <ul>
           <li>Provide accurate, current, and complete information</li>
           <li>Maintain and update your information to keep it accurate</li>
           <li>Maintain the security of your password</li>
@@ -84,11 +63,6 @@ export default function TermsOfService() {
         </ul>
 
         <h3
-          style={{
-            fontSize: "1.25rem",
-            marginTop: "1rem",
-            marginBottom: "0.5rem",
-          }}
         >
           3.2 Account Termination
         </h3>
@@ -99,17 +73,12 @@ export default function TermsOfService() {
         </p>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           4. Subscriptions and Payments
         </h2>
 
         <h3
-          style={{
-            fontSize: "1.25rem",
-            marginTop: "1rem",
-            marginBottom: "0.5rem",
-          }}
         >
           4.1 Subscription Plans
         </h3>
@@ -120,15 +89,10 @@ export default function TermsOfService() {
         </p>
 
         <h3
-          style={{
-            fontSize: "1.25rem",
-            marginTop: "1rem",
-            marginBottom: "0.5rem",
-          }}
         >
           4.2 Billing
         </h3>
-        <ul style={{ marginLeft: "1.5rem" }}>
+        <ul>
           <li>
             Subscriptions are billed on a recurring basis (monthly or yearly)
           </li>
@@ -146,11 +110,6 @@ export default function TermsOfService() {
         </ul>
 
         <h3
-          style={{
-            fontSize: "1.25rem",
-            marginTop: "1rem",
-            marginBottom: "0.5rem",
-          }}
         >
           4.3 Free Trials
         </h3>
@@ -161,11 +120,6 @@ export default function TermsOfService() {
         </p>
 
         <h3
-          style={{
-            fontSize: "1.25rem",
-            marginTop: "1rem",
-            marginBottom: "0.5rem",
-          }}
         >
           4.4 Refunds
         </h3>
@@ -176,17 +130,12 @@ export default function TermsOfService() {
         </p>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           5. User Content
         </h2>
 
         <h3
-          style={{
-            fontSize: "1.25rem",
-            marginTop: "1rem",
-            marginBottom: "0.5rem",
-          }}
         >
           5.1 Your Content
         </h3>
@@ -198,16 +147,11 @@ export default function TermsOfService() {
         </p>
 
         <h3
-          style={{
-            fontSize: "1.25rem",
-            marginTop: "1rem",
-            marginBottom: "0.5rem",
-          }}
         >
           5.2 Prohibited Content
         </h3>
         <p>You agree NOT to submit content that:</p>
-        <ul style={{ marginLeft: "1.5rem" }}>
+        <ul>
           <li>Violates any law or regulation</li>
           <li>Infringes on intellectual property rights</li>
           <li>Contains harmful, offensive, or inappropriate material</li>
@@ -216,16 +160,16 @@ export default function TermsOfService() {
         </ul>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           6. Medical Disclaimer
         </h2>
         <p>
-          <strong style={{ color: "#d32f2f" }}>IMPORTANT:</strong> CalCut is NOT
+          <strong className="legal-alert">IMPORTANT:</strong> CalCut is NOT
           a medical device and does NOT provide medical advice, diagnosis, or
           treatment.
         </p>
-        <ul style={{ marginLeft: "1.5rem" }}>
+        <ul>
           <li>All nutrition data is estimated and may not be 100% accurate</li>
           <li>
             AI-powered food recognition is not perfect and may misidentify foods
@@ -244,12 +188,12 @@ export default function TermsOfService() {
         </ul>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           7. Acceptable Use
         </h2>
         <p>You agree NOT to:</p>
-        <ul style={{ marginLeft: "1.5rem" }}>
+        <ul>
           <li>Use the App for any illegal purpose</li>
           <li>Attempt to gain unauthorized access to our systems</li>
           <li>Reverse engineer, decompile, or disassemble the App</li>
@@ -260,8 +204,8 @@ export default function TermsOfService() {
         </ul>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           8. Intellectual Property
         </h2>
         <p>
@@ -272,8 +216,8 @@ export default function TermsOfService() {
         </p>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           9. Third-Party Services
         </h2>
         <p>
@@ -284,15 +228,15 @@ export default function TermsOfService() {
         </p>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           10. Disclaimers
         </h2>
         <p>
           THE APP IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF
           ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO:
         </p>
-        <ul style={{ marginLeft: "1.5rem" }}>
+        <ul>
           <li>
             Warranties of merchantability or fitness for a particular purpose
           </li>
@@ -302,35 +246,35 @@ export default function TermsOfService() {
         </ul>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           11. Limitation of Liability
         </h2>
         <p>
           TO THE MAXIMUM EXTENT PERMITTED BY LAW, CALCUT SHALL NOT BE LIABLE FOR
           ANY:
         </p>
-        <ul style={{ marginLeft: "1.5rem" }}>
+        <ul>
           <li>Indirect, incidental, special, or consequential damages</li>
           <li>Loss of profits, data, or business opportunities</li>
           <li>Personal injury or property damage</li>
           <li>Reliance on nutrition data or recommendations</li>
         </ul>
-        <p style={{ marginTop: "1rem" }}>
+        <p>
           OUR TOTAL LIABILITY SHALL NOT EXCEED THE AMOUNT YOU PAID FOR THE APP
           IN THE PAST 12 MONTHS, OR $100, WHICHEVER IS LESS.
         </p>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           12. Indemnification
         </h2>
         <p>
           You agree to indemnify and hold CalCut harmless from any claims,
           damages, losses, or expenses (including legal fees) arising from:
         </p>
-        <ul style={{ marginLeft: "1.5rem" }}>
+        <ul>
           <li>Your use of the App</li>
           <li>Your violation of these Terms</li>
           <li>Your violation of any third-party rights</li>
@@ -338,16 +282,13 @@ export default function TermsOfService() {
         </ul>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           13. Data Privacy
         </h2>
         <p>
           Your use of the App is also governed by our{" "}
-          <a
-            href="/privacy"
-            style={{ color: "#6366F1", textDecoration: "underline" }}
-          >
+          <a href="/privacy">
             Privacy Policy
           </a>
           , which explains how we collect, use, and protect your personal
@@ -355,8 +296,8 @@ export default function TermsOfService() {
         </p>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           14. Changes to Terms
         </h2>
         <p>
@@ -367,8 +308,8 @@ export default function TermsOfService() {
         </p>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           15. Termination
         </h2>
         <p>
@@ -376,7 +317,7 @@ export default function TermsOfService() {
           or without notice, for any violation of these Terms or for any other
           reason. Upon termination:
         </p>
-        <ul style={{ marginLeft: "1.5rem" }}>
+        <ul>
           <li>Your right to use the App immediately ceases</li>
           <li>We may delete your account and data</li>
           <li>
@@ -385,8 +326,8 @@ export default function TermsOfService() {
         </ul>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           16. Governing Law
         </h2>
         <p>
@@ -396,17 +337,12 @@ export default function TermsOfService() {
         </p>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           17. Dispute Resolution
         </h2>
 
         <h3
-          style={{
-            fontSize: "1.25rem",
-            marginTop: "1rem",
-            marginBottom: "0.5rem",
-          }}
         >
           17.1 Informal Resolution
         </h3>
@@ -416,11 +352,6 @@ export default function TermsOfService() {
         </p>
 
         <h3
-          style={{
-            fontSize: "1.25rem",
-            marginTop: "1rem",
-            marginBottom: "0.5rem",
-          }}
         >
           17.2 Arbitration (US Users)
         </h3>
@@ -431,11 +362,6 @@ export default function TermsOfService() {
         </p>
 
         <h3
-          style={{
-            fontSize: "1.25rem",
-            marginTop: "1rem",
-            marginBottom: "0.5rem",
-          }}
         >
           17.3 Class Action Waiver
         </h3>
@@ -445,8 +371,8 @@ export default function TermsOfService() {
         </p>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           18. Severability
         </h2>
         <p>
@@ -456,12 +382,12 @@ export default function TermsOfService() {
         </p>
       </section>
 
-      <section style={{ marginBottom: "2rem" }}>
-        <h2 style={{ fontSize: "1.75rem", marginBottom: "1rem" }}>
+      <section>
+        <h2>
           19. Contact Us
         </h2>
         <p>If you have questions about these Terms, please contact us:</p>
-        <ul style={{ marginLeft: "1.5rem", listStyle: "none" }}>
+        <ul>
           <li>
             <strong>Email:</strong> support@calcutapp.com
           </li>
@@ -471,11 +397,11 @@ export default function TermsOfService() {
         </ul>
       </section>
 
-      <hr style={{ margin: "3rem 0", borderColor: "#e0e0e0" }} />
+      <hr />
 
-      <p style={{ color: "#666", fontSize: "0.875rem" }}>
-        These Terms of Service are effective as of April 11, 2026.
+      <p className="legal-note">
+          These Terms of Service are effective as of April 11, 2026.
       </p>
-    </main>
+    </LegalPageShell>
   );
 }

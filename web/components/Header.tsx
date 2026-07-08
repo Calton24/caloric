@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { APP_STORE_URL } from "@/lib/constants";
+import { CalCutLogo } from "./CalCutLogo";
 
 function AppleIcon({ className }: { className?: string }) {
   return (
@@ -17,19 +19,15 @@ export function Header() {
   return (
     <header className="relative z-20">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
-        <a
-          href="#top"
+        <Link
+          href="/"
           className="group flex items-center gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/15 ring-1 ring-brand/30 transition group-hover:bg-brand/25">
-            <span className="text-sm font-bold tracking-tight text-brand-light">
-              C
-            </span>
-          </span>
+          <CalCutLogo size="md" />
           <span className="text-[17px] font-semibold tracking-tight text-white">
             CalCut
           </span>
-        </a>
+        </Link>
 
         <nav className="hidden items-center gap-8 text-sm text-white/60 md:flex">
           <a

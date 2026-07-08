@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { APP_STORE_URL } from "@/lib/constants";
+import { CalCutLogo } from "./CalCutLogo";
 
 export function Footer() {
   const year = new Date().getFullYear();
@@ -7,17 +9,15 @@ export function Footer() {
     <footer className="relative border-t border-white/8 py-12">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <div>
-          <a
-            href="#top"
+          <Link
+            href="/"
             className="inline-flex items-center gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand/15 ring-1 ring-brand/30">
-              <span className="text-xs font-bold text-brand-light">C</span>
-            </span>
+            <CalCutLogo size="sm" />
             <span className="font-semibold tracking-tight text-white">
               CalCut
             </span>
-          </a>
+          </Link>
           <p className="mt-2 text-sm text-white/40">AI Calorie Tracker</p>
         </div>
 
@@ -33,18 +33,18 @@ export function Footer() {
           >
             Download on iOS
           </a>
-          <a
+          <Link
             href="/privacy"
             className="transition hover:text-white focus-visible:outline-none focus-visible:text-white"
           >
             Privacy Policy
-          </a>
-          <a
+          </Link>
+          <Link
             href="/terms"
             className="transition hover:text-white focus-visible:outline-none focus-visible:text-white"
           >
             Terms
-          </a>
+          </Link>
         </nav>
       </div>
 
