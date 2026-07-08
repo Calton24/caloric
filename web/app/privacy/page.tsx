@@ -14,6 +14,9 @@ export default function PrivacyPolicy() {
         padding: "2rem",
         fontFamily: "system-ui, -apple-system, sans-serif",
         lineHeight: "1.6",
+        background: "#fff",
+        color: "#111",
+        minHeight: "100vh",
       }}
     >
       <h1 style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>

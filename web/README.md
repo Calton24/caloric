@@ -1,21 +1,60 @@
-# Caloric Web App
+# CalCut Web
 
-Next.js web application for Caloric, hosting legal documents and landing page.
+Production landing page and legal docs for CalCut — AI Calorie Tracker.
+
+## Stack
+
+- Next.js App Router
+- TypeScript
+- Tailwind CSS
+- Supabase (Android waitlist)
 
 ## Pages
 
-- **Home:** `/` - Landing page
-- **Privacy Policy:** `/privacy` - GDPR/CCPA compliant privacy policy
-- **Terms of Service:** `/terms` - App terms and conditions
-- **Password Reset:** `/reset` - Password reset redirect bridge
+- **Home:** `/` — marketing landing page
+- **Privacy Policy:** `/privacy`
+- **Terms of Service:** `/terms`
+- **Password Reset:** `/reset`
 
-## Development
+## Setup
 
 ```bash
+cd web
+cp .env.example .env.local
+npm install
 npm run dev
 ```
 
-Visit: http://localhost:3000
+Visit http://localhost:3000
+
+### Environment variables
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key |
+
+If you already use the mobile app, copy from repo root `.env`:
+
+```bash
+grep -E '^EXPO_PUBLIC_SUPABASE_(URL|ANON_KEY)=' .env \
+  | sed 's/^EXPO_PUBLIC_/NEXT_PUBLIC_/' > web/.env.local
+```
+
+Restart the dev server after creating or changing `.env.local`.
+
+### Supabase waitlist table
+
+Apply the migration in `supabase/migrations/20260708120000_create_android_waitlist.sql` (or the copy under `web/supabase/migrations/`):
+
+```bash
+# From repo root, with Supabase CLI linked
+supabase db push
+```
+
+Or paste the SQL into the Supabase SQL Editor.
+
+The table `android_waitlist` allows public inserts (RLS) and blocks public reads. Duplicate emails return Postgres `23505`, which the form surfaces as “You’re already on the waitlist.”
 
 ## Build
 
@@ -26,46 +65,12 @@ npm start
 
 ## Deploy to Vercel
 
+1. Set Root Directory to `web` (or deploy this folder).
+2. Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+3. Deploy:
+
 ```bash
 vercel --prod
 ```
 
-Current deployment: https://caloric-sage.vercel.app
-
-## Legal Pages
-
-The privacy policy and terms of service are linked from the mobile app's Settings screen.
-
-**URLs:**
-
-- Privacy: https://caloric-sage.vercel.app/privacy
-- Terms: https://caloric-sage.vercel.app/terms
-
-**Last Updated:** April 11, 2026
-
-### Updating Legal Documents
-
-1. Edit `app/privacy/page.tsx` or `app/terms/page.tsx`
-2. Update the "Last Updated" date
-3. Deploy to Vercel: `vercel --prod`
-4. Legal changes take effect immediately
-
-### Compliance Notes
-
-- **GDPR (EU):** Privacy policy includes data rights, deletion, portability
-- **CCPA (California):** Privacy policy includes opt-out and data access rights
-- **App Store:** Both documents are required for app submission
-- **Google Play:** Both documents are required in Data Safety form
-
-## Custom Domain (Optional)
-
-To use a custom domain (e.g., caloric.app):
-
-1. Purchase domain
-2. Add domain in Vercel dashboard: Settings → Domains
-3. Update DNS records as instructed
-4. Update mobile app URLs in `app/settings.tsx`
-
-## Environment Variables
-
-No environment variables required for legal pages.
+App Store CTA: https://apps.apple.com/gb/app/calcut-ai-calorie-tracker/id6761738426
